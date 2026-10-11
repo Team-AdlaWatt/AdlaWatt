@@ -1861,7 +1861,7 @@ export default function ChartCard({
               <Ionicons
                 name={weatherData.icon}
                 size={36}
-                color={colors.iconAccent}
+                color={colors.primary}
               />
 
             </View>
@@ -2010,7 +2010,7 @@ export default function ChartCard({
                           : "rainy-outline"
                       }
                       size={24}
-                      color={colors.iconAccent}
+                      color={colors.primary}
                     />
 
                     <AppText
@@ -3237,7 +3237,7 @@ const getStyles = (colors: AppColors) =>
     backgroundColor:
       colors.glass.white,
     borderWidth: 2,
-    borderColor: colors.secondary,
+    borderColor: colors.primary,
     borderRadius: 16,
     paddingHorizontal: 20,
     paddingVertical: 12,
@@ -3298,7 +3298,7 @@ const getStyles = (colors: AppColors) =>
   },
 
   weatherForecastRowItemPeak: {
-    borderColor: colors.secondary,
+    borderColor: colors.primary,
   },
 
   weatherForecastRowItemRainy: {
