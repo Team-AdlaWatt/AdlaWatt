@@ -10,10 +10,8 @@ import {
   AccessibilityInfo,
   Animated,
   Easing,
-  ScrollView,
   StyleSheet,
   View,
-  useWindowDimensions,
 } from "react-native";
 
 import Svg, {
@@ -247,11 +245,6 @@ export default function ChartCard({
   forecastLoading = false,
   forecastError = "",
 }: ChartCardProps) {
-
-  // Live screen width for the forecast exact-3 fit. Read
-  // unconditionally so hook order stays stable across the
-  // per-type branches below.
-  const { width: screenWidth } = useWindowDimensions();
 
   const colors = useAppColors();
 
@@ -1701,30 +1694,54 @@ export default function ChartCard({
       );
 
     // ========================================================
-    // EXACT-3 FIT (WITH ROUNDING SLACK)
+    // PEAK-SUNLIGHT UI PHASE (mock window)
     //
-    // Cell width is computed from the live screen width so
-    // exactly three boxes (Today + next two days) fill the
-    // strip on every screen: strip = screen - 52 (screen and
-    // row padding), minus two 8px gaps, divided by three.
-    // The old zero-slack formula filled the strip to the
-    // fractional pixel, so sub-pixel floor rounding shaved
-    // ~1px and clipped the third box. The extra -4 and the
-    // floor() below are the safety margin: do not remove.
-    // Clamped so small phones stay usable and tablets stop
-    // growing, leaving the rest to the horizontal scroll.
+    // UI-first: the vertical 4-row card below renders a
+    // binary PEAK / RAINY capsule per day. isPeak maps from
+    // the existing solarOutlook (High => Peak) and the peak
+    // window label is a fixed placeholder. The data phase
+    // replaces PEAK_WINDOW_LABEL with findPeakWindow()
+    // (clearest 2-hr block in the 09:00-15:00 local window,
+    // using dt + city.timezone) with no layout rework.
     // ========================================================
 
-    const forecastCellWidth = Math.min(
-      104,
-      Math.max(
-        80,
-        Math.floor((screenWidth - 72) / 3)
-      )
-    );
+    const PEAK_WINDOW_LABEL = "12PM–2PM";
 
-    const forecastSnapInterval =
-      forecastCellWidth + 8;
+    // Real-time device date for the Today card. Recomputed
+    // on every render, so each weather refresh (10-min
+    // interval + foreground resume in dashboard/index.tsx)
+    // paints the current weekday/date, including midnight
+    // rollover while the app is open.
+    const todayLabel = formatForecastDay(new Date());
+
+    // Binary peak derivation (UI phase): High => Peak,
+    // anything else => Not peak (rainy cell). The data
+    // phase replaces this with the weighted sunScore +
+    // rain rule with no layout change.
+    const isPeakDay = (
+      solarOutlook: string,
+    ): boolean => solarOutlook === "High";
+
+    // Peak-day summary for the footer line under the
+    // location row. Counts binary Peak days across the
+    // same 4 rows rendered above.
+    const peakDays: string[] = forecast
+      ? forecast.upcoming
+          .slice(0, 4)
+          .filter((day) =>
+            isPeakDay(day.solarOutlook),
+          )
+          .map((day) => day.weekday)
+      : [];
+
+    const peakSummary: string =
+      peakDays.length === 0
+        ? formatBestSunSummary(null)
+        : peakDays.length === 1
+          ? formatBestSunSummary(
+              peakDays[0],
+            )
+          : `${peakDays.length} peak days: ${peakDays.join(", ")}. Good day to charge fully.`;
 
     return (
       <View
@@ -1770,10 +1787,12 @@ export default function ChartCard({
         </View>
 
         {/* ==================================================
-            5-DAY FORECAST
-            Pinned live Today box + scrolling upcoming days.
-            Today lives here (not in a separate display above),
-            so the strip starts with the current conditions.
+            TODAY (LIVE) + NEXT 4 DAYS PREDICTION
+            Today card: real-time device date (left), live
+            condition icon from the OWM description (center),
+            live temp + classification (right). Below it the
+            vertical 4-row peak-sunlight list. Everything
+            stays inside this Weather Monitoring card.
             ================================================== */}
 
         <View
@@ -1800,64 +1819,106 @@ export default function ChartCard({
         >
 
           <View
-            style={[
-              styles.weatherForecastTodayBox,
-              { width: forecastCellWidth },
-            ]}
+            style={
+              styles.weatherTodayCard
+            }
+            accessibilityRole="none"
+            accessibilityLabel={`Today, ${todayLabel.weekday} ${todayLabel.date}, ${loading ? "loading weather" : `${weatherData.value}, ${weatherData.badge ?? ""}`}`}
           >
 
-            <AppText
-              variant="caption"
+            <View
               style={
-                styles.weatherForecastWeekday
+                styles.weatherTodayLeft
               }
             >
-              {
-                formatForecastDay(
-                  new Date()
-                ).weekday
-              }
-            </AppText>
 
-            <AppText
-              variant="caption"
+              <AppText
+                variant="caption"
+                style={
+                  styles.weatherForecastWeekday
+                }
+              >
+                {todayLabel.weekday}
+              </AppText>
+
+              <AppText
+                variant="caption"
+                style={
+                  styles.weatherForecastDate
+                }
+              >
+                {todayLabel.date}
+              </AppText>
+
+            </View>
+
+            <View
               style={
-                styles.weatherForecastDate
+                styles.weatherTodayCenter
               }
             >
-              {
-                formatForecastDay(
-                  new Date()
-                ).date
-              }
-            </AppText>
 
-            <Ionicons
-              name={weatherData.icon}
-              size={26}
-              color={colors.iconAccent}
-            />
+              <Ionicons
+                name={weatherData.icon}
+                size={30}
+                color={colors.iconAccent}
+              />
 
-            <AppText
-              variant="caption"
+            </View>
+
+            <View
               style={
-                styles.weatherForecastTemp
+                styles.weatherTodayRight
               }
             >
-              {loading ? "—" : weatherData.value}
-            </AppText>
 
-            <AppText
-              variant="caption"
-              numberOfLines={1}
-              style={
-                styles.weatherForecastClass
-              }
-            >
-              {weatherData.badge ?? ""}
-            </AppText>
+              <AppText
+                variant="caption"
+                style={
+                  styles.weatherTodayTemp
+                }
+              >
+                {loading ? "—" : weatherData.value}
+              </AppText>
+
+              <AppText
+                variant="caption"
+                numberOfLines={1}
+                style={
+                  styles.weatherForecastClass
+                }
+              >
+                {weatherData.badge ?? ""}
+              </AppText>
+
+            </View>
 
           </View>
+
+        </View>
+
+        <View
+          style={
+            styles.weatherForecastTagRow
+          }
+        >
+
+          <AppText
+            variant="caption"
+            style={
+              styles.weatherForecastTag
+            }
+          >
+            Next 4 days prediction
+          </AppText>
+
+        </View>
+
+        <View
+          style={
+            styles.weatherForecastList
+          }
+        >
 
           {forecastError ? (
             <View
@@ -1883,218 +1944,111 @@ export default function ChartCard({
               </AppText>
 
             </View>
+          ) : forecastLoading || !forecast ? (
+            [0, 1, 2, 3].map((key) => (
+              <View
+                key={`skeleton-${key}`}
+                style={
+                  styles.weatherForecastRowItem
+                }
+              >
+
+                <AppText
+                  variant="caption"
+                  style={
+                    styles.weatherForecastRowDay
+                  }
+                >
+                  —
+                </AppText>
+
+                <AppText
+                  variant="caption"
+                  style={
+                    styles.weatherForecastRowWindow
+                  }
+                >
+                  —
+                </AppText>
+
+              </View>
+            ))
           ) : (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={
-                false
-              }
-              snapToInterval={forecastSnapInterval}
-              decelerationRate="fast"
-              accessibilityRole="none"
-              accessibilityLabel="Upcoming days forecast"
-              style={
-                styles.weatherForecastScroll
-              }
-              contentContainerStyle={
-                styles.weatherForecastScrollContent
-              }
-            >
+            forecast.upcoming
+              .slice(0, 4)
+              .map((day) => {
+                const peak = isPeakDay(
+                  day.solarOutlook,
+                );
 
-              {forecastLoading || !forecast
-                ? [0, 1, 2, 3].map((key) => (
+                return (
+                  <View
+                    key={day.date}
+                    style={[
+                      styles.weatherForecastRowItem,
+                      peak
+                        ? styles.weatherForecastRowItemPeak
+                        : styles.weatherForecastRowItemRainy,
+                    ]}
+                    accessibilityRole="none"
+                    accessibilityLabel={`${day.weekday}, ${peak ? "Peak sun" : "Rainy"}, ${PEAK_WINDOW_LABEL}`}
+                  >
+
+                    <AppText
+                      variant="caption"
+                      style={
+                        styles.weatherForecastRowDay
+                      }
+                    >
+                      {day.weekday}
+                    </AppText>
+
+                    <Ionicons
+                      name={
+                        peak
+                          ? "sunny-outline"
+                          : "rainy-outline"
+                      }
+                      size={24}
+                      color={colors.iconAccent}
+                    />
+
+                    <AppText
+                      variant="caption"
+                      numberOfLines={1}
+                      style={
+                        styles.weatherForecastRowWindow
+                      }
+                    >
+                      {PEAK_WINDOW_LABEL}
+                    </AppText>
+
                     <View
-                      key={`skeleton-${key}`}
                       style={[
-                        styles.weatherForecastCell,
-                        { width: forecastCellWidth },
+                        styles.weatherForecastPill,
+                        peak
+                          ? styles.weatherForecastPillHigh
+                          : styles.weatherForecastPillRainy,
                       ]}
                     >
 
                       <AppText
                         variant="caption"
-                        style={
-                          styles.weatherForecastTemp
-                        }
-                      >
-                        —
-                      </AppText>
-
-                    </View>
-                  ))
-                : forecast.upcoming.map((day) => (
-                    <View
-                      key={day.date}
-                      style={[
-                        styles.weatherForecastCell,
-                        { width: forecastCellWidth },
-                      ]}
-                    >
-
-                      <AppText
-                        variant="caption"
-                        style={
-                          styles.weatherForecastWeekday
-                        }
-                      >
-                        {day.weekday}
-                      </AppText>
-
-                      <AppText
-                        variant="caption"
-                        style={
-                          styles.weatherForecastDate
-                        }
-                      >
-                        {day.dateLabel}
-                      </AppText>
-
-                      <Ionicons
-                        name={
-                          day.peakIcon as keyof typeof Ionicons.glyphMap
-                        }
-                        size={26}
-                        color={colors.iconAccent}
-                      />
-
-                      <AppText
-                        variant="caption"
-                        style={
-                          styles.weatherForecastTemp
-                        }
-                      >
-                        {`${day.tempMax}°`}
-
-                        <AppText
-                          style={
-                            styles.weatherForecastTempMin
-                          }
-                        >
-                          {`/${day.tempMin}°`}
-                        </AppText>
-                      </AppText>
-
-                      <View
-                        style={
-                          styles.weatherForecastPopRow
-                        }
-                      >
-
-                        <Ionicons
-                          name="water-outline"
-                          size={11}
-                          color={
-                            colors.accentContent
-                          }
-                        />
-
-                        <AppText
-                          variant="caption"
-                          style={
-                            styles.weatherForecastPop
-                          }
-                        >
-                          {`${Math.round(
-                            day.popMax * 100
-                          )}%`}
-                        </AppText>
-
-                      </View>
-
-                      <AppText
-                        variant="caption"
-                        numberOfLines={1}
-                        style={
-                          styles.weatherForecastClass
-                        }
-                      >
-                        {day.peakDescription}
-                      </AppText>
-
-                      <View
                         style={[
-                          styles.weatherForecastPill,
-                          day.solarOutlook ===
-                          "High"
-                            ? styles.weatherForecastPillHigh
-                            : day.solarOutlook ===
-                                "Moderate"
-                              ? styles.weatherForecastPillModerate
-                              : styles.weatherForecastPillLow,
+                          styles.weatherForecastPillText,
+                          peak
+                            ? styles.weatherForecastPillTextHigh
+                            : styles.weatherForecastPillTextRainy,
                         ]}
                       >
-
-                        <AppText
-                          variant="caption"
-                          style={[
-                            styles.weatherForecastPillText,
-                            day.solarOutlook ===
-                            "High"
-                              ? styles.weatherForecastPillTextHigh
-                              : day.solarOutlook ===
-                                  "Moderate"
-                                ? styles.weatherForecastPillTextModerate
-                                : styles.weatherForecastPillTextLow,
-                          ]}
-                        >
-                          {day.solarOutlook}
-                        </AppText>
-
-                      </View>
-
-                      {day.tempFlag ? (
-                        <View
-                          style={[
-                            styles.weatherForecastFlag,
-                            day.tempFlag === "cold"
-                              ? styles.weatherForecastFlagCool
-                              : styles.weatherForecastFlagHot,
-                          ]}
-                        >
-
-                          <AppText
-                            variant="caption"
-                            style={
-                              day.tempFlag ===
-                              "cold"
-                                ? styles.weatherForecastFlagCoolText
-                                : styles.weatherForecastFlagHotText
-                            }
-                          >
-                            {day.tempFlag === "both"
-                              ? "Hot & Cool"
-                              : day.tempFlag ===
-                                  "hot"
-                                ? "Hot"
-                                : "Cool"}
-                          </AppText>
-
-                        </View>
-                      ) : null}
-
-                      {forecast.bestSunDay ===
-                      day.weekday ? (
-                        <AppText
-                          variant="caption"
-                          style={
-                            styles.weatherForecastBest
-                          }
-                        >
-                          <AppText
-                            style={
-                              styles.weatherForecastBestStar
-                            }
-                          >
-                            ★
-                          </AppText>
-                          {" Best sun"}
-                        </AppText>
-                      ) : null}
+                        {peak ? "PEAK" : "RAINY"}
+                      </AppText>
 
                     </View>
-                  ))}
 
-            </ScrollView>
+                  </View>
+                );
+              })
           )}
 
         </View>
@@ -2147,9 +2101,7 @@ export default function ChartCard({
                 styles.weatherForecastSummary
               }
             >
-              {formatBestSunSummary(
-                forecast.bestSunDay
-              )}
+              {peakSummary}
             </AppText>
           ) : null}
 
@@ -3245,11 +3197,10 @@ const getStyles = (colors: AppColors) =>
 
   weatherForecastRow: {
     width: "100%",
-    flexDirection: "row",
+    flexDirection: "column",
     alignItems: "stretch",
     paddingHorizontal: 10,
-    paddingVertical: 8,
-    columnGap: 8,
+    paddingTop: 8,
   },
 
   weatherForecastTagRow: {
@@ -3264,6 +3215,119 @@ const getStyles = (colors: AppColors) =>
     color: colors.accentContent,
     fontSize: 12,
     fontWeight: "700",
+  },
+
+  // ==========================================================
+  // TODAY CARD (3-ZONE ROW) + VERTICAL 4-ROW PEAK LIST
+  //
+  // Today: date (left) / live condition icon (center) /
+  // live temp + classification (right). Rows: weekday /
+  // icon / peak window / PEAK-or-RAINY capsule. Spacing and
+  // type follow UI-STANDARDS (4/8 grid, 16 card padding,
+  // 12/14/16-20 type, 56 list rows, radius 12-16).
+  // ==========================================================
+
+  weatherTodayCard: {
+    width: "100%",
+    minHeight: 72,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor:
+      colors.glass.white,
+    borderWidth: 2,
+    borderColor: colors.cardBorder,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    columnGap: 8,
+  },
+
+  weatherTodayLeft: {
+    flexShrink: 0,
+    minWidth: 64,
+    alignItems: "flex-start",
+    rowGap: 2,
+  },
+
+  weatherTodayCenter: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  weatherTodayRight: {
+    flexShrink: 0,
+    minWidth: 72,
+    alignItems: "flex-end",
+    rowGap: 2,
+  },
+
+  weatherTodayTemp: {
+    color: colors.text,
+    fontSize: 20,
+    fontWeight: "700",
+    textAlign: "right",
+    lineHeight: 24,
+    fontVariant: ["tabular-nums"],
+  },
+
+  weatherForecastList: {
+    width: "100%",
+    flexDirection: "column",
+    alignItems: "stretch",
+    paddingHorizontal: 10,
+    paddingBottom: 8,
+    rowGap: 8,
+  },
+
+  weatherForecastRowItem: {
+    width: "100%",
+    minHeight: 56,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor:
+      colors.glass.white,
+    borderWidth: 2,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    columnGap: 8,
+  },
+
+  weatherForecastRowItemPeak: {
+    borderColor: colors.secondary,
+  },
+
+  weatherForecastRowItemRainy: {
+    borderColor: colors.cardBorder,
+  },
+
+  weatherForecastRowDay: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: "700",
+    width: 44,
+    lineHeight: 20,
+  },
+
+  weatherForecastRowWindow: {
+    flex: 1,
+    flexShrink: 1,
+    color: colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 16,
+    fontVariant: ["tabular-nums"],
+  },
+
+  weatherForecastPillRainy: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+
+  weatherForecastPillTextRainy: {
+    color: colors.textSecondary,
   },
 
   weatherForecastTodayBox: {
