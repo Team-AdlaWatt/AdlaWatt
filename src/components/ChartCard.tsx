@@ -2025,20 +2025,18 @@ export default function ChartCard({
 
                     <View
                       style={[
-                        styles.weatherForecastPill,
+                        styles.statusBadge,
                         peak
-                          ? styles.weatherForecastPillHigh
-                          : styles.weatherForecastPillRainy,
+                          ? styles.normalBadge
+                          : styles.lowBadge,
                       ]}
                     >
 
                       <AppText
                         variant="caption"
                         style={[
-                          styles.weatherForecastPillText,
-                          peak
-                            ? styles.weatherForecastPillTextHigh
-                            : styles.weatherForecastPillTextRainy,
+                          styles.statusBadgeText,
+                          styles.lightBadgeText,
                         ]}
                       >
                         {peak ? "PEAK" : "RAINY"}
