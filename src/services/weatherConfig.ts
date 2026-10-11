@@ -414,3 +414,68 @@ export function formatBestSunSummary(
 
   return summaries.good.replace("{day}", day);
 }
+
+// ============================================================
+// DATA AGE / STALENESS / REFRESH GUARD
+//
+// Pure helpers for honest age display ("Updated 12m ago"),
+// the 30-minute stale rule for cached readings, and the
+// 2-minute tap-to-refresh block. Thresholds come from
+// weather.json (cache.staleMinutes, timing.minRefreshMs).
+// ============================================================
+
+export function formatDataAge(
+  observedAtMs: number,
+  nowMs: number = Date.now()
+): string {
+  const minutes = Math.max(
+    0,
+    Math.round((nowMs - observedAtMs) / 60000)
+  );
+
+  if (minutes < 1) {
+    return "just now";
+  }
+
+  if (minutes < 60) {
+    return `${minutes}m ago`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+
+  return `${hours}h ago`;
+}
+
+export function isStaleReading(
+  observedAtMs: number | null | undefined,
+  nowMs: number = Date.now()
+): boolean {
+  if (
+    typeof observedAtMs !== "number" ||
+    !Number.isFinite(observedAtMs)
+  ) {
+    return true;
+  }
+
+  return (
+    nowMs - observedAtMs >
+    weatherJson.cache.staleMinutes * 60000
+  );
+}
+
+export function canRefreshToday(
+  lastAttemptMs: number | null,
+  nowMs: number = Date.now()
+): boolean {
+  if (
+    typeof lastAttemptMs !== "number" ||
+    !Number.isFinite(lastAttemptMs)
+  ) {
+    return true;
+  }
+
+  return (
+    nowMs - lastAttemptMs >=
+    weatherJson.timing.minRefreshMs
+  );
+}

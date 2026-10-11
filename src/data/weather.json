@@ -7,7 +7,8 @@
     "timeoutMs": 8000
   },
   "timing": {
-    "autoRefreshMs": 600000
+    "autoRefreshMs": 600000,
+    "minRefreshMs": 120000
   },
   "location": {
     "fallbackLat": 8.37,
@@ -17,7 +18,8 @@
     "lastKnownMaxAgeMs": 600000
   },
   "cache": {
-    "todayMinutes": 15
+    "todayMinutes": 15,
+    "staleMinutes": 30
   },
   "thresholds": {
     "hotC": 30,

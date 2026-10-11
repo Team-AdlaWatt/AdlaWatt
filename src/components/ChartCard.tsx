@@ -10,6 +10,7 @@ import {
   AccessibilityInfo,
   Animated,
   Easing,
+  Pressable,
   StyleSheet,
   View,
 } from "react-native";
@@ -34,7 +35,9 @@ import { MonitoringData } from "@/services/monitoringService";
 import {
   formatBestSunSummary,
   formatClockTime,
+  formatDataAge,
   formatForecastDay,
+  isStaleReading,
   resolveCondition,
   type WeatherSeverity,
 } from "@/services/weatherConfig";
@@ -69,6 +72,8 @@ interface WeatherData {
   temperature: number;
   description: string;
   mainGroup?: string;
+  observedAt?: number;
+  isFallback?: boolean;
 }
 
 type NonBatteryChartType =
@@ -99,6 +104,10 @@ interface ChartCardProps {
   forecast?: ForecastResult | null;
   forecastLoading?: boolean;
   forecastError?: string;
+  // Today-card tap-to-refresh (weather type only). Absent =
+  // display-only, preserving every other usage.
+  onRefreshToday?: () => void;
+  todayRefreshing?: boolean;
 }
 
 // ============================================================
@@ -245,6 +254,8 @@ export default function ChartCard({
   forecast = null,
   forecastLoading = false,
   forecastError = "",
+  onRefreshToday,
+  todayRefreshing = false,
 }: ChartCardProps) {
 
   const colors = useAppColors();
@@ -1673,6 +1684,35 @@ export default function ChartCard({
             )
           : `${peakDays.length} peak days: ${peakDays.join(", ")}. Good day to charge fully.`;
 
+    // Today honesty: age from OWM `dt`, stale past the
+    // configured window, and the fallback-location label.
+    // Age renders at paint time and refreshes with every
+    // weather cycle (interval, foreground, tap).
+    const todayObservedAt =
+      weather?.observedAt;
+
+    // Dim only when stale data is on screen — never the
+    // first-load empty state.
+    const todayStale =
+      !!weather &&
+      isStaleReading(todayObservedAt);
+
+    const todayAgeLabel =
+      typeof todayObservedAt === "number"
+        ? formatDataAge(todayObservedAt)
+        : null;
+
+    const todayLocationLabel =
+      weather?.isFallback
+        ? `${weatherData.label} (default location)`
+        : weatherData.label;
+
+    const canTapRefresh =
+      typeof onRefreshToday === "function";
+
+    const todayBusy =
+      loading || todayRefreshing;
+
     return (
       <View
         style={[
@@ -1748,12 +1788,35 @@ export default function ChartCard({
           }
         >
 
-          <View
-            style={
-              styles.weatherTodayCard
+          <Pressable
+            style={[
+              styles.weatherTodayCard,
+              todayStale &&
+                styles.weatherTodayStale,
+            ]}
+            accessibilityRole={
+              canTapRefresh
+                ? "button"
+                : "none"
             }
-            accessibilityRole="none"
-            accessibilityLabel={`Today, ${todayLabel.weekday} ${todayLabel.date}, ${loading ? "loading weather" : `${weatherData.value}, ${weatherData.badge ?? ""}`}`}
+            accessibilityLabel={`Today, ${todayLabel.weekday} ${todayLabel.date}, ${todayBusy ? "updating weather" : `${weatherData.value}, ${weatherData.badge ?? ""}`}${canTapRefresh ? ", tap to refresh" : ""}`}
+            accessibilityState={
+              canTapRefresh
+                ? {
+                    busy: todayBusy,
+                    disabled:
+                      todayBusy,
+                  }
+                : undefined
+            }
+            onPress={
+              canTapRefresh
+                ? onRefreshToday
+                : undefined
+            }
+            disabled={
+              !canTapRefresh || todayBusy
+            }
           >
 
             <View
@@ -1808,7 +1871,9 @@ export default function ChartCard({
                   styles.weatherTodayTemp
                 }
               >
-                {loading ? "—" : weatherData.value}
+                {todayBusy
+                  ? "…"
+                  : weatherData.value}
               </AppText>
 
               <AppText
@@ -1823,7 +1888,7 @@ export default function ChartCard({
 
             </View>
 
-          </View>
+          </Pressable>
 
         </View>
 
@@ -2009,18 +2074,30 @@ export default function ChartCard({
                 styles.weatherForecastLocation
               }
             >
-              {`${weatherData.label} • Updated ${
-                forecast
+              {`${todayLocationLabel} • Updated ${
+                todayAgeLabel ??
+                (forecast
                   ? formatClockTime(
                       new Date(
                         forecast.fetchedAt
                       )
                     )
-                  : "—"
+                  : "—")
               }`}
             </AppText>
 
           </View>
+
+          {todayStale && weather ? (
+            <AppText
+              variant="caption"
+              style={
+                styles.weatherForecastStale
+              }
+            >
+              {`Offline — last update ${todayAgeLabel ?? "unknown"}`}
+            </AppText>
+          ) : null}
 
           {forecast && !forecastError ? (
             <AppText
@@ -3180,6 +3257,18 @@ const getStyles = (colors: AppColors) =>
     textAlign: "center",
     lineHeight: 28,
     fontVariant: ["tabular-nums"],
+  },
+
+  // Stale-reading treatment: dimmed Today card + offline
+  // caption. Colors stay theme-driven for dark mode.
+  weatherTodayStale: {
+    opacity: 0.6,
+  },
+
+  weatherForecastStale: {
+    color: colors.errorDark,
+    fontSize: 12,
+    fontWeight: "600",
   },
 
   weatherForecastList: {

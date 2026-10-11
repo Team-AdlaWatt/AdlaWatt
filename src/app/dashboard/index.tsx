@@ -39,6 +39,8 @@ import {
   getForecast,
 } from "@/services/forecast";
 
+import { canRefreshToday } from "@/services/weatherConfig";
+
 import {
   type Coordinates,
   type WeatherData,
@@ -156,6 +158,18 @@ export default function DashboardScreen() {
   const [weatherLoading, setWeatherLoading] =
     useState(true);
 
+  // Manual Today-card refresh state: busy flag for the
+  // card plus an in-flight guard so tap storms collapse
+  // into one fetch. lastFetchRef stamps every attempt for
+  // the 2-minute tap block and the foreground age gate.
+  const [todayRefreshing, setTodayRefreshing] =
+    useState(false);
+
+  const todayInflightRef = useRef(false);
+
+  const lastFetchRef =
+    useRef<number | null>(null);
+
   const [forecast, setForecast] =
     useState<ForecastResult | null>(null);
 
@@ -214,11 +228,45 @@ export default function DashboardScreen() {
         setWeather(null);
       }
     } finally {
+      lastFetchRef.current = Date.now();
+
       if (screenMounted.current) {
         setWeatherLoading(false);
       }
     }
   }, []);
+
+  // ==========================================================
+  // MANUAL TODAY REFRESH (tap the Today card)
+  //
+  // Blocked within 2 minutes of the last attempt (OWM model
+  // data will not have changed) and while a fetch is already
+  // in flight, so tap storms collapse into one request.
+  // ==========================================================
+
+  const refreshToday = useCallback(async () => {
+    if (
+      !screenMounted.current ||
+      todayInflightRef.current ||
+      !canRefreshToday(lastFetchRef.current)
+    ) {
+      return;
+    }
+
+    todayInflightRef.current = true;
+
+    setTodayRefreshing(true);
+
+    try {
+      await loadWeather();
+    } finally {
+      todayInflightRef.current = false;
+
+      if (screenMounted.current) {
+        setTodayRefreshing(false);
+      }
+    }
+  }, [loadWeather]);
 
   // ==========================================================
   // LOAD 5-DAY FORECAST
@@ -308,12 +356,24 @@ export default function DashboardScreen() {
 
     // Refetch when the app returns to the foreground so a
     // unit left open (or backgrounded past the interval)
-    // repaints without waiting for the next tick.
+    // repaints without waiting for the next tick. Skipped
+    // when the last fetch is fresher than one interval —
+    // avoids useless calls on quick app switches.
     const foregroundSub =
       AppState.addEventListener(
         "change",
         (state) => {
-          if (state === "active") {
+          if (state !== "active") {
+            return;
+          }
+
+          const last = lastFetchRef.current;
+
+          if (
+            last === null ||
+            Date.now() - last >
+              WEATHER_REFRESH_INTERVAL_MS
+          ) {
             loadWeather();
 
             loadForecast();
@@ -655,6 +715,8 @@ export default function DashboardScreen() {
                 forecast={forecast}
                 forecastLoading={forecastLoading}
                 forecastError={forecastError}
+                onRefreshToday={refreshToday}
+                todayRefreshing={todayRefreshing}
               />
             </View>
           </View>

@@ -1,7 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Location from "expo-location";
 
-import { resolveCondition } from "@/services/weatherConfig";
+import {
+  canRefreshToday,
+  formatDataAge,
+  isStaleReading,
+  resolveCondition,
+} from "@/services/weatherConfig";
 import {
   TODAY_CACHE_KEY,
   getWeather,
@@ -29,6 +34,7 @@ const mockFetch = jest.fn();
 const owmOk = (
   overrides: Record<string, unknown> = {},
 ) => ({
+  dt: 1729000000,
   main: { temp: 32.4 },
   weather: [
     {
@@ -192,7 +198,7 @@ describe("getWeather coordinates", () => {
       json: async () => owmOk(),
     });
 
-    await getWeather();
+    const data = await getWeather();
 
     expect(
       mockLocation.getCurrentPositionAsync,
@@ -204,6 +210,33 @@ describe("getWeather coordinates", () => {
 
     expect(url).toContain("lat=8.37");
     expect(url).toContain("lon=124.87");
+    expect(data.isFallback).toBe(true);
+  });
+
+  test("granted fix carries no fallback flag", async () => {
+    grantLocation();
+
+    mockLocation.getLastKnownPositionAsync.mockResolvedValue(
+      null,
+    );
+
+    mockLocation.getCurrentPositionAsync.mockResolvedValue(
+      {
+        coords: {
+          latitude: 8.1,
+          longitude: 125.1,
+        },
+      },
+    );
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => owmOk(),
+    });
+
+    const data = await getWeather();
+
+    expect(data.isFallback).toBeUndefined();
   });
 });
 
@@ -273,5 +306,121 @@ describe("getWeather cache", () => {
     await expect(
       getWeather(),
     ).rejects.toThrow();
+  });
+});
+
+// ============================================================
+// OBSERVED-AT AGE
+// ============================================================
+
+describe("observedAt age", () => {
+  test("owm dt becomes the observation time", async () => {
+    mockLocation.requestForegroundPermissionsAsync.mockResolvedValue(
+      { status: "denied" },
+    );
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => owmOk(),
+    });
+
+    const data = await getWeather();
+
+    expect(data.observedAt).toBe(
+      1729000000 * 1000,
+    );
+  });
+
+  test("missing dt falls back to the fetch time", async () => {
+    mockLocation.requestForegroundPermissionsAsync.mockResolvedValue(
+      { status: "denied" },
+    );
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () =>
+        owmOk({ dt: undefined }),
+    });
+
+    const before = Date.now();
+    const data = await getWeather();
+
+    expect(
+      typeof data.observedAt,
+    ).toBe("number");
+
+    expect(data.observedAt ?? 0).toBeGreaterThanOrEqual(
+      before,
+    );
+  });
+});
+
+// ============================================================
+// AGE LABEL / STALE RULE / REFRESH GUARD
+// ============================================================
+
+describe("formatDataAge", () => {
+  const now = 1_729_000_000_000;
+
+  test("just now under a minute", () => {
+    expect(
+      formatDataAge(now - 20_000, now),
+    ).toBe("just now");
+  });
+
+  test("minutes under an hour", () => {
+    expect(
+      formatDataAge(now - 12 * 60000, now),
+    ).toBe("12m ago");
+  });
+
+  test("hours beyond", () => {
+    expect(
+      formatDataAge(now - 125 * 60000, now),
+    ).toBe("2h ago");
+  });
+});
+
+describe("isStaleReading", () => {
+  const now = 1_729_000_000_000;
+
+  test("fresh reading is not stale", () => {
+    expect(
+      isStaleReading(now - 12 * 60000, now),
+    ).toBe(false);
+  });
+
+  test("reading past 30 minutes is stale", () => {
+    expect(
+      isStaleReading(now - 45 * 60000, now),
+    ).toBe(true);
+  });
+
+  test("missing timestamp counts as stale", () => {
+    expect(
+      isStaleReading(undefined, now),
+    ).toBe(true);
+  });
+});
+
+describe("canRefreshToday", () => {
+  const now = 1_729_000_000_000;
+
+  test("never attempted allows refresh", () => {
+    expect(
+      canRefreshToday(null, now),
+    ).toBe(true);
+  });
+
+  test("recent attempt blocks refresh", () => {
+    expect(
+      canRefreshToday(now - 60_000, now),
+    ).toBe(false);
+  });
+
+  test("old attempt allows refresh", () => {
+    expect(
+      canRefreshToday(now - 5 * 60000, now),
+    ).toBe(true);
   });
 });

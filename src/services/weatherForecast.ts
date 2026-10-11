@@ -52,6 +52,9 @@ const REQUEST_TIMEOUT_MS = weatherJson.api.timeoutMs;
 export interface Coordinates {
   lat: number;
   lon: number;
+  // True when the household fallback cell stands in for a
+  // denied GPS fix (rendered as a default-location label).
+  isFallback?: boolean;
 }
 
 export interface WeatherData {
@@ -62,6 +65,12 @@ export interface WeatherData {
   // for icon/severity logic. Display copy still uses
   // `description`; absent on pre-cache payloads.
   mainGroup?: string;
+  // OWM `dt` (ms): when the reading was made — the truthful
+  // basis for "Updated Xm ago". Absent on legacy payloads.
+  observedAt?: number;
+  // True when the reading covers the fallback cell rather
+  // than the user's own fix.
+  isFallback?: boolean;
 }
 
 export type WeatherErrorCode =
@@ -139,7 +148,10 @@ async function getCoordinates(): Promise<Coordinates> {
       "Location denied — using Manolo Fortich fallback.",
     );
 
-    return fallbackCoordinates();
+    return {
+      ...fallbackCoordinates(),
+      isFallback: true,
+    };
   }
 
   const servicesEnabled =
@@ -298,6 +310,7 @@ async function fetchCurrentWeather(
 // ============================================================
 
 interface OpenWeatherCurrentResponse {
+  dt?: unknown;
   weather?: {
     main?: unknown;
     description?: unknown;
@@ -369,6 +382,17 @@ function parseWeatherResponse(
       ? rawMain.trim()
       : undefined;
 
+  // OWM `dt` is unix seconds: when the reading was made.
+  // Invalid values fall back to the fetch time in getWeather.
+  const rawDt = payload.dt;
+
+  const observedAt =
+    typeof rawDt === "number" &&
+    Number.isFinite(rawDt) &&
+    rawDt > 0
+      ? rawDt * 1000
+      : undefined;
+
   return {
     temperature:
       roundTemperature(temperature),
@@ -377,6 +401,12 @@ function parseWeatherResponse(
     city,
     ...(mainGroup
       ? { mainGroup }
+      : {}),
+    ...(observedAt
+      ? { observedAt }
+      : {}),
+    ...(coordinates.isFallback
+      ? { isFallback: true as const }
       : {}),
   };
 }
@@ -462,10 +492,18 @@ export async function getWeather(): Promise<WeatherData> {
         coordinates
       );
 
-    const data = parseWeatherResponse(
+    const parsed = parseWeatherResponse(
       response,
       coordinates
     );
+
+    const data: WeatherData =
+      typeof parsed.observedAt === "number"
+        ? parsed
+        : {
+            ...parsed,
+            observedAt: Date.now(),
+          };
 
     await writeTodayCache(data);
 
