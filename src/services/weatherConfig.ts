@@ -86,6 +86,89 @@ function assertWeatherConfig(): void {
       "weather.json: invalid conditions.fallback."
     );
   }
+
+  const classification = (
+    weatherJson as unknown as {
+      classification?: {
+        ranges?: unknown[];
+        iconsByCode?: Record<string, unknown>;
+      };
+    }
+  ).classification;
+
+  if (
+    !classification ||
+    !Array.isArray(classification.ranges) ||
+    classification.ranges.length === 0
+  ) {
+    throw new Error(
+      "weather.json: classification.ranges must not be empty."
+    );
+  }
+
+  for (const range of classification.ranges) {
+    const entry = range as {
+      id?: unknown;
+      min?: unknown;
+      max?: unknown;
+      label?: unknown;
+      day?: unknown;
+      night?: unknown;
+      severity?: unknown;
+    };
+
+    const hasId =
+      typeof entry.id === "number" &&
+      Number.isInteger(entry.id);
+    const hasSpan =
+      typeof entry.min === "number" &&
+      Number.isInteger(entry.min) &&
+      typeof entry.max === "number" &&
+      Number.isInteger(entry.max) &&
+      entry.max >= entry.min;
+
+    if (!hasId && !hasSpan) {
+      throw new Error(
+        "weather.json: every classification range needs an id or a min/max span."
+      );
+    }
+
+    const hasLabel =
+      (typeof entry.label === "string" &&
+        entry.label.length > 0) ||
+      (typeof entry.day === "string" &&
+        entry.day.length > 0 &&
+        typeof entry.night === "string" &&
+        entry.night.length > 0);
+
+    if (!hasLabel) {
+      throw new Error(
+        "weather.json: every classification range needs a label or day/night labels."
+      );
+    }
+
+    if (typeof ranks[entry.severity as string] !== "number") {
+      throw new Error(
+        `weather.json: unknown classification severity "${String(entry.severity)}".`
+      );
+    }
+  }
+
+  const iconsByCode =
+    classification.iconsByCode ?? {};
+
+  for (const [code, icon] of Object.entries(
+    iconsByCode,
+  )) {
+    if (
+      typeof icon !== "string" ||
+      !(icon in Ionicons.glyphMap)
+    ) {
+      throw new Error(
+        `weather.json: unknown classification icon "${String(icon)}" for code "${code}".`
+      );
+    }
+  }
 }
 
 assertWeatherConfig();
@@ -478,4 +561,307 @@ export function canRefreshToday(
     nowMs - lastAttemptMs >=
     weatherJson.timing.minRefreshMs
   );
+}
+
+// ============================================================
+// TODAY CLASSIFIER (OWM condition code)
+//
+// The Today card follows OpenWeather's own weather[0].id —
+// no description-keyword matching, no cloud bands, no
+// forecast cross-check, no humidity rules. One safety rule
+// only: rain/drizzle ids without any measured rain amount
+// soften to a "possible" label. Thunderstorm is never
+// softened. Day/night comes from the icon suffix alone, so
+// "Sunny" can never render at night.
+//
+// Id ranges, labels, and icon codes live in
+// weather.json classification.
+// ============================================================
+
+interface IdRange {
+  id?: number;
+  min?: number;
+  max?: number;
+  label?: string;
+  day?: string;
+  night?: string;
+  severity: WeatherSeverity;
+}
+
+function classificationRanges(): IdRange[] {
+  return (
+    (
+      weatherJson as unknown as {
+        classification?: { ranges?: IdRange[] };
+      }
+    ).classification?.ranges ?? []
+  );
+}
+
+function classificationText(
+  key:
+    | "rainPossibleLabel"
+    | "drizzlePossibleLabel"
+    | "unconfirmedSubtext"
+    | "unavailableLabel"
+    | "estimateSubtext"
+    | "skyNote",
+  fallback: string,
+): string {
+  const raw = (
+    weatherJson as unknown as {
+      classification?: Record<string, unknown>;
+    }
+  ).classification?.[key];
+
+  return typeof raw === "string" && raw.length > 0
+    ? raw
+    : fallback;
+}
+
+function classificationConfirmRange(): {
+  min: number;
+  max: number;
+  drizzleMax: number;
+} {
+  const raw = (
+    weatherJson as unknown as {
+      classification?: {
+        confirmRange?: {
+          min?: unknown;
+          max?: unknown;
+          drizzleMax?: unknown;
+        };
+      };
+    }
+  ).classification?.confirmRange;
+
+  const pick = (
+    value: unknown,
+    fallback: number,
+  ): number =>
+    typeof value === "number" &&
+    Number.isInteger(value)
+      ? value
+      : fallback;
+
+  return {
+    min: pick(raw?.min, 300),
+    max: pick(raw?.max, 531),
+    drizzleMax: pick(raw?.drizzleMax, 321),
+  };
+}
+
+function findIdRange(
+  id: number,
+): IdRange | null {
+  for (const range of classificationRanges()) {
+    if (
+      typeof range.id === "number" &&
+      range.id === id
+    ) {
+      return range;
+    }
+
+    if (
+      typeof range.min === "number" &&
+      typeof range.max === "number" &&
+      id >= range.min &&
+      id <= range.max
+    ) {
+      return range;
+    }
+  }
+
+  return null;
+}
+
+function iconForCode(
+  iconCode: string,
+): keyof typeof Ionicons.glyphMap {
+  const table = (
+    weatherJson as unknown as {
+      classification?: {
+        iconsByCode?: Record<string, string>;
+      };
+    }
+  ).classification?.iconsByCode;
+
+  const mapped = table?.[iconCode.trim()];
+
+  if (
+    mapped &&
+    mapped in Ionicons.glyphMap
+  ) {
+    return mapped as keyof typeof Ionicons.glyphMap;
+  }
+
+  const fallback = weatherJson.conditions
+    .fallback as { icon: string };
+
+  return fallback.icon as keyof typeof Ionicons.glyphMap;
+}
+
+export interface ClassifiedToday {
+  label: string;
+  subtext?: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  severity: WeatherSeverity;
+  isDay: boolean;
+}
+
+export function classifyTodayById(args: {
+  id: number;
+  iconCode: string;
+  rainMm: number | null;
+}): ClassifiedToday {
+  const isDay = !args.iconCode.trim().endsWith("n");
+  const icon = iconForCode(args.iconCode);
+  const confirm = classificationConfirmRange();
+
+  const range = findIdRange(args.id);
+
+  if (!range) {
+    return {
+      label: classificationText(
+        "unavailableLabel",
+        "Condition unavailable",
+      ),
+      subtext: classificationText(
+        "estimateSubtext",
+        "Estimate",
+      ),
+      icon,
+      severity: "cloudy",
+      isDay,
+    };
+  }
+
+  const label =
+    typeof range.label === "string"
+      ? range.label
+      : isDay
+        ? (range.day as string)
+        : (range.night as string);
+
+  // One safety rule: rain/drizzle ids with no measured
+  // amount (neither 1h nor 3h) soften to "possible".
+  // Thunderstorm ids sit outside the confirm range, so
+  // they are never softened.
+  const needsConfirm =
+    args.id >= confirm.min && args.id <= confirm.max;
+
+  const confirmed =
+    args.rainMm !== null &&
+    Number.isFinite(args.rainMm) &&
+    (args.rainMm as number) > 0;
+
+  if (needsConfirm && !confirmed) {
+    const possibleLabel =
+      args.id <= confirm.drizzleMax
+        ? classificationText(
+            "drizzlePossibleLabel",
+            "Drizzle possible",
+          )
+        : classificationText(
+            "rainPossibleLabel",
+            "Rain possible",
+          );
+
+    return {
+      label: possibleLabel,
+      subtext: classificationText(
+        "unconfirmedSubtext",
+        "Not confirmed nearby",
+      ),
+      icon,
+      severity: "cloudy",
+      isDay,
+    };
+  }
+
+  return {
+    label,
+    icon,
+    severity: range.severity,
+    isDay,
+  };
+}
+
+export function todaySkyNote(): string {
+  return classificationText(
+    "skyNote",
+    "Condition comes from OpenWeather's standard codes. Not solar power.",
+  );
+}
+
+export function todayUnavailableLabel(): string {
+  return classificationText(
+    "unavailableLabel",
+    "Condition unavailable",
+  );
+}
+
+export function todayEstimateSubtext(): string {
+  return classificationText(
+    "estimateSubtext",
+    "Estimate",
+  );
+}
+
+// ============================================================
+// TODAY DISPLAY DECISION
+//
+// Pure, exported for tests: legacy readings (no classifier
+// fields) and stale readings (older than 30 min) resolve to
+// neutral so the card never shows a possibly-false label.
+// The card still renders temp + Updated-age around it.
+// ============================================================
+
+export interface TodayReading {
+  conditionId?: number;
+  iconCode?: string;
+  rainMm?: number | null;
+  observedAt?: number;
+}
+
+export function resolveTodayDisplay(
+  weather: TodayReading | null,
+): { kind: "neutral" } | { kind: "live"; classified: ClassifiedToday } {
+  const hasClassifierFields =
+    !!weather &&
+    typeof weather.conditionId === "number" &&
+    Number.isFinite(weather.conditionId) &&
+    typeof weather.iconCode === "string" &&
+    weather.iconCode.trim().length > 0 &&
+    typeof weather.observedAt === "number" &&
+    Number.isFinite(weather.observedAt);
+
+  if (
+    !hasClassifierFields ||
+    isStaleReading(weather?.observedAt)
+  ) {
+    return { kind: "neutral" };
+  }
+
+  const source = weather as Required<
+    Pick<
+      TodayReading,
+      "conditionId" | "iconCode" | "observedAt"
+    >
+  > &
+    TodayReading;
+
+  return {
+    kind: "live",
+    classified: classifyTodayById({
+      id: source.conditionId,
+      iconCode: source.iconCode,
+      rainMm:
+        typeof source.rainMm === "number" &&
+        Number.isFinite(source.rainMm)
+          ? source.rainMm
+          : null,
+    }),
+  };
 }
