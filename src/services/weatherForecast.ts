@@ -61,9 +61,9 @@ export interface WeatherData {
   temperature: number;
   description: string;
   city: string;
-  // Stable OpenWeather group (Clear, Clouds, Rain, ...) used
-  // for icon/severity logic. Display copy still uses
-  // `description`; absent on pre-cache payloads.
+  // Stable OpenWeather group (Clear, Clouds, Rain, ...).
+  // Kept for context; the Today card classifies by
+  // conditionId, never by this string.
   mainGroup?: string;
   // OWM `dt` (ms): when the reading was made — the truthful
   // basis for "Updated Xm ago". Absent on legacy payloads.
@@ -71,7 +71,19 @@ export interface WeatherData {
   // True when the reading covers the fallback cell rather
   // than the user's own fix.
   isFallback?: boolean;
+  // OWM weather[0].id: the Today card's main
+  // classification. Required on fresh readings (cache v2).
+  conditionId: number;
+  // OWM weather[0].icon: day/night suffix + icon lookup.
+  // Required on fresh readings.
+  iconCode: string;
+  // Measured rain (mm) from rain["1h"] ?? rain["3h"].
+  // Null when the response carries no amount — never 0.
+  rainMm: number | null;
+  cacheVersion: number;
 }
+
+export const TODAY_CACHE_VERSION = 2;
 
 export type WeatherErrorCode =
   | "missing_key"
@@ -349,13 +361,48 @@ interface OpenWeatherCurrentResponse {
   cod?: unknown;
   dt?: unknown;
   weather?: {
+    id?: unknown;
     main?: unknown;
     description?: unknown;
+    icon?: unknown;
   }[];
   main?: {
     temp?: unknown;
   };
+  clouds?: {
+    all?: unknown;
+  };
+  rain?: {
+    "1h"?: unknown;
+    "3h"?: unknown;
+  };
   name?: unknown;
+}
+
+function toFiniteNumber(
+  value: unknown,
+): number | null {
+  return typeof value === "number" &&
+    Number.isFinite(value)
+    ? value
+    : null;
+}
+
+function toRainMm(
+  rain: OpenWeatherCurrentResponse["rain"],
+): number | null {
+  const oneH = toFiniteNumber(rain?.["1h"]);
+  const threeH = toFiniteNumber(rain?.["3h"]);
+
+  if (oneH !== null && oneH >= 0) {
+    return oneH;
+  }
+
+  if (threeH !== null && threeH >= 0) {
+    return threeH;
+  }
+
+  return null;
 }
 
 function parseWeatherResponse(
@@ -392,6 +439,10 @@ function parseWeatherResponse(
   const temperature =
     payload.main?.temp;
 
+  const rawId = payload.weather?.[0]?.id;
+
+  const rawIcon = payload.weather?.[0]?.icon;
+
   const rawMain =
     payload.weather?.[0]?.main;
 
@@ -405,6 +456,30 @@ function parseWeatherResponse(
     throw new WeatherError(
       "invalid_response",
       weatherJson.messages.errors.missing_temperature
+    );
+  }
+
+  // The Today card classifies by weather[0].id. A reading
+  // without it is unusable — reject before caching.
+  const conditionId = toFiniteNumber(rawId);
+
+  if (
+    conditionId === null ||
+    !Number.isInteger(conditionId)
+  ) {
+    throw new WeatherError(
+      "invalid_response",
+      weatherJson.messages.errors.invalid_response
+    );
+  }
+
+  if (
+    typeof rawIcon !== "string" ||
+    rawIcon.trim().length === 0
+  ) {
+    throw new WeatherError(
+      "invalid_response",
+      weatherJson.messages.errors.invalid_response
     );
   }
 
@@ -444,6 +519,10 @@ function parseWeatherResponse(
       ? rawDt * 1000
       : undefined;
 
+  const rainMm = toRainMm(payload.rain);
+
+  const iconCode = (rawIcon as string).trim();
+
   return {
     temperature:
       roundTemperature(temperature),
@@ -459,25 +538,34 @@ function parseWeatherResponse(
     ...(coordinates.isFallback
       ? { isFallback: true as const }
       : {}),
+    conditionId,
+    iconCode,
+    rainMm,
+    cacheVersion: TODAY_CACHE_VERSION,
   };
 }
 
 // ============================================================
-// TODAY CACHE (v1)
+// TODAY CACHE (v2)
 //
 // Write-through AsyncStorage copy of the last good reading.
 // Served when the network, the API, or GPS fails so the
 // Today card paints cached sky instead of going blank — the
 // same offline pattern as the monitoring last-reading cache.
 // Best-effort: a blocked store never breaks the fetch.
+//
+// v2 stores the id-based classifier fields (conditionId,
+// iconCode, rainMm). Entries without cacheVersion 2 are
+// legacy and are discarded, never classified.
 // ============================================================
 
 export const TODAY_CACHE_KEY =
-  "adlawatt.weather.today.v1";
+  "adlawatt.weather.today.v2";
 
 interface CachedTodayWeather {
   data: WeatherData;
   fetchedAt: number;
+  cacheVersion: number;
   // Fix the reading was taken at. Entries written before
   // coords were stored omit it and still serve.
   lat?: number;
@@ -529,9 +617,32 @@ async function readTodayCache(): Promise<CachedTodayWeather | null> {
       return null;
     }
 
+    // Discard legacy entries: no version, older version, or
+    // a payload without classifier fields. Never classify
+    // legacy readings.
+    if (
+      parsed.cacheVersion !== TODAY_CACHE_VERSION
+    ) {
+      return null;
+    }
+
+    const data = parsed.data as Partial<WeatherData>;
+
+    if (
+      typeof data.conditionId !== "number" ||
+      !Number.isFinite(data.conditionId) ||
+      typeof data.iconCode !== "string" ||
+      data.iconCode.trim().length === 0 ||
+      typeof data.temperature !== "number" ||
+      typeof data.city !== "string"
+    ) {
+      return null;
+    }
+
     return {
       data: parsed.data as WeatherData,
       fetchedAt: parsed.fetchedAt,
+      cacheVersion: TODAY_CACHE_VERSION,
       ...(readCacheCoords(parsed) ?? {}),
     };
   } catch {
@@ -549,6 +660,7 @@ async function writeTodayCache(
       JSON.stringify({
         data,
         fetchedAt: Date.now(),
+        cacheVersion: TODAY_CACHE_VERSION,
         lat: coordinates.lat,
         lon: coordinates.lon,
       }),
@@ -556,6 +668,71 @@ async function writeTodayCache(
   } catch {
     // Intentionally ignored.
   }
+}
+
+declare const __DEV__: boolean | undefined;
+
+function isDev(): boolean {
+  try {
+    return (
+      typeof __DEV__ !== "undefined" && __DEV__
+    );
+  } catch {
+    return false;
+  }
+}
+
+function debugTodayReading(
+  source: "live" | "cache",
+  coordinates: Coordinates,
+  raw: unknown,
+  data: WeatherData,
+): void {
+  if (!isDev()) {
+    return;
+  }
+
+  const payload = (raw ?? {}) as {
+    weather?: { id?: unknown; main?: unknown; description?: unknown; icon?: unknown }[];
+    clouds?: { all?: unknown };
+    rain?: { "1h"?: unknown; "3h"?: unknown };
+    name?: unknown;
+    dt?: unknown;
+  };
+
+  const first = payload.weather?.[0];
+  const ageMin =
+    typeof data.observedAt === "number"
+      ? Math.max(
+          0,
+          Math.round(
+            (Date.now() - data.observedAt) / 60000,
+          ),
+        )
+      : null;
+
+  console.debug("[today-weather]", {
+    source,
+    lat: coordinates.lat,
+    lon: coordinates.lon,
+    gps: coordinates.isFallback
+      ? "fallback-Manolo-Fortich"
+      : "gps",
+    name:
+      typeof payload.name === "string"
+        ? payload.name
+        : data.city,
+    dt: payload.dt ?? null,
+    ageMin,
+    id: first?.id ?? data.conditionId,
+    main: first?.main ?? null,
+    icon: first?.icon ?? data.iconCode,
+    clouds: payload.clouds?.all ?? null,
+    rain1h: payload.rain?.["1h"] ?? null,
+    rain3h: payload.rain?.["3h"] ?? null,
+    rainMm: data.rainMm,
+    fromCache: source === "cache",
+  });
 }
 
 // ============================================================
@@ -606,6 +783,13 @@ async function runWeatherFetch(): Promise<WeatherData> {
             observedAt: Date.now(),
           };
 
+    debugTodayReading(
+      "live",
+      coordinates,
+      response,
+      data,
+    );
+
     await writeTodayCache(data, coordinates);
 
     return data;
@@ -645,6 +829,13 @@ async function runWeatherFetch(): Promise<WeatherData> {
           error instanceof Error
             ? error.message
             : error,
+        );
+
+        debugTodayReading(
+          "cache",
+          coordinates,
+          null,
+          cached.data,
         );
 
         return cached.data;

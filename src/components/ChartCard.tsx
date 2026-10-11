@@ -8,6 +8,7 @@ import React, {
 
 import {
   AccessibilityInfo,
+  Alert,
   Animated,
   Easing,
   Pressable,
@@ -38,7 +39,10 @@ import {
   formatDataAge,
   formatForecastDay,
   isStaleReading,
-  resolveCondition,
+  resolveTodayDisplay,
+  todayEstimateSubtext,
+  todaySkyNote,
+  todayUnavailableLabel,
   type WeatherSeverity,
 } from "@/services/weatherConfig";
 
@@ -74,6 +78,12 @@ interface WeatherData {
   mainGroup?: string;
   observedAt?: number;
   isFallback?: boolean;
+  // Id-based classifier fields (service v2). Absent on
+  // legacy objects — the Today card shows neutral instead.
+  conditionId?: number;
+  iconCode?: string;
+  rainMm?: number | null;
+  cacheVersion?: number;
 }
 
 type NonBatteryChartType =
@@ -88,6 +98,9 @@ interface CardData {
   label: string;
   value?: string;
   badge?: string;
+  // Honesty note under the badge
+  // ("Not confirmed nearby" / "Estimate").
+  subtext?: string;
   badgeStyle?: object;
   badgeTextStyle?: object;
 }
@@ -1759,8 +1772,8 @@ export default function ChartCard({
         {/* ==================================================
             TODAY (LIVE) + NEXT 4 DAYS PREDICTION
             Today card: real-time device date (left), live
-            condition icon from the OWM description (center),
-            live temp + classification (right). Below it the
+            condition icon from the OWM icon code (center),
+            live temp + id-based label (right). Below it the
             vertical 4-row peak-sunlight list. Everything
             stays inside this Weather Monitoring card.
             ================================================== */}
@@ -1779,6 +1792,26 @@ export default function ChartCard({
           >
             Today
           </AppText>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`About today's condition. ${todaySkyNote()}`}
+            accessibilityHint="Shows where the sky label comes from"
+            onPress={() =>
+              Alert.alert(
+                "Today's sky",
+                todaySkyNote(),
+              )
+            }
+            hitSlop={8}
+            style={{ marginLeft: 6 }}
+          >
+            <Ionicons
+              name="information-circle-outline"
+              size={14}
+              color={colors.textSecondary}
+            />
+          </Pressable>
 
         </View>
 
@@ -1799,7 +1832,7 @@ export default function ChartCard({
                 ? "button"
                 : "none"
             }
-            accessibilityLabel={`Today, ${todayLabel.weekday} ${todayLabel.date}, ${todayBusy ? "updating weather" : `${weatherData.value}, ${weatherData.badge ?? ""}`}${canTapRefresh ? ", tap to refresh" : ""}`}
+            accessibilityLabel={`Today, ${todayLabel.weekday} ${todayLabel.date}, ${todayBusy ? "updating weather" : `${weatherData.value}, ${weatherData.badge ?? ""}${weatherData.subtext ? `, ${weatherData.subtext}` : ""}`}${canTapRefresh ? ", tap to refresh" : ""}`}
             accessibilityState={
               canTapRefresh
                 ? {
@@ -1885,6 +1918,18 @@ export default function ChartCard({
               >
                 {weatherData.badge ?? ""}
               </AppText>
+
+              {weatherData.subtext ? (
+                <AppText
+                  variant="caption"
+                  numberOfLines={1}
+                  style={
+                    styles.weatherTodaySubtext
+                  }
+                >
+                  {weatherData.subtext}
+                </AppText>
+              ) : null}
 
             </View>
 
@@ -2467,47 +2512,97 @@ function getCardData(
 
     case "weather": {
 
-      const description =
-        weather?.description ??
-        "Clear sky";
+      const tempValue =
+        loading
+          ? "—"
+          : weather
+            ? `${Math.round(weather.temperature)}°C`
+            : "—";
 
-      const mainGroup =
-        weather?.mainGroup;
+      const cityLabel =
+        weather?.city ??
+        "—";
+
+      const unavailable = todayUnavailableLabel();
+      const estimate = todayEstimateSubtext();
+
+      // Legacy (no classifier fields) or stale (>30min):
+      // temp + Updated-age still render; the condition
+      // stays neutral instead of a possibly-false label.
+      const display = resolveTodayDisplay(weather);
+
+      if (display.kind === "neutral") {
+        return {
+          icon: "cloud-outline",
+
+          label: cityLabel,
+
+          value: tempValue,
+
+          badge: unavailable,
+
+          subtext: weather ? estimate : undefined,
+
+          badgeStyle:
+            themedStyles.overcastWeatherBadge,
+
+          badgeTextStyle:
+            themedStyles.overcastWeatherBadgeText,
+        };
+      }
+
+      const classified = display.classified;
+
+      const badgeStyle =
+        classified.severity === "fog"
+          ? themedStyles.fogWeatherBadge
+          : classified.severity === "severe"
+            ? themedStyles.redWeatherBadge
+            : classified.severity === "moderate"
+              ? themedStyles.orangeWeatherBadge
+              : classified.severity === "light"
+                ? themedStyles.yellowWeatherBadge
+                : classified.severity === "clear"
+                  ? themedStyles.clearWeatherBadge
+                  : /sunny|mostly clear|partly cloudy|partly sunny|mostly sunny/i.test(
+                      classified.label,
+                    )
+                    ? themedStyles.partlyCloudyWeatherBadge
+                    : themedStyles.overcastWeatherBadge;
+
+      const badgeTextStyle =
+        classified.severity === "fog"
+          ? themedStyles.fogWeatherBadgeText
+          : classified.severity === "severe"
+            ? themedStyles.redWeatherBadgeText
+            : classified.severity === "moderate"
+              ? themedStyles.orangeWeatherBadgeText
+              : classified.severity === "light"
+                ? themedStyles.yellowWeatherBadgeText
+                : classified.severity === "clear"
+                  ? themedStyles.clearWeatherBadgeText
+                  : /sunny|mostly clear|partly cloudy|partly sunny|mostly sunny/i.test(
+                      classified.label,
+                    )
+                    ? themedStyles.partlyCloudyWeatherBadgeText
+                    : themedStyles.overcastWeatherBadgeText;
 
       return {
-        icon:
-          getWeatherIcon(
-            description,
-            mainGroup,
-          ),
+        icon: classified.icon,
 
-        label:
-          weather?.city ??
-          "—",
+        label: cityLabel,
 
-        value:
-          loading
-            ? "—"
-            : weather
-              ? `${Math.round(weather.temperature)}°C`
-              : "—",
+        value: tempValue,
 
-        badge:
-          description,
+        badge: classified.label,
 
-        badgeStyle:
-          getWeatherBadgeStyle(
-            description,
-            themedStyles,
-            mainGroup,
-          ),
+        ...(classified.subtext
+          ? { subtext: classified.subtext }
+          : {}),
 
-        badgeTextStyle:
-          getWeatherBadgeTextStyle(
-            description,
-            themedStyles,
-            mainGroup,
-          ),
+        badgeStyle,
+
+        badgeTextStyle,
       };
     }
 
@@ -2671,129 +2766,11 @@ function formatSolarTimer(
 // WEATHER ICON
 // ============================================================
 
-// ============================================================
-// WEATHER ICON
-//
-// OpenWeather sends free-form descriptions (e.g. "moderate
-// rain", "few clouds"), so the mapping below matches on
-// keywords and always falls back to a valid icon. The stable
-// `main` group (Clear, Rain, ...) wins when present.
-// ============================================================
-
-function getWeatherIcon(
-  description: string,
-  mainGroup?: string,
-): keyof typeof Ionicons.glyphMap {
-  return resolveCondition(
-    description,
-    mainGroup,
-  ).icon;
-}
-
-// ============================================================
-// WEATHER SEVERITY
-//
-// Collapses any OpenWeather description into one of a small
-// set of severity buckets used to pick a badge color.
-// ============================================================
-
-function getWeatherSeverity(
-  description: string,
-  mainGroup?: string,
-): WeatherSeverity {
-  return resolveCondition(
-    description,
-    mainGroup,
-  ).severity;
-}
-
-// ============================================================
-// WEATHER BADGE STYLE
-// ============================================================
-
-function getWeatherBadgeStyle(
-  description: string,
-  themedStyles: ReturnType<typeof getStyles>,
-  mainGroup?: string,
-) {
-  switch (
-    getWeatherSeverity(description, mainGroup)
-  ) {
-    case "clear":
-      return themedStyles.clearWeatherBadge;
-
-    case "cloudy":
-      // Few / scattered / broken clouds feel "partly".
-      if (
-        /partly|few|scattered|broken/.test(
-          description.toLowerCase(),
-        )
-      ) {
-        return themedStyles.partlyCloudyWeatherBadge;
-      }
-
-      return themedStyles.overcastWeatherBadge;
-
-    case "fog":
-      return themedStyles.fogWeatherBadge;
-
-    case "light":
-      return themedStyles.yellowWeatherBadge;
-
-    case "moderate":
-      return themedStyles.orangeWeatherBadge;
-
-    case "severe":
-      return themedStyles.redWeatherBadge;
-
-    default:
-      return themedStyles.clearWeatherBadge;
-  }
-}
-
-// ============================================================
-// WEATHER BADGE TEXT STYLE
-// ============================================================
-
-function getWeatherBadgeTextStyle(
-  description: string,
-  themedStyles: ReturnType<typeof getStyles>,
-  mainGroup?: string,
-) {
-  switch (
-    getWeatherSeverity(description, mainGroup)
-  ) {
-    case "clear":
-      return themedStyles.clearWeatherBadgeText;
-
-    case "cloudy":
-      // Few / scattered / broken clouds feel "partly".
-      if (
-        /partly|few|scattered|broken/.test(
-          description.toLowerCase(),
-        )
-      ) {
-        return themedStyles.partlyCloudyWeatherBadgeText;
-      }
-
-      return themedStyles.overcastWeatherBadgeText;
-
-    case "fog":
-      return themedStyles.fogWeatherBadgeText;
-
-    case "light":
-      return themedStyles.yellowWeatherBadgeText;
-
-    case "moderate":
-      return themedStyles.orangeWeatherBadgeText;
-
-    case "severe":
-      return themedStyles.redWeatherBadgeText;
-
-    default:
-      return themedStyles.clearWeatherBadgeText;
-  }
-}
+// The Today card classifies by OpenWeather's condition id
+// (classifyTodayById) and looks the icon up by OWM icon
+// code — no description-text matching anywhere in this
+// card. resolveCondition stays for the 4-day forecast and
+// solar-outlook logic in forecast.ts.
 
 // ============================================================
 // TEMPERATURE BADGE STYLE
@@ -3257,6 +3234,14 @@ const getStyles = (colors: AppColors) =>
     textAlign: "center",
     lineHeight: 28,
     fontVariant: ["tabular-nums"],
+  },
+
+  weatherTodaySubtext: {
+    color: colors.textSecondary,
+    fontSize: 11,
+    fontWeight: "500",
+    textAlign: "center",
+    lineHeight: 14,
   },
 
   // Stale-reading treatment: dimmed Today card + offline
