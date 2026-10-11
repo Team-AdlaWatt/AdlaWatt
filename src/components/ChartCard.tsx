@@ -1860,7 +1860,7 @@ export default function ChartCard({
 
               <Ionicons
                 name={weatherData.icon}
-                size={30}
+                size={36}
                 color={colors.iconAccent}
               />
 
@@ -3221,37 +3221,38 @@ const getStyles = (colors: AppColors) =>
   // TODAY CARD (3-ZONE ROW) + VERTICAL 4-ROW PEAK LIST
   //
   // Today: date (left) / live condition icon (center) /
-  // live temp + classification (right). Rows: weekday /
-  // icon / peak window / PEAK-or-RAINY capsule. Spacing and
-  // type follow UI-STANDARDS (4/8 grid, 16 card padding,
-  // 12/14/16-20 type, 56 list rows, radius 12-16).
+  // live temp + classification (right), clustered centered
+  // as one glanceable group with a hero 36 icon and an
+  // amber border so it stands out from the 4 rows below.
+  // Spacing and type follow UI-STANDARDS (4/8 grid, 20 card
+  // padding, 12/14/24 type, 56 list rows, radius 12-16).
   // ==========================================================
 
   weatherTodayCard: {
     width: "100%",
-    minHeight: 72,
+    minHeight: 80,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     backgroundColor:
       colors.glass.white,
     borderWidth: 2,
-    borderColor: colors.cardBorder,
-    borderRadius: 12,
-    paddingHorizontal: 16,
+    borderColor: colors.secondary,
+    borderRadius: 16,
+    paddingHorizontal: 20,
     paddingVertical: 12,
-    columnGap: 8,
+    columnGap: 12,
   },
 
   weatherTodayLeft: {
     flexShrink: 0,
     minWidth: 64,
-    alignItems: "flex-start",
+    alignItems: "center",
     rowGap: 2,
   },
 
   weatherTodayCenter: {
-    flex: 1,
+    flexShrink: 0,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -3259,16 +3260,16 @@ const getStyles = (colors: AppColors) =>
   weatherTodayRight: {
     flexShrink: 0,
     minWidth: 72,
-    alignItems: "flex-end",
+    alignItems: "center",
     rowGap: 2,
   },
 
   weatherTodayTemp: {
     color: colors.text,
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: "700",
-    textAlign: "right",
-    lineHeight: 24,
+    textAlign: "center",
+    lineHeight: 28,
     fontVariant: ["tabular-nums"],
   },
 
@@ -3372,18 +3373,18 @@ const getStyles = (colors: AppColors) =>
 
   weatherForecastWeekday: {
     color: colors.text,
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "700",
     textAlign: "center",
-    lineHeight: 16,
+    lineHeight: 20,
   },
 
   weatherForecastDate: {
     color: colors.textSecondary,
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "600",
     textAlign: "center",
-    lineHeight: 16,
+    lineHeight: 20,
   },
 
   weatherForecastTemp: {
