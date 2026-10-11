@@ -62,7 +62,9 @@ export default function ApplianceStatusBox({
   return (
     <View
       style={[
-        applianceCardStyles.box,
+        tone !== "not"
+          ? applianceCardStyles.box
+          : applianceCardStyles.boxTight,
         { borderColor: statusColor },
       ]}
     >

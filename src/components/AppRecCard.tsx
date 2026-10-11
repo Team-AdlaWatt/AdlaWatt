@@ -661,7 +661,10 @@ export default function AppRecCard({
                   <View
                     key={appliance.id}
                     style={[
-                      applianceCardStyles.box,
+                      appliance.status !==
+                      "notAdvisable"
+                        ? applianceCardStyles.box
+                        : applianceCardStyles.boxTight,
                       {
                         borderColor:
                           meta.color,
