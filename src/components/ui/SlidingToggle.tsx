@@ -1,7 +1,6 @@
 import React, {
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import {
@@ -73,9 +72,11 @@ export function SlidingToggle<T extends string>({
   const [reduceMotion, setReduceMotion] =
     useState(false);
 
-  const glide = useRef(
-    new Animated.Value(0),
-  ).current;
+  // Stable glide value without render-phase ref access
+  // (react-hooks/refs). Lazy useState preserves identity.
+  const [glide] = useState(
+    () => new Animated.Value(0),
+  );
 
   const activeIndex = Math.max(
     0,

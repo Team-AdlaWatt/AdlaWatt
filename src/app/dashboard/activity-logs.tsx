@@ -20,6 +20,7 @@ import {
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
 import ScreenContainer2 from "@/components/layout/ScreenContainer2";
+import { useScreenPadding } from "@/constants/sizing";
 import Pagination from "@/components/ui/Pagination";
 import AppText from "@/components/ui/AppText";
 import { DropdownModal, RadioOptionRow, TintedOptionRow } from "@/components/ui/DropdownModal";
@@ -70,6 +71,9 @@ const PAGE_TURN_SCROLL_MS = 1500;
 export default function ActivityLogsScreen() {
   const { t, i18n } = useTranslation();
   const colors = useAppColors();
+
+  // Responsive gutter: 16/20/24 by phone width (UI-STANDARDS.md).
+  const screenPadding = useScreenPadding();
 
   // Locale-aware date/time formatting (device language,
   // never translated content — format only per policy).
@@ -136,8 +140,11 @@ export default function ActivityLogsScreen() {
   const scrollYRef =
     useRef(0);
 
-  const scrollOffset =
-    useRef(new Animated.Value(0)).current;
+  // Stable Animated driver (useState initializer, not
+  // useRef().current — react-hooks/refs forbids ref reads on render).
+  const [scrollOffset] = useState(
+    () => new Animated.Value(0),
+  );
 
   // Drive the ScrollView with the animated value so the
   // scroll transition runs for a fixed duration.
@@ -267,6 +274,9 @@ export default function ActivityLogsScreen() {
         );
       }
 
+      // Render-time "now" is intentional: the time-window
+      // filter is relative to when the list renders.
+      // eslint-disable-next-line react-hooks/purity -- time-window filter needs render-time now
       const now = Date.now();
 
       if (timeFilter !== "All") {
@@ -438,7 +448,10 @@ export default function ActivityLogsScreen() {
       <ScrollView
         ref={scrollRef}
         style={styles.scrollView}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingHorizontal: screenPadding },
+        ]}
         showsVerticalScrollIndicator={false}
         onScroll={(event) => {
           scrollYRef.current =

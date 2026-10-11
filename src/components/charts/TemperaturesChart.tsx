@@ -319,7 +319,17 @@ export default function TemperaturesChart({
               key={`temperatures-${data.length}-${hasInterior}`}
               data={data}
               data2={dataSolar}
-              data3={dataInterior}
+              // Native-only guard: omit the 3rd series entirely
+              // when interior history is empty. Passing [] against
+              // 2-item series throws on Fabric/SVG release builds
+              // while web tolerates the length mismatch.
+              {...(hasInterior &&
+              dataInterior.length > 0
+                ? {
+                    data3:
+                      dataInterior,
+                  }
+                : {})}
               scrollRef={scrollRef}
               height={CHART_HEIGHT}
               width={chartW}
@@ -457,7 +467,7 @@ const styles = StyleSheet.create({
   },
 
   statLabel: {
-    fontSize: 11,
+    fontSize: 12,
     textAlign: "center",
   },
 

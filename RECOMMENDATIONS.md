@@ -88,8 +88,8 @@ What you do well already:
 |     |          |                              |            | strings). Still open: `menu.tsx` profile fixed-height +  |
 |     |          |                              |            | black border (visual, needs on-device check). Language   |
 |     |          |                              |            | and vibration persist (`adlawatt.language.v1` /          |
-|     |          |                              |            | `adlawatt.vibration.v1`); only color-blind is session-   |
-|     |          |                              |            | only.                                                    |
+|     |          |                              |            | `adlawatt.vibration.v1`). Color-blind mode removed       |
+|     |          |                              |            | (no longer featured).                                    |
 +-----+----------+------------------------------+------------+----------------------------------------------------------+
 | 12  | P2       | No control path              | ⏳ Open    | Monitoring only. Relay already in hardware list; add     |
 |     |          |                              |            | low-battery auto-cutoff / remote fan toggle (ESP32 polls |

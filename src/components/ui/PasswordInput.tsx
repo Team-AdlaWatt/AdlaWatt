@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -77,7 +78,11 @@ export default function PasswordInput({
   const [remaining, setRemaining] = useState(0);
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const tickTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const progress = useRef(new Animated.Value(0)).current;
+  // Stable progress value without render-phase ref access
+  // (react-hooks/refs). Lazy useState preserves identity.
+  const [progress] = useState(
+    () => new Animated.Value(0),
+  );
   const barAnim =
     useRef<Animated.CompositeAnimation | null>(null);
 
@@ -86,7 +91,7 @@ export default function PasswordInput({
     barAnim.current = null;
   };
 
-  const clearTimers = () => {
+  const clearTimers = useCallback(() => {
     if (hideTimer.current) {
       clearTimeout(hideTimer.current);
       hideTimer.current = null;
@@ -95,10 +100,11 @@ export default function PasswordInput({
       clearInterval(tickTimer.current);
       tickTimer.current = null;
     }
-    stopBar();
-  };
+    barAnim.current?.stop();
+    barAnim.current = null;
+  }, []);
 
-  useEffect(() => clearTimers, []);
+  useEffect(() => clearTimers, [clearTimers]);
 
   const startBar = () => {
     stopBar();

@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import AnalyticsCards from "@/components/AnalyticsCard";
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
@@ -27,10 +28,9 @@ import {
   DropdownModal,
   RadioOptionRow,
 } from "@/components/ui/DropdownModal";
-import {
-  useAppColors,
-  type AppColors,
-} from "@/hooks/useAppColors";
+import { useAppColors, type AppColors } from "@/hooks/useAppColors";
+import { Radius } from "@/constants/theme";
+import { Control, useScreenPadding } from "@/constants/sizing";
 import { useTranslation } from "react-i18next";
 import {
   AnalyticsRange,
@@ -70,23 +70,30 @@ import {
   type BatteryActivitySlice,
   type UnsafeBarPoint,
 } from "@/services/analyticsService";
-import {
-  printAndSharePdf,
-  saveAndShareCsv,
-} from "@/services/reportPrint";
 import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
   Alert,
+  Animated,
+  Easing,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   View,
 } from "react-native";
+
+/* ============================================================
+   QUICK-NAV SCROLL
+   ============================================================ */
+
+const QUICK_NAV_SCROLL_MS = 1500;
+const QUICK_NAV_SCROLL_INSET = 12;
 
 /* ============================================================
    SCREEN
@@ -96,9 +103,29 @@ export default function AnalyticsScreen() {
   const { t } = useTranslation();
   const colors = useAppColors();
 
+  // Responsive gutter: 16/20/24 by phone width (UI-STANDARDS.md).
+  const screenPadding = useScreenPadding();
+
   const styles = useMemo(
     () => getStyles(colors),
     [colors],
+  );
+
+  /* ==========================================================
+     QUICK-NAV SCROLL TARGETS
+     ========================================================== */
+
+  const scrollRef = useRef<ScrollView>(null);
+
+  const reportRef = useRef<View>(null);
+
+  const scrollYRef = useRef(0);
+
+  // Stable Animated driver for the 1.5s scroll transition.
+  // useState initializer (not useRef().current) per
+  // react-hooks/refs: ref values must not be read on render.
+  const [scrollOffset] = useState(
+    () => new Animated.Value(0),
   );
 
   const [
@@ -540,11 +567,78 @@ export default function AnalyticsScreen() {
       [range],
     );
 
+  // Mount + range-change fetch: setState lands in the async
+  // loadAnalytics continuation, not synchronously in the body.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- range-driven history fetch is the effect's purpose
     loadAnalytics();
-  }, [
-    loadAnalytics,
-  ]);
+  }, [loadAnalytics]);
+
+  /* ==========================================================
+     SMOOTH SCROLL-TO-SECTION
+     ========================================================== */
+
+  // Drive the ScrollView with an Animated.Value so the
+  // scroll transition can run for a fixed 1.5s duration.
+  useEffect(() => {
+    const scrollListenerId = scrollOffset.addListener(
+      ({ value }) => {
+        scrollRef.current?.scrollTo({
+          y: value,
+          animated: false,
+        });
+      },
+    );
+
+    return () => {
+      scrollOffset.removeListener(scrollListenerId);
+    };
+  }, [scrollOffset]);
+
+  const scrollToSection = (
+    sectionRef: React.RefObject<View | null>,
+  ) => {
+    const section = sectionRef.current;
+    const scroll = scrollRef.current;
+
+    if (!section || !scroll) {
+      return;
+    }
+
+    const nativeScroll = scroll.getNativeScrollRef();
+
+    if (!nativeScroll) {
+      return;
+    }
+
+    // Measure both views in window coordinates so the
+    // target scroll offset stays correct no matter the
+    // current scroll position, on native and web.
+    section.measureInWindow(
+      (_sx, sectionWindowY) => {
+        nativeScroll.measureInWindow(
+          (_fx, scrollWindowY) => {
+            const target = Math.max(
+              sectionWindowY -
+                scrollWindowY +
+                scrollYRef.current -
+                QUICK_NAV_SCROLL_INSET,
+              0,
+            );
+
+            scrollOffset.setValue(scrollYRef.current);
+
+            Animated.timing(scrollOffset, {
+              toValue: target,
+              duration: QUICK_NAV_SCROLL_MS,
+              easing: Easing.inOut(Easing.cubic),
+              useNativeDriver: false,
+            }).start();
+          },
+        );
+      },
+    );
+  };
 
   /* ==========================================================
      REPORT
@@ -643,6 +737,10 @@ export default function AnalyticsScreen() {
            Real files: PDF via expo-print HTML, CSV via the
            shared CSV generator written to the cache directory.
            Both are handed to the system share sheet.
+           Native modules are lazy-bound here (dynamic import)
+           so tab mount never evaluates expo-print/sharing/
+           file-system on release — web shims survive the
+           static import but Fabric can throw at load.
            ====================================================== */
 
         setIsExporting(true);
@@ -654,6 +752,14 @@ export default function AnalyticsScreen() {
               reportFrequency,
               range,
             );
+
+          // Lazy-bound: only evaluated on actual export press.
+          const {
+            printAndSharePdf,
+            saveAndShareCsv,
+          } = await import(
+            "@/services/reportPrint"
+          );
 
           if (
             reportType === "CSV"
@@ -769,15 +875,20 @@ export default function AnalyticsScreen() {
       <NavBar />
 
       <ScrollView
-        style={
-          styles.scrollView
-        }
-        contentContainerStyle={
-          styles.content
-        }
+        ref={scrollRef}
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.content,
+          { paddingHorizontal: screenPadding },
+        ]}
         showsVerticalScrollIndicator={
           false
         }
+        onScroll={(event) => {
+          scrollYRef.current =
+            event.nativeEvent.contentOffset.y;
+        }}
+        scrollEventThrottle={16}
       >
         {/* ======================================================
             ANALYTICS HEADER
@@ -804,6 +915,40 @@ export default function AnalyticsScreen() {
           >
             {t("dashboard.analytics.subtitle")}
           </AppText>
+        </View>
+
+        {/* ======================================================
+            QUICK NAV BUTTONS
+        ====================================================== */}
+
+        <View style={styles.quickNavRow}>
+          <Pressable
+            onPress={() =>
+              scrollToSection(reportRef)
+            }
+            accessibilityRole="button"
+            accessibilityLabel={t(
+              "dashboard.analytics.goToGenerateReport",
+            )}
+            style={({ pressed }) => [
+              styles.quickNavButton,
+              pressed &&
+                styles.quickNavButtonPressed,
+            ]}
+          >
+            <AppText
+              variant="caption"
+              style={styles.quickNavButtonText}
+            >
+              {t("dashboard.analytics.generateReport")}
+            </AppText>
+
+            <Ionicons
+              name="arrow-forward"
+              size={16}
+              color={colors.onPrimary}
+            />
+          </Pressable>
         </View>
 
         {/* ======================================================
@@ -1085,27 +1230,23 @@ export default function AnalyticsScreen() {
             ANALYTICS PANEL
             Report export + date-range controls.
         ====================================================== */}
-        <AnalyticsCards
-          reportFrequency={
-            reportFrequency
-          }
-          setReportModalVisible={
-            setReportModalVisible
-          }
-          range={range}
-          onFromDateChange={
-            setFromDate
-          }
-          onToDateChange={
-            setToDate
-          }
-          generateReport={
-            generateReport
-          }
-          exporting={
-            isExporting
-          }
-        />
+        <View
+          ref={reportRef}
+          collapsable={false}
+          style={styles.section}
+        >
+          <AnalyticsCards
+            reportFrequency={reportFrequency}
+            setReportModalVisible={
+              setReportModalVisible
+            }
+            range={range}
+            onFromDateChange={setFromDate}
+            onToDateChange={setToDate}
+            generateReport={generateReport}
+            exporting={isExporting}
+          />
+        </View>
 
         {/* Copyright */}
         <Copyright />
@@ -1217,6 +1358,41 @@ const getStyles = (colors: AppColors) =>
         colors.textSecondary,
       marginTop: 6,
       lineHeight: 20,
+    },
+
+    quickNavRow: {
+      width: "100%",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 18,
+    },
+
+    quickNavButton: {
+      width: "100%",
+      maxWidth: 360,
+      minHeight: Control.button,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      backgroundColor: colors.primary,
+      borderRadius: Radius.md,
+    },
+
+    quickNavButtonText: {
+      color: colors.onPrimary,
+      fontSize: 16,
+      fontWeight: "700",
+    },
+
+    quickNavButtonPressed: {
+      backgroundColor: colors.primaryPressed,
+    },
+
+    section: {
+      width: "100%",
+      marginBottom:
+        analyticsDimensions.sectionSpacing,
     },
 
     /* Plain section header: medium, readable, no caption. */

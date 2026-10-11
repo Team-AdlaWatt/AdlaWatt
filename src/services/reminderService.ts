@@ -81,6 +81,10 @@ const ensureReminderChannel =
   };
 
 const ensurePermission = async (): Promise<boolean> => {
+  if (Platform.OS === "web") {
+    return false;
+  }
+
   try {
     const { status: existing } =
       await Notifications.getPermissionsAsync();
@@ -160,6 +164,8 @@ export const buildLowSunTrigger =
 
 // Idempotent: previous schedule with the same identifier is
 // cancelled first, so repeats never stack duplicates.
+// Web has no scheduled-notification native module —
+// no-op early so web consoles stay clean.
 const scheduleOnce = async (
   identifier: string,
   title: string,
@@ -167,6 +173,10 @@ const scheduleOnce = async (
   route: string,
   trigger: Notifications.NotificationTriggerInput,
 ): Promise<boolean> => {
+  if (Platform.OS === "web") {
+    return false;
+  }
+
   try {
     await Notifications.cancelScheduledNotificationAsync(
       identifier,
@@ -198,6 +208,10 @@ const scheduleOnce = async (
 
 export const ensureEveningReminder =
   async (): Promise<boolean> => {
+    if (Platform.OS === "web") {
+      return false;
+    }
+
     try {
       if (
         !(await loadRemindersSetting())
@@ -234,6 +248,10 @@ export const maybeScheduleLowSunAdvisory =
   async (
     result: ForecastResult | null,
   ): Promise<boolean> => {
+    if (Platform.OS === "web") {
+      return false;
+    }
+
     try {
       if (
         !(await loadRemindersSetting())
@@ -293,6 +311,10 @@ export const maybeScheduleLowSunAdvisory =
 
 export const cancelAllReminders =
   async (): Promise<void> => {
+    if (Platform.OS === "web") {
+      return;
+    }
+
     for (const identifier of [
       EVENING_REMINDER_ID,
       LOW_SUN_REMINDER_ID,
@@ -309,8 +331,13 @@ export const cancelAllReminders =
 
 // Tap on a reminder deep-links by its content route.
 // Returns the remover; mount once (dashboard layout).
+// Web has no native notification response — no-op.
 export const addReminderResponseListener =
   (): (() => void) => {
+    if (Platform.OS === "web") {
+      return () => {};
+    }
+
     const subscription =
       Notifications.addNotificationResponseReceivedListener(
         (response) => {

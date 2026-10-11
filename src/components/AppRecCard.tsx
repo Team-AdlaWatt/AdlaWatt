@@ -3,7 +3,6 @@ import { Ionicons } from "@expo/vector-icons";
 import React, {
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 
@@ -180,8 +179,11 @@ export default function AppRecCard({
   const [modalVisible, setModalVisible] =
     useState(false);
 
-  const buttonScale =
-    useRef(new Animated.Value(1)).current;
+  // Stable pressscale without render-phase ref access
+  // (react-hooks/refs). useState lazy init preserves identity.
+  const [buttonScale] = useState(
+    () => new Animated.Value(1),
+  );
 
   // ============================================
   // DECORATE APPLIANCES WITH RECOMMENDATION STATUS
@@ -312,6 +314,7 @@ export default function AppRecCard({
   // empty the active segment, glide to the next visible one.
   useEffect(() => {
     if (!visibleModes.includes(mode)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- canonicalize stored tab when visible set changes; paint already uses derived effectiveMode
       setMode(visibleModes[0] ?? "advisable");
     }
   }, [visibleModes, mode]);
@@ -463,6 +466,7 @@ export default function AppRecCard({
   // ============================================
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial Supabase fetch on mount (external sync); results settle in async callbacks
     loadAppliances();
   }, []);
 
@@ -471,6 +475,7 @@ export default function AppRecCard({
   // ============================================
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset carousel position when tab changes (intentional UI reset)
     setIndex(0);
   }, [mode]);
 

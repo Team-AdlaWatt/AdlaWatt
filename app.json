@@ -47,7 +47,10 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F0EAD6"
+          "backgroundColor": "#F0EAD6",
+          "image": "./assets/images/adlawatt-logo.png",
+          "imageWidth": 200,
+          "resizeMode": "contain"
         }
       ],
       [
@@ -59,7 +62,18 @@
       "expo-web-browser",
       "expo-localization",
       "expo-sharing",
-      "expo-asset"
+      "expo-asset",
+      "expo-font",
+      "expo-image",
+      "expo-status-bar",
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "adlawatt",
+          "project": "adlawatt-kr",
+          "url": "https://sentry.io/"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

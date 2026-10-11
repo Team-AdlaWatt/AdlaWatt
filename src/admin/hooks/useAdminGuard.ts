@@ -60,6 +60,7 @@ export function useAdminGuard() {
     }
 
     if (!isSignedIn) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- auth guard syncs role state + router (external system) on sign-out
       setIsAdmin(false);
       setRoleLoaded(true);
       router.replace(Routes.LOGIN);

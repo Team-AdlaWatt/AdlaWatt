@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   },
 
   statLabel: {
-    fontSize: 11,
+    fontSize: 12,
     textAlign: "center",
   },
 

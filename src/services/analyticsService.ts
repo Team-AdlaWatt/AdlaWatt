@@ -10,11 +10,32 @@ import {
 
 import { CAUTION_SOC } from "@/services/recommendation";
 
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+import type { jsPDF } from "jspdf";
+import type autoTableType from "jspdf-autotable";
 
-const adlawattLogo =
-  require("@/assets/images/adlawatt-logo.png");
+// Browser-only libs (jspdf, autotable, logo asset) are
+// required lazily inside the web export flow only — never at
+// module top. Static evaluation throws on native Hermes (no
+// DOM) at Analytics route mount while web tolerates it, which
+// grey-screens the tab on release APKs. The loaders below run
+// exclusively on the web export press path.
+function getJsPDFClass(): new (
+  options?: Record<string, unknown>,
+) => jsPDF {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- press-time lazy bind, never on native mount
+  return require("jspdf").jsPDF;
+}
+
+function getAutoTable(): typeof autoTableType {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports -- press-time lazy bind, never on native mount
+  const mod = require("jspdf-autotable");
+
+  return mod.default ?? mod;
+}
+
+function getReportLogo(): number {
+  return require("@/assets/images/adlawatt-logo.png");
+}
 
 /* ==========================================================
    TYPES
@@ -3151,8 +3172,11 @@ function addPdfFooter(
 export async function generateAdlaWattPdf(
   reportData: AnalyticsReportData,
 ): Promise<jsPDF> {
+  const JsPDF = getJsPDFClass();
+  const adlawattLogo = getReportLogo();
+
   const doc =
-    new jsPDF({
+    new JsPDF({
       orientation:
         "portrait",
 
@@ -4080,7 +4104,7 @@ export async function generateAdlaWattPdf(
   const energyTableStartPage =
     doc.getCurrentPageInfo().pageNumber;
 
-  autoTable(
+  getAutoTable()(
     doc,
     {
       startY:
@@ -4263,7 +4287,7 @@ export async function generateAdlaWattPdf(
   const temperatureTableStartPage =
     doc.getCurrentPageInfo().pageNumber;
 
-  autoTable(
+  getAutoTable()(
     doc,
     {
       startY:
@@ -4556,7 +4580,7 @@ export async function generateAdlaWattPdf(
     const monitoringTableStartPage =
       doc.getCurrentPageInfo().pageNumber;
 
-    autoTable(
+    getAutoTable()(
       doc,
       {
         startY:

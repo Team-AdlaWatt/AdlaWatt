@@ -89,7 +89,12 @@ export default function ApplianceBox({
   >(null);
 
   const toggleRef = useRef(onMenuToggle);
-  toggleRef.current = onMenuToggle;
+
+  // Sync latest toggle without render-phase ref write
+  // (react-hooks/refs). Runs every render, identical behavior.
+  useEffect(() => {
+    toggleRef.current = onMenuToggle;
+  });
 
   const clearCloseTimer = useCallback(() => {
     if (closeTimer.current) {
@@ -114,6 +119,7 @@ export default function ApplianceBox({
   // box opened), drop any pending confirmation with it.
   useEffect(() => {
     if (!menuOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- drop pending confirmations when parent closes menu (intentional UI reset)
       setDeleteMode(false);
       setArchiveMode(false);
       clearCloseTimer();

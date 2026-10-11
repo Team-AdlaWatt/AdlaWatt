@@ -23,7 +23,7 @@ import AppButton from "@/components/ui/AppButton";
 import AppText from "@/components/ui/AppText";
 import { Routes } from "@/constants/routes";
 import { Spacing } from "@/constants/theme";
-import { Control } from "@/constants/sizing";
+import { Control, Touch } from "@/constants/sizing";
 import {
   useAppColors,
   type AppColors,
@@ -636,7 +636,8 @@ const loginExtraStyles = (colors: AppColors) =>
     },
 
     forgotHit: {
-      minHeight: 32,
+      // 48 minimum touch target (UI-STANDARDS.md).
+      minHeight: Touch.target,
       justifyContent: "flex-start",
       paddingHorizontal: 4,
     },

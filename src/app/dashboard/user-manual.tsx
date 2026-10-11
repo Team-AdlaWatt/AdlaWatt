@@ -14,6 +14,7 @@ import {
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
 import ScreenContainer2 from "@/components/layout/ScreenContainer2";
+import { useScreenPadding } from "@/constants/sizing";
 import AppLogo from "@/components/ui/AppLogo";
 import AppText from "@/components/ui/AppText";
 import ManualCallout from "@/components/ManualCallout";
@@ -58,6 +59,9 @@ export default function UserManualScreen() {
   const { t } = useTranslation();
   const colors = useAppColors();
 
+  // Responsive gutter: 16/20/24 by phone width (UI-STANDARDS.md).
+  const screenPadding = useScreenPadding();
+
   const styles = useMemo(
     () => getStyles(colors),
     [colors],
@@ -95,11 +99,14 @@ export default function UserManualScreen() {
     });
   };
 
+  // Writes run in onLayout event callbacks (post-layout),
+  // never during render — the factory only builds closures.
   const rememberTop =
     (key: string) =>
     (event: {
       nativeEvent: { layout: { y: number } };
     }) => {
+      // eslint-disable-next-line react-hooks/refs -- onLayout event write, not a render read
       sectionTops.current[key] =
         event.nativeEvent.layout.y;
     };
@@ -112,9 +119,10 @@ export default function UserManualScreen() {
       <ScrollView
         ref={scrollRef}
         style={styles.scrollView}
-        contentContainerStyle={
-          styles.content
-        }
+        contentContainerStyle={[
+          styles.content,
+          { paddingHorizontal: screenPadding },
+        ]}
         showsVerticalScrollIndicator={
           false
         }
@@ -1252,7 +1260,7 @@ const getStyles = (colors: AppColors) =>
     chipHeading: {
       color: colors.textSecondary,
       fontWeight: "700",
-      fontSize: 11,
+      fontSize: 12,
       paddingHorizontal: 4,
       marginBottom: 6,
     },

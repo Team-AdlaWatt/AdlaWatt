@@ -187,6 +187,7 @@ export default function BatteryActivityChart({
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset transient selection when data changes
     setSelectedKey(null);
     setFocusedIndex(null);
     clearResetTimer();
@@ -306,13 +307,20 @@ export default function BatteryActivityChart({
           showText={false}
           focusOnPress={!isEmpty}
           sectionAutoFocus={!isEmpty}
-          focusedPieIndex={focusedIndex ?? -1}
+          // Native-only guard: undefined (no selection) instead
+          // of -1 — out-of-bounds focus index throws on Fabric
+          // release while web ignores it.
+          focusedPieIndex={
+            focusedIndex ?? undefined
+          }
           extraRadius={FOCUS_EXPAND_RADIUS}
           isAnimated
           centerLabelComponent={() => (
             <View
-              style={styles.centerLabel}
-              pointerEvents="none"
+              style={[
+                styles.centerLabel,
+                { pointerEvents: "none" },
+              ]}
             >
               {selectedVisible ? (
                 <AppText
@@ -448,7 +456,7 @@ const styles = StyleSheet.create({
   },
 
   statLabel: {
-    fontSize: 11,
+    fontSize: 12,
     textAlign: "center",
   },
 
@@ -476,7 +484,7 @@ const styles = StyleSheet.create({
   },
 
   centerCaption: {
-    fontSize: 11,
+    fontSize: 12,
   },
 
   emptyNote: {

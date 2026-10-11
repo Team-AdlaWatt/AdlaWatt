@@ -88,7 +88,6 @@ export default function NotificationCard({
       {/* Back layer: solid type color peeked on the left.
           Type signal only — never a newness signal. */}
       <View
-        pointerEvents="none"
         accessible={false}
         style={[
           styles.backLayer,
@@ -97,6 +96,7 @@ export default function NotificationCard({
               ? colors.error
               : colors.accentContent,
           },
+          { pointerEvents: "none" },
         ]}
       />
 

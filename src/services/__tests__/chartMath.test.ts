@@ -79,7 +79,8 @@ describe("niceCeil", () => {
 
 describe("chart constants and themed colors", () => {
   test("chart height matches the shared layout constant", () => {
-    expect(CHART_HEIGHT).toBe(190);
+    // UI-STANDARDS.md baseline: 240 (was 190 pre-standards).
+    expect(CHART_HEIGHT).toBe(240);
   });
 
   test("getChartColors resolves theme tokens", () => {

@@ -283,6 +283,13 @@ export default function ApplianceModal({
   const [dismissedCustomIds, setDismissedCustomIds] =
     useState<string[]>([]);
 
+  // Single-open 3-dot menus: at most one box menu across
+  // Layer 1 and the archived viewer. Declared before the
+  // visible-sync effect below (react-hooks/immutability).
+  const [openMenuId, setOpenMenuId] = useState<
+    string | null
+  >(null);
+
   // Guards the async load: only the latest open may write
   // state, so a slow fetch cannot overwrite newer toggles
   // and closing mid-fetch cannot set state for a dead open.
@@ -561,6 +568,7 @@ export default function ApplianceModal({
       // before the DB fetch resolves. loadAppliances() owns the
       // seq guard, so a slow fetch cannot overwrite a newer open
       // and closing mid-fetch invalidates it.
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- modal open snapshots selection + resets draft state (intentional UI sync with visible)
       setSelected(snapshot.map(({ id }) => id));
       setDismissedCustomIds([]);
       setSearchText("");
@@ -1524,13 +1532,6 @@ export default function ApplianceModal({
   const formPhotoPreview =
     customPhotoLocal?.uri ?? customPhotoUrl;
 
-  // Single-open 3-dot menus: at most one box menu across
-  // Layer 1 and the archived viewer. Boxes are controlled
-  // through menuOpen/onMenuToggle at their call sites.
-  const [openMenuId, setOpenMenuId] = useState<
-    string | null
-  >(null);
-
   const handleBoxMenuToggle = (id: string) => {
     setOpenMenuId((current) =>
       current === id ? null : id,
@@ -1595,13 +1596,13 @@ export default function ApplianceModal({
     return [...byId.values()];
   }, [appliances, propCustomFallback]);
 
-  const displayAppliances: Appliance[] = useMemo(
-    () => [
-      ...GIVEN_CATALOG.map(catalogToAppliance),
-      ...mergedCustoms,
-    ],
-    [mergedCustoms],
-  );
+  // Derived each render so React Compiler can memoize it
+  // (react-hooks/preserve-manual-memoization). Catalog is
+  // module-stable and small; no manual useMemo needed.
+  const displayAppliances: Appliance[] = [
+    ...GIVEN_CATALOG.map(catalogToAppliance),
+    ...mergedCustoms,
+  ];
 
   const filteredAppliances =
     displayAppliances.filter(

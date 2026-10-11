@@ -79,6 +79,7 @@ export default function MediaPickerModal({
   // from last time must not greet the next attempt.
   useEffect(() => {
     if (visible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset transient dialog state on open
       setBusy(false);
       setError("");
     }
@@ -103,8 +104,8 @@ export default function MediaPickerModal({
 
       const result =
         await ImagePicker.launchImageLibraryAsync({
-          mediaTypes:
-            ImagePicker.MediaTypeOptions.Images,
+          // SDK57: MediaTypeOptions deprecated — string array.
+          mediaTypes: ["images"],
           allowsEditing: true,
           aspect: [1, 1],
           quality: 0.8,

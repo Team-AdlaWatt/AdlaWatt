@@ -13,6 +13,9 @@ module.exports = {
     // (mirrors babel module-resolver + tsconfig paths).
     "^@/assets/(.+)$":
       "<rootDir>/assets/$1",
+    // Web-only CSS stub: prevents Jest from parsing .css
+    // side-effect imports (see src/app/_layout.tsx).
+    "\\.css$": "<rootDir>/jest/__mocks__/styleMock.js",
     "^@/(.+)$":
       "<rootDir>/src/$1",
   },

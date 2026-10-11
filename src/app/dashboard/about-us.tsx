@@ -11,6 +11,7 @@ import {
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
 import ScreenContainer2 from "@/components/layout/ScreenContainer2";
+import { useScreenPadding } from "@/constants/sizing";
 import AppText from "@/components/ui/AppText";
 import {
   useAppColors,
@@ -21,6 +22,9 @@ import { useTranslation } from "react-i18next";
 export default function AboutUsScreen() {
   const { t } = useTranslation();
   const colors = useAppColors();
+
+  // Responsive gutter: 16/20/24 by phone width (UI-STANDARDS.md).
+  const screenPadding = useScreenPadding();
 
   const styles = useMemo(
     () => getStyles(colors),
@@ -35,7 +39,10 @@ export default function AboutUsScreen() {
       {/* Scrollable About Us Content */}
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingHorizontal: screenPadding },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* About Us Header */}

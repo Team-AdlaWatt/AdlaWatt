@@ -153,7 +153,7 @@ const getStyles = () =>
     },
 
     label: {
-      fontSize: 11,
+      fontSize: 12,
       fontWeight: "700",
     },
 

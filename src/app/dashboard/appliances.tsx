@@ -37,7 +37,7 @@ import {
 import {
   Radius,
 } from "@/constants/theme";
-import { Control } from "@/constants/sizing";
+import { Control, useScreenPadding } from "@/constants/sizing";
 import {
   SlidingToggle,
 } from "@/components/ui/SlidingToggle";
@@ -186,6 +186,9 @@ export default function AppliancesScreen() {
 
   const colors = useAppColors();
 
+  // Responsive gutter: 16/20/24 by phone width (UI-STANDARDS.md).
+  const screenPadding = useScreenPadding();
+
   const styles = useMemo(
     () => getStyles(colors),
     [colors],
@@ -325,6 +328,7 @@ export default function AppliancesScreen() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount fetch is the effect's purpose
     loadSelectedAppliances();
   }, []);
 
@@ -470,6 +474,7 @@ export default function AppliancesScreen() {
   // the active segment, glide to the next visible one.
   useEffect(() => {
     if (!visibleStatusFilters.includes(statusFilter)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- glide selection to next visible segment
       setStatusFilter(
         visibleStatusFilters[0] ?? "Advisable",
       );
@@ -528,7 +533,10 @@ export default function AppliancesScreen() {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingHorizontal: screenPadding },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}

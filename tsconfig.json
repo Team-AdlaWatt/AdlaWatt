@@ -2,6 +2,10 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    // TS6 (SDK57 toolchain) no longer auto-includes all @types
+    // packages — list the global ones explicitly (jest globals
+    // in __tests__, node globals like process.env).
+    "types": ["jest", "node"],
     "paths": {
       "@/*": [
         "./src/*"
@@ -14,6 +18,7 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    "src/**/*.d.ts",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
   ],

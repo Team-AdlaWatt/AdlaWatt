@@ -283,7 +283,9 @@ export const printAndSharePdf = async (
   let shareUri = uri;
 
   try {
-    new File(uri).copy(target);
+    // SDK57: File copy is async — await so the share target
+    // exists before shareAsync reads it.
+    await new File(uri).copy(target);
 
     shareUri = target.uri;
   } catch (error) {
@@ -331,7 +333,9 @@ export const saveAndShareCsv = async (
     filename,
   );
 
-  file.write(csv);
+  // SDK57: File write is async — await so the CSV is
+  // flushed before shareAsync reads it.
+  await file.write(csv);
 
   const uri = file.uri;
 

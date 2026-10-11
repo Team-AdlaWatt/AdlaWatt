@@ -152,10 +152,10 @@ The Menu screen (`SettingsScreen`, staged Save/Cancel draft flow) provides accou
 
 - Edit username and email
 - Change password (with current-password verification)
-- Dark mode toggle (system / light / dark, instant apply), color-blind mode, font size (Small / Medium / Big, 0.875 / 1 / 1.15 scale), font family (Inter / Roboto / Times New Roman / Monospace / System Default via `expo-font` + `useAppFonts`), language (English / Filipino / Cebuano), vibration, reminders (device-local daily review + low-sun advisories), and global per-user email-notification preference
+- Dark mode toggle (system / light / dark, instant apply), font size (Small / Medium / Big, 0.875 / 1 / 1.15 scale), font family (Inter / Roboto / Times New Roman / Monospace / System Default via `expo-font` + `useAppFonts`), language (English / Filipino / Cebuano), vibration, reminders (device-local daily review + low-sun advisories), and global per-user email-notification preference
 - Logout with confirmation
 
-> Persistence: theme (`adlawatt.theme.v2`, with v1 migration), typography (`adlawatt.typography.v1`), language (`adlawatt.language.v1`), vibration (`adlawatt.vibration.v1`), email-notifications (server `users.email_notifications` + per-user `AsyncStorage` cache) survive app restarts and offline. Color-blind mode is session-only by design. `fontWeight` was removed — old saves carrying it are ignored without migration. A single shared `SettingsProvider` + `ThemeProvider` in `app/dashboard/_layout.tsx` propagates typography/theme to all dashboard screens (auth screens intentionally render light).
+> Persistence: theme (`adlawatt.theme.v2`, with v1 migration), typography (`adlawatt.typography.v1`), language (`adlawatt.language.v1`), vibration (`adlawatt.vibration.v1`), email-notifications (server `users.email_notifications` + per-user `AsyncStorage` cache) survive app restarts and offline. `fontWeight` was removed — old saves carrying it are ignored without migration. A single shared `SettingsProvider` + `ThemeProvider` in `app/dashboard/_layout.tsx` propagates typography/theme to all dashboard screens (auth screens intentionally render light).
 
 ### About Us
 
@@ -595,8 +595,8 @@ The Activity Logs screen:
 The Menu screen (`SettingsScreen`) provides:
 
 - Account management (username, email, password change)
-- Preferences staged as drafts (Save commits, Cancel discards): theme (system/light/dark), font size/family, color-blind mode, language, vibration, email notifications
-- Persisted: theme, typography, language, vibration, email-notifications. Session-only: color-blind mode.
+- Preferences staged as drafts (Save commits, Cancel discards): theme (system/light/dark), font size/family, language, vibration, email notifications
+- Persisted: theme, typography, language, vibration, email-notifications.
 - Logout with confirmation
 
 ### About Us

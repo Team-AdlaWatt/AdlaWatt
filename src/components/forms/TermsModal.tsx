@@ -38,6 +38,7 @@ export default function TermsModal({
 
   useEffect(() => {
     if (!visible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset countdown when modal closes (intentional UI reset)
       setSecondsRemaining(5);
       setCanAgree(false);
       return;

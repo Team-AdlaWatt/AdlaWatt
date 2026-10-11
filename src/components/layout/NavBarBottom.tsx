@@ -9,6 +9,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppText from "@/components/ui/AppText";
 
@@ -16,7 +17,7 @@ import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
-import { Bar, Type } from "@/constants/sizing";
+import { Bar } from "@/constants/sizing";
 import { Routes } from "@/constants/routes";
 
 // ============================================================
@@ -54,13 +55,22 @@ export default function NavBarBottom() {
   const pathname = usePathname();
   const colors = useAppColors();
 
+  // Gesture-bar inset: bar stays 64 high, the wrapper absorbs
+  // the device inset below it (never a fixed paddingBottom).
+  const insets = useSafeAreaInsets();
+
   const navBarBottomStyles = useMemo(
     () => getStyles(colors),
     [colors],
   );
 
   return (
-    <View style={navBarBottomStyles.wrapper}>
+    <View
+      style={[
+        navBarBottomStyles.wrapper,
+        { paddingBottom: insets.bottom },
+      ]}
+    >
       {/* ======================================================
           SECONDARY ACCENT LINE (on top, mirrors Navbar's
           accent flipped to the bottom edge)
@@ -150,7 +160,9 @@ const getStyles = (colors: AppColors) =>
 
   label: {
     color: colors.bar.muted,
-    fontSize: Type.caption,
+    // 11sp tab-label exception to the 12 minimum (UI-STANDARDS.md):
+    // industry standard for tab bars, paired with 24 icon + 48 target.
+    fontSize: 11,
     fontWeight: "600",
   },
 

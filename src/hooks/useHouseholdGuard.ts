@@ -62,6 +62,7 @@ export function useHouseholdGuard() {
     }
 
     if (!isSignedIn) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- auth guard syncs role state + router (external system) on sign-out
       setIsHousehold(false);
       setRoleLoaded(true);
       router.replace(Routes.LOGIN);

@@ -19,6 +19,7 @@ import Copyright from "@/components/ui/Copyright";
 
 import NavBar from "@/components/layout/Navbar";
 import ScreenContainer2 from "@/components/layout/ScreenContainer2";
+import { useScreenPadding } from "@/constants/sizing";
 
 import AppText from "@/components/ui/AppText";
 import EmptyState from "@/components/ui/EmptyState";
@@ -113,6 +114,9 @@ export default function ComponentsScreen() {
   const { t } = useTranslation();
   const colors = useAppColors();
 
+  // Responsive gutter: 16/20/24 by phone width (UI-STANDARDS.md).
+  const screenPadding = useScreenPadding();
+
   const styles = useMemo(
     () => getStyles(colors),
     [colors],
@@ -204,6 +208,7 @@ export default function ComponentsScreen() {
     if (
       !visibleComponentFilters.includes(statusFilter)
     ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- glide selection to next visible segment
       setStatusFilter(
         visibleComponentFilters[0] ?? "Active",
       );
@@ -427,7 +432,10 @@ export default function ComponentsScreen() {
 
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingHorizontal: screenPadding },
+        ]}
       >
         {/* Header */}
 

@@ -302,8 +302,6 @@ const fil = {
     themeLight: "Light",
     themeSystemWith: "System ({{mode}})",
     themeOptionA11y: "Theme {{option}}",
-    colorBlindMode: "Color Blind Mode",
-    colorBlindHint: "Ayusin ang mga kulay para sa accessibility.",
     fontSize: "Font Size",
     fontSmall: "Small",
     fontMedium: "Medium",
@@ -402,6 +400,8 @@ const fil = {
       sectionEnergy: "Enerhiya",
       sectionHealth: "Kalusugan",
       sectionUsage: "Paggamit",
+      generateReport: "Generate Report",
+      goToGenerateReport: "Pumunta sa Generate Report",
     },
     logs: {
       title: "Activity Logs",

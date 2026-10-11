@@ -56,6 +56,7 @@ export function useSafeAsync<T>(
   useEffect(() => {
     let active = true;
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch reset before async loader (external sync); results settle in promise callbacks below
     setLoading(true);
     setError(null);
 

@@ -14,6 +14,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
   useAppColors,
@@ -274,6 +275,11 @@ export default function NavBar({
   const { width: screenWidth } =
     useWindowDimensions();
 
+  // Status-bar inset: bar itself stays 56 high, the
+  // wrapper absorbs the device cutout above it (never a
+  // fixed paddingTop — insets vary per device).
+  const insets = useSafeAreaInsets();
+
   const navBarStyles = useMemo(
     () => getNavBarStyles(colors),
     [colors],
@@ -290,6 +296,7 @@ export default function NavBar({
         {
           width: screenWidth,
           alignSelf: "center",
+          paddingTop: insets.top,
         },
       ]}
     >
@@ -414,8 +421,10 @@ const navBarDimensions = {
   notificationDotSize: 8,
   accentHeight: 3,
 
-  // Device status capsule
-  deviceStatusWidth: 80,
+  // Device status capsule: flexible width (min + padding)
+  // so 320dp phones never overflow; text truncates inside.
+  deviceStatusMinWidth: 64,
+  deviceStatusMaxWidth: 96,
   deviceStatusHeight: 29,
   deviceStatusRadius: 20,
   statusDotSize: 9,
@@ -464,7 +473,8 @@ const getNavBarStyles = (colors: AppColors) =>
     color: colors.bar.text,
     fontSize: 14,
     fontWeight: "600",
-    maxWidth: 140,
+    // 320dp-safe: truncates with ellipsis via flexShrink.
+    maxWidth: 100,
     flexShrink: 1,
   },
 
@@ -495,13 +505,18 @@ const getNavBarStyles = (colors: AppColors) =>
 
   // Device status capsule
   deviceStatus: {
-    width: navBarDimensions.deviceStatusWidth,
+    minWidth:
+      navBarDimensions.deviceStatusMinWidth,
+    maxWidth:
+      navBarDimensions.deviceStatusMaxWidth,
     height: navBarDimensions.deviceStatusHeight,
     borderRadius: navBarDimensions.deviceStatusRadius,
     backgroundColor: colors.bar.capsule,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 10,
+    flexShrink: 1,
   },
 
   statusDot: {

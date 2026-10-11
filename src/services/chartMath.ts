@@ -45,7 +45,7 @@ export const getChartColors = (
   muted: colors.border,
 });
 
-export const CHART_HEIGHT = 190;
+export const CHART_HEIGHT = 240;
 
 /* ============================================================
    DATA HELPERS

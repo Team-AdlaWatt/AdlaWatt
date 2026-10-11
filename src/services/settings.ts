@@ -9,7 +9,7 @@ import type {
 // TYPOGRAPHY PREFERENCES (v1)
 //
 // Local-only system settings. No Supabase.
-// Dark mode / color blind mode are intentionally excluded.
+// Dark mode is intentionally excluded.
 // Language / email alerts are reserved for later
 // and can extend this file without migration breaks.
 // ============================================================

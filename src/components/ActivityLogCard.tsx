@@ -156,11 +156,11 @@ export default function ActivityLogCard({
     <View style={styles.stackContainer}>
       {/* Back layer: solid type color peeked on the left. */}
       <View
-        pointerEvents="none"
         accessible={false}
         style={[
           styles.backLayer,
           { backgroundColor: color },
+          { pointerEvents: "none" },
         ]}
       />
 

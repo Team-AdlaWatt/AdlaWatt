@@ -281,8 +281,6 @@ const en = {
     themeLight: "Light",
     themeSystemWith: "System ({{mode}})",
     themeOptionA11y: "Theme {{option}}",
-    colorBlindMode: "Color Blind Mode",
-    colorBlindHint: "Adjust colors for better accessibility.",
     fontSize: "Font Size",
     fontSmall: "Small",
     fontMedium: "Medium",
@@ -385,6 +383,8 @@ const en = {
       sectionEnergy: "Energy",
       sectionHealth: "Health",
       sectionUsage: "Usage",
+      generateReport: "Generate Report",
+      goToGenerateReport: "Go to Generate Report",
     },
     logs: {
       title: "Activity Logs",

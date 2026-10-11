@@ -1,3 +1,10 @@
+/* ============================================================
+   AdlaWatt global.css — web-only mirror (dormant on mobile OTA).
+   Single source of truth: FontStacks in src/constants/theme.ts.
+   Edit TS first, then sync values here verbatim.
+   Loaded only via src/app/_layout.tsx guarded by
+   Platform.OS === "web". Native never bundles this file.
+   ============================================================ */
 :root {
   --font-display:
     Spline Sans, Inter, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji,
