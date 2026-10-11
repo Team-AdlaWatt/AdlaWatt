@@ -424,3 +424,224 @@ describe("canRefreshToday", () => {
     ).toBe(true);
   });
 });
+
+// ============================================================
+// RETRY (429/5xx only, never 401)
+// ============================================================
+
+describe("fetch retry", () => {
+  const grantFresh = (
+    lat: number = 8.37,
+    lon: number = 124.87,
+  ) => {
+    mockLocation.requestForegroundPermissionsAsync.mockResolvedValue(
+      { status: "granted" },
+    );
+
+    mockLocation.hasServicesEnabledAsync.mockResolvedValue(
+      true,
+    );
+
+    mockLocation.getLastKnownPositionAsync.mockResolvedValue(
+      null,
+    );
+
+    mockLocation.getCurrentPositionAsync.mockResolvedValue(
+      {
+        coords: {
+          latitude: lat,
+          longitude: lon,
+        },
+      },
+    );
+  };
+
+  test("retries 429/5xx up to success", async () => {
+    grantFresh();
+
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+      })
+      .mockResolvedValue({
+        ok: true,
+        json: async () => owmOk(),
+      });
+
+    const data = await getWeather();
+
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+    expect(data.city).toBe("Malaybalay");
+  });
+
+  test("401 fails immediately without retry", async () => {
+    grantFresh();
+
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 401,
+    });
+
+    await expect(
+      getWeather(),
+    ).rejects.toThrow();
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  test("network failure does not retry", async () => {
+    grantFresh();
+
+    mockFetch.mockRejectedValue(
+      new Error("offline"),
+    );
+
+    await expect(
+      getWeather(),
+    ).rejects.toThrow("offline");
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ============================================================
+// SHARED IN-FLIGHT REQUEST
+// ============================================================
+
+describe("shared flight", () => {
+  test("concurrent callers share one fetch", async () => {
+    mockLocation.requestForegroundPermissionsAsync.mockResolvedValue(
+      { status: "granted" },
+    );
+
+    mockLocation.hasServicesEnabledAsync.mockResolvedValue(
+      true,
+    );
+
+    mockLocation.getLastKnownPositionAsync.mockResolvedValue(
+      {
+        coords: {
+          latitude: 8.37,
+          longitude: 124.87,
+        },
+      },
+    );
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => owmOk(),
+    });
+
+    const [first, second] = await Promise.all([
+      getWeather(),
+      getWeather(),
+    ]);
+
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+    expect(first).toEqual(second);
+  });
+});
+
+// ============================================================
+// CACHE COORDS + DISTANCE RULE + COD
+// ============================================================
+
+describe("cache coords", () => {
+  const grantFresh = (
+    lat: number,
+    lon: number,
+  ) => {
+    mockLocation.requestForegroundPermissionsAsync.mockResolvedValue(
+      { status: "granted" },
+    );
+
+    mockLocation.hasServicesEnabledAsync.mockResolvedValue(
+      true,
+    );
+
+    mockLocation.getLastKnownPositionAsync.mockResolvedValue(
+      null,
+    );
+
+    mockLocation.getCurrentPositionAsync.mockResolvedValue(
+      {
+        coords: {
+          latitude: lat,
+          longitude: lon,
+        },
+      },
+    );
+  };
+
+  test("far fix ignores the cache", async () => {
+    grantFresh(8.37, 124.87);
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => owmOk(),
+    });
+
+    await getWeather();
+
+    grantFresh(9.0, 125.5);
+
+    mockFetch.mockRejectedValue(
+      new Error("offline"),
+    );
+
+    await expect(
+      getWeather(),
+    ).rejects.toThrow("offline");
+  });
+
+  test("legacy codeless cache still serves", async () => {
+    grantFresh(8.37, 124.87);
+
+    await AsyncStorage.setItem(
+      TODAY_CACHE_KEY,
+      JSON.stringify({
+        data: {
+          temperature: 30,
+          description: "clear sky",
+          city: "Cached",
+        },
+        fetchedAt: Date.now(),
+      }),
+    );
+
+    mockFetch.mockRejectedValue(
+      new Error("offline"),
+    );
+
+    const data = await getWeather();
+
+    expect(data.city).toBe("Cached");
+  });
+
+  test("non-200 cod never caches, serves cache instead", async () => {
+    grantFresh(8.37, 124.87);
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => owmOk(),
+    });
+
+    await getWeather();
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () =>
+        owmOk({ cod: 404 }),
+    });
+
+    const data = await getWeather();
+
+    expect(data.city).toBe("Malaybalay");
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+});

@@ -228,15 +228,39 @@ async function getCoordinates(): Promise<Coordinates> {
 }
 
 // ============================================================
-// FETCH WITH TIMEOUT
+// FETCH WITH TIMEOUT + RETRY
 //
 // Uses an AbortController so a hanging request is cancelled
 // after REQUEST_TIMEOUT_MS. The abort is converted into a
 // descriptive timeout error instead of a raw AbortError.
+//
+// Retry: HTTP 429 + 5xx only, up to 3 attempts ~1s apart.
+// 401 (bad key), other 4xx, timeouts, and network errors
+// fail immediately — retrying a bad key burns quota and
+// retrying offline only delays the cache fallback.
 // ============================================================
 
+const MAX_FETCH_ATTEMPTS = 3;
+
+const RETRY_DELAY_MS = 1000;
+
+function isRetriableStatus(
+  status: number,
+): boolean {
+  return (
+    status === 429 ||
+    (status >= 500 && status <= 599)
+  );
+}
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
 async function fetchCurrentWeather(
-  coordinates: Coordinates
+  coordinates: Coordinates,
+  attempt: number = 1,
 ): Promise<unknown> {
   const params = new URLSearchParams({
     lat: coordinates.lat.toString(),
@@ -262,6 +286,18 @@ async function fetchCurrentWeather(
     );
 
     if (!response.ok) {
+      if (
+        attempt < MAX_FETCH_ATTEMPTS &&
+        isRetriableStatus(response.status)
+      ) {
+        await sleep(RETRY_DELAY_MS);
+
+        return fetchCurrentWeather(
+          coordinates,
+          attempt + 1,
+        );
+      }
+
       throw new WeatherError(
         "api",
         formatApiError(response.status)
@@ -310,6 +346,7 @@ async function fetchCurrentWeather(
 // ============================================================
 
 interface OpenWeatherCurrentResponse {
+  cod?: unknown;
   dt?: unknown;
   weather?: {
     main?: unknown;
@@ -337,6 +374,20 @@ function parseWeatherResponse(
 
   const payload =
     data as OpenWeatherCurrentResponse;
+
+  // Belt-and-suspenders behind response.ok: an explicit
+  // non-200 code means the body is an error document, never
+  // a reading — reject before anything can be cached.
+  if (
+    payload.cod !== undefined &&
+    payload.cod !== 200 &&
+    payload.cod !== "200"
+  ) {
+    throw new WeatherError(
+      "invalid_response",
+      weatherJson.messages.errors.invalid_response
+    );
+  }
 
   const temperature =
     payload.main?.temp;
@@ -427,6 +478,33 @@ export const TODAY_CACHE_KEY =
 interface CachedTodayWeather {
   data: WeatherData;
   fetchedAt: number;
+  // Fix the reading was taken at. Entries written before
+  // coords were stored omit it and still serve.
+  lat?: number;
+  lon?: number;
+}
+
+// ~5km degree box (0.05° lat ≈ 5.5km; lon similar near the
+// equator). A fresh fix outside the cached cell ignores the
+// cache so weather is never shown for the wrong place.
+const CACHE_MAX_SHIFT_DEG = 0.05;
+
+function readCacheCoords(
+  parsed: Partial<CachedTodayWeather>,
+): Pick<Coordinates, "lat" | "lon"> | null {
+  if (
+    typeof parsed.lat === "number" &&
+    Number.isFinite(parsed.lat) &&
+    typeof parsed.lon === "number" &&
+    Number.isFinite(parsed.lon)
+  ) {
+    return {
+      lat: parsed.lat,
+      lon: parsed.lon,
+    };
+  }
+
+  return null;
 }
 
 async function readTodayCache(): Promise<CachedTodayWeather | null> {
@@ -454,6 +532,7 @@ async function readTodayCache(): Promise<CachedTodayWeather | null> {
     return {
       data: parsed.data as WeatherData,
       fetchedAt: parsed.fetchedAt,
+      ...(readCacheCoords(parsed) ?? {}),
     };
   } catch {
     return null;
@@ -462,6 +541,7 @@ async function readTodayCache(): Promise<CachedTodayWeather | null> {
 
 async function writeTodayCache(
   data: WeatherData,
+  coordinates: Coordinates,
 ): Promise<void> {
   try {
     await AsyncStorage.setItem(
@@ -469,6 +549,8 @@ async function writeTodayCache(
       JSON.stringify({
         data,
         fetchedAt: Date.now(),
+        lat: coordinates.lat,
+        lon: coordinates.lon,
       }),
     );
   } catch {
@@ -478,9 +560,28 @@ async function writeTodayCache(
 
 // ============================================================
 // GET WEATHER
+//
+// Concurrent callers share one in-flight request, so an old
+// response can never overwrite newer state or cache — there
+// is only ever a single writer.
 // ============================================================
 
-export async function getWeather(): Promise<WeatherData> {
+let inflightToday: Promise<WeatherData> | null =
+  null;
+
+export function getWeather(): Promise<WeatherData> {
+  if (!inflightToday) {
+    inflightToday = runWeatherFetch().finally(
+      () => {
+        inflightToday = null;
+      },
+    );
+  }
+
+  return inflightToday;
+}
+
+async function runWeatherFetch(): Promise<WeatherData> {
   validateApiKey();
 
   const coordinates =
@@ -505,7 +606,7 @@ export async function getWeather(): Promise<WeatherData> {
             observedAt: Date.now(),
           };
 
-    await writeTodayCache(data);
+    await writeTodayCache(data, coordinates);
 
     return data;
   } catch (error) {
@@ -521,18 +622,33 @@ export async function getWeather(): Promise<WeatherData> {
     const cached = await readTodayCache();
 
     if (cached) {
-      const ageMin = Math.round(
-        (Date.now() - cached.fetchedAt) / 60000,
-      );
+      if (
+        cached.lat !== undefined &&
+        cached.lon !== undefined &&
+        (Math.abs(
+          cached.lat - coordinates.lat,
+        ) > CACHE_MAX_SHIFT_DEG ||
+          Math.abs(
+            cached.lon - coordinates.lon,
+          ) > CACHE_MAX_SHIFT_DEG)
+      ) {
+        console.warn(
+          "Cached weather is from >~5km away — ignoring.",
+        );
+      } else {
+        const ageMin = Math.round(
+          (Date.now() - cached.fetchedAt) / 60000,
+        );
 
-      console.warn(
-        `Weather fetch failed — serving ${ageMin}m-old cache:`,
-        error instanceof Error
-          ? error.message
-          : error,
-      );
+        console.warn(
+          `Weather fetch failed — serving ${ageMin}m-old cache:`,
+          error instanceof Error
+            ? error.message
+            : error,
+        );
 
-      return cached.data;
+        return cached.data;
+      }
     }
 
     throw error;
