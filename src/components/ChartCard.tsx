@@ -920,19 +920,6 @@ export default function ChartCard({
                 ]}
               >
 
-                <Ionicons
-                  name={
-                    batteryStatus === "Charging"
-                      ? "flash"
-                      : isIdle
-                        ? "pause"
-                        : "battery-half-outline"
-                  }
-                  size={12}
-                  color={colors.onPrimary}
-                  style={{ marginRight: 4 }}
-                />
-
                 <AppText
                   variant="caption"
                   style={
@@ -955,17 +942,6 @@ export default function ChartCard({
                     : styles.dodSafeBadge,
                 ]}
               >
-
-                <Ionicons
-                  name={
-                    isDodBadgeRed
-                      ? "shield-outline"
-                      : "shield-checkmark-outline"
-                  }
-                  size={12}
-                  color={colors.onPrimary}
-                  style={{ marginRight: 4 }}
-                />
 
                 <AppText
                   variant="caption"
@@ -1135,16 +1111,6 @@ export default function ChartCard({
                   ]}
                 >
 
-                  <Ionicons
-                    name={getTemperatureIcon(
-                      batteryTemperatureData.badge as TemperatureStatus,
-                    )}
-                    size={12}
-                    color={getTemperatureInk(
-                      batteryTemperatureData.badge as TemperatureStatus,
-                    )}
-                  />
-
                   <AppText
                     variant="caption"
                     style={[
@@ -1194,16 +1160,6 @@ export default function ChartCard({
                   interiorTemperatureBadge,
                 ]}
               >
-
-                <Ionicons
-                  name={getTemperatureIcon(
-                    interiorTemperatureStatus,
-                  )}
-                  size={12}
-                  color={getTemperatureInk(
-                    interiorTemperatureStatus,
-                  )}
-                />
 
                 <AppText
                   variant="caption"
@@ -1449,23 +1405,6 @@ export default function ChartCard({
                 ]}
               >
 
-                <Ionicons
-                  name={
-                    solarStatus === "High"
-                      ? "sunny"
-                      : solarStatus === "Moderate"
-                        ? "partly-sunny"
-                        : "cloud-outline"
-                  }
-                  size={12}
-                  color={
-                    solarStatus === "Moderate"
-                      ? Colors.light.text
-                      : colors.onPrimary
-                  }
-                  style={{ marginRight: 4 }}
-                />
-
                 <AppText
                   variant="caption"
                   style={[
@@ -1630,16 +1569,6 @@ export default function ChartCard({
                     solarTemperatureData.badgeStyle,
                   ]}
                 >
-
-                  <Ionicons
-                    name={getTemperatureIcon(
-                      solarTemperatureData.badge as TemperatureStatus,
-                    )}
-                    size={12}
-                    color={getTemperatureInk(
-                      solarTemperatureData.badge as TemperatureStatus,
-                    )}
-                  />
 
                   <AppText
                     variant="caption"
@@ -2827,48 +2756,7 @@ function getTemperatureBadgeTextStyle(
   }
 }
 
-// ============================================================
-// TEMPERATURE BADGE ICON + INK
-//
-// Frozen severity inks are reused for the icon so the badge
-// pairs color with shape + text without recoloring the scale.
-// ============================================================
-
-function getTemperatureIcon(
-  status: TemperatureStatus,
-): keyof typeof Ionicons.glyphMap {
-  switch (status) {
-    case "Nominal":
-      return "thermometer-outline";
-
-    case "Elevated":
-      return "thermometer-outline";
-
-    case "High":
-      return "warning-outline";
-
-    case "Critical":
-      return "alert-circle-outline";
-  }
-}
-
-function getTemperatureInk(
-  status: TemperatureStatus,
-): string {
-  switch (status) {
-    case "Nominal":
-      return Colors.light.severity.nominal.text;
-
-    case "Elevated":
-      return Colors.light.severity.elevated.text;
-
-    case "High":
-      return Colors.light.severity.high.text;
-
-    case "Critical":
-      return Colors.light.severity.critical.text;
-  }
-}
+// (Temperature badge icons removed: status badges are text-only.)
 
 // ============================================================
 // STYLES
