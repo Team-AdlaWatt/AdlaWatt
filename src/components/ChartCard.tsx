@@ -3000,6 +3000,7 @@ const getStyles = (colors: AppColors) =>
     color: colors.onPrimary,
     fontSize: 12,
     fontWeight: "600",
+    textTransform: "uppercase",
   },
 
   remainingText: {
@@ -3588,6 +3589,7 @@ const getStyles = (colors: AppColors) =>
     fontSize: 12,
     fontWeight: "600",
     textAlign: "center",
+    textTransform: "uppercase",
   },
 
   normalBadge: {
@@ -3647,6 +3649,7 @@ const getStyles = (colors: AppColors) =>
     fontSize: 12,
     fontWeight: "600",
     textAlign: "center",
+    textTransform: "uppercase",
   },
 
   dodSafeBadgeText: {

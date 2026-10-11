@@ -303,6 +303,7 @@ const getStyles = (colors: AppColors) =>
     fontSize: 12,
     fontWeight: "600",
     textAlign: "center",
+    textTransform: "uppercase",
   },
 
   highBadge: {
