@@ -722,32 +722,38 @@ export default function AppRecCard({
                       {appliance.watts}
                     </AppText>
 
-                    {/* Status */}
-                    <View
-                      style={[
-                        applianceCardStyles.status,
-                        {
-                          backgroundColor:
-                            meta.color,
-                        },
-                      ]}
-                    >
-                      <Ionicons
-                        name={meta.icon}
-                        size={13}
-                  color={colors.onPrimary}
-                      />
-
-                      <AppText
-                        variant="caption"
-                        style={
-                          applianceCardStyles.statusText
-                        }
-                        numberOfLines={1}
+                    {/* Status (not-advisable items show
+                        no pill: the active toggle segment
+                        already states it, so the red pill
+                        is redundant) */}
+                    {appliance.status !==
+                      "notAdvisable" && (
+                      <View
+                        style={[
+                          applianceCardStyles.status,
+                          {
+                            backgroundColor:
+                              meta.color,
+                          },
+                        ]}
                       >
-                        {meta.label}
-                      </AppText>
-                    </View>
+                        <Ionicons
+                          name={meta.icon}
+                          size={13}
+                          color={colors.onPrimary}
+                        />
+
+                        <AppText
+                          variant="caption"
+                          style={
+                            applianceCardStyles.statusText
+                          }
+                          numberOfLines={1}
+                        >
+                          {meta.label}
+                        </AppText>
+                      </View>
+                    )}
                   </View>
                   );
                 },
