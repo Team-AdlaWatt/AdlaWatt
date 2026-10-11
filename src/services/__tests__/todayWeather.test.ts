@@ -38,10 +38,13 @@ const owmOk = (
   main: { temp: 32.4 },
   weather: [
     {
-      main: "Rain",
-      description: "light rain",
+      id: 803,
+      main: "Clouds",
+      description: "broken clouds",
+      icon: "04d",
     },
   ],
+  clouds: { all: 70 },
   name: "Malaybalay",
   ...overrides,
 });
@@ -184,7 +187,7 @@ describe("getWeather coordinates", () => {
       mockLocation.getCurrentPositionAsync,
     ).toHaveBeenCalled();
 
-    expect(data.mainGroup).toBe("Rain");
+    expect(data.mainGroup).toBe("Clouds");
     expect(data.city).toBe("Malaybalay");
   });
 
@@ -279,6 +282,10 @@ describe("getWeather cache", () => {
     const live = await getWeather();
 
     expect(live.temperature).toBe(32);
+    expect(live.conditionId).toBe(803);
+    expect(live.iconCode).toBe("04d");
+    expect(live.rainMm).toBeNull();
+    expect(live.cacheVersion).toBe(2);
 
     const stored = await AsyncStorage.getItem(
       TODAY_CACHE_KEY,
@@ -306,6 +313,32 @@ describe("getWeather cache", () => {
     await expect(
       getWeather(),
     ).rejects.toThrow();
+  });
+
+  test("missing weather id is invalid and never cached", async () => {
+    grantFresh();
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () =>
+        owmOk({
+          weather: [
+            {
+              main: "Clouds",
+              description: "broken clouds",
+              icon: "04d",
+            },
+          ],
+        }),
+    });
+
+    await expect(
+      getWeather(),
+    ).rejects.toThrow();
+
+    expect(
+      await AsyncStorage.getItem(TODAY_CACHE_KEY),
+    ).toBeNull();
   });
 });
 
@@ -599,7 +632,7 @@ describe("cache coords", () => {
     ).rejects.toThrow("offline");
   });
 
-  test("legacy codeless cache still serves", async () => {
+  test("legacy v1 cache is discarded", async () => {
     grantFresh(8.37, 124.87);
 
     await AsyncStorage.setItem(
@@ -618,9 +651,9 @@ describe("cache coords", () => {
       new Error("offline"),
     );
 
-    const data = await getWeather();
-
-    expect(data.city).toBe("Cached");
+    await expect(
+      getWeather(),
+    ).rejects.toThrow("offline");
   });
 
   test("non-200 cod never caches, serves cache instead", async () => {
