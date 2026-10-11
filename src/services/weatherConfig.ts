@@ -91,6 +91,83 @@ function assertWeatherConfig(): void {
 assertWeatherConfig();
 
 // ============================================================
+// MAIN-GROUP FAST PATH
+//
+// OpenWeather's `weather[0].main` is a stable enum (Clear,
+// Clouds, Rain, ...) while `description` is free-form prose.
+// Prefer the group when present; description keywords stay as
+// the fallback for unknown groups. Icons mirror the closest
+// description-rule equivalent so rendering never changes for
+// already-correct cases.
+// ============================================================
+
+const MAIN_GROUP_CONDITIONS: Record<
+  string,
+  ResolvedCondition
+> = {
+  Thunderstorm: {
+    icon: "thunderstorm-outline",
+    severity: "severe",
+  },
+  Tornado: {
+    icon: "thunderstorm-outline",
+    severity: "severe",
+  },
+  Squall: {
+    icon: "rainy-outline",
+    severity: "moderate",
+  },
+  Snow: {
+    icon: "snow-outline",
+    severity: "severe",
+  },
+  Rain: {
+    icon: "rainy-outline",
+    severity: "light",
+  },
+  Drizzle: {
+    icon: "rainy-outline",
+    severity: "light",
+  },
+  Mist: {
+    icon: "cloud-outline",
+    severity: "fog",
+  },
+  Smoke: {
+    icon: "cloud-outline",
+    severity: "fog",
+  },
+  Haze: {
+    icon: "cloud-outline",
+    severity: "fog",
+  },
+  Dust: {
+    icon: "cloud-outline",
+    severity: "fog",
+  },
+  Fog: {
+    icon: "cloud-outline",
+    severity: "fog",
+  },
+  Sand: {
+    icon: "cloud-outline",
+    severity: "fog",
+  },
+  Ash: {
+    icon: "cloud-outline",
+    severity: "fog",
+  },
+  Clear: {
+    icon: "sunny-outline",
+    severity: "clear",
+  },
+  Clouds: {
+    icon: "partly-sunny-outline",
+    severity: "cloudy",
+  },
+};
+
+// ============================================================
 // CONDITION RESOLUTION
 //
 // First-match wins (rule order = priority). Falls back to a
@@ -98,8 +175,18 @@ assertWeatherConfig();
 // ============================================================
 
 export function resolveCondition(
-  description: string
+  description: string,
+  main?: string,
 ): ResolvedCondition {
+  if (main) {
+    const direct =
+      MAIN_GROUP_CONDITIONS[main.trim()];
+
+    if (direct) {
+      return direct;
+    }
+  }
+
   const text = description.toLowerCase();
 
   const rules = weatherJson.conditions

@@ -10,6 +10,7 @@ import React, {
 
 import {
   Animated,
+  AppState,
   Easing,
   Pressable,
   ScrollView,
@@ -305,10 +306,27 @@ export default function DashboardScreen() {
       loadForecast();
     }, WEATHER_REFRESH_INTERVAL_MS);
 
+    // Refetch when the app returns to the foreground so a
+    // unit left open (or backgrounded past the interval)
+    // repaints without waiting for the next tick.
+    const foregroundSub =
+      AppState.addEventListener(
+        "change",
+        (state) => {
+          if (state === "active") {
+            loadWeather();
+
+            loadForecast();
+          }
+        },
+      );
+
     return () => {
       screenMounted.current = false;
 
       clearInterval(refreshInterval);
+
+      foregroundSub.remove();
     };
   }, [loadForecast, loadWeather]);
 

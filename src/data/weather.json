@@ -9,6 +9,16 @@
   "timing": {
     "autoRefreshMs": 600000
   },
+  "location": {
+    "fallbackLat": 8.37,
+    "fallbackLon": 124.87,
+    "fallbackLabel": "Manolo Fortich",
+    "coordDecimals": 2,
+    "lastKnownMaxAgeMs": 600000
+  },
+  "cache": {
+    "todayMinutes": 15
+  },
   "thresholds": {
     "hotC": 30,
     "coldC": 20,

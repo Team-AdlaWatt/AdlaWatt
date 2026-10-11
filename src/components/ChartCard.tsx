@@ -68,6 +68,7 @@ interface WeatherData {
   city: string;
   temperature: number;
   description: string;
+  mainGroup?: string;
 }
 
 type NonBatteryChartType =
@@ -2393,10 +2394,14 @@ function getCardData(
         weather?.description ??
         "Clear sky";
 
+      const mainGroup =
+        weather?.mainGroup;
+
       return {
         icon:
           getWeatherIcon(
             description,
+            mainGroup,
           ),
 
         label:
@@ -2417,12 +2422,14 @@ function getCardData(
           getWeatherBadgeStyle(
             description,
             themedStyles,
+            mainGroup,
           ),
 
         badgeTextStyle:
           getWeatherBadgeTextStyle(
             description,
             themedStyles,
+            mainGroup,
           ),
       };
     }
@@ -2592,13 +2599,18 @@ function formatSolarTimer(
 //
 // OpenWeather sends free-form descriptions (e.g. "moderate
 // rain", "few clouds"), so the mapping below matches on
-// keywords and always falls back to a valid icon.
+// keywords and always falls back to a valid icon. The stable
+// `main` group (Clear, Rain, ...) wins when present.
 // ============================================================
 
 function getWeatherIcon(
   description: string,
+  mainGroup?: string,
 ): keyof typeof Ionicons.glyphMap {
-  return resolveCondition(description).icon;
+  return resolveCondition(
+    description,
+    mainGroup,
+  ).icon;
 }
 
 // ============================================================
@@ -2610,8 +2622,12 @@ function getWeatherIcon(
 
 function getWeatherSeverity(
   description: string,
+  mainGroup?: string,
 ): WeatherSeverity {
-  return resolveCondition(description).severity;
+  return resolveCondition(
+    description,
+    mainGroup,
+  ).severity;
 }
 
 // ============================================================
@@ -2621,8 +2637,11 @@ function getWeatherSeverity(
 function getWeatherBadgeStyle(
   description: string,
   themedStyles: ReturnType<typeof getStyles>,
+  mainGroup?: string,
 ) {
-  switch (getWeatherSeverity(description)) {
+  switch (
+    getWeatherSeverity(description, mainGroup)
+  ) {
     case "clear":
       return themedStyles.clearWeatherBadge;
 
@@ -2662,8 +2681,11 @@ function getWeatherBadgeStyle(
 function getWeatherBadgeTextStyle(
   description: string,
   themedStyles: ReturnType<typeof getStyles>,
+  mainGroup?: string,
 ) {
-  switch (getWeatherSeverity(description)) {
+  switch (
+    getWeatherSeverity(description, mainGroup)
+  ) {
     case "clear":
       return themedStyles.clearWeatherBadgeText;
 

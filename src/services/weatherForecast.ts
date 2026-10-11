@@ -1,5 +1,7 @@
 import * as Location from "expo-location";
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import weatherJson from "@/data/weather.json";
 import {
   formatApiError,
@@ -56,6 +58,10 @@ export interface WeatherData {
   temperature: number;
   description: string;
   city: string;
+  // Stable OpenWeather group (Clear, Clouds, Rain, ...) used
+  // for icon/severity logic. Display copy still uses
+  // `description`; absent on pre-cache payloads.
+  mainGroup?: string;
 }
 
 export type WeatherErrorCode =
@@ -103,17 +109,37 @@ function validateApiKey(): void {
 
 // ============================================================
 // LOCATION
+//
+// Denial resolves to the fixed household fallback cell
+// (Manolo Fortich) so the Today card always paints useful
+// sky instead of an error. Coordinates round to the
+// configured decimals: same OWM cell, less GPS drift noise.
 // ============================================================
+
+function roundCoord(value: number): number {
+  const factor =
+    10 ** weatherJson.location.coordDecimals;
+
+  return Math.round(value * factor) / factor;
+}
+
+function fallbackCoordinates(): Coordinates {
+  return {
+    lat: weatherJson.location.fallbackLat,
+    lon: weatherJson.location.fallbackLon,
+  };
+}
 
 async function getCoordinates(): Promise<Coordinates> {
   const { status } =
     await Location.requestForegroundPermissionsAsync();
 
   if (status !== "granted") {
-    throw new WeatherError(
-      "permission_denied",
-      weatherJson.messages.errors.permission_denied
+    console.warn(
+      "Location denied — using Manolo Fortich fallback.",
     );
+
+    return fallbackCoordinates();
   }
 
   const servicesEnabled =
@@ -124,6 +150,31 @@ async function getCoordinates(): Promise<Coordinates> {
       "location_unavailable",
       weatherJson.messages.errors.services_disabled
     );
+  }
+
+  // Fast path: indoor GPS can be slow, so reuse a recent
+  // fix before paying for a fresh one.
+  try {
+    const lastKnown =
+      await Location.getLastKnownPositionAsync({
+        maxAge:
+          weatherJson.location.lastKnownMaxAgeMs,
+      });
+
+    const known = lastKnown?.coords;
+
+    if (
+      known &&
+      Number.isFinite(known.latitude) &&
+      Number.isFinite(known.longitude)
+    ) {
+      return {
+        lat: roundCoord(known.latitude),
+        lon: roundCoord(known.longitude),
+      };
+    }
+  } catch {
+    // Fall through to a fresh fix below.
   }
 
   // Balanced accuracy: fast to resolve and battery-friendly.
@@ -149,8 +200,8 @@ async function getCoordinates(): Promise<Coordinates> {
     }
 
     return {
-      lat: latitude,
-      lon: longitude,
+      lat: roundCoord(latitude),
+      lon: roundCoord(longitude),
     };
   } catch (error) {
     if (error instanceof WeatherError) {
@@ -248,6 +299,7 @@ async function fetchCurrentWeather(
 
 interface OpenWeatherCurrentResponse {
   weather?: {
+    main?: unknown;
     description?: unknown;
   }[];
   main?: {
@@ -275,6 +327,9 @@ function parseWeatherResponse(
 
   const temperature =
     payload.main?.temp;
+
+  const rawMain =
+    payload.weather?.[0]?.main;
 
   const description =
     payload.weather?.[0]?.description;
@@ -308,13 +363,87 @@ function parseWeatherResponse(
           coordinates.lon
         );
 
+  const mainGroup =
+    typeof rawMain === "string" &&
+    rawMain.trim().length > 0
+      ? rawMain.trim()
+      : undefined;
+
   return {
     temperature:
       roundTemperature(temperature),
     description:
       description.trim(),
     city,
+    ...(mainGroup
+      ? { mainGroup }
+      : {}),
   };
+}
+
+// ============================================================
+// TODAY CACHE (v1)
+//
+// Write-through AsyncStorage copy of the last good reading.
+// Served when the network, the API, or GPS fails so the
+// Today card paints cached sky instead of going blank — the
+// same offline pattern as the monitoring last-reading cache.
+// Best-effort: a blocked store never breaks the fetch.
+// ============================================================
+
+export const TODAY_CACHE_KEY =
+  "adlawatt.weather.today.v1";
+
+interface CachedTodayWeather {
+  data: WeatherData;
+  fetchedAt: number;
+}
+
+async function readTodayCache(): Promise<CachedTodayWeather | null> {
+  try {
+    const raw = await AsyncStorage.getItem(
+      TODAY_CACHE_KEY,
+    );
+
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw) as Partial<CachedTodayWeather>;
+
+    if (
+      !parsed ||
+      typeof parsed !== "object" ||
+      !parsed.data ||
+      typeof parsed.data !== "object" ||
+      typeof parsed.fetchedAt !== "number"
+    ) {
+      return null;
+    }
+
+    return {
+      data: parsed.data as WeatherData,
+      fetchedAt: parsed.fetchedAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function writeTodayCache(
+  data: WeatherData,
+): Promise<void> {
+  try {
+    await AsyncStorage.setItem(
+      TODAY_CACHE_KEY,
+      JSON.stringify({
+        data,
+        fetchedAt: Date.now(),
+      }),
+    );
+  } catch {
+    // Intentionally ignored.
+  }
 }
 
 // ============================================================
@@ -327,15 +456,49 @@ export async function getWeather(): Promise<WeatherData> {
   const coordinates =
     await getCoordinates();
 
-  const response =
-    await fetchCurrentWeather(
+  try {
+    const response =
+      await fetchCurrentWeather(
+        coordinates
+      );
+
+    const data = parseWeatherResponse(
+      response,
       coordinates
     );
 
-  return parseWeatherResponse(
-    response,
-    coordinates
-  );
+    await writeTodayCache(data);
+
+    return data;
+  } catch (error) {
+    // A missing key is a config bug, not weather — surface
+    // it loudly instead of masking it with stale cache.
+    if (
+      error instanceof WeatherError &&
+      error.code === "missing_key"
+    ) {
+      throw error;
+    }
+
+    const cached = await readTodayCache();
+
+    if (cached) {
+      const ageMin = Math.round(
+        (Date.now() - cached.fetchedAt) / 60000,
+      );
+
+      console.warn(
+        `Weather fetch failed — serving ${ageMin}m-old cache:`,
+        error instanceof Error
+          ? error.message
+          : error,
+      );
+
+      return cached.data;
+    }
+
+    throw error;
+  }
 }
 
 // ============================================================
