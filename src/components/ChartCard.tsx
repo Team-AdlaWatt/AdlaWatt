@@ -3277,6 +3277,7 @@ const getStyles = (colors: AppColors) =>
     flexDirection: "column",
     alignItems: "stretch",
     paddingHorizontal: 10,
+    paddingTop: 8,
     paddingBottom: 8,
     rowGap: 8,
   },
