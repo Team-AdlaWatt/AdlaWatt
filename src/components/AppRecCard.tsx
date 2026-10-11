@@ -310,6 +310,12 @@ export default function AppRecCard({
     ? mode
     : (visibleModes[0] ?? "advisable");
 
+  // Tight slot when the visible tab holds pill-less
+  // (202-tall) boxes, so no slack pools between the boxes
+  // and the dots. Other tabs keep the full 240 slot.
+  const isTightMode =
+    effectiveMode === "notAdvisable";
+
   // Keep the stored mode canonical: when counts shift and
   // empty the active segment, glide to the next visible one.
   useEffect(() => {
@@ -647,8 +653,20 @@ export default function AppRecCard({
 
           {/* Appliances / Empty Text */}
           {filteredAppliances.length > 0 ? (
-          <View style={styles.recContent}>
-            <View style={styles.applianceRow}>
+          <View
+            style={[
+              styles.recContent,
+              isTightMode &&
+                styles.recContentTight,
+            ]}
+          >
+            <View
+              style={[
+                styles.applianceRow,
+                isTightMode &&
+                  styles.applianceRowTight,
+              ]}
+            >
               {currentAppliances.map(
                 (appliance) => {
                   const meta =
@@ -925,9 +943,18 @@ const getStyles = (colors: AppColors) =>
   // Fixed content slot = carousel height (240 row + 8 gap +
   // 24 dots). Empty and get-started center in the same slot
   // so the card never changes height between states.
+  // recContentTight is the pill-less twin (202 row + 8 gap +
+  // 24 dots = 234) for the Not Advisable tab, whose boxes
+  // are 202 tall: the card shrinks with the tab instead of
+  // holding 38px of slack.
   recContent: {
     width: "100%",
     height: 272,
+  },
+
+  recContentTight: {
+    width: "100%",
+    height: 234,
   },
 
   // Fixed content slot = carousel height (240 row + 8 gap +
@@ -953,6 +980,10 @@ const getStyles = (colors: AppColors) =>
     justifyContent: "center",
     alignItems: "flex-start",
     gap: 12,
+  },
+
+  applianceRowTight: {
+    height: 202,
   },
 
   // ============================================
