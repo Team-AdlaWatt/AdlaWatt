@@ -2489,7 +2489,7 @@ function getCardData(
           loading
             ? "—"
             : weather
-              ? `${weather.temperature}°C`
+              ? `${Math.round(weather.temperature)}°C`
               : "—",
 
         badge:

@@ -121,7 +121,7 @@
     }
   },
   "formats": {
-    "tempDecimals": 1,
+    "tempDecimals": 0,
     "coordFallback": "{lat}, {lon}",
     "coordDecimals": 2,
     "time": "h:mm AM"

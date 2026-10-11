@@ -278,7 +278,7 @@ describe("getWeather cache", () => {
 
     const live = await getWeather();
 
-    expect(live.temperature).toBe(32.4);
+    expect(live.temperature).toBe(32);
 
     const stored = await AsyncStorage.getItem(
       TODAY_CACHE_KEY,
