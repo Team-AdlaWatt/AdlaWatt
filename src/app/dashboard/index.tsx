@@ -240,40 +240,6 @@ export default function DashboardScreen() {
   );
 
   // ==========================================================
-  // MANUAL TODAY REFRESH (tap the Today card)
-  //
-  // Blocked within 2 minutes of the last attempt (OWM model
-  // data will not have changed) and while a fetch is already
-  // in flight, so tap storms collapse into one request.
-  // Manual taps force a fresh GPS fix for accuracy; auto
-  // interval + foreground resume reuse the fast path.
-  // ==========================================================
-
-  const refreshToday = useCallback(async () => {
-    if (
-      !screenMounted.current ||
-      todayInflightRef.current ||
-      !canRefreshToday(lastFetchRef.current)
-    ) {
-      return;
-    }
-
-    todayInflightRef.current = true;
-
-    setTodayRefreshing(true);
-
-    try {
-      await loadWeather({ fresh: true });
-    } finally {
-      todayInflightRef.current = false;
-
-      if (screenMounted.current) {
-        setTodayRefreshing(false);
-      }
-    }
-  }, [loadWeather]);
-
-  // ==========================================================
   // LOAD 5-DAY FORECAST
   // ==========================================================
 
@@ -340,6 +306,45 @@ export default function DashboardScreen() {
     },
     [t]
   );
+
+  // ==========================================================
+  // MANUAL TODAY REFRESH (tap the Today card)
+  //
+  // Blocked within 2 minutes of the last attempt (OWM model
+  // data will not have changed) and while a fetch is already
+  // in flight, so tap storms collapse into one request.
+  // Manual taps force a fresh GPS fix for accuracy; auto
+  // interval + foreground resume reuse the fast path.
+  // ==========================================================
+
+  const refreshToday = useCallback(async () => {
+    if (
+      !screenMounted.current ||
+      todayInflightRef.current ||
+      !canRefreshToday(lastFetchRef.current)
+    ) {
+      return;
+    }
+
+    todayInflightRef.current = true;
+
+    setTodayRefreshing(true);
+
+    try {
+      // Fresh GPS for Today; forecast follows on the same
+      // tap and reuses the now-fresh last-known fix, so both
+      // cards stay on the same location.
+      await loadWeather({ fresh: true });
+
+      await loadForecast();
+    } finally {
+      todayInflightRef.current = false;
+
+      if (screenMounted.current) {
+        setTodayRefreshing(false);
+      }
+    }
+  }, [loadForecast, loadWeather]);
 
   useEffect(() => {
     screenMounted.current = true;

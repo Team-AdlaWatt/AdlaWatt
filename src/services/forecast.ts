@@ -60,11 +60,15 @@ interface ForecastSlot {
   tempMax: number;
   humidity: number;
   description: string;
+  mainGroup?: string;
+  iconCode?: string;
+  conditionId?: number;
   clouds: number;
   pop: number;
 }
 
 interface ForecastApiEntry {
+  dt?: unknown;
   dt_txt?: unknown;
   main?: {
     temp?: unknown;
@@ -73,7 +77,10 @@ interface ForecastApiEntry {
     humidity?: unknown;
   };
   weather?: {
+    id?: unknown;
+    main?: unknown;
     description?: unknown;
+    icon?: unknown;
   }[];
   clouds?: {
     all?: unknown;
@@ -85,6 +92,7 @@ interface ForecastApiResponse {
   list?: unknown;
   city?: {
     name?: unknown;
+    timezone?: unknown;
   };
 }
 
@@ -179,18 +187,34 @@ function toNumber(value: unknown): number | null {
     : null;
 }
 
-function parseSlot(
-  entry: ForecastApiEntry
-): ForecastSlot | null {
-  if (
-    typeof entry.dt_txt !== "string" ||
-    !/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(
-      entry.dt_txt
-    )
-  ) {
-    return null;
-  }
+// Local calibration offset (°C) shared with current weather.
+// Applied to daily min/max at summary time; tune in JSON.
+function getTempOffsetC(): number {
+  const raw = (
+    weatherJson as unknown as {
+      calibration?: { tempOffsetC?: unknown };
+    }
+  ).calibration?.tempOffsetC;
 
+  return typeof raw === "number" && Number.isFinite(raw)
+    ? raw
+    : 0;
+}
+
+function toDateKey(year: number, month: number, day: number): string {
+  return `${year}-${String(month).padStart(2, "0")}-${String(
+    day,
+  ).padStart(2, "0")}`;
+}
+
+// OWM `dt` is unix UTC seconds; `city.timezone` is the
+// location offset in seconds. Grouping by location-local day
+// keeps 3-hour slots on the right date instead of UTC.
+// Falls back to `dt_txt` when dt/timezone are absent.
+function parseSlot(
+  entry: ForecastApiEntry,
+  tzOffsetSec: number | null,
+): ForecastSlot | null {
   const temp = toNumber(entry.main?.temp);
   const description = entry.weather?.[0]?.description;
 
@@ -202,11 +226,52 @@ function parseSlot(
     return null;
   }
 
-  const [date, time] = entry.dt_txt.split(" ");
+  const rawDt = toNumber(entry.dt);
+  let date: string | null = null;
+  let hour: number | null = null;
+
+  if (
+    rawDt !== null &&
+    tzOffsetSec !== null &&
+    Number.isInteger(rawDt)
+  ) {
+    const local = new Date((rawDt + tzOffsetSec) * 1000);
+
+    date = toDateKey(
+      local.getUTCFullYear(),
+      local.getUTCMonth() + 1,
+      local.getUTCDate(),
+    );
+
+    hour = local.getUTCHours();
+  } else if (
+    typeof entry.dt_txt === "string" &&
+    /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(
+      entry.dt_txt,
+    )
+  ) {
+    const [d, time] = entry.dt_txt.split(" ");
+
+    date = d;
+
+    hour = Number(time.split(":")[0]);
+  }
+
+  if (
+    date === null ||
+    hour === null ||
+    !Number.isFinite(hour)
+  ) {
+    return null;
+  }
+
+  const rawMain = entry.weather?.[0]?.main;
+  const rawIcon = entry.weather?.[0]?.icon;
+  const rawId = toNumber(entry.weather?.[0]?.id);
 
   return {
     date,
-    hour: Number(time.split(":")[0]),
+    hour,
     temp,
     tempMin:
       toNumber(entry.main?.temp_min) ?? temp,
@@ -215,6 +280,15 @@ function parseSlot(
     humidity:
       toNumber(entry.main?.humidity) ?? 0,
     description: description.trim(),
+    ...(typeof rawMain === "string" && rawMain.trim().length > 0
+      ? { mainGroup: rawMain.trim() }
+      : {}),
+    ...(typeof rawIcon === "string" && rawIcon.trim().length > 0
+      ? { iconCode: rawIcon.trim() }
+      : {}),
+    ...(rawId !== null && Number.isInteger(rawId)
+      ? { conditionId: rawId }
+      : {}),
     clouds: toNumber(entry.clouds?.all) ?? 0,
     pop: toNumber(entry.pop) ?? 0,
   };
@@ -224,9 +298,14 @@ function parseSlot(
 // DAY SUMMARY
 // ============================================================
 
-function isPrecipitation(description: string): boolean {
-  const icon =
-    resolveCondition(description).icon;
+function isPrecipitation(slot: {
+  description: string;
+  mainGroup?: string;
+}): boolean {
+  const icon = resolveCondition(
+    slot.description,
+    slot.mainGroup,
+  ).icon;
 
   return (
     icon === "rainy-outline" ||
@@ -243,13 +322,16 @@ function summarizeDay(
     peakOfDay(slots, (slot) => slot.hour) ??
     slots[0];
 
+  // Stable OWM main group first (Clear/Clouds/Rain/...),
+  // description keywords as fallback — same rule as Today.
   const peakResolved = resolveCondition(
-    peak.description
+    peak.description,
+    peak.mainGroup,
   );
 
   const clearSlots = slots.filter(
     (slot) =>
-      resolveCondition(slot.description)
+      resolveCondition(slot.description, slot.mainGroup)
         .severity === "clear"
   );
 
@@ -260,7 +342,7 @@ function summarizeDay(
     ) / slots.length;
 
   const hasRain = slots.some((slot) =>
-    isPrecipitation(slot.description)
+    isPrecipitation(slot)
   );
 
   const solarOutlook = scoreSolarDay({
@@ -269,12 +351,14 @@ function summarizeDay(
     hasRain,
   });
 
+  const offsetC = getTempOffsetC();
+
   const tempMin = Math.min(
-    ...slots.map((slot) => slot.tempMin)
+    ...slots.map((slot) => slot.tempMin + offsetC)
   );
 
   const tempMax = Math.max(
-    ...slots.map((slot) => slot.tempMax)
+    ...slots.map((slot) => slot.tempMax + offsetC)
   );
 
   const thresholds = weatherJson.thresholds;
@@ -335,11 +419,20 @@ export async function getForecast(
     );
   }
 
+  const tzRaw = (response as { city?: { timezone?: unknown } }).city
+    ?.timezone;
+
+  const tzOffsetSec =
+    typeof tzRaw === "number" && Number.isFinite(tzRaw)
+      ? Math.trunc(tzRaw)
+      : null;
+
   const slots: ForecastSlot[] = [];
 
   for (const entry of response.list) {
     const slot = parseSlot(
-      entry as ForecastApiEntry
+      entry as ForecastApiEntry,
+      tzOffsetSec,
     );
 
     if (slot) {
@@ -366,13 +459,26 @@ export async function getForecast(
     }
   }
 
-  const today = new Date();
+  // Today in the location's own timezone so the upcoming
+  // strip starts tomorrow where the user is, not in UTC.
+  const nowSec = Math.floor(Date.now() / 1000);
 
-  const todayKey = `${today.getFullYear()}-${String(
-    today.getMonth() + 1
-  ).padStart(2, "0")}-${String(
-    today.getDate()
-  ).padStart(2, "0")}`;
+  const todayKey =
+    tzOffsetSec !== null
+      ? toDateKey(
+          new Date((nowSec + tzOffsetSec) * 1000).getUTCFullYear(),
+          new Date((nowSec + tzOffsetSec) * 1000).getUTCMonth() + 1,
+          new Date((nowSec + tzOffsetSec) * 1000).getUTCDate(),
+        )
+      : (() => {
+          const today = new Date();
+
+          return toDateKey(
+            today.getFullYear(),
+            today.getMonth() + 1,
+            today.getDate(),
+          );
+        })();
 
   const upcoming = [...groups.entries()]
     .filter(([date]) => date > todayKey)

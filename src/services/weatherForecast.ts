@@ -930,8 +930,10 @@ async function runWeatherFetch(options?: {
 // current weather.
 // ============================================================
 
-export async function getCurrentCoordinates(): Promise<Coordinates> {
+export async function getCurrentCoordinates(options?: {
+  fresh?: boolean;
+}): Promise<Coordinates> {
   validateApiKey();
 
-  return getCoordinates();
+  return getCoordinates(options);
 }
