@@ -59,6 +59,9 @@ export interface Coordinates {
 
 export interface WeatherData {
   temperature: number;
+  // OWM `main.feels_like` (°C, 1-decimal). Optional so v2
+  // caches without it still validate and render.
+  feelsLike?: number;
   description: string;
   city: string;
   // Stable OpenWeather group (Clear, Clouds, Rain, ...).
@@ -83,7 +86,7 @@ export interface WeatherData {
   cacheVersion: number;
 }
 
-export const TODAY_CACHE_VERSION = 2;
+export const TODAY_CACHE_VERSION = 3;
 
 export type WeatherErrorCode =
   | "missing_key"
@@ -151,7 +154,9 @@ function fallbackCoordinates(): Coordinates {
   };
 }
 
-async function getCoordinates(): Promise<Coordinates> {
+async function getCoordinates(options?: {
+  fresh?: boolean;
+}): Promise<Coordinates> {
   const { status } =
     await Location.requestForegroundPermissionsAsync();
 
@@ -177,28 +182,31 @@ async function getCoordinates(): Promise<Coordinates> {
   }
 
   // Fast path: indoor GPS can be slow, so reuse a recent
-  // fix before paying for a fresh one.
-  try {
-    const lastKnown =
-      await Location.getLastKnownPositionAsync({
-        maxAge:
-          weatherJson.location.lastKnownMaxAgeMs,
-      });
+  // fix before paying for a fresh one. Manual refresh
+  // passes fresh:true to skip this and force a new fix.
+  if (!options?.fresh) {
+    try {
+      const lastKnown =
+        await Location.getLastKnownPositionAsync({
+          maxAge:
+            weatherJson.location.lastKnownMaxAgeMs,
+        });
 
-    const known = lastKnown?.coords;
+      const known = lastKnown?.coords;
 
-    if (
-      known &&
-      Number.isFinite(known.latitude) &&
-      Number.isFinite(known.longitude)
-    ) {
-      return {
-        lat: roundCoord(known.latitude),
-        lon: roundCoord(known.longitude),
-      };
+      if (
+        known &&
+        Number.isFinite(known.latitude) &&
+        Number.isFinite(known.longitude)
+      ) {
+        return {
+          lat: roundCoord(known.latitude),
+          lon: roundCoord(known.longitude),
+        };
+      }
+    } catch {
+      // Fall through to a fresh fix below.
     }
-  } catch {
-    // Fall through to a fresh fix below.
   }
 
   // Balanced accuracy: fast to resolve and battery-friendly.
@@ -368,6 +376,7 @@ interface OpenWeatherCurrentResponse {
   }[];
   main?: {
     temp?: unknown;
+    feels_like?: unknown;
   };
   clouds?: {
     all?: unknown;
@@ -403,6 +412,22 @@ function toRainMm(
   }
 
   return null;
+}
+
+// Local calibration offset (°C) from weather.json. Added to
+// both temp and feels_like at parse time so the card and
+// cache always see corrected values. Tune in JSON, no TS
+// change needed.
+function getTempOffsetC(): number {
+  const raw = (
+    weatherJson as unknown as {
+      calibration?: { tempOffsetC?: unknown };
+    }
+  ).calibration?.tempOffsetC;
+
+  return typeof raw === "number" && Number.isFinite(raw)
+    ? raw
+    : 0;
 }
 
 function parseWeatherResponse(
@@ -523,9 +548,26 @@ function parseWeatherResponse(
 
   const iconCode = (rawIcon as string).trim();
 
+  // Feels-like is the primary display: present when OWM
+  // sends a finite main.feels_like, otherwise omitted and
+  // the card falls back to temperature.
+  const rawFeelsLike = toFiniteNumber(
+    payload.main?.feels_like,
+  );
+
+  const offsetC = getTempOffsetC();
+
+  const feelsLike =
+    rawFeelsLike !== null
+      ? roundTemperature(rawFeelsLike + offsetC)
+      : undefined;
+
   return {
     temperature:
-      roundTemperature(temperature),
+      roundTemperature(temperature + offsetC),
+    ...(feelsLike !== undefined
+      ? { feelsLike }
+      : {}),
     description:
       description.trim(),
     city,
@@ -546,7 +588,7 @@ function parseWeatherResponse(
 }
 
 // ============================================================
-// TODAY CACHE (v2)
+// TODAY CACHE (v3)
 //
 // Write-through AsyncStorage copy of the last good reading.
 // Served when the network, the API, or GPS fails so the
@@ -554,13 +596,14 @@ function parseWeatherResponse(
 // same offline pattern as the monitoring last-reading cache.
 // Best-effort: a blocked store never breaks the fetch.
 //
-// v2 stores the id-based classifier fields (conditionId,
-// iconCode, rainMm). Entries without cacheVersion 2 are
-// legacy and are discarded, never classified.
+// v3 stores the id-based classifier fields (conditionId,
+// iconCode, rainMm) plus feelsLike + calibration offset.
+// Entries without cacheVersion 3 are legacy and are
+// discarded, never classified.
 // ============================================================
 
 export const TODAY_CACHE_KEY =
-  "adlawatt.weather.today.v2";
+  "adlawatt.weather.today.v3";
 
 interface CachedTodayWeather {
   data: WeatherData;
@@ -634,13 +677,26 @@ async function readTodayCache(): Promise<CachedTodayWeather | null> {
       typeof data.iconCode !== "string" ||
       data.iconCode.trim().length === 0 ||
       typeof data.temperature !== "number" ||
+      !Number.isFinite(data.temperature) ||
       typeof data.city !== "string"
     ) {
       return null;
     }
 
+    // feelsLike stays optional: drop it when corrupt so a
+    // bad cache value never reaches the card.
+    const cached = parsed.data as WeatherData;
+
+    if (
+      cached.feelsLike !== undefined &&
+      (typeof cached.feelsLike !== "number" ||
+        !Number.isFinite(cached.feelsLike))
+    ) {
+      delete (cached as Partial<WeatherData>).feelsLike;
+    }
+
     return {
-      data: parsed.data as WeatherData,
+      data: cached,
       fetchedAt: parsed.fetchedAt,
       cacheVersion: TODAY_CACHE_VERSION,
       ...(readCacheCoords(parsed) ?? {}),
@@ -694,6 +750,7 @@ function debugTodayReading(
 
   const payload = (raw ?? {}) as {
     weather?: { id?: unknown; main?: unknown; description?: unknown; icon?: unknown }[];
+    main?: { temp?: unknown; feels_like?: unknown };
     clouds?: { all?: unknown };
     rain?: { "1h"?: unknown; "3h"?: unknown };
     name?: unknown;
@@ -727,6 +784,9 @@ function debugTodayReading(
     id: first?.id ?? data.conditionId,
     main: first?.main ?? null,
     icon: first?.icon ?? data.iconCode,
+    temp: payload.main?.temp ?? data.temperature,
+    feelsLike:
+      payload.main?.feels_like ?? data.feelsLike ?? null,
     clouds: payload.clouds?.all ?? null,
     rain1h: payload.rain?.["1h"] ?? null,
     rain3h: payload.rain?.["3h"] ?? null,
@@ -740,13 +800,27 @@ function debugTodayReading(
 //
 // Concurrent callers share one in-flight request, so an old
 // response can never overwrite newer state or cache — there
-// is only ever a single writer.
+// is only ever a single writer. A manual refresh passes
+// fresh:true to force a new GPS fix + fetch even while
+// another fetch is in flight.
 // ============================================================
 
 let inflightToday: Promise<WeatherData> | null =
   null;
 
-export function getWeather(): Promise<WeatherData> {
+export function getWeather(options?: {
+  fresh?: boolean;
+}): Promise<WeatherData> {
+  if (options?.fresh) {
+    inflightToday = runWeatherFetch(options).finally(
+      () => {
+        inflightToday = null;
+      },
+    );
+
+    return inflightToday;
+  }
+
   if (!inflightToday) {
     inflightToday = runWeatherFetch().finally(
       () => {
@@ -758,11 +832,13 @@ export function getWeather(): Promise<WeatherData> {
   return inflightToday;
 }
 
-async function runWeatherFetch(): Promise<WeatherData> {
+async function runWeatherFetch(options?: {
+  fresh?: boolean;
+}): Promise<WeatherData> {
   validateApiKey();
 
   const coordinates =
-    await getCoordinates();
+    await getCoordinates(options);
 
   try {
     const response =

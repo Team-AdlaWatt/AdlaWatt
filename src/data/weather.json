@@ -14,12 +14,15 @@
     "fallbackLat": 8.37,
     "fallbackLon": 124.87,
     "fallbackLabel": "Manolo Fortich",
-    "coordDecimals": 2,
-    "lastKnownMaxAgeMs": 600000
+    "coordDecimals": 3,
+    "lastKnownMaxAgeMs": 120000
   },
   "cache": {
     "todayMinutes": 15,
     "staleMinutes": 30
+  },
+  "calibration": {
+    "tempOffsetC": 1
   },
   "thresholds": {
     "hotC": 30,

@@ -74,6 +74,7 @@ type TemperatureStatus =
 interface WeatherData {
   city: string;
   temperature: number;
+  feelsLike?: number;
   description: string;
   mainGroup?: string;
   observedAt?: number;
@@ -97,6 +98,10 @@ interface CardData {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value?: string;
+  // Secondary honest line ("Actual 33°C") shown when the
+  // primary value is feels-like. Separate from subtext so
+  // honesty notes are never overwritten.
+  feelsLike?: string;
   badge?: string;
   // Honesty note under the badge
   // ("Not confirmed nearby" / "Estimate").
@@ -1832,7 +1837,7 @@ export default function ChartCard({
                 ? "button"
                 : "none"
             }
-            accessibilityLabel={`Today, ${todayLabel.weekday} ${todayLabel.date}, ${todayBusy ? "updating weather" : `${weatherData.value}, ${weatherData.badge ?? ""}${weatherData.subtext ? `, ${weatherData.subtext}` : ""}`}${canTapRefresh ? ", tap to refresh" : ""}`}
+            accessibilityLabel={`Today, ${todayLabel.weekday} ${todayLabel.date}, ${todayBusy ? "updating weather" : `${weatherData.value}${weatherData.feelsLike ? `, ${weatherData.feelsLike}` : ""}, ${weatherData.badge ?? ""}${weatherData.subtext ? `, ${weatherData.subtext}` : ""}`}${canTapRefresh ? ", tap to refresh" : ""}`}
             accessibilityState={
               canTapRefresh
                 ? {
@@ -1908,6 +1913,18 @@ export default function ChartCard({
                   ? "…"
                   : weatherData.value}
               </AppText>
+
+              {!todayBusy && weatherData.feelsLike ? (
+                <AppText
+                  variant="caption"
+                  numberOfLines={1}
+                  style={
+                    styles.weatherTodaySubtext
+                  }
+                >
+                  {weatherData.feelsLike}
+                </AppText>
+              ) : null}
 
               <AppText
                 variant="caption"
@@ -2512,12 +2529,40 @@ function getCardData(
 
     case "weather": {
 
+      const formatTemp = (value: number): string =>
+        `${Math.round(Number(value))}°C`;
+
+      const hasTemp =
+        weather &&
+        typeof weather.temperature === "number" &&
+        Number.isFinite(weather.temperature);
+
+      const hasFeels =
+        !loading &&
+        typeof weather?.feelsLike === "number" &&
+        Number.isFinite(weather.feelsLike);
+
+      // Primary is feels-like when available (matches local
+      // perception better); otherwise actual temperature.
       const tempValue =
         loading
           ? "—"
-          : weather
-            ? `${Math.round(weather.temperature)}°C`
-            : "—";
+          : hasFeels
+            ? formatTemp(weather.feelsLike as number)
+            : hasTemp
+              ? formatTemp(
+                  (weather as { temperature: number })
+                    .temperature,
+                )
+              : "—";
+
+      const actualValue =
+        !loading && hasFeels && hasTemp
+          ? `Actual ${formatTemp(
+              (weather as { temperature: number })
+                .temperature,
+            )}`
+          : undefined;
 
       const cityLabel =
         weather?.city ??
@@ -2538,6 +2583,10 @@ function getCardData(
           label: cityLabel,
 
           value: tempValue,
+
+          ...(actualValue
+            ? { feelsLike: actualValue }
+            : {}),
 
           badge: unavailable,
 
@@ -2593,6 +2642,10 @@ function getCardData(
         label: cityLabel,
 
         value: tempValue,
+
+        ...(actualValue
+          ? { feelsLike: actualValue }
+          : {}),
 
         badge: classified.label,
 

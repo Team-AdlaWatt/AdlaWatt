@@ -35,7 +35,7 @@ const owmOk = (
   overrides: Record<string, unknown> = {},
 ) => ({
   dt: 1729000000,
-  main: { temp: 32.4 },
+  main: { temp: 32.4, feels_like: 34.2 },
   weather: [
     {
       id: 803,
@@ -129,7 +129,7 @@ describe("getWeather coordinates", () => {
     );
   };
 
-  test("reuses a recent fix, rounded to 2 decimals", async () => {
+  test("reuses a recent fix, rounded to 3 decimals", async () => {
     grantLocation();
 
     mockLocation.getLastKnownPositionAsync.mockResolvedValue(
@@ -156,8 +156,52 @@ describe("getWeather coordinates", () => {
       mockFetch.mock.calls[0]?.[0] ?? "",
     );
 
-    expect(url).toContain("lat=8.37");
-    expect(url).toContain("lon=124.87");
+    expect(url).toContain("lat=8.368");
+    expect(url).toContain("lon=124.873");
+  });
+
+  test("fresh option skips the last-known reuse", async () => {
+    grantLocation();
+
+    mockLocation.getLastKnownPositionAsync.mockResolvedValue(
+      {
+        coords: {
+          latitude: 8.36789,
+          longitude: 124.87321,
+        },
+      },
+    );
+
+    mockLocation.getCurrentPositionAsync.mockResolvedValue(
+      {
+        coords: {
+          latitude: 8.1,
+          longitude: 125.1,
+        },
+      },
+    );
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => owmOk(),
+    });
+
+    await getWeather({ fresh: true });
+
+    expect(
+      mockLocation.getLastKnownPositionAsync,
+    ).not.toHaveBeenCalled();
+
+    expect(
+      mockLocation.getCurrentPositionAsync,
+    ).toHaveBeenCalled();
+
+    const url = String(
+      mockFetch.mock.calls[0]?.[0] ?? "",
+    );
+
+    expect(url).toContain("lat=8.1");
+    expect(url).toContain("lon=125.1");
   });
 
   test("falls back to a fresh fix without a recent one", async () => {
@@ -281,11 +325,13 @@ describe("getWeather cache", () => {
 
     const live = await getWeather();
 
-    expect(live.temperature).toBe(32);
+    // 32.4 + 1 offset -> 33, 34.2 + 1 offset -> 35
+    expect(live.temperature).toBe(33);
+    expect(live.feelsLike).toBe(35);
     expect(live.conditionId).toBe(803);
     expect(live.iconCode).toBe("04d");
     expect(live.rainMm).toBeNull();
-    expect(live.cacheVersion).toBe(2);
+    expect(live.cacheVersion).toBe(3);
 
     const stored = await AsyncStorage.getItem(
       TODAY_CACHE_KEY,

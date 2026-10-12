@@ -189,52 +189,55 @@ export default function DashboardScreen() {
   // LOAD CURRENT WEATHER
   // ==========================================================
 
-  const loadWeather = useCallback(async () => {
-    try {
-      // Only show the loading state on the first fetch;
-      // background refreshes keep the last known value.
-      if (
-        screenMounted.current &&
-        !hasLoadedWeather.current
-      ) {
-        setWeatherLoading(true);
+  const loadWeather = useCallback(
+    async (options?: { fresh?: boolean }) => {
+      try {
+        // Only show the loading state on the first fetch;
+        // background refreshes keep the last known value.
+        if (
+          screenMounted.current &&
+          !hasLoadedWeather.current
+        ) {
+          setWeatherLoading(true);
+        }
+
+        const current = await getWeather(options);
+
+        if (!screenMounted.current) {
+          return;
+        }
+
+        hasLoadedWeather.current = true;
+
+        setWeather(current);
+      } catch (error) {
+        // Keep the last known value on background refresh
+        // failures; only blank the card if nothing has
+        // loaded yet. Log a warning (not an error) so
+        // transient weather failures stay quiet.
+        console.warn(
+          "Weather refresh failed:",
+          error instanceof Error
+            ? error.message
+            : error,
+        );
+
+        if (
+          screenMounted.current &&
+          !hasLoadedWeather.current
+        ) {
+          setWeather(null);
+        }
+      } finally {
+        lastFetchRef.current = Date.now();
+
+        if (screenMounted.current) {
+          setWeatherLoading(false);
+        }
       }
-
-      const current = await getWeather();
-
-      if (!screenMounted.current) {
-        return;
-      }
-
-      hasLoadedWeather.current = true;
-
-      setWeather(current);
-    } catch (error) {
-      // Keep the last known value on background refresh
-      // failures; only blank the card if nothing has
-      // loaded yet. Log a warning (not an error) so
-      // transient weather failures stay quiet.
-      console.warn(
-        "Weather refresh failed:",
-        error instanceof Error
-          ? error.message
-          : error,
-      );
-
-      if (
-        screenMounted.current &&
-        !hasLoadedWeather.current
-      ) {
-        setWeather(null);
-      }
-    } finally {
-      lastFetchRef.current = Date.now();
-
-      if (screenMounted.current) {
-        setWeatherLoading(false);
-      }
-    }
-  }, []);
+    },
+    [],
+  );
 
   // ==========================================================
   // MANUAL TODAY REFRESH (tap the Today card)
@@ -242,6 +245,8 @@ export default function DashboardScreen() {
   // Blocked within 2 minutes of the last attempt (OWM model
   // data will not have changed) and while a fetch is already
   // in flight, so tap storms collapse into one request.
+  // Manual taps force a fresh GPS fix for accuracy; auto
+  // interval + foreground resume reuse the fast path.
   // ==========================================================
 
   const refreshToday = useCallback(async () => {
@@ -258,7 +263,7 @@ export default function DashboardScreen() {
     setTodayRefreshing(true);
 
     try {
-      await loadWeather();
+      await loadWeather({ fresh: true });
     } finally {
       todayInflightRef.current = false;
 
