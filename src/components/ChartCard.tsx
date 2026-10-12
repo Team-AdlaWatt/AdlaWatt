@@ -8,7 +8,6 @@ import React, {
 
 import {
   AccessibilityInfo,
-  Alert,
   Animated,
   Easing,
   Pressable,
@@ -41,7 +40,6 @@ import {
   isStaleReading,
   resolveTodayDisplay,
   todayEstimateSubtext,
-  todaySkyNote,
   todayUnavailableLabel,
 } from "@/services/weatherConfig";
 
@@ -1788,26 +1786,6 @@ export default function ChartCard({
             Today
           </AppText>
 
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`About today's condition. ${todaySkyNote()}`}
-            accessibilityHint="Shows where the sky label comes from"
-            onPress={() =>
-              Alert.alert(
-                "Today's sky",
-                todaySkyNote(),
-              )
-            }
-            hitSlop={8}
-            style={{ marginLeft: 6 }}
-          >
-            <Ionicons
-              name="information-circle-outline"
-              size={14}
-              color={colors.textSecondary}
-            />
-          </Pressable>
-
         </View>
 
         <View
@@ -2059,24 +2037,51 @@ export default function ChartCard({
                     accessibilityLabel={`${day.weekday} ${day.dateLabel}, ${day.peakDescription}, ${day.tempMax} degrees, low ${day.tempMin} degrees${rainPct > 0 ? `, rain ${rainPct} percent` : ""}, ${day.solarOutlook} sun${day.tempFlag ? `, ${day.tempFlag}` : ""}`}
                   >
 
-                    <AppText
-                      variant="caption"
+                    <View
                       style={
-                        styles.weatherForecastRowDay
+                        styles.weatherTodayLeft
                       }
                     >
-                      {day.weekday}
-                    </AppText>
+
+                      <AppText
+                        variant="caption"
+                        style={
+                          styles.weatherForecastWeekday
+                        }
+                      >
+                        {day.weekday}
+                      </AppText>
+
+                      <AppText
+                        variant="caption"
+                        style={
+                          styles.weatherForecastDate
+                        }
+                      >
+                        {day.dateLabel}
+                      </AppText>
+
+                    </View>
 
                     <Ionicons
                       name={
                         day.peakIcon as keyof typeof Ionicons.glyphMap
                       }
-                      size={24}
+                      size={36}
                       color={colors.primary}
                     />
 
                     <View style={{ flex: 1, rowGap: 2 }}>
+                      <AppText
+                        variant="caption"
+                        numberOfLines={1}
+                        style={
+                          styles.weatherForecastClass
+                        }
+                      >
+                        {day.peakDescription}
+                      </AppText>
+
                       <AppText
                         variant="caption"
                         style={
@@ -2115,17 +2120,6 @@ export default function ChartCard({
                           </AppText>
                         </View>
                       ) : null}
-
-                      <AppText
-                        variant="caption"
-                        numberOfLines={1}
-                        style={[
-                          styles.weatherForecastRowWindow,
-                          { textAlign: "center" },
-                        ]}
-                      >
-                        {`${day.dateLabel} • ${day.peakDescription}`}
-                      </AppText>
                     </View>
 
                     <View style={{ rowGap: 4, alignItems: "flex-end" }}>
@@ -3310,7 +3304,7 @@ const getStyles = (colors: AppColors) =>
 
   weatherForecastTagRow: {
     width: "100%",
-    minHeight: 16,
+    minHeight: 22,
     justifyContent: "center",
     paddingHorizontal: 14,
     paddingTop: 8,
@@ -3318,8 +3312,8 @@ const getStyles = (colors: AppColors) =>
 
   weatherForecastTag: {
     color: colors.accentContent,
-    fontSize: 12,
-    fontWeight: "700",
+    fontSize: 16,
+    fontWeight: "600",
   },
 
   // ==========================================================
@@ -3514,11 +3508,11 @@ const getStyles = (colors: AppColors) =>
 
   weatherForecastTemp: {
     color: colors.text,
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: "700",
     textAlign: "center",
     marginTop: 3,
-    lineHeight: 22,
+    lineHeight: 28,
     fontVariant: ["tabular-nums"],
   },
 
@@ -3661,7 +3655,7 @@ const getStyles = (colors: AppColors) =>
 
   weatherForecastSummary: {
     color: colors.accentContent,
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: "600",
   },
 
