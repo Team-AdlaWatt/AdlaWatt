@@ -2119,9 +2119,10 @@ export default function ChartCard({
                       <AppText
                         variant="caption"
                         numberOfLines={1}
-                        style={
-                          styles.weatherForecastRowWindow
-                        }
+                        style={[
+                          styles.weatherForecastRowWindow,
+                          { textAlign: "center" },
+                        ]}
                       >
                         {`${day.dateLabel} • ${day.peakDescription}`}
                       </AppText>
