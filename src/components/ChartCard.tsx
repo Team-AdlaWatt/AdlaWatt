@@ -2079,16 +2079,6 @@ export default function ChartCard({
                     <View style={{ flex: 1, rowGap: 2 }}>
                       <AppText
                         variant="caption"
-                        numberOfLines={1}
-                        style={
-                          styles.weatherForecastRowWindow
-                        }
-                      >
-                        {`${day.dateLabel} • ${day.peakDescription}`}
-                      </AppText>
-
-                      <AppText
-                        variant="caption"
                         style={
                           styles.weatherForecastTemp
                         }
@@ -2125,6 +2115,16 @@ export default function ChartCard({
                           </AppText>
                         </View>
                       ) : null}
+
+                      <AppText
+                        variant="caption"
+                        numberOfLines={1}
+                        style={
+                          styles.weatherForecastRowWindow
+                        }
+                      >
+                        {`${day.dateLabel} • ${day.peakDescription}`}
+                      </AppText>
                     </View>
 
                     <View style={{ rowGap: 4, alignItems: "flex-end" }}>
