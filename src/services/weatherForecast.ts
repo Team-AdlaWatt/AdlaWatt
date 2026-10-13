@@ -810,8 +810,13 @@ let inflightToday: Promise<WeatherData> | null =
 
 export function getWeather(options?: {
   fresh?: boolean;
+  // Explicit fix (e.g. one fresh fix shared with the forecast
+  // leg). Bypasses the shared in-flight slot — a shared
+  // response for different coordinates would paint the
+  // wrong cell — and skips its own GPS lookup.
+  coordinates?: Coordinates;
 }): Promise<WeatherData> {
-  if (options?.fresh) {
+  if (options?.fresh || options?.coordinates) {
     inflightToday = runWeatherFetch(options).finally(
       () => {
         inflightToday = null;
@@ -834,11 +839,13 @@ export function getWeather(options?: {
 
 async function runWeatherFetch(options?: {
   fresh?: boolean;
+  coordinates?: Coordinates;
 }): Promise<WeatherData> {
   validateApiKey();
 
   const coordinates =
-    await getCoordinates(options);
+    options?.coordinates ??
+    (await getCoordinates(options));
 
   try {
     const response =

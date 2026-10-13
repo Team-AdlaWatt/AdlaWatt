@@ -204,6 +204,36 @@ describe("getWeather coordinates", () => {
     expect(url).toContain("lon=125.1");
   });
 
+  test("explicit coordinates skip every GPS lookup", async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => owmOk(),
+    });
+
+    await getWeather({
+      coordinates: { lat: 8.5, lon: 125.5 },
+    });
+
+    expect(
+      mockLocation.requestForegroundPermissionsAsync,
+    ).not.toHaveBeenCalled();
+
+    expect(
+      mockLocation.getLastKnownPositionAsync,
+    ).not.toHaveBeenCalled();
+
+    expect(
+      mockLocation.getCurrentPositionAsync,
+    ).not.toHaveBeenCalled();
+
+    const url = String(
+      mockFetch.mock.calls[0]?.[0] ?? "",
+    );
+
+    expect(url).toContain("lat=8.5");
+    expect(url).toContain("lon=125.5");
+  });
+
   test("falls back to a fresh fix without a recent one", async () => {
     grantLocation();
 

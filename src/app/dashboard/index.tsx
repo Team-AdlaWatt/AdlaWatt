@@ -193,7 +193,10 @@ export default function DashboardScreen() {
   // ==========================================================
 
   const loadWeather = useCallback(
-    async (options?: { fresh?: boolean }) => {
+    async (options?: {
+      fresh?: boolean;
+      coordinates?: Coordinates;
+    }) => {
       try {
         // Only show the loading state on the first fetch;
         // background refreshes keep the last known value.
@@ -311,6 +314,47 @@ export default function DashboardScreen() {
   );
 
   // ==========================================================
+  // FRESH WEATHER SESSION (shared fix)
+  //
+  // One fresh GPS fix shared by the current-weather and
+  // forecast legs, which then fetch fully in parallel on
+  // the same cell. Previously the forecast fetch waited
+  // behind the weather leg — on web the unbounded browser
+  // fix plus a serial fetch pushed it past its 8s abort
+  // budget on slow links, so pulls timed out while mounts
+  // (parallel fast-path fetches) succeeded. If the shared
+  // fix itself fails, each leg falls back to resolving its
+  // own coordinates, exactly like before.
+  // ==========================================================
+
+  const fetchFreshWeatherSession =
+    useCallback(async () => {
+      let fix: Coordinates | null = null;
+
+      try {
+        fix =
+          await getCurrentCoordinates({
+            fresh: true,
+          });
+      } catch {
+        fix = null;
+      }
+
+      if (fix) {
+        await Promise.all([
+          loadWeather({ coordinates: fix }),
+          loadForecast(fix),
+        ]);
+
+        return;
+      }
+
+      await loadWeather({ fresh: true });
+
+      await loadForecast();
+    }, [loadWeather, loadForecast]);
+
+  // ==========================================================
   // MANUAL TODAY REFRESH (tap the Today card)
   //
   // Blocked within 2 minutes of the last attempt (OWM model
@@ -334,12 +378,9 @@ export default function DashboardScreen() {
     setTodayRefreshing(true);
 
     try {
-      // Fresh GPS for Today; forecast follows on the same
-      // tap and reuses the now-fresh last-known fix, so both
-      // cards stay on the same location.
-      await loadWeather({ fresh: true });
-
-      await loadForecast();
+      // Fresh GPS for Today; forecast shares the same fix,
+      // so both cards stay on the same location.
+      await fetchFreshWeatherSession();
     } finally {
       todayInflightRef.current = false;
 
@@ -347,7 +388,7 @@ export default function DashboardScreen() {
         setTodayRefreshing(false);
       }
     }
-  }, [loadForecast, loadWeather]);
+  }, [fetchFreshWeatherSession]);
 
   // ==========================================================
   // PULL-TO-REFRESH (drag from under the NavBar)
@@ -363,16 +404,11 @@ export default function DashboardScreen() {
     await Promise.all([
       refreshMonitoring(),
 
-      (async () => {
-        await loadWeather({ fresh: true });
-
-        await loadForecast();
-      })(),
+      fetchFreshWeatherSession(),
     ]);
   }, [
     refreshMonitoring,
-    loadWeather,
-    loadForecast,
+    fetchFreshWeatherSession,
   ]);
 
   const {
