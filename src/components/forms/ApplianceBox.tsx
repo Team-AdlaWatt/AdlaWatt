@@ -7,12 +7,15 @@ import React, {
 } from "react";
 
 import {
-  Image,
-  ImageSourcePropType,
   Pressable,
   StyleSheet,
   View,
 } from "react-native";
+
+import {
+  Image,
+  type ImageSource,
+} from "expo-image";
 
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
@@ -32,7 +35,7 @@ type ApplianceBoxProps = {
   name: string;
   wattage: string;
   color: string;
-  imageSource?: ImageSourcePropType;
+  imageSource?: ImageSource | number;
   selected?: boolean;
 
   // Main appliance selection
@@ -495,7 +498,14 @@ export default function ApplianceBox({
         <Image
           source={imageSource}
           style={applianceCardStyles.image}
-          resizeMode="contain"
+          contentFit="contain"
+          // Memory-only cache: thumbnails decode once and
+          // stay instant for the whole session, then drop
+          // on close. Remote custom photos stop re-loading
+          // on every modal open; bundled catalog art stops
+          // re-decoding per mount. Downsampling to the
+          // thumbnail size is what smooths the scroll.
+          cachePolicy="memory"
         />
       </View>
 

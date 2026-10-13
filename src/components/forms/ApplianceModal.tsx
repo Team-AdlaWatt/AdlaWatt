@@ -14,6 +14,10 @@ import {
   View,
 } from "react-native";
 
+import {
+  Image as ExpoImage,
+} from "expo-image";
+
 import ApplianceBox from "@/components/forms/ApplianceBox";
 import {
   applianceCardGrid,
@@ -60,6 +64,40 @@ type Appliance = {
   // bundled adlawatt icon — the default for every custom.
   imageUrl?: string | null;
 };
+
+// Session photo cache: remote custom URLs prefetched once
+// per app session (module lifetime), so reopening the modal
+// never re-downloads them. expo-image's memory cache holds
+// the bitmaps; this set just skips redundant prefetch calls
+// when the same URLs load again (reopen, layer-2 refetch).
+const prefetchedPhotoUrls = new Set<string>();
+
+function prefetchCustomPhotos(
+  items: Appliance[],
+): void {
+  const fresh = items
+    .map((item) => item.imageUrl)
+    .filter(
+      (url): url is string =>
+        typeof url === "string" &&
+        url.length > 0 &&
+        !prefetchedPhotoUrls.has(url),
+    );
+
+  if (fresh.length === 0) {
+    return;
+  }
+
+  for (const url of fresh) {
+    prefetchedPhotoUrls.add(url);
+  }
+
+  // Fire-and-forget: rows render from cache when ready;
+  // a failed prefetch just falls back to per-row loading.
+  void ExpoImage.prefetch(fresh).catch(
+    () => {},
+  );
+}
 
 type ApplianceModalProps = {
   visible: boolean;
@@ -464,6 +502,10 @@ export default function ApplianceModal({
     setArchivedCount(archived.length);
     setIsLoadingCustoms(false);
 
+    // Warm the session photo cache the moment URLs are
+    // known — rows then paint from memory, no reload flash.
+    prefetchCustomPhotos([...customs, ...archived]);
+
     console.debug(
       `[ApplianceModal] loaded rows=${rows.length} active=${customs.length} archived=${archived.length}`,
     );
@@ -547,6 +589,8 @@ export default function ApplianceModal({
     setArchivedAppliances(archived);
     setArchivedCount(archived.length);
     setIsLoadingCustoms(false);
+
+    prefetchCustomPhotos(archived);
   };
 
   // ============================================================

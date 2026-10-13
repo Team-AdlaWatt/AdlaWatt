@@ -1,10 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
-  Image,
-  ImageSourcePropType,
   View,
 } from "react-native";
+
+import {
+  Image,
+  type ImageSource,
+} from "expo-image";
 
 import {
   useApplianceCardStyles,
@@ -22,7 +25,7 @@ type ApplianceStatusBoxProps = {
   wattage: string;
   status: string;
   statusTone?: StatusTone;
-  imageSource?: ImageSourcePropType;
+  imageSource?: ImageSource | number;
 };
 
 const defaultImage = require("@/assets/images/adlawatt-icon.png");
@@ -78,7 +81,10 @@ export default function ApplianceStatusBox({
         <Image
           source={imageSource}
           style={applianceCardStyles.image}
-          resizeMode="contain"
+          contentFit="contain"
+          // Memory-only session cache: decode once, stay
+          // instant while the app is open (see ApplianceBox).
+          cachePolicy="memory"
         />
       </View>
 
