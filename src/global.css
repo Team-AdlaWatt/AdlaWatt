@@ -14,3 +14,13 @@
   --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
   --font-serif: Georgia, 'Times New Roman', serif;
 }
+
+/* ============================================================
+   Pull-to-refresh: keep the drag gesture in-app. Without this
+   the browser fires a full page reload on overscroll, which
+   would wipe the SPA session instead of re-fetching data.
+   Applied via the shared testID on PullRefreshScroll.
+   ============================================================ */
+[data-testid="pull-scroll"] {
+  overscroll-behavior-y: contain;
+}

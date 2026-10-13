@@ -330,6 +330,9 @@ const en = {
   },
 
   dashboard: {
+    common: {
+      pullToRefresh: "Pull down to refresh",
+    },
     home: {
       title: "Dashboard",
       subtitle: "Monitor your AdlaWatt system in real time.",

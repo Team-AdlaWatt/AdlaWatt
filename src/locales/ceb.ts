@@ -348,6 +348,9 @@ const ceb = {
   },
 
   dashboard: {
+    common: {
+      pullToRefresh: "Biraha paubos para mag-refresh",
+    },
     home: {
       title: "Dashboard",
       subtitle: "I-monitor ang imong AdlaWatt system nga real time.",

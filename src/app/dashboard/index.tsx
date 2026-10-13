@@ -21,6 +21,7 @@ import {
 import ActivityCard from "@/components/ActivityCard";
 import AppRecCard from "@/components/AppRecCard";
 import ChartCard from "@/components/ChartCard";
+import PullRefreshScroll from "@/components/PullRefreshScroll";
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
 import ScreenContainer2 from "@/components/layout/ScreenContainer2";
@@ -29,6 +30,7 @@ import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { Radius } from "@/constants/theme";
 import { Control, useScreenPadding } from "@/constants/sizing";
 
@@ -124,6 +126,7 @@ export default function DashboardScreen() {
     loading,
     stale,
     cachedAt,
+    refresh: refreshMonitoring,
   } = useMonitoring();
 
   // Phone-side connectivity (distinct from device status):
@@ -346,6 +349,37 @@ export default function DashboardScreen() {
     }
   }, [loadForecast, loadWeather]);
 
+  // ==========================================================
+  // PULL-TO-REFRESH (drag from under the NavBar)
+  //
+  // Re-fetches the whole session: monitoring row plus fresh-
+  // GPS weather and forecast. Unlike the Today-card tap above,
+  // this path has no 2-minute gate — the shared hook's
+  // in-flight guard is the only lock, so the next pull works
+  // the moment this one finishes.
+  // ==========================================================
+
+  const loadSession = useCallback(async () => {
+    await Promise.all([
+      refreshMonitoring(),
+
+      (async () => {
+        await loadWeather({ fresh: true });
+
+        await loadForecast();
+      })(),
+    ]);
+  }, [
+    refreshMonitoring,
+    loadWeather,
+    loadForecast,
+  ]);
+
+  const {
+    refreshing: sessionRefreshing,
+    onRefresh: onPullRefresh,
+  } = usePullToRefresh(loadSession);
+
   useEffect(() => {
     screenMounted.current = true;
 
@@ -498,8 +532,8 @@ export default function DashboardScreen() {
           DASHBOARD
           ==================================================== */}
 
-      <ScrollView
-        ref={scrollRef}
+      <PullRefreshScroll
+        scrollRef={scrollRef}
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
@@ -511,6 +545,13 @@ export default function DashboardScreen() {
             event.nativeEvent.contentOffset.y;
         }}
         scrollEventThrottle={16}
+        refreshing={sessionRefreshing}
+        onRefresh={onPullRefresh}
+        refreshLabel={t(
+          "dashboard.common.pullToRefresh",
+        )}
+        refreshTint={colors.primary}
+        testID="pull-scroll"
       >
         {/* ==================================================
             DASHBOARD HEADER
@@ -780,7 +821,7 @@ export default function DashboardScreen() {
             ================================================== */}
 
         <Copyright />
-      </ScrollView>
+      </PullRefreshScroll>
 
       </ScreenContainer2>
   );

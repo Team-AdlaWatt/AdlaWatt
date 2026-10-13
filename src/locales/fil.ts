@@ -348,6 +348,9 @@ const fil = {
   },
 
   dashboard: {
+    common: {
+      pullToRefresh: "Hilahin pababa para mag-refresh",
+    },
     home: {
       title: "Dashboard",
       subtitle: "I-monitor ang iyong AdlaWatt system nang real time.",
