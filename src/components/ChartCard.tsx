@@ -2098,7 +2098,7 @@ export default function ChartCard({
                         : styles.weatherForecastRowItemRainy,
                     ]}
                     accessibilityRole="none"
-                    accessibilityLabel={`${day.weekday} ${day.dateLabel}, ${day.peakDescription}, ${day.tempMax} degrees, low ${day.tempMin} degrees${rainPct > 0 ? `, rain ${rainPct} percent` : ""}, ${day.solarOutlook} sun${day.tempFlag ? `, ${day.tempFlag}` : ""}`}
+                    accessibilityLabel={`${day.weekday} ${day.dateLabel}, ${day.tempMax} degrees, low ${day.tempMin} degrees${rainPct > 0 ? `, rain ${rainPct} percent` : ""}, ${day.peakDescription}, ${day.solarOutlook} sun${day.tempFlag ? `, ${day.tempFlag}` : ""}`}
                   >
 
                     <View
@@ -2138,16 +2138,6 @@ export default function ChartCard({
                     <View style={{ flex: 1, rowGap: 2 }}>
                       <AppText
                         variant="caption"
-                        numberOfLines={1}
-                        style={
-                          styles.weatherForecastClass
-                        }
-                      >
-                        {day.peakDescription}
-                      </AppText>
-
-                      <AppText
-                        variant="caption"
                         style={
                           styles.weatherForecastTemp
                         }
@@ -2184,6 +2174,16 @@ export default function ChartCard({
                           </AppText>
                         </View>
                       ) : null}
+
+                      <AppText
+                        variant="caption"
+                        numberOfLines={1}
+                        style={
+                          styles.weatherForecastClass
+                        }
+                      >
+                        {day.peakDescription}
+                      </AppText>
                     </View>
 
                     <View style={{ rowGap: 4, alignItems: "flex-end" }}>
