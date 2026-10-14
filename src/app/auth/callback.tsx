@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -65,6 +66,12 @@ export default function AuthCallbackScreen() {
   // email, or params lost in transit). Offers a direct
   // recovery shortcut instead of a dead end.
   const [isMissingCode, setIsMissingCode] = useState(false);
+  // True on web once an OAuth sign-in completes: the tab
+  // becomes a standalone "close this tab" success card
+  // instead of auto-bouncing into the dashboard (the auth
+  // layout exempts this screen on web so the card survives).
+  // Native keeps the auto-bounce + inline continue button.
+  const [isWebDone, setIsWebDone] = useState(false);
 
   const exchangeAttempted = useRef(false);
 
@@ -215,6 +222,11 @@ export default function AuthCallbackScreen() {
                 setMessage(
                   t("auth.callback.signedInGoogle"),
                 );
+
+                if (Platform.OS === "web") {
+                  setIsWebDone(true);
+                }
+
                 return;
               }
             } catch {
@@ -306,6 +318,10 @@ export default function AuthCallbackScreen() {
             setMessage(
               t("auth.callback.signedInGoogle"),
             );
+
+            if (Platform.OS === "web") {
+              setIsWebDone(true);
+            }
           }
         }
         return;
@@ -326,6 +342,11 @@ export default function AuthCallbackScreen() {
           setMessage(
             t("auth.callback.signedIn"),
           );
+
+          if (Platform.OS === "web") {
+            setIsWebDone(true);
+          }
+
           return;
         }
       } catch {
@@ -348,6 +369,76 @@ export default function AuthCallbackScreen() {
       cancelled = true;
     };
   }, [t, code, tokenHash, otpType, linkError, linkErrorDescription]);
+
+  // Role-aware hop into the app, shared by the inline
+  // success button and the web "close this tab" card below.
+  const continueToApp = async () => {
+    try {
+      const profile = await getCurrentUserProfile();
+
+      router.replace(
+        resolvePostLoginRoute(
+          profile.success
+            ? (profile as { role?: unknown }).role
+            : null,
+        ) as never,
+      );
+    } catch {
+      router.replace(Routes.DASHBOARD);
+    }
+  };
+
+  // Web OAuth landing: standalone success card ("close this
+  // tab") instead of the full auth chrome. Native keeps the
+  // inline flow below with its auto-bounce.
+  if (isWebDone) {
+    return (
+      <ScreenContainer>
+        <View style={styles.webDoneWrap}>
+          <View
+            style={[
+              styles.webDoneCard,
+              { borderColor: colors.cardBorder },
+            ]}
+          >
+            <AuthLogo />
+
+            <Ionicons
+              name="checkmark-circle"
+              size={56}
+              color={colors.primary}
+              style={styles.webDoneIcon}
+            />
+
+            <AppText
+              variant="heading"
+              style={styles.webDoneTitle}
+            >
+              {t("auth.callback.webSuccessTitle")}
+            </AppText>
+
+            <AppText
+              variant="caption"
+              style={styles.webDoneSubtitle}
+            >
+              {t("auth.callback.webSuccessSubtitle")}
+            </AppText>
+
+            <View style={styles.webDoneButton}>
+              <AppButton
+                title={t(
+                  "auth.callback.continueToDashboard",
+                )}
+                onPress={continueToApp}
+              />
+            </View>
+          </View>
+
+          <Copyright />
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer>
@@ -394,24 +485,7 @@ export default function AuthCallbackScreen() {
                   return;
                 }
 
-                try {
-                  const profile =
-                    await getCurrentUserProfile();
-
-                  router.replace(
-                    resolvePostLoginRoute(
-                      profile.success
-                        ? (
-                            profile as {
-                              role?: unknown;
-                            }
-                          ).role
-                        : null,
-                    ) as never,
-                  );
-                } catch {
-                  router.replace(Routes.DASHBOARD);
-                }
+                await continueToApp();
               }}
             />
 
@@ -452,5 +526,44 @@ const styles = StyleSheet.create({
   success: {
     textAlign: "center",
     marginBottom: 16,
+  },
+
+  // Web "close this tab" card: centered bordered panel,
+  // theme-aware so it reads in light and dark mode.
+  webDoneWrap: {
+    flex: 1,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  webDoneCard: {
+    width: "100%",
+    maxWidth: 480,
+    alignItems: "center",
+    borderWidth: 2,
+    borderRadius: 15,
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+    marginBottom: 16,
+  },
+
+  webDoneIcon: {
+    marginTop: 12,
+  },
+
+  webDoneTitle: {
+    textAlign: "center",
+    marginTop: 12,
+  },
+
+  webDoneSubtitle: {
+    textAlign: "center",
+    marginTop: 8,
+  },
+
+  webDoneButton: {
+    width: "100%",
+    marginTop: 24,
   },
 });

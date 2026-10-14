@@ -7,6 +7,7 @@ import {
 import React, { useEffect, useMemo } from "react";
 import {
   ActivityIndicator,
+  Platform,
   StyleSheet,
   View,
 } from "react-native";
@@ -93,10 +94,23 @@ function ThemedAuth() {
     (firstParam(globalParams.code) !== "" ||
       firstParam(globalParams.token_hash) !== "");
 
+  // Web callback owns its own navigation: on success it
+  // shows the standalone "close this tab" card (with its
+  // own Continue button), so the instant bounce below must
+  // not unmount it — that race is what left a blank tab.
+  // Native keeps the auto-bounce; email/recovery sub-flows
+  // keep their own routers inside the callback screen.
+  const onCallbackScreen =
+    segments[segments.length - 1] === "callback";
+
+  const skipBounceForWebCallback =
+    Platform.OS === "web" && onCallbackScreen;
+
   useEffect(() => {
     if (
       !isLoaded ||
       !isSignedIn ||
+      skipBounceForWebCallback ||
       (isRecoverySession && onForgotPassword) ||
       arrivingWithRecoveryLink
     ) {
@@ -127,6 +141,7 @@ function ThemedAuth() {
     isRecoverySession,
     onForgotPassword,
     arrivingWithRecoveryLink,
+    skipBounceForWebCallback,
   ]);
 
   const styles = useMemo(
