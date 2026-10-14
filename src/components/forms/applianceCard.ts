@@ -24,7 +24,9 @@ import { Radius } from "@/constants/theme";
  */
 /*
  * Shared card shell. `box` reserves room for the status badge used by
- * AppRecCard and ApplianceStatusBox; `boxCompact` is the modal version
+ * AppRecCard and ApplianceStatusBox; `boxTight` is the pill-less twin
+ * (202, exact content sum) for not-advisable boxes whose badge was
+ * removed; `boxCompact` is the modal version
  * used inside ApplianceModal for catalog and custom boxes alike (one
  * height keeps grid rows level; customs hold the 3-dot row in their
  * extra space, catalogs carry it as breathing room);
@@ -60,6 +62,16 @@ export const getApplianceCardStyles = (
     box: {
       ...applianceCardBox,
       height: 240,
+      backgroundColor: colors.surface,
+    },
+
+    boxTight: {
+      ...applianceCardBox,
+      // 24 padding + 110 image + 8 + 40 name + 2 + 18 watts
+      // = 202, no slack. For not-advisable boxes whose
+      // status pill was removed (both render sites filter
+      // to one status per view, so rows stay level).
+      height: 202,
       backgroundColor: colors.surface,
     },
 

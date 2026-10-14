@@ -29,6 +29,8 @@ import {
   RadioOptionRow,
 } from "@/components/ui/DropdownModal";
 import { useAppColors, type AppColors } from "@/hooks/useAppColors";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import PullRefreshScroll from "@/components/PullRefreshScroll";
 import { Radius } from "@/constants/theme";
 import { Control, useScreenPadding } from "@/constants/sizing";
 import { useTranslation } from "react-i18next";
@@ -574,6 +576,14 @@ export default function AnalyticsScreen() {
     loadAnalytics();
   }, [loadAnalytics]);
 
+  // Pull-to-refresh re-runs the same range fetch; charts
+  // recompute from the fresh rows via the memos above. No
+  // cooldown — the shared hook collapses repeat pulls.
+  const {
+    refreshing: analyticsRefreshing,
+    onRefresh: onAnalyticsRefresh,
+  } = usePullToRefresh(loadAnalytics);
+
   /* ==========================================================
      SMOOTH SCROLL-TO-SECTION
      ========================================================== */
@@ -874,8 +884,8 @@ export default function AnalyticsScreen() {
       {/* Fixed Navbar */}
       <NavBar />
 
-      <ScrollView
-        ref={scrollRef}
+      <PullRefreshScroll
+        scrollRef={scrollRef}
         style={styles.scrollView}
         contentContainerStyle={[
           styles.content,
@@ -889,6 +899,13 @@ export default function AnalyticsScreen() {
             event.nativeEvent.contentOffset.y;
         }}
         scrollEventThrottle={16}
+        refreshing={analyticsRefreshing}
+        onRefresh={onAnalyticsRefresh}
+        refreshLabel={t(
+          "dashboard.common.pullToRefresh",
+        )}
+        refreshTint={colors.primary}
+        testID="pull-scroll"
       >
         {/* ======================================================
             ANALYTICS HEADER
@@ -1250,7 +1267,7 @@ export default function AnalyticsScreen() {
 
         {/* Copyright */}
         <Copyright />
-      </ScrollView>
+      </PullRefreshScroll>
 
       {/* ========================================================
           REPORT FREQUENCY MODAL

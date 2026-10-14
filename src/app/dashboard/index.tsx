@@ -10,6 +10,7 @@ import React, {
 
 import {
   Animated,
+  AppState,
   Easing,
   Pressable,
   ScrollView,
@@ -20,6 +21,7 @@ import {
 import ActivityCard from "@/components/ActivityCard";
 import AppRecCard from "@/components/AppRecCard";
 import ChartCard from "@/components/ChartCard";
+import PullRefreshScroll from "@/components/PullRefreshScroll";
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
 import ScreenContainer2 from "@/components/layout/ScreenContainer2";
@@ -28,6 +30,7 @@ import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { Radius } from "@/constants/theme";
 import { Control, useScreenPadding } from "@/constants/sizing";
 
@@ -37,6 +40,8 @@ import {
   type ForecastResult,
   getForecast,
 } from "@/services/forecast";
+
+import { canRefreshToday } from "@/services/weatherConfig";
 
 import {
   type Coordinates,
@@ -57,10 +62,15 @@ import { useTranslation } from "react-i18next";
 // ============================================================
 
 // The weather is re-fetched on this interval so the displayed
-// temperature never stays frozen for too long. All values
-// come from weather.json.
+// temperature never stays frozen for too long. The forecast
+// changes slowly, so it polls every 3 hours instead — faster
+// returns the same 3-hour slots and wastes free calls. All
+// values come from weather.json.
 const WEATHER_REFRESH_INTERVAL_MS =
   weatherJson.timing.autoRefreshMs;
+
+const FORECAST_REFRESH_INTERVAL_MS =
+  weatherJson.timing.forecastRefreshMs;
 
 // ============================================================
 // QUICK-NAV SCROLL
@@ -121,6 +131,7 @@ export default function DashboardScreen() {
     loading,
     stale,
     cachedAt,
+    refresh: refreshMonitoring,
   } = useMonitoring();
 
   // Phone-side connectivity (distinct from device status):
@@ -155,6 +166,18 @@ export default function DashboardScreen() {
   const [weatherLoading, setWeatherLoading] =
     useState(true);
 
+  // Manual Today-card refresh state: busy flag for the
+  // card plus an in-flight guard so tap storms collapse
+  // into one fetch. lastFetchRef stamps every attempt for
+  // the 2-minute tap block and the foreground age gate.
+  const [todayRefreshing, setTodayRefreshing] =
+    useState(false);
+
+  const todayInflightRef = useRef(false);
+
+  const lastFetchRef =
+    useRef<number | null>(null);
+
   const [forecast, setForecast] =
     useState<ForecastResult | null>(null);
 
@@ -174,50 +197,58 @@ export default function DashboardScreen() {
   // LOAD CURRENT WEATHER
   // ==========================================================
 
-  const loadWeather = useCallback(async () => {
-    try {
-      // Only show the loading state on the first fetch;
-      // background refreshes keep the last known value.
-      if (
-        screenMounted.current &&
-        !hasLoadedWeather.current
-      ) {
-        setWeatherLoading(true);
+  const loadWeather = useCallback(
+    async (options?: {
+      fresh?: boolean;
+      coordinates?: Coordinates;
+    }) => {
+      try {
+        // Only show the loading state on the first fetch;
+        // background refreshes keep the last known value.
+        if (
+          screenMounted.current &&
+          !hasLoadedWeather.current
+        ) {
+          setWeatherLoading(true);
+        }
+
+        const current = await getWeather(options);
+
+        if (!screenMounted.current) {
+          return;
+        }
+
+        hasLoadedWeather.current = true;
+
+        setWeather(current);
+      } catch (error) {
+        // Keep the last known value on background refresh
+        // failures; only blank the card if nothing has
+        // loaded yet. Log a warning (not an error) so
+        // transient weather failures stay quiet.
+        console.warn(
+          "Weather refresh failed:",
+          error instanceof Error
+            ? error.message
+            : error,
+        );
+
+        if (
+          screenMounted.current &&
+          !hasLoadedWeather.current
+        ) {
+          setWeather(null);
+        }
+      } finally {
+        lastFetchRef.current = Date.now();
+
+        if (screenMounted.current) {
+          setWeatherLoading(false);
+        }
       }
-
-      const current = await getWeather();
-
-      if (!screenMounted.current) {
-        return;
-      }
-
-      hasLoadedWeather.current = true;
-
-      setWeather(current);
-    } catch (error) {
-      // Keep the last known value on background refresh
-      // failures; only blank the card if nothing has
-      // loaded yet. Log a warning (not an error) so
-      // transient weather failures stay quiet.
-      console.warn(
-        "Weather refresh failed:",
-        error instanceof Error
-          ? error.message
-          : error,
-      );
-
-      if (
-        screenMounted.current &&
-        !hasLoadedWeather.current
-      ) {
-        setWeather(null);
-      }
-    } finally {
-      if (screenMounted.current) {
-        setWeatherLoading(false);
-      }
-    }
-  }, []);
+    },
+    [],
+  );
 
   // ==========================================================
   // LOAD 5-DAY FORECAST
@@ -287,6 +318,109 @@ export default function DashboardScreen() {
     [t]
   );
 
+  // ==========================================================
+  // FRESH WEATHER SESSION (shared fix)
+  //
+  // One fresh GPS fix shared by the current-weather and
+  // forecast legs, which then fetch fully in parallel on
+  // the same cell. Previously the forecast fetch waited
+  // behind the weather leg — on web the unbounded browser
+  // fix plus a serial fetch pushed it past its 8s abort
+  // budget on slow links, so pulls timed out while mounts
+  // (parallel fast-path fetches) succeeded. If the shared
+  // fix itself fails, each leg falls back to resolving its
+  // own coordinates, exactly like before.
+  // ==========================================================
+
+  const fetchFreshWeatherSession =
+    useCallback(async () => {
+      let fix: Coordinates | null = null;
+
+      try {
+        fix =
+          await getCurrentCoordinates({
+            fresh: true,
+          });
+      } catch {
+        fix = null;
+      }
+
+      if (fix) {
+        await Promise.all([
+          loadWeather({ coordinates: fix }),
+          loadForecast(fix),
+        ]);
+
+        return;
+      }
+
+      await loadWeather({ fresh: true });
+
+      await loadForecast();
+    }, [loadWeather, loadForecast]);
+
+  // ==========================================================
+  // MANUAL TODAY REFRESH (tap the Today card)
+  //
+  // Blocked within 2 minutes of the last attempt (OWM model
+  // data will not have changed) and while a fetch is already
+  // in flight, so tap storms collapse into one request.
+  // Manual taps force a fresh GPS fix for accuracy; auto
+  // interval + foreground resume reuse the fast path.
+  // ==========================================================
+
+  const refreshToday = useCallback(async () => {
+    if (
+      !screenMounted.current ||
+      todayInflightRef.current ||
+      !canRefreshToday(lastFetchRef.current)
+    ) {
+      return;
+    }
+
+    todayInflightRef.current = true;
+
+    setTodayRefreshing(true);
+
+    try {
+      // Fresh GPS for Today; forecast shares the same fix,
+      // so both cards stay on the same location.
+      await fetchFreshWeatherSession();
+    } finally {
+      todayInflightRef.current = false;
+
+      if (screenMounted.current) {
+        setTodayRefreshing(false);
+      }
+    }
+  }, [fetchFreshWeatherSession]);
+
+  // ==========================================================
+  // PULL-TO-REFRESH (drag from under the NavBar)
+  //
+  // Re-fetches the whole session: monitoring row plus fresh-
+  // GPS weather and forecast. Unlike the Today-card tap above,
+  // this path has no 2-minute gate — the shared hook's
+  // in-flight guard is the only lock, so the next pull works
+  // the moment this one finishes.
+  // ==========================================================
+
+  const loadSession = useCallback(async () => {
+    await Promise.all([
+      refreshMonitoring(),
+
+      fetchFreshWeatherSession(),
+    ]);
+  }, [
+    refreshMonitoring,
+    fetchFreshWeatherSession,
+  ]);
+
+  const {
+    refreshing: sessionRefreshing,
+    onRefresh: onPullRefresh,
+  } = usePullToRefresh(loadSession);
+
   useEffect(() => {
     screenMounted.current = true;
 
@@ -298,17 +432,52 @@ export default function DashboardScreen() {
     loadForecast();
 
     // Keep the temperature from staying frozen by
-    // re-fetching on a fixed interval.
+    // re-fetching on fixed intervals: live weather every
+    // 10 minutes, forecast every 3 hours (its 3-hour slots
+    // never change faster than that).
     const refreshInterval = setInterval(() => {
       loadWeather();
-
-      loadForecast();
     }, WEATHER_REFRESH_INTERVAL_MS);
+
+    const forecastInterval = setInterval(() => {
+      loadForecast();
+    }, FORECAST_REFRESH_INTERVAL_MS);
+
+    // Refetch when the app returns to the foreground so a
+    // unit left open (or backgrounded past the interval)
+    // repaints without waiting for the next tick. Skipped
+    // when the last fetch is fresher than one interval —
+    // avoids useless calls on quick app switches.
+    const foregroundSub =
+      AppState.addEventListener(
+        "change",
+        (state) => {
+          if (state !== "active") {
+            return;
+          }
+
+          const last = lastFetchRef.current;
+
+          if (
+            last === null ||
+            Date.now() - last >
+              WEATHER_REFRESH_INTERVAL_MS
+          ) {
+            loadWeather();
+
+            loadForecast();
+          }
+        },
+      );
 
     return () => {
       screenMounted.current = false;
 
       clearInterval(refreshInterval);
+
+      clearInterval(forecastInterval);
+
+      foregroundSub.remove();
     };
   }, [loadForecast, loadWeather]);
 
@@ -410,8 +579,8 @@ export default function DashboardScreen() {
           DASHBOARD
           ==================================================== */}
 
-      <ScrollView
-        ref={scrollRef}
+      <PullRefreshScroll
+        scrollRef={scrollRef}
         style={styles.scrollView}
         contentContainerStyle={[
           styles.scrollContent,
@@ -423,6 +592,13 @@ export default function DashboardScreen() {
             event.nativeEvent.contentOffset.y;
         }}
         scrollEventThrottle={16}
+        refreshing={sessionRefreshing}
+        onRefresh={onPullRefresh}
+        refreshLabel={t(
+          "dashboard.common.pullToRefresh",
+        )}
+        refreshTint={colors.primary}
+        testID="pull-scroll"
       >
         {/* ==================================================
             DASHBOARD HEADER
@@ -637,6 +813,8 @@ export default function DashboardScreen() {
                 forecast={forecast}
                 forecastLoading={forecastLoading}
                 forecastError={forecastError}
+                onRefreshToday={refreshToday}
+                todayRefreshing={todayRefreshing}
               />
             </View>
           </View>
@@ -690,7 +868,7 @@ export default function DashboardScreen() {
             ================================================== */}
 
         <Copyright />
-      </ScrollView>
+      </PullRefreshScroll>
 
       </ScreenContainer2>
   );

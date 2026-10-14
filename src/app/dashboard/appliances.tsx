@@ -8,7 +8,6 @@ import React, {
 
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   View,
 } from "react-native";
@@ -20,6 +19,7 @@ import {
 } from "@/components/forms/applianceCard";
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
+import PullRefreshScroll from "@/components/PullRefreshScroll";
 import ScreenContainer2 from "@/components/layout/ScreenContainer2";
 import AppText from "@/components/ui/AppText";
 import { useTranslation } from "react-i18next";
@@ -34,6 +34,7 @@ import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import {
   Radius,
 } from "@/constants/theme";
@@ -196,6 +197,7 @@ export default function AppliancesScreen() {
 
   const {
     monitoring,
+    refresh: refreshMonitoring,
   } = useMonitoring();
 
   const [
@@ -224,7 +226,7 @@ export default function AppliancesScreen() {
     setAreaModalVisible,
   ] = useState(false);
 
-  const loadSelectedAppliances = async () => {
+  const loadSelectedAppliances = useCallback(async () => {
     try {
       const { fetchSelectedAppliances } = await import(
         "@/services/appliancesService"
@@ -321,16 +323,31 @@ export default function AppliancesScreen() {
           };
         }),
     );
-  };
+  }, []);
 
   const handleApplianceSave = async () => {
     await loadSelectedAppliances();
   };
 
+  // Pull-to-refresh: appliance list plus the monitoring row
+  // behind the status badges. No cooldown — the shared hook
+  // collapses repeat pulls into one fetch.
+  const loadApplianceSession = useCallback(async () => {
+    await Promise.all([
+      refreshMonitoring(),
+      loadSelectedAppliances(),
+    ]);
+  }, [refreshMonitoring, loadSelectedAppliances]);
+
+  const {
+    refreshing: appliancesRefreshing,
+    onRefresh: onAppliancesRefresh,
+  } = usePullToRefresh(loadApplianceSession);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- mount fetch is the effect's purpose
     loadSelectedAppliances();
-  }, []);
+  }, [loadSelectedAppliances]);
 
   const handlePowerFilter = (
     filter: PowerLevel,
@@ -531,13 +548,20 @@ export default function AppliancesScreen() {
     <ScreenContainer2>
       <NavBar />
 
-      <ScrollView
+      <PullRefreshScroll
         style={styles.scrollView}
         contentContainerStyle={[
           styles.content,
           { paddingHorizontal: screenPadding },
         ]}
         showsVerticalScrollIndicator={false}
+        refreshing={appliancesRefreshing}
+        onRefresh={onAppliancesRefresh}
+        refreshLabel={t(
+          "dashboard.common.pullToRefresh",
+        )}
+        refreshTint={colors.primary}
+        testID="pull-scroll"
       >
         {/* Header */}
         <View style={styles.card}>
@@ -743,7 +767,7 @@ export default function AppliancesScreen() {
         </View>
 
         <Copyright />
-      </ScrollView>
+      </PullRefreshScroll>
 
       <ApplianceModal
         visible={applianceModalVisible}

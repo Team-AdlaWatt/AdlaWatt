@@ -7,7 +7,23 @@
     "timeoutMs": 8000
   },
   "timing": {
-    "autoRefreshMs": 600000
+    "autoRefreshMs": 600000,
+    "minRefreshMs": 120000,
+    "forecastRefreshMs": 10800000
+  },
+  "location": {
+    "fallbackLat": 8.3644,
+    "fallbackLon": 124.8519,
+    "fallbackLabel": "Damilag, Manolo Fortich",
+    "coordDecimals": 2,
+    "lastKnownMaxAgeMs": 120000
+  },
+  "cache": {
+    "todayMinutes": 15,
+    "staleMinutes": 30
+  },
+  "calibration": {
+    "tempOffsetC": 0
   },
   "thresholds": {
     "hotC": 30,
@@ -15,6 +31,52 @@
     "cloudLowPct": 25,
     "cloudHighPct": 60,
     "clearShareForHigh": 0.5
+  },
+  "classification": {
+    "ranges": [
+      { "min": 200, "max": 232, "label": "Thunderstorm", "severity": "severe" },
+      { "min": 300, "max": 321, "label": "Drizzle", "severity": "light" },
+      { "min": 500, "max": 500, "label": "Light rain", "severity": "light" },
+      { "min": 501, "max": 501, "label": "Moderate rain", "severity": "moderate" },
+      { "min": 502, "max": 519, "label": "Heavy rain", "severity": "severe" },
+      { "min": 520, "max": 531, "label": "Showers", "severity": "severe" },
+      { "min": 600, "max": 622, "label": "Snow", "severity": "severe" },
+      { "min": 701, "max": 762, "label": "Hazy", "severity": "fog" },
+      { "id": 771, "label": "Squalls", "severity": "severe" },
+      { "id": 781, "label": "Tornado", "severity": "severe" },
+      { "id": 800, "day": "Sunny", "night": "Clear", "severity": "clear" },
+      { "id": 801, "day": "Mostly sunny", "night": "Mostly clear", "severity": "cloudy" },
+      { "id": 802, "day": "Partly sunny", "night": "Partly cloudy", "severity": "cloudy" },
+      { "id": 803, "label": "Mostly cloudy", "severity": "cloudy" },
+      { "id": 804, "label": "Overcast", "severity": "cloudy" }
+    ],
+    "confirmRange": { "min": 300, "max": 531, "drizzleMax": 321, "confirmMinMm": 0.2 },
+    "rainPossibleLabel": "Rain possible",
+    "drizzlePossibleLabel": "Drizzle possible",
+    "unconfirmedSubtext": "Not confirmed nearby",
+    "unavailableLabel": "Condition unavailable",
+    "estimateSubtext": "Estimate",
+    "iconsByCode": {
+      "01d": "sunny-outline",
+      "01n": "moon-outline",
+      "02d": "partly-sunny-outline",
+      "02n": "cloudy-night-outline",
+      "03d": "cloud-outline",
+      "03n": "cloud-outline",
+      "04d": "cloud-outline",
+      "04n": "cloud-outline",
+      "09d": "rainy-outline",
+      "09n": "rainy-outline",
+      "10d": "rainy-outline",
+      "10n": "rainy-outline",
+      "11d": "thunderstorm-outline",
+      "11n": "thunderstorm-outline",
+      "13d": "snow-outline",
+      "13n": "snow-outline",
+      "50d": "cloud-outline",
+      "50n": "cloud-outline"
+    },
+    "skyNote": "Condition comes from OpenWeather's standard codes. Not solar power."
   },
   "conditions": {
     "fallback": {
@@ -109,7 +171,7 @@
     }
   },
   "formats": {
-    "tempDecimals": 1,
+    "tempDecimals": 0,
     "coordFallback": "{lat}, {lon}",
     "coordDecimals": 2,
     "time": "h:mm AM"

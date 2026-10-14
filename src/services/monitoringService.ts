@@ -1,4 +1,9 @@
-import { useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -788,6 +793,67 @@ export const useMonitoring =
       setCachedAt,
     ] = useState<number | null>(null);
 
+    // Mount + in-flight guards for the manual refresh()
+    // below. The mount effect's `mounted` flag is closure-
+    // local to that effect, so refresh() needs its own.
+    const mountedRef = useRef(true);
+
+    const refreshInflightRef = useRef(false);
+
+    useEffect(
+      () => {
+        mountedRef.current = true;
+
+        return () => {
+          mountedRef.current = false;
+        };
+      },
+      [],
+    );
+
+    // Manual re-fetch of the latest monitoring row, exposed
+    // for pull-to-refresh. No timestamp gate — only one
+    // fetch runs at a time; failures keep the last painted
+    // row on screen exactly like background refreshes.
+    const refresh = useCallback(
+      async () => {
+        if (refreshInflightRef.current) {
+          return;
+        }
+
+        refreshInflightRef.current = true;
+
+        try {
+          const data =
+            await getMonitoringData();
+
+          if (
+            !mountedRef.current
+          ) {
+            return;
+          }
+
+          if (data) {
+            setMonitoring(data);
+
+            setStale(false);
+
+            setCachedAt(Date.now());
+          }
+        } catch (error) {
+          console.warn(
+            "Monitoring refresh failed:",
+            error instanceof Error
+              ? error.message
+              : error,
+          );
+        } finally {
+          refreshInflightRef.current = false;
+        }
+      },
+      [],
+    );
+
     useEffect(
       () => {
 
@@ -980,6 +1046,7 @@ export const useMonitoring =
       loading,
       stale,
       cachedAt,
+      refresh,
     };
   };
 

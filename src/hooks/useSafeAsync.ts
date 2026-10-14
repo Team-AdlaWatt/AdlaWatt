@@ -14,10 +14,14 @@ import {
 // own mapping/filter logic; only the fetch moves in here.
 //
 // Usage:
-//   const { data, error, loading, retry } = useSafeAsync(
+//   const { data, error, loading, retry, refresh } = useSafeAsync(
 //     loadNotifications,
 //     [],
 //   );
+//
+// `refresh` re-runs the loader and resolves when it settles,
+// so pull-to-refresh spinners can stay pinned for the whole
+// fetch. Like `retry` it has no cooldown.
 // ============================================================
 
 interface SafeAsyncState<T> {
@@ -25,6 +29,7 @@ interface SafeAsyncState<T> {
   error: string | null;
   loading: boolean;
   retry: () => void;
+  refresh: () => Promise<void>;
 }
 
 export function useSafeAsync<T>(
@@ -52,6 +57,33 @@ export function useSafeAsync<T>(
   const retry = useCallback(() => {
     setAttempt((count) => count + 1);
   }, []);
+
+  // Manual re-fetch with the same settle semantics as the
+  // effect below. Returns the loader promise so callers
+  // (pull-to-refresh) can pin their spinner until it lands.
+  const refresh = useCallback(() => {
+    setLoading(true);
+    setError(null);
+
+    return loader().then(
+      (result) => {
+        if (mounted.current) {
+          setData(result);
+          setLoading(false);
+        }
+      },
+      (thrown: unknown) => {
+        if (mounted.current) {
+          setError(
+            thrown instanceof Error
+              ? thrown.message
+              : "Something went wrong. Please try again.",
+          );
+          setLoading(false);
+        }
+      },
+    );
+  }, [loader]);
 
   useEffect(() => {
     let active = true;
@@ -86,5 +118,5 @@ export function useSafeAsync<T>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, attempt]);
 
-  return { data, error, loading, retry };
+  return { data, error, loading, retry, refresh };
 }

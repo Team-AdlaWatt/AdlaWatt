@@ -226,6 +226,9 @@ const en = {
       googleIncomplete:
         "Google sign-in was not completed. Please try again from the sign-in screen.",
       continueToDashboard: "Continue to Dashboard",
+      webSuccessTitle: "Authentication Succeeded",
+      webSuccessSubtitle:
+        "You may now close this tab and return to the application.",
       backToSignIn: "Back to Sign In",
       goToResetPassword: "Go to Reset Password",
       footerPrompt: "Need a new account?",
@@ -330,6 +333,9 @@ const en = {
   },
 
   dashboard: {
+    common: {
+      pullToRefresh: "Pull down to refresh",
+    },
     home: {
       title: "Dashboard",
       subtitle: "Monitor your AdlaWatt system in real time.",

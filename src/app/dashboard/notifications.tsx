@@ -36,12 +36,14 @@ import AppText from "@/components/ui/AppText";
 
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
+import PullRefreshScroll from "@/components/PullRefreshScroll";
 import { useSafeAsync } from "@/hooks/useSafeAsync";
 
 import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { OptionRow, useScreenPadding } from "@/constants/sizing";
 
 import { getAuthenticatedUserSafe, supabase } from "@/lib/supabase";
@@ -261,7 +263,15 @@ export default function NotificationsScreen() {
     error: loadError,
     loading: isLoading,
     retry: retryLoad,
+    refresh: refreshNotifications,
   } = useSafeAsync(loadNotifications, [i18n.language]);
+
+  // Pull-to-refresh re-runs the same query. No cooldown —
+  // the shared hook collapses repeat pulls into one fetch.
+  const {
+    refreshing: notificationsRefreshing,
+    onRefresh: onNotificationsRefresh,
+  } = usePullToRefresh(refreshNotifications);
 
   // Optimistic read-all: flips the list instantly on tap;
   // the refetch after a successful update is authoritative
@@ -580,8 +590,8 @@ export default function NotificationsScreen() {
       {/* Fixed Navbar */}
       <NavBar />
 
-      <ScrollView
-        ref={scrollRef}
+      <PullRefreshScroll
+        scrollRef={scrollRef}
         style={styles.scrollView}
         contentContainerStyle={[
           styles.content,
@@ -593,6 +603,13 @@ export default function NotificationsScreen() {
             event.nativeEvent.contentOffset.y;
         }}
         scrollEventThrottle={16}
+        refreshing={notificationsRefreshing}
+        onRefresh={onNotificationsRefresh}
+        refreshLabel={t(
+          "dashboard.common.pullToRefresh",
+        )}
+        refreshTint={colors.primary}
+        testID="pull-scroll"
       >
         {/* Header */}
         <View style={styles.headerCard}>
@@ -868,7 +885,7 @@ export default function NotificationsScreen() {
         />
 
         <Copyright />
-      </ScrollView>
+      </PullRefreshScroll>
 
       {/* ========================================================
           TIME RANGE MODAL

@@ -19,6 +19,7 @@ import {
 
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
+import PullRefreshScroll from "@/components/PullRefreshScroll";
 import ScreenContainer2 from "@/components/layout/ScreenContainer2";
 import { useScreenPadding } from "@/constants/sizing";
 import Pagination from "@/components/ui/Pagination";
@@ -33,6 +34,7 @@ import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { getAuthenticatedUserSafe, supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
 
@@ -248,7 +250,15 @@ export default function ActivityLogsScreen() {
     error: loadError,
     loading: isLoading,
     retry: retryLoad,
+    refresh: refreshLogs,
   } = useSafeAsync(loadActivityLogs, [i18n.language]);
+
+  // Pull-to-refresh re-runs the same query. No cooldown —
+  // the shared hook collapses repeat pulls into one fetch.
+  const {
+    refreshing: logsRefreshing,
+    onRefresh: onLogsRefresh,
+  } = usePullToRefresh(refreshLogs);
 
   const activityLogs = useMemo(
     () => loadedLogs ?? [],
@@ -445,8 +455,8 @@ export default function ActivityLogsScreen() {
     <ScreenContainer2>
       <NavBar />
 
-      <ScrollView
-        ref={scrollRef}
+      <PullRefreshScroll
+        scrollRef={scrollRef}
         style={styles.scrollView}
         contentContainerStyle={[
           styles.content,
@@ -458,6 +468,13 @@ export default function ActivityLogsScreen() {
             event.nativeEvent.contentOffset.y;
         }}
         scrollEventThrottle={16}
+        refreshing={logsRefreshing}
+        onRefresh={onLogsRefresh}
+        refreshLabel={t(
+          "dashboard.common.pullToRefresh",
+        )}
+        refreshTint={colors.primary}
+        testID="pull-scroll"
       >
         {/* Header */}
 
@@ -632,7 +649,7 @@ export default function ActivityLogsScreen() {
         />
 
         <Copyright />
-      </ScrollView>
+      </PullRefreshScroll>
 
       {/* ========================================================
           TIME RANGE MODAL

@@ -1,10 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
-  Image,
-  ImageSourcePropType,
   View,
 } from "react-native";
+
+import {
+  Image,
+  type ImageSource,
+} from "expo-image";
 
 import {
   useApplianceCardStyles,
@@ -22,7 +25,7 @@ type ApplianceStatusBoxProps = {
   wattage: string;
   status: string;
   statusTone?: StatusTone;
-  imageSource?: ImageSourcePropType;
+  imageSource?: ImageSource | number;
 };
 
 const defaultImage = require("@/assets/images/adlawatt-icon.png");
@@ -62,7 +65,9 @@ export default function ApplianceStatusBox({
   return (
     <View
       style={[
-        applianceCardStyles.box,
+        tone !== "not"
+          ? applianceCardStyles.box
+          : applianceCardStyles.boxTight,
         { borderColor: statusColor },
       ]}
     >
@@ -76,7 +81,10 @@ export default function ApplianceStatusBox({
         <Image
           source={imageSource}
           style={applianceCardStyles.image}
-          resizeMode="contain"
+          contentFit="contain"
+          // Memory-only session cache: decode once, stay
+          // instant while the app is open (see ApplianceBox).
+          cachePolicy="memory"
         />
       </View>
 
@@ -97,31 +105,35 @@ export default function ApplianceStatusBox({
         {wattage}
       </AppText>
 
-      {/* Status */}
-      <View
-        style={[
-          applianceCardStyles.status,
-          {
-            backgroundColor:
-              statusColor,
-          },
-        ]}
-      >
-        <Ionicons
-          name={iconName}
-          size={13}
-          // Frozen pairing: white on the frozen status fill,
-          // identical in both themes.
-          color={colors.onPrimary}
-        />
-
-        <AppText
-          variant="caption"
-          style={applianceCardStyles.statusText}
+      {/* Status (not-advisable items show no pill:
+          the active toggle segment already states it,
+          so the red pill is redundant) */}
+      {tone !== "not" && (
+        <View
+          style={[
+            applianceCardStyles.status,
+            {
+              backgroundColor:
+                statusColor,
+            },
+          ]}
         >
-          {status}
-        </AppText>
-      </View>
+          <Ionicons
+            name={iconName}
+            size={13}
+            // Frozen pairing: white on the frozen status fill,
+            // identical in both themes.
+            color={colors.onPrimary}
+          />
+
+          <AppText
+            variant="caption"
+            style={applianceCardStyles.statusText}
+          >
+            {status}
+          </AppText>
+        </View>
+      )}
     </View>
   );
 }

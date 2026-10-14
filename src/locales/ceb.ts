@@ -247,6 +247,9 @@ const ceb = {
       googleIncomplete:
         "Wala mahuman ang Google sign-in. Palihug sulayi pag-usab gikan sa sign-in screen.",
       continueToDashboard: "Padayon sa Dashboard",
+      webSuccessTitle: "Milampos ang Pagpamatuod",
+      webSuccessSubtitle:
+        "Mahimo na nimong isira kini nga tab ug mobalik sa application.",
       backToSignIn: "Balik sa Sign In",
       goToResetPassword: "Adto sa Reset Password",
       footerPrompt: "Kinahanglan ug bag-ong account?",
@@ -348,6 +351,9 @@ const ceb = {
   },
 
   dashboard: {
+    common: {
+      pullToRefresh: "Biraha paubos para mag-refresh",
+    },
     home: {
       title: "Dashboard",
       subtitle: "I-monitor ang imong AdlaWatt system nga real time.",
