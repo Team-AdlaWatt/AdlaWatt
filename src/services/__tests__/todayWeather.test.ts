@@ -360,6 +360,9 @@ describe("getWeather cache", () => {
     // No calibration offset (tempOffsetC 0): 32.4 -> 32, 34.2 -> 34
     expect(live.temperature).toBe(32);
     expect(live.feelsLike).toBe(34);
+    // No humidity in this payload: OWM fallback path.
+    expect(live.feelsSource).toBe("openweather");
+    expect(live.humidity).toBeUndefined();
     expect(live.conditionId).toBe(803);
     expect(live.iconCode).toBe("04d");
     expect(live.rainMm).toBeNull();
@@ -408,6 +411,7 @@ describe("getWeather cache", () => {
       31,
     );
     expect(live.humidity).toBe(80);
+    expect(live.feelsSource).toBe("heat-index");
   });
 
   test("throws when nothing is cached and fetch fails", async () => {

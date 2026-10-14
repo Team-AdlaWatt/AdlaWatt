@@ -10,6 +10,7 @@ import {
   formatTimeoutError,
   resolveFeelsLike,
   roundTemperature,
+  type FeelsLikeSource,
 } from "@/services/weatherConfig";
 
 // ============================================================
@@ -63,6 +64,10 @@ export interface WeatherData {
   // OWM `main.feels_like` (°C, 1-decimal). Optional so v2
   // caches without it still validate and render.
   feelsLike?: number;
+  // Which path produced feelsLike: NOAA heat index from
+  // live temp + humidity, or live OWM `feels_like`.
+  // Persisted with the reading so logs stay conclusive.
+  feelsSource?: FeelsLikeSource;
   // OWM `main.humidity` (%, 0-100). Optional like
   // feelsLike: absent on legacy payloads, shown with the
   // feels-like line when present.
@@ -597,6 +602,9 @@ function parseWeatherResponse(
     ...(feelsLike !== undefined
       ? { feelsLike }
       : {}),
+    ...(resolvedFeels !== null
+      ? { feelsSource: resolvedFeels.source }
+      : {}),
     ...(humidity !== undefined
       ? { humidity }
       : {}),
@@ -739,6 +747,16 @@ async function readTodayCache(): Promise<CachedTodayWeather | null> {
       delete (cached as Partial<WeatherData>).humidity;
     }
 
+    // feelsSource stays optional: dropped when unknown so
+    // old caches without it still validate.
+    if (
+      cached.feelsSource !== undefined &&
+      cached.feelsSource !== "heat-index" &&
+      cached.feelsSource !== "openweather"
+    ) {
+      delete (cached as Partial<WeatherData>).feelsSource;
+    }
+
     return {
       data: cached,
       fetchedAt: parsed.fetchedAt,
@@ -794,7 +812,7 @@ function debugTodayReading(
 
   const payload = (raw ?? {}) as {
     weather?: { id?: unknown; main?: unknown; description?: unknown; icon?: unknown }[];
-    main?: { temp?: unknown; feels_like?: unknown };
+    main?: { temp?: unknown; feels_like?: unknown; humidity?: unknown };
     clouds?: { all?: unknown };
     rain?: { "1h"?: unknown; "3h"?: unknown };
     name?: unknown;
@@ -811,6 +829,8 @@ function debugTodayReading(
           ),
         )
       : null;
+
+  const parsed = data as Partial<WeatherData>;
 
   console.debug("[today-weather]", {
     source,
@@ -831,6 +851,12 @@ function debugTodayReading(
     temp: payload.main?.temp ?? data.temperature,
     feelsLike:
       payload.main?.feels_like ?? data.feelsLike ?? null,
+    // Feels path diagnosis: raw OWM inputs plus which
+    // rule produced the displayed feels-like.
+    humidityRaw: payload.main?.humidity ?? null,
+    humidity: parsed.humidity ?? null,
+    feelsSource: parsed.feelsSource ?? null,
+    parsedFeelsLike: data.feelsLike ?? null,
     clouds: payload.clouds?.all ?? null,
     rain1h: payload.rain?.["1h"] ?? null,
     rain3h: payload.rain?.["3h"] ?? null,
