@@ -17,12 +17,27 @@ import {
 
 export default function SplashScreen() {
   const fontsLoaded = useAppFonts();
-  const { isLoaded: authLoaded, isSignedIn } = useAuth();
+  const {
+    isLoaded: authLoaded,
+    isSignedIn,
+    user,
+  } = useAuth();
 
   useEffect(() => {
     if (!fontsLoaded || !authLoaded) {
       return;
     }
+
+    // Cold-start restore diagnosis (task 1): records whether
+    // a persisted session survived, so a "logged out again"
+    // report shows found/missing instead of guesswork.
+    console.info(
+      `[auth] cold-start restore: ${
+        isSignedIn
+          ? `signed-in (${user?.id ?? "unknown-id"})`
+          : "no-session"
+      }`,
+    );
 
     let cancelled = false;
 
@@ -61,7 +76,7 @@ export default function SplashScreen() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [fontsLoaded, authLoaded, isSignedIn]);
+  }, [fontsLoaded, authLoaded, isSignedIn, user?.id]);
 
   return (
     <View style={styles.container}>

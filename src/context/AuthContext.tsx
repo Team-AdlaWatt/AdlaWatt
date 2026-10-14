@@ -149,6 +149,12 @@ export function AuthProvider({
             setIsRecoverySession(true);
           } else if (event === "SIGNED_OUT") {
             setIsRecoverySession(false);
+            // Session-death diagnosis (task 1): a background
+            // sign-out (expired/rejected refresh token) lands
+            // here, distinct from an explicit signOut() call.
+            console.info(
+              "[auth] session ended (SIGNED_OUT event)",
+            );
           }
 
           setSession(nextSession);
