@@ -97,12 +97,8 @@ export function initSentry(): void {
     return;
   }
 
-  // Native-only phase: web uses the static-site build where the
-  // native SDK is inert. Jest/CI have no DSN configured.
-  if (Platform.OS === "web") {
-    return;
-  }
-
+  // Web is now supported: native SDK stays inert here; native
+  // iOS/Android get full tracking.
   const dsn = getDsn();
 
   if (!dsn) {

@@ -18,6 +18,8 @@ import {
   View,
 } from "react-native";
 
+import * as Sentry from "@sentry/react-native";
+
 import ActivityCard from "@/components/ActivityCard";
 import AppRecCard from "@/components/AppRecCard";
 import ChartCard from "@/components/ChartCard";
@@ -648,6 +650,29 @@ export default function DashboardScreen() {
             />
           </Pressable>
         </View>
+
+        {/* ==================================================
+            TEMP SENTRY TEST BUTTON (temporary — DELETE after verification)
+            ================================================== */}
+
+        <Pressable
+          onPress={() => Sentry.captureMessage("Sentry test - connection verified")}
+          accessibilityRole="button"
+          accessibilityLabel="Sentry test (temporary)"
+          style={({ pressed }) => [
+            styles.quickNavButton,
+            pressed && styles.quickNavButtonPressed,
+          ]}
+        >
+          <Ionicons
+            name="bug-outline"
+            size={16}
+            color={colors.onPrimary}
+          />
+          <AppText variant="caption" style={styles.quickNavButtonText}>
+            Sentry test
+          </AppText>
+        </Pressable>
 
         {/* ==================================================
             OFFLINE BANNER (phone offline, cached readings)
