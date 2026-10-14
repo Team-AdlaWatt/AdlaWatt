@@ -72,6 +72,9 @@ interface WeatherData {
   city: string;
   temperature: number;
   feelsLike?: number;
+  // Live OWM `main.humidity` (0-100). Shown beside the
+  // feels-like line when the reading carries it.
+  humidity?: number;
   description: string;
   mainGroup?: string;
   observedAt?: number;
@@ -95,9 +98,10 @@ interface CardData {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value?: string;
-  // Secondary honest line ("Actual 33°C") shown when the
-  // primary value is feels-like. Separate from subtext so
-  // honesty notes are never overwritten.
+  // Secondary honest line ("Feels like 30°C") shown
+  // below the actual temp, with live humidity when the
+  // reading carries it. Separate from subtext so honesty
+  // notes are never overwritten.
   feelsLike?: string;
   badge?: string;
   // Honesty note under the badge
@@ -2625,26 +2629,38 @@ function getCardData(
         typeof weather?.feelsLike === "number" &&
         Number.isFinite(weather.feelsLike);
 
-      // Primary is feels-like when available (matches local
-      // perception better); otherwise actual temperature.
+      const hasHumidity =
+        !loading &&
+        typeof weather?.humidity === "number" &&
+        Number.isFinite(weather.humidity);
+
+      // Primary is the actual air temperature; the heat-index
+      // feels-like renders below it with live humidity.
+      // Every number comes from the live OWM reading — no
+      // static fallback is ever substituted.
       const tempValue =
         loading
           ? "—"
-          : hasFeels
-            ? formatTemp(weather.feelsLike as number)
-            : hasTemp
-              ? formatTemp(
-                  (weather as { temperature: number })
-                    .temperature,
-                )
-              : "—";
+          : hasTemp
+            ? formatTemp(
+                (weather as { temperature: number })
+                  .temperature,
+              )
+            : "—";
 
       const actualValue =
         !loading && hasFeels && hasTemp
-          ? `Actual ${formatTemp(
-              (weather as { temperature: number })
-                .temperature,
-            )}`
+          ? `Feels like ${formatTemp(
+              (weather as { feelsLike: number })
+                .feelsLike,
+            )}${
+              hasHumidity
+                ? ` · Humidity ${Math.round(
+                    (weather as { humidity: number })
+                      .humidity,
+                  )}%`
+                : ""
+            }`
           : undefined;
 
       const cityLabel =

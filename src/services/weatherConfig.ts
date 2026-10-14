@@ -882,3 +882,99 @@ export function resolveTodayDisplay(
     }),
   };
 }
+
+// ============================================================
+// HEAT INDEX (NOAA)
+//
+// OWM `feels_like` reads low in humid tropics, so the card's
+// feels-like is the heat index computed from OWM temp +
+// humidity when valid (about 27C+ and 40%+ RH), falling back
+// to OWM `feels_like` otherwise. Pure, exported for tests.
+// ============================================================
+
+const cToF = (c: number): number =>
+  (c * 9) / 5 + 32;
+
+const fToC = (f: number): number =>
+  ((f - 32) * 5) / 9;
+
+export function heatIndexC(
+  tempC: number,
+  rh: number,
+): number | null {
+  if (
+    !Number.isFinite(tempC) ||
+    !Number.isFinite(rh)
+  ) {
+    return null;
+  }
+
+  const T = cToF(tempC);
+
+  if (T < 80 || rh < 40) {
+    return null;
+  }
+
+  const simple =
+    0.5 *
+    (T + 61 + (T - 68) * 1.2 + rh * 0.094);
+
+  if ((simple + T) / 2 < 80) {
+    return fToC(simple);
+  }
+
+  let hi =
+    -42.379 +
+    2.04901523 * T +
+    10.14333127 * rh -
+    0.22475541 * T * rh -
+    0.00683783 * T * T -
+    0.05481717 * rh * rh +
+    0.00122874 * T * T * rh +
+    0.00085282 * T * rh * rh -
+    0.00000199 * T * T * rh * rh;
+
+  if (rh > 85 && T <= 87) {
+    hi += ((rh - 85) / 10) * ((87 - T) / 5);
+  }
+
+  return fToC(hi);
+}
+
+export type FeelsLikeSource =
+  | "heat-index"
+  | "openweather";
+
+export function resolveFeelsLike(
+  tempC: number,
+  rh: number | null,
+  owmFeels: number | null,
+): {
+  value: number;
+  source: FeelsLikeSource;
+} | null {
+  const humidity =
+    typeof rh === "number" && Number.isFinite(rh)
+      ? rh
+      : null;
+
+  if (humidity !== null) {
+    const hi = heatIndexC(tempC, humidity);
+
+    if (hi !== null && Number.isFinite(hi)) {
+      return { value: hi, source: "heat-index" };
+    }
+  }
+
+  if (
+    typeof owmFeels === "number" &&
+    Number.isFinite(owmFeels)
+  ) {
+    return {
+      value: owmFeels,
+      source: "openweather",
+    };
+  }
+
+  return null;
+}

@@ -8,6 +8,7 @@ import {
   formatCoordFallback,
   formatNetworkError,
   formatTimeoutError,
+  resolveFeelsLike,
   roundTemperature,
 } from "@/services/weatherConfig";
 
@@ -62,6 +63,10 @@ export interface WeatherData {
   // OWM `main.feels_like` (°C, 1-decimal). Optional so v2
   // caches without it still validate and render.
   feelsLike?: number;
+  // OWM `main.humidity` (%, 0-100). Optional like
+  // feelsLike: absent on legacy payloads, shown with the
+  // feels-like line when present.
+  humidity?: number;
   description: string;
   city: string;
   // Stable OpenWeather group (Clear, Clouds, Rain, ...).
@@ -377,6 +382,7 @@ interface OpenWeatherCurrentResponse {
   main?: {
     temp?: unknown;
     feels_like?: unknown;
+    humidity?: unknown;
   };
   clouds?: {
     all?: unknown;
@@ -548,25 +554,51 @@ function parseWeatherResponse(
 
   const iconCode = (rawIcon as string).trim();
 
-  // Feels-like is the primary display: present when OWM
-  // sends a finite main.feels_like, otherwise omitted and
-  // the card falls back to temperature.
+  // Feels-like is the secondary display below actual.
+  // OWM `feels_like` reads low in humid tropics, so the
+  // value is the NOAA heat index from live temp + live
+  // humidity when valid, else live OWM `feels_like`.
+  // Anything absent stays absent: no static fallback.
   const rawFeelsLike = toFiniteNumber(
     payload.main?.feels_like,
   );
 
+  const rawHumidity = toFiniteNumber(
+    payload.main?.humidity,
+  );
+
+  const humidity =
+    rawHumidity !== null &&
+    rawHumidity >= 0 &&
+    rawHumidity <= 100
+      ? Math.round(rawHumidity)
+      : undefined;
+
   const offsetC = getTempOffsetC();
 
-  const feelsLike =
+  const correctedTemp = temperature + offsetC;
+
+  const resolvedFeels = resolveFeelsLike(
+    correctedTemp,
+    humidity ?? null,
     rawFeelsLike !== null
-      ? roundTemperature(rawFeelsLike + offsetC)
+      ? rawFeelsLike + offsetC
+      : null,
+  );
+
+  const feelsLike =
+    resolvedFeels !== null
+      ? roundTemperature(resolvedFeels.value)
       : undefined;
 
   return {
     temperature:
-      roundTemperature(temperature + offsetC),
+      roundTemperature(correctedTemp),
     ...(feelsLike !== undefined
       ? { feelsLike }
+      : {}),
+    ...(humidity !== undefined
+      ? { humidity }
       : {}),
     description:
       description.trim(),
@@ -693,6 +725,18 @@ async function readTodayCache(): Promise<CachedTodayWeather | null> {
         !Number.isFinite(cached.feelsLike))
     ) {
       delete (cached as Partial<WeatherData>).feelsLike;
+    }
+
+    // humidity stays optional like feelsLike: live OWM
+    // value only, dropped when corrupt.
+    if (
+      cached.humidity !== undefined &&
+      (typeof cached.humidity !== "number" ||
+        !Number.isFinite(cached.humidity) ||
+        cached.humidity < 0 ||
+        cached.humidity > 100)
+    ) {
+      delete (cached as Partial<WeatherData>).humidity;
     }
 
     return {

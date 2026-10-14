@@ -8,7 +8,8 @@
   },
   "timing": {
     "autoRefreshMs": 600000,
-    "minRefreshMs": 120000
+    "minRefreshMs": 120000,
+    "forecastRefreshMs": 10800000
   },
   "location": {
     "fallbackLat": 8.37,

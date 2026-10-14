@@ -62,10 +62,15 @@ import { useTranslation } from "react-i18next";
 // ============================================================
 
 // The weather is re-fetched on this interval so the displayed
-// temperature never stays frozen for too long. All values
-// come from weather.json.
+// temperature never stays frozen for too long. The forecast
+// changes slowly, so it polls every 3 hours instead — faster
+// returns the same 3-hour slots and wastes free calls. All
+// values come from weather.json.
 const WEATHER_REFRESH_INTERVAL_MS =
   weatherJson.timing.autoRefreshMs;
+
+const FORECAST_REFRESH_INTERVAL_MS =
+  weatherJson.timing.forecastRefreshMs;
 
 // ============================================================
 // QUICK-NAV SCROLL
@@ -427,12 +432,16 @@ export default function DashboardScreen() {
     loadForecast();
 
     // Keep the temperature from staying frozen by
-    // re-fetching on a fixed interval.
+    // re-fetching on fixed intervals: live weather every
+    // 10 minutes, forecast every 3 hours (its 3-hour slots
+    // never change faster than that).
     const refreshInterval = setInterval(() => {
       loadWeather();
-
-      loadForecast();
     }, WEATHER_REFRESH_INTERVAL_MS);
+
+    const forecastInterval = setInterval(() => {
+      loadForecast();
+    }, FORECAST_REFRESH_INTERVAL_MS);
 
     // Refetch when the app returns to the foreground so a
     // unit left open (or backgrounded past the interval)
@@ -465,6 +474,8 @@ export default function DashboardScreen() {
       screenMounted.current = false;
 
       clearInterval(refreshInterval);
+
+      clearInterval(forecastInterval);
 
       foregroundSub.remove();
     };

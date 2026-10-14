@@ -4,8 +4,10 @@ import * as Location from "expo-location";
 import {
   canRefreshToday,
   formatDataAge,
+  heatIndexC,
   isStaleReading,
   resolveCondition,
+  resolveFeelsLike,
 } from "@/services/weatherConfig";
 import {
   TODAY_CACHE_KEY,
@@ -378,6 +380,36 @@ describe("getWeather cache", () => {
     expect(cached).toEqual(live);
   });
 
+  test("humidity parses live and feels-like uses heat index", async () => {
+    grantFresh();
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () =>
+        owmOk({
+          main: {
+            temp: 27.12,
+            feels_like: 30.01,
+            humidity: 80,
+          },
+        }),
+    });
+
+    const live = await getWeather({
+      coordinates: { lat: 8.37, lon: 124.87 },
+    });
+
+    // 27C actual, heat-index feels ~30C, live humidity kept.
+    expect(live.temperature).toBe(27);
+    expect(live.feelsLike).toBeGreaterThanOrEqual(
+      29,
+    );
+    expect(live.feelsLike).toBeLessThanOrEqual(
+      31,
+    );
+    expect(live.humidity).toBe(80);
+  });
+
   test("throws when nothing is cached and fetch fails", async () => {
     grantFresh();
 
@@ -531,6 +563,81 @@ describe("canRefreshToday", () => {
     expect(
       canRefreshToday(now - 5 * 60000, now),
     ).toBe(true);
+  });
+});
+
+// ============================================================
+// HEAT INDEX (NOAA)
+// ============================================================
+
+describe("heatIndexC", () => {
+  test("tropical humidity yields ~30C at 27C/80%", () => {
+    const hi = heatIndexC(27, 80);
+
+    expect(hi).not.toBeNull();
+    expect(hi as number).toBeGreaterThan(29);
+    expect(hi as number).toBeLessThan(31);
+  });
+
+  test("cool air returns null (below 80F)", () => {
+    expect(heatIndexC(26, 80)).toBeNull();
+  });
+
+  test("dry air returns null (below 40% RH)", () => {
+    expect(heatIndexC(32, 30)).toBeNull();
+  });
+
+  test("non-finite inputs return null", () => {
+    expect(heatIndexC(NaN, 80)).toBeNull();
+    expect(heatIndexC(30, NaN)).toBeNull();
+  });
+});
+
+describe("resolveFeelsLike", () => {
+  test("prefers heat index when valid", () => {
+    const result = resolveFeelsLike(
+      27.12,
+      80,
+      30.01,
+    );
+
+    expect(result).not.toBeNull();
+    expect(result?.source).toBe("heat-index");
+    expect(result?.value as number).toBeGreaterThan(
+      29,
+    );
+  });
+
+  test("falls back to OWM feels_like when too cool", () => {
+    const result = resolveFeelsLike(
+      24,
+      80,
+      25.5,
+    );
+
+    expect(result).toEqual({
+      value: 25.5,
+      source: "openweather",
+    });
+  });
+
+  test("falls back to OWM feels_like without humidity", () => {
+    const result = resolveFeelsLike(
+      32.4,
+      null,
+      34.2,
+    );
+
+    expect(result).toEqual({
+      value: 34.2,
+      source: "openweather",
+    });
+  });
+
+  test("returns null with neither source", () => {
+    expect(
+      resolveFeelsLike(32.4, null, null),
+    ).toBeNull();
   });
 });
 
