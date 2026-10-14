@@ -1649,6 +1649,33 @@ export default function ChartCard({
         styles,
       );
 
+    // Today H/L from OWM only: the live temp folded with
+    // today's remaining forecast slots, so the low can
+    // never sit above the current temp. Hidden while busy
+    // or when no slots remain for today.
+    const liveTemp =
+      weather &&
+      typeof weather.temperature === "number" &&
+      Number.isFinite(weather.temperature)
+        ? Math.round(weather.temperature)
+        : null;
+
+    const todaySlotRange =
+      forecast?.todayRange ?? null;
+
+    const todayHighLow =
+      !loading &&
+      liveTemp !== null &&
+      todaySlotRange &&
+      Number.isFinite(
+        todaySlotRange.tempMin,
+      ) &&
+      Number.isFinite(
+        todaySlotRange.tempMax,
+      )
+        ? `H:${Math.max(liveTemp, todaySlotRange.tempMax)}°  L:${Math.min(liveTemp, todaySlotRange.tempMin)}°`
+        : null;
+
     // Peak border + summary: High solar outlook => Peak,
     // anything else => rainy cell. Row content below is
     // real OWM daily data (condition, temps, rain chance).
@@ -1805,7 +1832,7 @@ export default function ChartCard({
                 ? "button"
                 : "none"
             }
-            accessibilityLabel={`Today, ${todayLabel.weekday} ${todayLabel.date}, ${todayBusy ? "updating weather" : `${weatherData.value}${weatherData.feelsLike ? `, ${weatherData.feelsLike}` : ""}, ${weatherData.badge ?? ""}${weatherData.subtext ? `, ${weatherData.subtext}` : ""}`}${canTapRefresh ? ", tap to refresh" : ""}`}
+            accessibilityLabel={`Today, ${todayLabel.weekday} ${todayLabel.date}, ${todayBusy ? "updating weather" : `${weatherData.value}${todayHighLow ? `, ${todayHighLow}` : ""}${weatherData.feelsLike ? `, ${weatherData.feelsLike}` : ""}, ${weatherData.badge ?? ""}${weatherData.subtext ? `, ${weatherData.subtext}` : ""}`}${canTapRefresh ? ", tap to refresh" : ""}`}
             accessibilityState={
               canTapRefresh
                 ? {
@@ -1881,6 +1908,18 @@ export default function ChartCard({
                   ? "…"
                   : weatherData.value}
               </AppText>
+
+              {!todayBusy && todayHighLow ? (
+                <AppText
+                  variant="caption"
+                  numberOfLines={1}
+                  style={
+                    styles.weatherTodaySubtext
+                  }
+                >
+                  {todayHighLow}
+                </AppText>
+              ) : null}
 
               {!todayBusy && weatherData.feelsLike ? (
                 <AppText

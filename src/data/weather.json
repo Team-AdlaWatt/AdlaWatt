@@ -49,7 +49,7 @@
       { "id": 803, "label": "Mostly cloudy", "severity": "cloudy" },
       { "id": 804, "label": "Overcast", "severity": "cloudy" }
     ],
-    "confirmRange": { "min": 300, "max": 531, "drizzleMax": 321 },
+    "confirmRange": { "min": 300, "max": 531, "drizzleMax": 321, "confirmMinMm": 0.2 },
     "rainPossibleLabel": "Rain possible",
     "drizzlePossibleLabel": "Drizzle possible",
     "unconfirmedSubtext": "Not confirmed nearby",

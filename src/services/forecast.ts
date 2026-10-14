@@ -50,6 +50,15 @@ export interface ForecastResult {
   bestSunDay: string | null;
   cityName: string;
   fetchedAt: string;
+  // Today's remaining slots as an actual-temp range
+  // (min temp_min / max temp_max + offset). Null when no
+  // slots remain for today — the Today card then shows
+  // the live temp alone. OWM values only, never local
+  // running minima.
+  todayRange: {
+    tempMin: number;
+    tempMax: number;
+  } | null;
 }
 
 interface ForecastSlot {
@@ -318,8 +327,19 @@ function summarizeDay(
   date: string,
   slots: ForecastSlot[]
 ): DailyForecast {
+  // Daytime pool first (06:00-18:00 local): a night storm
+  // must not label a solar-planning day. Falls back to
+  // all slots when the day has no daytime coverage.
+  const daytime = slots.filter(
+    (slot) =>
+      slot.hour >= 6 && slot.hour <= 18,
+  );
+
+  const pool =
+    daytime.length > 0 ? daytime : slots;
+
   const peak =
-    peakOfDay(slots, (slot) => slot.hour) ??
+    peakOfDay(pool, (slot) => slot.hour) ??
     slots[0];
 
   // Stable OWM main group first (Clear/Clouds/Rain/...),
@@ -490,6 +510,34 @@ export async function getForecast(
       summarizeDay(date, daySlots)
     );
 
+  // Today's remaining range from OWM slots alone (live
+  // temp is folded in at display so the low can never sit
+  // above the current temp). Null when nothing remains.
+  const todaySlots =
+    groups.get(todayKey) ?? [];
+
+  const offsetC = getTempOffsetC();
+
+  const todayRange =
+    todaySlots.length > 0
+      ? {
+          tempMin: Math.round(
+            Math.min(
+              ...todaySlots.map(
+                (slot) => slot.tempMin + offsetC,
+              ),
+            ),
+          ),
+          tempMax: Math.round(
+            Math.max(
+              ...todaySlots.map(
+                (slot) => slot.tempMax + offsetC,
+              ),
+            ),
+          ),
+        }
+      : null;
+
   let bestSunDay: string | null = null;
   let bestScore = OUTLOOK_ORDER.Low;
 
@@ -519,5 +567,6 @@ export async function getForecast(
     bestSunDay,
     cityName,
     fetchedAt: new Date().toISOString(),
+    todayRange,
   };
 }

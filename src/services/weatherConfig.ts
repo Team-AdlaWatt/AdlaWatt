@@ -623,6 +623,7 @@ function classificationConfirmRange(): {
   min: number;
   max: number;
   drizzleMax: number;
+  confirmMinMm: number;
 } {
   const raw = (
     weatherJson as unknown as {
@@ -631,6 +632,7 @@ function classificationConfirmRange(): {
           min?: unknown;
           max?: unknown;
           drizzleMax?: unknown;
+          confirmMinMm?: unknown;
         };
       };
     }
@@ -645,10 +647,24 @@ function classificationConfirmRange(): {
       ? value
       : fallback;
 
+  const pickFloat = (
+    value: unknown,
+    fallback: number,
+  ): number =>
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    value >= 0
+      ? value
+      : fallback;
+
   return {
     min: pick(raw?.min, 300),
     max: pick(raw?.max, 531),
     drizzleMax: pick(raw?.drizzleMax, 321),
+    confirmMinMm: pickFloat(
+      raw?.confirmMinMm,
+      0.2,
+    ),
   };
 }
 
@@ -744,17 +760,18 @@ export function classifyTodayById(args: {
         ? (range.day as string)
         : (range.night as string);
 
-  // One safety rule: rain/drizzle ids with no measured
-  // amount (neither 1h nor 3h) soften to "possible".
-  // Thunderstorm ids sit outside the confirm range, so
-  // they are never softened.
+  // One safety rule: rain/drizzle ids with less than a
+  // measurable amount (< 0.2mm in either 1h or 3h) soften
+  // to "possible". Thunderstorm ids sit outside the
+  // confirm range, so they are never softened.
   const needsConfirm =
     args.id >= confirm.min && args.id <= confirm.max;
 
   const confirmed =
     args.rainMm !== null &&
     Number.isFinite(args.rainMm) &&
-    (args.rainMm as number) > 0;
+    (args.rainMm as number) >=
+      confirm.confirmMinMm;
 
   if (needsConfirm && !confirmed) {
     const possibleLabel =
