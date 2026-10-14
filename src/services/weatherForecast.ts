@@ -944,3 +944,105 @@ export async function getCurrentCoordinates(options?: {
 
   return getCoordinates(options);
 }
+
+// ============================================================
+// CITY TEST PATH (TEST ONLY — NOT WIRED TO UI)
+//
+// Parallel `q={city}` fetch to compare accuracy against the
+// GPS path above. The GPS flow is untouched and remains the
+// live path: nothing here is called by the app.
+// To undo: delete this block (and its forecast twin).
+// To promote: rewire callers to pass city, then delete GPS.
+// Uses a call-time API key (not the module const) so it can
+// run outside the dummy-key jest setup.
+// ============================================================
+
+export const TEST_CITY_QUERY =
+  "Manolo Fortich,PH";
+
+export async function getWeatherByCityTest(
+  query: string = TEST_CITY_QUERY,
+): Promise<WeatherData> {
+  const apiKey =
+    process.env.EXPO_PUBLIC_OWM_KEY;
+
+  if (
+    !apiKey ||
+    apiKey.trim().length === 0
+  ) {
+    throw new WeatherError(
+      "missing_key",
+      weatherJson.messages.errors.missing_key,
+    );
+  }
+
+  const params = new URLSearchParams({
+    q: query,
+    appid: apiKey,
+    units: UNITS,
+  });
+
+  const controller =
+    new AbortController();
+
+  const timeout = setTimeout(
+    () => controller.abort(),
+    REQUEST_TIMEOUT_MS,
+  );
+
+  try {
+    const response = await fetch(
+      `${CURRENT_WEATHER_URL}?${params.toString()}`,
+      {
+        signal: controller.signal,
+      },
+    );
+
+    if (!response.ok) {
+      throw new WeatherError(
+        "api",
+        formatApiError(response.status),
+      );
+    }
+
+    const raw = await response.json();
+
+    const parsed = parseWeatherResponse(
+      raw,
+      fallbackCoordinates(),
+    );
+
+    return typeof parsed.observedAt ===
+      "number"
+      ? parsed
+      : {
+          ...parsed,
+          observedAt: Date.now(),
+        };
+  } catch (error) {
+    if (error instanceof WeatherError) {
+      throw error;
+    }
+
+    if (
+      error instanceof Error &&
+      error.name === "AbortError"
+    ) {
+      throw new WeatherError(
+        "timeout",
+        formatTimeoutError(),
+      );
+    }
+
+    throw new WeatherError(
+      "network",
+      formatNetworkError(
+        error instanceof Error
+          ? error.message
+          : "Network error.",
+      ),
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+}
