@@ -355,9 +355,9 @@ describe("getWeather cache", () => {
 
     const live = await getWeather();
 
-    // 32.4 + 1 offset -> 33, 34.2 + 1 offset -> 35
-    expect(live.temperature).toBe(33);
-    expect(live.feelsLike).toBe(35);
+    // No calibration offset (tempOffsetC 0): 32.4 -> 32, 34.2 -> 34
+    expect(live.temperature).toBe(32);
+    expect(live.feelsLike).toBe(34);
     expect(live.conditionId).toBe(803);
     expect(live.iconCode).toBe("04d");
     expect(live.rainMm).toBeNull();

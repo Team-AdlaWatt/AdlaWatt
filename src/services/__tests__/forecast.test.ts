@@ -74,9 +74,9 @@ describe("getForecast upcoming days", () => {
 
     expect(result.cityName).toBe("Malaybalay");
 
-    // Calibration offset (+1 in weather.json) applied.
-    expect(result.upcoming[0].tempMax).toBe(32 + 1 + 1);
-    expect(result.upcoming[0].tempMin).toBe(28 + 1 + 1);
+    // No calibration offset (tempOffsetC 0 in weather.json).
+    expect(result.upcoming[0].tempMax).toBe(32 + 1);
+    expect(result.upcoming[0].tempMin).toBe(28 + 1);
   });
 
   test("prefers stable OWM main group over description keywords", async () => {

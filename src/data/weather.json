@@ -22,7 +22,7 @@
     "staleMinutes": 30
   },
   "calibration": {
-    "tempOffsetC": 1
+    "tempOffsetC": 0
   },
   "thresholds": {
     "hotC": 30,

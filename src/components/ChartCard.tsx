@@ -95,8 +95,8 @@ interface CardData {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value?: string;
-  // Secondary honest line ("Actual 33°C") shown when the
-  // primary value is feels-like. Separate from subtext so
+  // Secondary honest line ("Feels like 35°C") shown when the
+  // primary value is actual. Separate from subtext so
   // honesty notes are never overwritten.
   feelsLike?: string;
   badge?: string;
@@ -2034,7 +2034,7 @@ export default function ChartCard({
                         : styles.weatherForecastRowItemRainy,
                     ]}
                     accessibilityRole="none"
-                    accessibilityLabel={`${day.weekday} ${day.dateLabel}, ${day.peakDescription}, ${day.tempMax} degrees, low ${day.tempMin} degrees${rainPct > 0 ? `, rain ${rainPct} percent` : ""}, ${day.solarOutlook} sun${day.tempFlag ? `, ${day.tempFlag}` : ""}`}
+                    accessibilityLabel={`${day.weekday} ${day.dateLabel}, ${day.peakDescription}, ${day.tempMax} degrees, low ${day.tempMin} degrees${typeof day.feelsLikeMax === "number" && Number.isFinite(day.feelsLikeMax) ? `, feels like ${day.feelsLikeMax} degrees` : ""}${rainPct > 0 ? `, rain ${rainPct} percent` : ""}, ${day.solarOutlook} sun${day.tempFlag ? `, ${day.tempFlag}` : ""}`}
                   >
 
                     <View
@@ -2098,6 +2098,22 @@ export default function ChartCard({
                           {` / ${day.tempMin}°`}
                         </AppText>
                       </AppText>
+
+                      {typeof day.feelsLikeMax ===
+                        "number" &&
+                      Number.isFinite(
+                        day.feelsLikeMax,
+                      ) ? (
+                        <AppText
+                          variant="caption"
+                          numberOfLines={1}
+                          style={
+                            styles.weatherTodaySubtext
+                          }
+                        >
+                          {`Feels ${day.feelsLikeMax}°`}
+                        </AppText>
+                      ) : null}
 
                       {rainPct > 0 ? (
                         <View
@@ -2625,25 +2641,23 @@ function getCardData(
         typeof weather?.feelsLike === "number" &&
         Number.isFinite(weather.feelsLike);
 
-      // Primary is feels-like when available (matches local
-      // perception better); otherwise actual temperature.
+      // Primary is actual air temperature (thermometer truth);
+      // feels-like renders as the secondary line.
       const tempValue =
         loading
           ? "—"
-          : hasFeels
-            ? formatTemp(weather.feelsLike as number)
-            : hasTemp
-              ? formatTemp(
-                  (weather as { temperature: number })
-                    .temperature,
-                )
-              : "—";
+          : hasTemp
+            ? formatTemp(
+                (weather as { temperature: number })
+                  .temperature,
+              )
+            : "—";
 
       const actualValue =
         !loading && hasFeels && hasTemp
-          ? `Actual ${formatTemp(
-              (weather as { temperature: number })
-                .temperature,
+          ? `Feels like ${formatTemp(
+              (weather as { feelsLike: number })
+                .feelsLike,
             )}`
           : undefined;
 

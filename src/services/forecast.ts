@@ -37,6 +37,9 @@ export interface DailyForecast {
   dateLabel: string;
   tempMin: number;
   tempMax: number;
+  // Peak apparent temperature for the day (max slot
+  // feels_like + offset). Null when no slot carries it.
+  feelsLikeMax: number | null;
   peakDescription: string;
   peakIcon: string;
   peakSeverity: WeatherSeverity;
@@ -58,6 +61,9 @@ interface ForecastSlot {
   temp: number;
   tempMin: number;
   tempMax: number;
+  // Apparent temperature for this 3h slot. Null when OWM
+  // omits feels_like — the day still summarizes from temp.
+  feelsLike: number | null;
   humidity: number;
   description: string;
   mainGroup?: string;
@@ -72,6 +78,7 @@ interface ForecastApiEntry {
   dt_txt?: unknown;
   main?: {
     temp?: unknown;
+    feels_like?: unknown;
     temp_min?: unknown;
     temp_max?: unknown;
     humidity?: unknown;
@@ -277,6 +284,8 @@ function parseSlot(
       toNumber(entry.main?.temp_min) ?? temp,
     tempMax:
       toNumber(entry.main?.temp_max) ?? temp,
+    feelsLike:
+      toNumber(entry.main?.feels_like),
     humidity:
       toNumber(entry.main?.humidity) ?? 0,
     description: description.trim(),
@@ -361,6 +370,25 @@ function summarizeDay(
     ...slots.map((slot) => slot.tempMax + offsetC)
   );
 
+  const feelsValues = slots
+    .map((slot) => slot.feelsLike)
+    .filter(
+      (value): value is number =>
+        typeof value === "number" &&
+        Number.isFinite(value),
+    );
+
+  const feelsLikeMax =
+    feelsValues.length > 0
+      ? Math.round(
+          Math.max(
+            ...feelsValues.map(
+              (value) => value + offsetC,
+            ),
+          ),
+        )
+      : null;
+
   const thresholds = weatherJson.thresholds;
 
   const isHot = tempMax >= thresholds.hotC;
@@ -376,6 +404,7 @@ function summarizeDay(
     dateLabel: labels.date,
     tempMin: Math.round(tempMin),
     tempMax: Math.round(tempMax),
+    feelsLikeMax,
     peakDescription: peak.description,
     peakIcon: peakResolved.icon,
     peakSeverity: peakResolved.severity,
