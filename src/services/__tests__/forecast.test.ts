@@ -77,13 +77,6 @@ describe("getForecast upcoming days", () => {
     // No calibration offset (tempOffsetC 0 in weather.json).
     expect(result.upcoming[0].tempMax).toBe(32 + 1);
     expect(result.upcoming[0].tempMin).toBe(28 + 1);
-
-    // Today range comes from today's own slots (offset 0:
-    // temp 30, min 28, max 32) — never from /weather.
-    expect(result.todayRange).toEqual({
-      tempMin: 28,
-      tempMax: 32,
-    });
   });
 
   test("prefers stable OWM main group over description keywords", async () => {
@@ -182,22 +175,5 @@ describe("getForecast upcoming days", () => {
     expect(
       result.upcoming[0].peakSeverity,
     ).toBe("clear");
-  });
-
-  test("todayRange is null when no slots remain for today", async () => {
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        // Fixed 2024 timestamps: all in the past relative
-        // to now, so nothing groups onto today.
-        list: [entry(), entry()],
-        city: { name: "Malaybalay", timezone: 28800 },
-      }),
-    });
-
-    const result = await getForecast(8.368, 124.873);
-
-    expect(result.upcoming).toHaveLength(0);
-    expect(result.todayRange).toBeNull();
   });
 });

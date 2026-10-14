@@ -95,8 +95,8 @@ interface CardData {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value?: string;
-  // Secondary honest line ("Feels like 35°C") shown when the
-  // primary value is actual. Separate from subtext so
+  // Secondary honest line ("Actual 33°C") shown when the
+  // primary value is feels-like. Separate from subtext so
   // honesty notes are never overwritten.
   feelsLike?: string;
   badge?: string;
@@ -1649,44 +1649,6 @@ export default function ChartCard({
         styles,
       );
 
-    // Today H/L from OWM only: the live temp folded with
-    // today's remaining forecast slots, so the low can
-    // never sit above the current temp. Null while
-    // loading or when no slots remain for today (main
-    // falls back to the live temp alone, same as before).
-    const liveTemp =
-      weather &&
-      typeof weather.temperature === "number" &&
-      Number.isFinite(weather.temperature)
-        ? Math.round(weather.temperature)
-        : null;
-
-    const todaySlotRange =
-      forecast?.todayRange ?? null;
-
-    // Inline guards so TS narrows both values below.
-    const todayHiLo =
-      !loading &&
-      liveTemp !== null &&
-      todaySlotRange !== null &&
-      Number.isFinite(
-        todaySlotRange.tempMin,
-      ) &&
-      Number.isFinite(
-        todaySlotRange.tempMax,
-      )
-        ? {
-            hi: Math.max(
-              liveTemp,
-              todaySlotRange.tempMax,
-            ),
-            lo: Math.min(
-              liveTemp,
-              todaySlotRange.tempMin,
-            ),
-          }
-        : null;
-
     // Peak border + summary: High solar outlook => Peak,
     // anything else => rainy cell. Row content below is
     // real OWM daily data (condition, temps, rain chance).
@@ -1843,7 +1805,7 @@ export default function ChartCard({
                 ? "button"
                 : "none"
             }
-            accessibilityLabel={`Today, ${todayLabel.weekday} ${todayLabel.date}, ${todayBusy ? "updating weather" : `${todayHiLo ? `high ${todayHiLo.hi} degrees, low ${todayHiLo.lo} degrees` : weatherData.value}${weatherData.feelsLike ? `, ${weatherData.feelsLike}` : ""}, ${weatherData.badge ?? ""}${weatherData.subtext ? `, ${weatherData.subtext}` : ""}`}${canTapRefresh ? ", tap to refresh" : ""}`}
+            accessibilityLabel={`Today, ${todayLabel.weekday} ${todayLabel.date}, ${todayBusy ? "updating weather" : `${weatherData.value}${weatherData.feelsLike ? `, ${weatherData.feelsLike}` : ""}, ${weatherData.badge ?? ""}${weatherData.subtext ? `, ${weatherData.subtext}` : ""}`}${canTapRefresh ? ", tap to refresh" : ""}`}
             accessibilityState={
               canTapRefresh
                 ? {
@@ -1909,42 +1871,16 @@ export default function ChartCard({
               }
             >
 
-              {todayBusy ? (
-                <AppText
-                  variant="caption"
-                  style={
-                    styles.weatherTodayTemp
-                  }
-                >
-                  …
-                </AppText>
-              ) : todayHiLo ? (
-                <AppText
-                  variant="caption"
-                  style={
-                    styles.weatherForecastTemp
-                  }
-                >
-                  {`${todayHiLo.hi}°`}
-                  <AppText
-                    variant="caption"
-                    style={
-                      styles.weatherForecastTempMin
-                    }
-                  >
-                    {` / ${todayHiLo.lo}°`}
-                  </AppText>
-                </AppText>
-              ) : (
-                <AppText
-                  variant="caption"
-                  style={
-                    styles.weatherTodayTemp
-                  }
-                >
-                  {weatherData.value}
-                </AppText>
-              )}
+              <AppText
+                variant="caption"
+                style={
+                  styles.weatherTodayTemp
+                }
+              >
+                {todayBusy
+                  ? "…"
+                  : weatherData.value}
+              </AppText>
 
               {!todayBusy && weatherData.feelsLike ? (
                 <AppText
@@ -2689,23 +2625,25 @@ function getCardData(
         typeof weather?.feelsLike === "number" &&
         Number.isFinite(weather.feelsLike);
 
-      // Primary is actual air temperature (thermometer truth);
-      // feels-like renders as the secondary line.
+      // Primary is feels-like when available (matches local
+      // perception better); otherwise actual temperature.
       const tempValue =
         loading
           ? "—"
-          : hasTemp
-            ? formatTemp(
-                (weather as { temperature: number })
-                  .temperature,
-              )
-            : "—";
+          : hasFeels
+            ? formatTemp(weather.feelsLike as number)
+            : hasTemp
+              ? formatTemp(
+                  (weather as { temperature: number })
+                    .temperature,
+                )
+              : "—";
 
       const actualValue =
         !loading && hasFeels && hasTemp
-          ? `Feels like ${formatTemp(
-              (weather as { feelsLike: number })
-                .feelsLike,
+          ? `Actual ${formatTemp(
+              (weather as { temperature: number })
+                .temperature,
             )}`
           : undefined;
 
