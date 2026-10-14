@@ -432,17 +432,6 @@ export async function getForecast(
     lon
   );
 
-  return buildForecastResult(response);
-}
-
-// ============================================================
-// RESULT BUILDING (shared by the GPS path and the city test
-// path — pure grouping/summary over one response).
-// ============================================================
-
-function buildForecastResult(
-  response: ForecastApiResponse,
-): ForecastResult {
   if (!response || !Array.isArray(response.list)) {
     throw new WeatherError(
       "invalid_response",
@@ -580,94 +569,4 @@ function buildForecastResult(
     fetchedAt: new Date().toISOString(),
     todayRange,
   };
-}
-
-// ============================================================
-// CITY TEST PATH (TEST ONLY — NOT WIRED TO UI)
-//
-// Parallel `q={city}` fetch to compare accuracy against the
-// GPS path above. The GPS flow is untouched and remains the
-// live path: nothing here is called by the app.
-// To undo: delete this block (and its weather twin).
-// To promote: rewire callers to pass city, then delete GPS.
-// Uses a call-time API key (not a module const) so it can
-// run outside the dummy-key jest setup.
-// ============================================================
-
-export const TEST_CITY_QUERY =
-  "Manolo Fortich,PH";
-
-export async function getForecastByCityTest(
-  query: string = TEST_CITY_QUERY,
-): Promise<ForecastResult> {
-  const apiKey =
-    process.env.EXPO_PUBLIC_OWM_KEY;
-
-  if (
-    !apiKey ||
-    apiKey.trim().length === 0
-  ) {
-    throw new WeatherError(
-      "missing_key",
-      weatherJson.messages.errors.missing_key,
-    );
-  }
-
-  const params = new URLSearchParams({
-    q: query,
-    appid: apiKey,
-    units: weatherJson.api.units,
-  });
-
-  const controller =
-    new AbortController();
-
-  const timeout = setTimeout(
-    () => controller.abort(),
-    weatherJson.api.timeoutMs,
-  );
-
-  try {
-    const response = await fetch(
-      `${weatherJson.api.forecastUrl}?${params.toString()}`,
-      { signal: controller.signal },
-    );
-
-    if (!response.ok) {
-      throw new WeatherError(
-        "api",
-        formatApiError(response.status),
-      );
-    }
-
-    const payload =
-      (await response.json()) as ForecastApiResponse;
-
-    return buildForecastResult(payload);
-  } catch (error) {
-    if (error instanceof WeatherError) {
-      throw error;
-    }
-
-    if (
-      error instanceof Error &&
-      error.name === "AbortError"
-    ) {
-      throw new WeatherError(
-        "timeout",
-        formatTimeoutError(),
-      );
-    }
-
-    throw new WeatherError(
-      "network",
-      formatNetworkError(
-        error instanceof Error
-          ? error.message
-          : "Network error.",
-      ),
-    );
-  } finally {
-    clearTimeout(timeout);
-  }
 }
