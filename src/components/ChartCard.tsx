@@ -2034,7 +2034,7 @@ export default function ChartCard({
                         : styles.weatherForecastRowItemRainy,
                     ]}
                     accessibilityRole="none"
-                    accessibilityLabel={`${day.weekday} ${day.dateLabel}, ${day.peakDescription}, ${day.tempMax} degrees, low ${day.tempMin} degrees${typeof day.feelsLikeMax === "number" && Number.isFinite(day.feelsLikeMax) ? `, feels like ${day.feelsLikeMax} degrees` : ""}${rainPct > 0 ? `, rain ${rainPct} percent` : ""}, ${day.solarOutlook} sun${day.tempFlag ? `, ${day.tempFlag}` : ""}`}
+                    accessibilityLabel={`${day.weekday} ${day.dateLabel}, ${day.peakDescription}, ${day.tempMax} degrees, low ${day.tempMin} degrees${rainPct > 0 ? `, rain ${rainPct} percent` : ""}, ${day.solarOutlook} sun${day.tempFlag ? `, ${day.tempFlag}` : ""}`}
                   >
 
                     <View
@@ -2098,22 +2098,6 @@ export default function ChartCard({
                           {` / ${day.tempMin}°`}
                         </AppText>
                       </AppText>
-
-                      {typeof day.feelsLikeMax ===
-                        "number" &&
-                      Number.isFinite(
-                        day.feelsLikeMax,
-                      ) ? (
-                        <AppText
-                          variant="caption"
-                          numberOfLines={1}
-                          style={
-                            styles.weatherTodaySubtext
-                          }
-                        >
-                          {`Feels ${day.feelsLikeMax}°`}
-                        </AppText>
-                      ) : null}
 
                       {rainPct > 0 ? (
                         <View
