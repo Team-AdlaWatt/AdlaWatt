@@ -142,12 +142,15 @@ function validateApiKey(): void {
 }
 
 // ============================================================
-// LOCATION
+// LOCATION (AREA, NOT EXACT POINT)
 //
-// Denial resolves to the fixed household fallback cell
-// (Manolo Fortich) so the Today card always paints useful
-// sky instead of an error. Coordinates round to the
-// configured decimals: same OWM cell, less GPS drift noise.
+// Location answers "which area is the user in" — the
+// weather fetched is the area's, not the doorstep's, so a
+// user anywhere in Damilag gets Damilag data. Denial
+// resolves to the fixed household fallback cell (Damilag)
+// so the Today card always paints useful sky instead of an
+// error. Coordinates round to 2 decimals (~1.1 km cells):
+// every fix inside one area hits the same OWM cell.
 // ============================================================
 
 function roundCoord(value: number): number {
@@ -172,7 +175,7 @@ async function getCoordinates(options?: {
 
   if (status !== "granted") {
     console.warn(
-      "Location denied — using Manolo Fortich fallback.",
+      "Location denied — using Damilag fallback.",
     );
 
     return {
@@ -837,7 +840,7 @@ function debugTodayReading(
     lat: coordinates.lat,
     lon: coordinates.lon,
     gps: coordinates.isFallback
-      ? "fallback-Manolo-Fortich"
+      ? "fallback-Damilag"
       : "gps",
     name:
       typeof payload.name === "string"

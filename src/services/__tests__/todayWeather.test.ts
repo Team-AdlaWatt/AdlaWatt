@@ -131,7 +131,7 @@ describe("getWeather coordinates", () => {
     );
   };
 
-  test("reuses a recent fix, rounded to 3 decimals", async () => {
+  test("reuses a recent fix, rounded to 2 decimals (area cell)", async () => {
     grantLocation();
 
     mockLocation.getLastKnownPositionAsync.mockResolvedValue(
@@ -158,8 +158,52 @@ describe("getWeather coordinates", () => {
       mockFetch.mock.calls[0]?.[0] ?? "",
     );
 
-    expect(url).toContain("lat=8.368");
-    expect(url).toContain("lon=124.873");
+    expect(url).toContain("lat=8.37");
+    expect(url).toContain("lon=124.87");
+  });
+
+  test("nearby fixes share one area cell", async () => {
+    grantLocation();
+
+    // Two doorsteps ~500m apart in Damilag round to the
+    // same 2-decimal cell: area data, not exact-point data.
+    mockLocation.getLastKnownPositionAsync.mockResolvedValue(
+      {
+        coords: {
+          latitude: 8.3644,
+          longitude: 124.8519,
+        },
+      },
+    );
+
+    mockLocation.getCurrentPositionAsync.mockResolvedValue(
+      {
+        coords: {
+          latitude: 8.3601,
+          longitude: 124.8501,
+        },
+      },
+    );
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => owmOk(),
+    });
+
+    await getWeather();
+    await getWeather({ fresh: true });
+
+    const firstUrl = String(
+      mockFetch.mock.calls[0]?.[0] ?? "",
+    );
+    const secondUrl = String(
+      mockFetch.mock.calls[1]?.[0] ?? "",
+    );
+
+    for (const url of [firstUrl, secondUrl]) {
+      expect(url).toContain("lat=8.36");
+      expect(url).toContain("lon=124.85");
+    }
   });
 
   test("fresh option skips the last-known reuse", async () => {
@@ -267,7 +311,7 @@ describe("getWeather coordinates", () => {
     expect(data.city).toBe("Malaybalay");
   });
 
-  test("denial resolves to the Manolo Fortich fallback", async () => {
+  test("denial resolves to the Damilag fallback", async () => {
     mockLocation.requestForegroundPermissionsAsync.mockResolvedValue(
       { status: "denied" },
     );
@@ -287,8 +331,8 @@ describe("getWeather coordinates", () => {
       mockFetch.mock.calls[0]?.[0] ?? "",
     );
 
-    expect(url).toContain("lat=8.37");
-    expect(url).toContain("lon=124.87");
+    expect(url).toContain("lat=8.3644");
+    expect(url).toContain("lon=124.8519");
     expect(data.isFallback).toBe(true);
   });
 

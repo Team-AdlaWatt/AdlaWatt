@@ -12,10 +12,10 @@
     "forecastRefreshMs": 10800000
   },
   "location": {
-    "fallbackLat": 8.37,
-    "fallbackLon": 124.87,
-    "fallbackLabel": "Manolo Fortich",
-    "coordDecimals": 3,
+    "fallbackLat": 8.3644,
+    "fallbackLon": 124.8519,
+    "fallbackLabel": "Damilag, Manolo Fortich",
+    "coordDecimals": 2,
     "lastKnownMaxAgeMs": 120000
   },
   "cache": {
