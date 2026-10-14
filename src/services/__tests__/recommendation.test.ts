@@ -33,6 +33,9 @@ const healthyBattery: BatteryStateInput =
     voltage: 12.6,
     remainingWh: 600,
     dod: "Safe",
+    // Fresh reading: the fail-safe blocks missing/stale
+    // data, so every non-blocking case needs a timestamp.
+    lastUpdated: Date.now(),
   };
 
 describe("classifyBatteryState", () => {
@@ -55,6 +58,7 @@ describe("classifyBatteryState", () => {
       voltage: 12.0,
       remainingWh: 200,
       dod: "Safe",
+      lastUpdated: Date.now(),
     });
 
     expect(result.tier).toBe("Unsafe");
@@ -70,6 +74,7 @@ describe("classifyBatteryState", () => {
       voltage: 12.0,
       remainingWh: 300,
       dod: "Safe",
+      lastUpdated: Date.now(),
     });
 
     expect(result.tier).toBe("Caution");
@@ -82,6 +87,7 @@ describe("classifyBatteryState", () => {
       voltage: 12.0,
       remainingWh: RESERVE_WH,
       dod: "Safe",
+      lastUpdated: Date.now(),
     });
 
     expect(result.tier).toBe("Caution");
@@ -96,6 +102,7 @@ describe("classifyBatteryState", () => {
       voltage: 12.0,
       remainingWh: RESERVE_WH - 1,
       dod: "Safe",
+      lastUpdated: Date.now(),
     });
 
     expect(result.tier).toBe("Unsafe");
@@ -137,6 +144,7 @@ describe("classifyBatteryState", () => {
       voltage: 9.0,
       remainingWh: 10,
       dod: "Unsafe",
+      lastUpdated: Date.now(),
     });
 
     expect(result.reasons.length).toBeGreaterThanOrEqual(
@@ -147,6 +155,27 @@ describe("classifyBatteryState", () => {
   test("respects nominal capacity constant", () => {
     expect(BATTERY_NOMINAL_WH).toBe(720);
     expect(RESERVE_WH).toBe(144);
+  });
+
+  test("missing reading fails safe to Unsafe blocked", () => {
+    const result = classifyBatteryState({
+      ...healthyBattery,
+      lastUpdated: null,
+    });
+
+    expect(result.tier).toBe("Unsafe");
+    expect(result.usableWh).toBe(0);
+    expect(result.blocked).toBe(true);
+  });
+
+  test("stale reading fails safe to Unsafe blocked", () => {
+    const result = classifyBatteryState({
+      ...healthyBattery,
+      lastUpdated: Date.now() - 10 * 60 * 1000,
+    });
+
+    expect(result.tier).toBe("Unsafe");
+    expect(result.blocked).toBe(true);
   });
 });
 
@@ -351,6 +380,7 @@ describe("recommendAppliance", () => {
         voltage: 11.0,
         remainingWh: 100,
         dod: "Unsafe",
+        lastUpdated: Date.now(),
       },
       {
         id: "bulb",
@@ -372,6 +402,7 @@ describe("recommendAppliance", () => {
         voltage: 12.0,
         remainingWh: 300,
         dod: "Safe",
+        lastUpdated: Date.now(),
       },
       {
         id: "bulb",
@@ -394,6 +425,7 @@ describe("recommendAppliance", () => {
         voltage: 12.4,
         remainingWh: 300,
         dod: "Safe",
+        lastUpdated: Date.now(),
       },
       {
         id: "machine",
@@ -434,13 +466,14 @@ describe("recommendAppliance", () => {
       },
     );
 
-    // usableWh 456: 456/80=5.7 min, 456/30=15.2 max.
+    // usableWh 456, inverter efficiency 0.9 -> effective 410.4:
+    // 410.4/80=5.13 min, 410.4/30=13.68 max.
     expect(
       result.runtime.minHours,
-    ).toBeCloseTo(5.7, 1);
+    ).toBeCloseTo(5.13, 1);
     expect(
       result.runtime.maxHours,
-    ).toBeCloseTo(15.2, 1);
+    ).toBeCloseTo(13.68, 1);
     expect(result.displayRuntime).toMatch(
       /hrs/,
     );
