@@ -41,6 +41,7 @@ import {
   REPORT_FREQUENCIES,
   ReportFrequency,
   ReportType,
+  createPresetRange,
   downloadCsvOnWeb,
   downloadPdfOnWeb,
   generateAdlaWattCsv,
@@ -879,6 +880,32 @@ export default function AnalyticsScreen() {
       [],
     );
 
+  /*
+   * Quick range preset (7D/30D/90D/1Y). Presets never exceed
+   * today, matching the custom pickers so the query window and
+   * the displayed range stay consistent.
+   */
+  const handlePresetSelect =
+    useCallback(
+      (days: number) => {
+        const today =
+          new Date();
+
+        const preset =
+          createPresetRange(days);
+
+        setRange({
+          start: preset.start,
+          end:
+            preset.end.getTime() >
+            today.getTime()
+              ? today
+              : preset.end,
+        });
+      },
+      [],
+    );
+
   return (
     <ScreenContainer2>
       {/* Fixed Navbar */}
@@ -1260,6 +1287,9 @@ export default function AnalyticsScreen() {
             range={range}
             onFromDateChange={setFromDate}
             onToDateChange={setToDate}
+            onPresetSelect={
+              handlePresetSelect
+            }
             generateReport={generateReport}
             exporting={isExporting}
           />

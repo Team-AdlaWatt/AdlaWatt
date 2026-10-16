@@ -17,6 +17,7 @@ import {
   type AppColors,
 } from "@/hooks/useAppColors";
 import {
+  ANALYTICS_PRESETS,
   AnalyticsRange,
   ReportFrequency,
   ReportType,
@@ -118,6 +119,7 @@ export interface AnalyticsCardsProps {
   range: AnalyticsRange;
   onFromDateChange: (date: Date) => void;
   onToDateChange: (date: Date) => void;
+  onPresetSelect?: (days: number) => void;
   generateReport: (
     reportType: ReportType,
   ) => Promise<void>;
@@ -134,6 +136,7 @@ export default function AnalyticsCards({
   range,
   onFromDateChange,
   onToDateChange,
+  onPresetSelect,
   generateReport,
   exporting = false,
 }: AnalyticsCardsProps) {
@@ -194,6 +197,37 @@ export default function AnalyticsCards({
             Choose a frequency and pick a custom from/to date range
             for the report export.
           </AppText>
+
+          {onPresetSelect ? (
+            <View style={styles.presetRow}>
+              {ANALYTICS_PRESETS.map(
+                (preset) => (
+                  <Pressable
+                    key={preset.days}
+                    style={({ pressed }) => [
+                      styles.presetChip,
+                      pressed &&
+                        styles.buttonPressed,
+                    ]}
+                    onPress={() =>
+                      onPresetSelect(
+                        preset.days,
+                      )
+                    }
+                  >
+                    <AppText
+                      variant="caption"
+                      style={
+                        styles.presetChipText
+                      }
+                    >
+                      {preset.label}
+                    </AppText>
+                  </Pressable>
+                ),
+              )}
+            </View>
+          ) : null}
 
           <View
             style={
@@ -416,6 +450,29 @@ export const analyticsDimensions = {
       width: "100%",
       marginTop: 14,
       gap: 10,
+    },
+
+    presetRow: {
+      width: "100%",
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      marginTop: 12,
+    },
+
+    presetChip: {
+      minHeight: 34,
+      paddingHorizontal: 14,
+      borderRadius: 999,
+      borderWidth: 2,
+      borderColor: colors.primary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    presetChipText: {
+      color: colors.primary,
+      fontWeight: "700",
     },
 
     reportControl: {

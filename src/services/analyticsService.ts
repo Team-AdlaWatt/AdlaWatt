@@ -200,7 +200,29 @@ export interface AnalyticsReportData {
    CONSTANTS
    ============================================================ */
 
-export const DEFAULT_DAYS = 366;
+/*
+ * Default analytics window. Kept intentionally short: every
+ * chart card and the CSV/PDF export derive from the same
+ * in-memory row array, and a full year of 5-minute samples
+ * (~100k rows) is what greyscreens low-memory Android devices
+ * and OOMs the export string. The longer windows stay available
+ * through the preset chips instead of being the default.
+ */
+export const DEFAULT_DAYS = 30;
+
+/*
+ * Quick range presets shown above the report date pickers. The
+ * last entry restores the old full-year view on demand.
+ */
+export const ANALYTICS_PRESETS: {
+  label: string;
+  days: number;
+}[] = [
+  { label: "7D", days: 7 },
+  { label: "30D", days: 30 },
+  { label: "90D", days: 90 },
+  { label: "1Y", days: 365 },
+];
 
 // PostgREST caps a single response (default 1000 rows), so
 // long history ranges must be walked page by page.
