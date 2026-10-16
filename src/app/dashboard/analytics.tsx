@@ -3,9 +3,6 @@ import AnalyticsCards, {
   type ReportExportResult,
   type ReportExportStatus,
 } from "@/components/AnalyticsCard";
-import ReportViewerModal, {
-  type ViewedReport,
-} from "@/components/ui/ReportViewerModal";
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
 import ScreenContainer2 from "@/components/layout/ScreenContainer2";
@@ -207,19 +204,6 @@ export default function AnalyticsScreen() {
   const [
     exportSheetVisible,
     setExportSheetVisible,
-  ] = useState(false);
-
-  // CSV preview behind the in-app viewer. Split from the
-  // visibility flag (same as the saved sheet) so the text is
-  // still there while the viewer slides away.
-  const [
-    viewerReport,
-    setViewerReport,
-  ] = useState<ViewedReport | null>(null);
-
-  const [
-    viewerVisible,
-    setViewerVisible,
   ] = useState(false);
 
   const [
@@ -764,38 +748,34 @@ export default function AnalyticsScreen() {
      REPORT
      ========================================================== */
 
-  // Opens a built report without any share sheet: the PDF goes
-  // to the system document preview, the CSV is read back and
-  // shown in the in-app viewer. Used by both the post-export
-  // panel and the declined folder-grant path so every export
-  // ends in a direct open.
+  // Opens a built report in an external app — never in AdlaWatt
+  // and never through a share sheet. Used by both the post-export
+  // panel and the declined folder-grant path so every export ends
+  // in an external handoff.
+  //
+  // Android imports reportOpen lazily so expo-intent-launcher is
+  // only ever evaluated there; iOS has no ACTION_VIEW and keeps
+  // the system preview path.
   const openReportDirectly = useCallback(
     async (file: ReportFile) => {
-      const {
-        openReportPdfFile,
-        readReportFileText,
-      } = await import(
-        "@/services/reportPrint"
-      );
+      if (Platform.OS === "android") {
+        const {
+          openReportWithSystemApp,
+        } = await import(
+          "@/services/reportOpen"
+        );
 
-      if (
-        file.mimeType ===
-        "application/pdf"
-      ) {
-        await openReportPdfFile(file);
+        await openReportWithSystemApp(file);
 
         return;
       }
 
-      setViewerReport({
-        filename: file.filename,
-        content:
-          await readReportFileText(
-            file,
-          ),
-      });
+      const { openReportPdfFile } =
+        await import(
+          "@/services/reportPrint"
+        );
 
-      setViewerVisible(true);
+      await openReportPdfFile(file);
     },
     [],
   );
@@ -1576,20 +1556,6 @@ export default function AnalyticsScreen() {
         <Copyright />
       </PullRefreshScroll>
       </ScrollVisibilityProvider>
-
-      {/* ========================================================
-          REPORT VIEWER
-          In-app reading surface for CSV exports. Full-screen
-          because the report is the content; no share sheet or
-          external app is ever launched.
-      ======================================================== */}
-      <ReportViewerModal
-        visible={viewerVisible}
-        result={viewerReport}
-        onClose={() =>
-          setViewerVisible(false)
-        }
-      />
 
       {/* ========================================================
           REPORT FREQUENCY MODAL

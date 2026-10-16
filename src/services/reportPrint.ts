@@ -1,11 +1,13 @@
 // ============================================================
 // ADLAWATT NATIVE REPORT EXPORT (expo-print HTML + direct open)
 //
-// Builds the local report file and opens it with no share sheet
-// involved: the PDF goes to the system document preview, the CSV
-// is read back as text for the in-app viewer. Saving into the
-// public Download folder is a separate step (see reportStorage.ts)
-// so this module stays a pure renderer.
+// Builds the local report file and hands it off for opening.
+// AdlaWatt never renders the PDF or the CSV itself: on Android
+// the built file goes to an external app through ACTION_VIEW
+// (see reportOpen.ts), and iOS falls back to the system document
+// preview. No share sheet is involved at any point. Saving into
+// the public Download folder is a separate step (see
+// reportStorage.ts) so this module stays a pure renderer.
 //
 // Real-file export for Android/iOS. The web path keeps using
 // the jsPDF template in analyticsService.ts; native renders a
@@ -327,32 +329,18 @@ export interface ReportFile {
 // ============================================================
 
 /**
- * Opens the built PDF in the system document preview.
+ * Opens a built report in the platform's own viewer.
  *
- * expo-print hands the local file straight to Android's built-in
- * viewer, which renders the PDF full-screen (and doubles as the
- * print dialog). Nothing is handed to a share chooser, so the
- * report is shown directly.
+ * This is the non-Android fallback only. Android never uses it:
+ * there the report is handed to an external app through
+ * ACTION_VIEW (see reportOpen.ts) so AdlaWatt does not render it.
  *
- * @param file Local `file://` PDF built by buildReportPdfFile.
+ * @param file Local `file://` report built by buildReportPdfFile.
  */
 export const openReportPdfFile = async (
   file: ReportFile,
 ): Promise<void> => {
   await Print.printAsync({ uri: file.uri });
-};
-
-/**
- * Reads the built report back as text so the in-app viewer can
- * display it. The cache copy is the exact file the writer
- * produced, so the text matches the exported bytes.
- *
- * @param file Local `file://` file built by buildReportCsvFile.
- */
-export const readReportFileText = async (
-  file: ReportFile,
-): Promise<string> => {
-  return new File(file.uri).text();
 };
 
 // ============================================================

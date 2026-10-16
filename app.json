@@ -67,7 +67,7 @@
         "expo-notifications",
         {
           "color": "#00A86B",
-          "defaultChannel": "adlawatt-reminders"
+          "defaultChannel": "adlawatt-alerts"
         }
       ],
       "expo-sharing",

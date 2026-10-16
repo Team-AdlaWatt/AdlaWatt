@@ -11,6 +11,10 @@ import {
   setSentryUser,
 } from "@/services/sentry";
 
+import {
+  registerForPushNotificationsAsync,
+} from "@/services/pushNotifications";
+
 // Side effect: boots i18next (default English paints
 // instantly; the saved language applies when loaded).
 import "@/services/i18n";
@@ -86,6 +90,26 @@ function CrashFallback() {
   );
 }
 
+// Registers this install for remote push once a user session
+// exists. Same shape as SentryUserSync: it only calls a service
+// (no React state), so it cannot cascade renders. Failures are
+// absorbed inside the service, so a device without Play services
+// or a refused permission never blocks startup.
+function PushRegistrationSync() {
+  const { user } = useAuth();
+  const userId = user?.id ?? null;
+
+  useEffect(() => {
+    if (!userId) {
+      return;
+    }
+
+    void registerForPushNotificationsAsync();
+  }, [userId]);
+
+  return null;
+}
+
 // ============================================================
 // ROOT LAYOUT
 // ============================================================
@@ -104,6 +128,7 @@ function RootLayout() {
     <SafeAreaProvider>
       <AuthProvider>
         <SentryUserSync />
+        <PushRegistrationSync />
 
         <Sentry.ErrorBoundary fallback={<CrashFallback />}>
           <Slot />
