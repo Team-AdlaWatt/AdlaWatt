@@ -26,6 +26,7 @@
         "foregroundImage": "./assets/images/adlawatt-icon.png"
       },
       "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "resize",
       "package": "com.teamadlawatt.adlawatt",
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",

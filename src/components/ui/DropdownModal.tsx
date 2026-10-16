@@ -3,8 +3,11 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { ReactNode, useMemo } from "react";
 
 import {
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
 } from "react-native";
@@ -60,56 +63,82 @@ export function DropdownModal({
         showCloseButton ? onClose : () => {}
       }
     >
-      <Pressable
-        style={dropdownModalStyles.overlay}
-        onPress={
-          dismissOnOverlayPress
-            ? onClose
-            : undefined
+      <KeyboardAvoidingView
+        style={dropdownModalStyles.keyboardWrap}
+        behavior={
+          Platform.OS === "ios"
+            ? "padding"
+            : "height"
         }
       >
         <Pressable
-          style={dropdownModalStyles.card}
-          // Swallow card taps so the overlay close doesn't fire.
-          // stopPropagation keeps web from delivering the same
-          // touch to both responders (orphan touchend noise).
-          onPress={(event) => {
-            (
-              event as unknown as {
-                stopPropagation?: () => void;
-              }
-            )?.stopPropagation?.();
-          }}
+          style={dropdownModalStyles.overlay}
+          onPress={
+            dismissOnOverlayPress
+              ? onClose
+              : undefined
+          }
         >
-          <View
-            style={dropdownModalStyles.header}
+          <Pressable
+            style={dropdownModalStyles.card}
+            // Swallow card taps so the overlay close doesn't fire.
+            // stopPropagation keeps web from delivering the same
+            // touch to both responders (orphan touchend noise).
+            onPress={(event) => {
+              (
+                event as unknown as {
+                  stopPropagation?: () => void;
+                }
+              )?.stopPropagation?.();
+            }}
           >
-            <AppText
-              variant="body"
-              style={dropdownModalStyles.title}
+            <View
+              style={dropdownModalStyles.header}
             >
-              {title}
-            </AppText>
-
-            {showCloseButton && (
-              <Pressable
-                onPress={onClose}
-                style={dropdownModalStyles.closeButton}
-                accessibilityRole="button"
-                accessibilityLabel={t("shared.close")}
+              <AppText
+                variant="body"
+                style={dropdownModalStyles.title}
               >
-                <Ionicons
-                  name="close-outline"
-                  size={22}
-                  color={colors.text}
-                />
-              </Pressable>
-            )}
-          </View>
+                {title}
+              </AppText>
 
-          {children}
+              {showCloseButton && (
+                <Pressable
+                  onPress={onClose}
+                  style={dropdownModalStyles.closeButton}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("shared.close")}
+                >
+                  <Ionicons
+                    name="close-outline"
+                    size={22}
+                    color={colors.text}
+                  />
+                </Pressable>
+              )}
+            </View>
+
+            {/*
+              Scrollable body so modals with text fields (e.g.
+              the custom appliance form) can keep the focused
+              input above the keyboard instead of hidden behind
+              it. keyboardShouldPersistTaps lets the confirm
+              button fire on the first tap while the keyboard is
+              still open.
+            */}
+            <ScrollView
+              style={dropdownModalStyles.body}
+              contentContainerStyle={
+                dropdownModalStyles.bodyContent
+              }
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+            >
+              {children}
+            </ScrollView>
+          </Pressable>
         </Pressable>
-      </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -269,6 +298,10 @@ export function TintedOptionRow({
 
 const getDropdownModalStyles = (colors: AppColors) =>
   StyleSheet.create({
+    keyboardWrap: {
+      flex: 1,
+    },
+
     overlay: {
       flex: 1,
       backgroundColor: colors.overlay,
@@ -280,11 +313,23 @@ const getDropdownModalStyles = (colors: AppColors) =>
     card: {
       width: "100%",
       maxWidth: 420,
+      maxHeight: "100%",
       backgroundColor: colors.elevated,
       borderWidth: 1,
       borderColor: colors.border,
       borderRadius: MODAL_RADIUS,
       padding: 17,
+    },
+
+    body: {
+      // Shrink (instead of overflowing) once the card hits its
+      // max height, so the body scrolls and the keyboard-aware
+      // layout can keep the focused field visible.
+      flexShrink: 1,
+    },
+
+    bodyContent: {
+      paddingBottom: 2,
     },
 
     header: {
