@@ -50,5 +50,12 @@ web.log
 wizard.log
 src/services/sentry.ts.bak.*
 
+# Firebase secrets — NEVER commit service-account keys.
+# google-services.json is intentionally NOT ignored: EAS reads
+# it from git at build time.
+*-firebase-adminsdk-*.json
+firebase-service-account*.json
+service-account*.json
+
 # supabase CLI local cache (machine-specific, regenerated)
 supabase/.temp/

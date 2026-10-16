@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "442912438137",
+    "project_id": "adlawatt-4034a",
+    "storage_bucket": "adlawatt-4034a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:442912438137:android:e5308646ba28c41fcce1a8",
+        "android_client_info": {
+          "package_name": "com.teamadlawatt.adlawatt"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCzncW_wMF3uI1NCOAi9YJ6a3q_COVcYYY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

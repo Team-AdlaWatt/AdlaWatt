@@ -23,6 +23,7 @@
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/adlawatt-icon.png"
       },
+      "googleServicesFile": "./google-services.json",
       "predictiveBackGestureEnabled": false,
       "softwareKeyboardLayoutMode": "resize",
       "package": "com.teamadlawatt.adlawatt",
@@ -60,6 +61,13 @@
       ],
       "expo-web-browser",
       "expo-localization",
+      [
+        "expo-notifications",
+        {
+          "color": "#00A86B",
+          "defaultChannel": "adlawatt-reminders"
+        }
+      ],
       "expo-sharing",
       "expo-asset",
       "expo-font",
