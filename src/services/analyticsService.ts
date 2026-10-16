@@ -170,14 +170,18 @@ export interface ReportMonitoringRow {
   totalEnergy: string;
   currentLoad: string;
   deviceStatus: string;
+  lastSeen: string;
   batteryTemperature: string;
   batteryTemperatureStatus: string;
   solarTemperature: string;
   solarTemperatureStatus: string;
+  interiorTemp: string;
   voltage: string;
   wattHours: string;
   energyInputWh: string;
   energyOutputWh: string;
+  cumulativeEnergyInputWh: string;
+  cumulativeEnergyOutputWh: string;
 }
 
 export interface AnalyticsReportData {
@@ -802,6 +806,12 @@ export function formatMonitoringReportRows(
         row.device_status ??
         "Unknown",
 
+      lastSeen: row.last_seen
+        ? formatReportDateTime(
+            new Date(row.last_seen),
+          )
+        : "N/A",
+
       batteryTemperature:
         formatNumber(
           toNumber(
@@ -823,6 +833,13 @@ export function formatMonitoringReportRows(
       solarTemperatureStatus:
         row.solar_temperature_status ??
         "Unknown",
+
+      interiorTemp:
+        formatNumber(
+          toNumber(
+            row.interior_temp,
+          ),
+        ),
 
       voltage:
         formatNumber(
@@ -860,6 +877,26 @@ export function formatMonitoringReportRows(
             0,
             toNumber(
               row.energy_output_wh,
+            ),
+          ),
+        ),
+
+      cumulativeEnergyInputWh:
+        formatNumber(
+          Math.max(
+            0,
+            toNumber(
+              row.cumulative_energy_input_wh,
+            ),
+          ),
+        ),
+
+      cumulativeEnergyOutputWh:
+        formatNumber(
+          Math.max(
+            0,
+            toNumber(
+              row.cumulative_energy_output_wh,
             ),
           ),
         ),
@@ -3095,40 +3132,139 @@ export function generateAdlaWattCsv(
     ],
   ];
 
+  const kpiHeaders = [
+    "KPI",
+    "Value",
+    "Unit",
+    "Note",
+  ];
+
+  const kpiRows = reportData.kpis.map(
+    (entry) => [
+      entry.label,
+      entry.value,
+      entry.unit ?? "",
+      entry.hint ?? "",
+    ],
+  );
+
+  const periodHeaders = [
+    "Period",
+    "Samples",
+    "Avg Battery %",
+    "Min Battery %",
+    "Max Battery %",
+    "Avg Solar W",
+    "Max Solar W",
+    "Energy In Wh",
+    "Energy Out Wh",
+    "Net Energy Wh",
+    "Running Balance Wh",
+    "Solar Coverage %",
+    "Avg Load W",
+    "Peak Load W",
+    "Uptime %",
+    "Unsafe Samples",
+    "Temp Alerts",
+    "Sun Hours",
+    "Avg Battery C",
+    "Avg Solar C",
+  ];
+
+  const periodRows = reportData.periods.map(
+    (period) => [
+      period.periodLabel,
+      period.sampleCount,
+      formatNumber(period.avgBatteryLevel),
+      formatNumber(period.minBatteryLevel),
+      formatNumber(period.maxBatteryLevel),
+      formatNumber(period.avgSolarInput),
+      formatNumber(period.maxSolarInput),
+      formatNumber(period.energyInputWh),
+      formatNumber(period.energyOutputWh),
+      formatNumber(period.netEnergyWh),
+      formatNumber(
+        period.runningBalanceWh,
+      ),
+      formatNumber(
+        period.solarCoveragePct,
+      ),
+      formatNumber(period.avgLoadW),
+      formatNumber(period.peakLoadW),
+      formatNumber(period.uptimePct),
+      period.unsafeSampleCount,
+      period.temperatureAlertCount,
+      formatNumber(period.sunHours),
+      formatNumber(
+        period.avgBatteryTemperature,
+      ),
+      formatNumber(
+        period.avgSolarTemperature,
+      ),
+    ],
+  );
+
+  /*
+   * Full-parity monitoring columns: every meaningful
+   * monitoring_history field, not just the subset the PDF table
+   * shows. This is the dataset users analyse in a spreadsheet.
+   */
   const monitoringHeaders = [
     "Recorded At",
     "Battery %",
     "Battery",
+    "Time Remaining",
     "Solar W",
-    "Load W",
-    "Device",
-    "Battery C",
-    "Solar C",
+    "Solar Status",
     "Sol Timer",
     "Sol V",
     "Sol A",
     "Total Wh",
+    "Load W",
+    "Device",
+    "Last Seen",
+    "Battery C",
+    "Battery Temp Status",
+    "Solar C",
+    "Solar Temp Status",
+    "Interior C",
+    "Voltage",
+    "Watt Hours",
+    "Energy In Wh",
+    "Energy Out Wh",
+    "Cumulative In Wh",
+    "Cumulative Out Wh",
   ];
 
   const monitoringCsvRows =
     reportData.monitoringRows
       .slice(0, CSV_MAX_ROWS)
-      .map(
-        (row) => [
-          row.recordedAt,
-          row.batteryLevel,
-          row.batteryStatus,
-          row.solarInput,
-          row.currentLoad,
-          row.deviceStatus,
-          row.batteryTemperature,
-          row.solarTemperature,
-          row.solarTimer,
-          row.solarVoltage,
-          row.solarCurrent,
-          row.totalEnergy,
-        ],
-      );
+      .map((row) => [
+        row.recordedAt,
+        row.batteryLevel,
+        row.batteryStatus,
+        row.timeRemaining,
+        row.solarInput,
+        row.solarStatus,
+        row.solarTimer,
+        row.solarVoltage,
+        row.solarCurrent,
+        row.totalEnergy,
+        row.currentLoad,
+        row.deviceStatus,
+        row.lastSeen,
+        row.batteryTemperature,
+        row.batteryTemperatureStatus,
+        row.solarTemperature,
+        row.solarTemperatureStatus,
+        row.interiorTemp,
+        row.voltage,
+        row.wattHours,
+        row.energyInputWh,
+        row.energyOutputWh,
+        row.cumulativeEnergyInputWh,
+        row.cumulativeEnergyOutputWh,
+      ]);
 
   const totalMonitoringRows =
     reportData.monitoringRows.length;
@@ -3138,64 +3274,73 @@ export function generateAdlaWattCsv(
     CSV_MAX_ROWS;
 
   /*
-   * Every row is padded to a single uniform column count so the
-   * CSV opens as one clean, aligned grid in spreadsheet apps.
+   * Each block is padded to its OWN column count (not one global
+   * width) so a 2-column summary and a 24-column history can
+   * coexist as clean aligned grids without trailing-comma bloat.
    */
-  const uniformColumnCount =
-    monitoringHeaders.length;
+  const renderBlock = (
+    rows: (string | number)[][],
+    width: number,
+  ): string =>
+    rows
+      .map((row) => {
+        const padded = [...row];
 
-  const padCsvRow = (
-    row: (string | number)[],
-  ): (string | number)[] => {
-    const padded =
-      [...row];
+        while (
+          padded.length < width
+        ) {
+          padded.push("");
+        }
 
-    while (
-      padded.length <
-      uniformColumnCount
-    ) {
-      padded.push("");
-    }
+        return padded
+          .map(escapeCsvValue)
+          .join(",");
+      })
+      .join("\n");
 
-    return padded;
-  };
-
-  const sections: (string | number)[][] = [];
-
-  sections.push(
-    [
-      reportData.reportTitle,
-    ],
-    [
-      reportData.reportSubtitle,
-    ],
-    [],
-    summaryHeaders,
-    ...summaryRows,
-    [],
-    [
-      "MONITORING HISTORY",
-    ],
-    monitoringHeaders,
-    ...monitoringCsvRows,
-    ...(monitoringTruncated
-      ? [
-          [
-            `Showing first ${CSV_MAX_ROWS} of ${totalMonitoringRows} records — narrow the date range for the complete dataset.`,
-          ],
-        ]
-      : []),
-  );
-
-  return sections
-    .map((row) =>
-      padCsvRow(row)
-        .map(
-          escapeCsvValue,
-        )
-        .join(","),
-    )
-    .join("\n");
+  return [
+    renderBlock(
+      [
+        [reportData.reportTitle],
+        [reportData.reportSubtitle],
+        [],
+        summaryHeaders,
+        ...summaryRows,
+      ],
+      summaryHeaders.length,
+    ),
+    renderBlock(
+      [
+        ["DERIVED ANALYTICS KPIs"],
+        kpiHeaders,
+        ...kpiRows,
+      ],
+      kpiHeaders.length,
+    ),
+    renderBlock(
+      [
+        ["AGGREGATED PERIODS"],
+        periodHeaders,
+        ...periodRows,
+      ],
+      periodHeaders.length,
+    ),
+    renderBlock(
+      [
+        ["MONITORING HISTORY"],
+        monitoringHeaders,
+        ...monitoringCsvRows,
+        ...(monitoringTruncated
+          ? [
+              [
+                `Showing first ${CSV_MAX_ROWS} of ${totalMonitoringRows} records — narrow the date range for the complete dataset.`,
+              ],
+            ]
+          : []),
+      ],
+      monitoringHeaders.length,
+    ),
+  ].join("\n\n");
 }
 
 /* ============================================================

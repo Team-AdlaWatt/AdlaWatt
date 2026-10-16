@@ -10,6 +10,7 @@
 import {
   buildReportKpis,
   buildReportPeriods,
+  generateAdlaWattCsv,
   getOnlineShareData,
   getUnsafeDischargeChartData,
   groupMonitoringHistory,
@@ -485,3 +486,173 @@ describe("prepareReportData schema", () => {
     expect(online.offline).toBe(1);
   });
 });
+
+// Minimal RFC-4180-ish line splitter: date labels contain commas
+// and are therefore quoted, so a naive split(",") miscounts.
+const parseCsvLine = (line: string): string[] => {
+  const cells: string[] = [];
+  let current = "";
+  let quoted = false;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+
+    if (quoted) {
+      if (char === '"') {
+        if (line[i + 1] === '"') {
+          current += '"';
+          i += 1;
+        } else {
+          quoted = false;
+        }
+      } else {
+        current += char;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      quoted = true;
+    } else if (char === ",") {
+      cells.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  cells.push(current);
+
+  return cells;
+};
+
+describe("generateAdlaWattCsv", () => {
+  const data = prepareReportData(
+    twoDayRows,
+    "Daily",
+    {
+      start: new Date("2026-10-01T00:00:00"),
+      end: new Date("2026-10-02T23:59:59"),
+    },
+  );
+
+  const csv = generateAdlaWattCsv(data);
+  const lines = csv.split("\n");
+
+  const titleIndex = (title: string) =>
+    lines.findIndex((line) =>
+      line.startsWith(title),
+    );
+
+  test("writes summary, KPI, period and history blocks", () => {
+    expect(
+      lines.some((line) =>
+        line.startsWith("Metric,Value"),
+      ),
+    ).toBe(true);
+
+    expect(
+      titleIndex("DERIVED ANALYTICS KPIs"),
+    ).toBeGreaterThan(-1);
+
+    expect(
+      titleIndex("AGGREGATED PERIODS"),
+    ).toBeGreaterThan(-1);
+
+    expect(
+      titleIndex("MONITORING HISTORY"),
+    ).toBeGreaterThan(-1);
+  });
+
+  test("monitoring block carries full monitoring_history parity", () => {
+    const start = titleIndex(
+      "MONITORING HISTORY",
+    );
+
+    const header = parseCsvLine(
+      lines[start + 1],
+    );
+
+    expect(header).toHaveLength(24);
+    expect(header).toContain("Time Remaining");
+    expect(header).toContain("Solar Status");
+    expect(header).toContain("Last Seen");
+    expect(header).toContain("Interior C");
+    expect(header).toContain("Watt Hours");
+    expect(header).toContain("Cumulative In Wh");
+    expect(header).toContain(
+      "Cumulative Out Wh",
+    );
+
+    // Every data row matches the header width (no ragged grid).
+    for (
+      let i = start + 2;
+      i < start + 2 + 4;
+      i += 1
+    ) {
+      expect(
+        parseCsvLine(lines[i]),
+      ).toHaveLength(24);
+    }
+  });
+
+  test("KPI block lists the derived analytics", () => {
+    const start = titleIndex(
+      "DERIVED ANALYTICS KPIs",
+    );
+
+    const block = lines
+      .slice(
+        start,
+        start + 2 + data.kpis.length,
+      )
+      .join("\n");
+
+    expect(block).toContain("Solar coverage");
+    expect(block).toContain("Device uptime");
+    expect(block).toContain(
+      "Unsafe discharge samples",
+    );
+    expect(block).toContain("Best sun day");
+  });
+
+  test("period block is one aggregated row per bucket", () => {
+    const start = titleIndex(
+      "AGGREGATED PERIODS",
+    );
+
+    const header = parseCsvLine(
+      lines[start + 1],
+    );
+
+    expect(header).toHaveLength(20);
+    expect(header[0]).toBe("Period");
+
+    const day1 = parseCsvLine(lines[start + 2]);
+    const day2 = parseCsvLine(lines[start + 3]);
+
+    expect(day1).toHaveLength(20);
+    expect(day2).toHaveLength(20);
+
+    // Net energy column (index 9): +50 Wh then -100 Wh.
+    expect(day1[9]).toBe("50.0");
+    expect(day2[9]).toBe("-100.0");
+  });
+
+  test("caps monitoring rows with a truncation notice", () => {
+    const manyRows = Array.from(
+      { length: 20005 },
+      () => data.monitoringRows[0],
+    );
+
+    const oversized = {
+      ...data,
+      monitoringRows: manyRows,
+    };
+
+    const out = generateAdlaWattCsv(oversized);
+
+    expect(out).toContain("Showing first 20000 of 20005 records");
+  });
+});
+
