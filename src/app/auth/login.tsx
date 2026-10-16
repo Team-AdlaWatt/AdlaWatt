@@ -298,6 +298,7 @@ export default function LoginScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             autoComplete="username"
+            importantForAutofill="no"
             returnKeyType="next"
             onSubmitEditing={() =>
               passwordRef.current?.focus()
@@ -310,6 +311,7 @@ export default function LoginScreen() {
             onChangeText={setPassword}
             placeholder={t("passwordInput.placeholderPassword")}
             autoComplete="password"
+            importantForAutofill="no"
             returnKeyType="done"
             onSubmitEditing={handleLogin}
             inputRef={passwordRef}

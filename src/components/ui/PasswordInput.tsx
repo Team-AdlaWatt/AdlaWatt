@@ -35,6 +35,12 @@ interface PasswordInputProps {
   returnKeyType?: TextInputProps["returnKeyType"];
   onSubmitEditing?: TextInputProps["onSubmitEditing"];
   autoComplete?: TextInputProps["autoComplete"];
+  /**
+   * Android autofill control. Pass "no" to stop the OS autofill
+   * highlight from painting the input surface yellow when text is
+   * filled in during dark mode.
+   */
+  importantForAutofill?: TextInputProps["importantForAutofill"];
   inputRef?: Ref<TextInput>;
   bottomGap?: number;
   editable?: boolean;
@@ -60,6 +66,7 @@ export default function PasswordInput({
   returnKeyType,
   onSubmitEditing,
   autoComplete,
+  importantForAutofill,
   inputRef,
   bottomGap,
   editable = true,
@@ -171,6 +178,7 @@ export default function PasswordInput({
           editable={editable}
           placeholderTextColor={colors.textSecondary}
           autoComplete={autoComplete}
+          importantForAutofill={importantForAutofill}
           returnKeyType={returnKeyType}
           onSubmitEditing={onSubmitEditing}
           style={[
