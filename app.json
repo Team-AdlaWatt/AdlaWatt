@@ -7,7 +7,9 @@
     "icon": "./assets/images/adlawatt-icon.png",
     "scheme": "adlawatt",
     "userInterfaceStyle": "automatic",
-    "runtimeVersion": "62e8d5943cbda57cd1de097bcb19df3d4dd6bd92",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
     "updates": {
       "url": "https://u.expo.dev/ba375929-16f4-4a21-b339-8b43e93ecfd2"
     },
