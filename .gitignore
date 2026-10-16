@@ -41,3 +41,11 @@ app-example
 # generated native folders
 /ios
 /android
+
+# local scratch / tooling artifacts
+package/
+sentry-wizard-*.tgz
+web.err
+web.log
+wizard.log
+src/services/sentry.ts.bak.*
