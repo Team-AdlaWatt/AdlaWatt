@@ -7,6 +7,11 @@ import NavBar from "@/components/layout/Navbar";
 import ScreenContainer2 from "@/components/layout/ScreenContainer2";
 import AppText from "@/components/ui/AppText";
 import AnalyticsChartCard from "@/components/AnalyticsChartCard";
+import type { AnalyticsChartCardProps } from "@/components/AnalyticsChartCard";
+import LazyMount, {
+  ScrollVisibilityProvider,
+  createScrollVisibility,
+} from "@/components/LazyMount";
 import BatteryLevelChart, {
   BatteryLevelPoint,
 } from "@/components/charts/BatteryLevelChart";
@@ -101,6 +106,26 @@ const QUICK_NAV_SCROLL_MS = 1500;
 const QUICK_NAV_SCROLL_INSET = 12;
 
 /* ============================================================
+   LAZY CHART CARD
+   ============================================================
+
+   AnalyticsChartCard is shared with the admin + manual screens,
+   so the lazy gate lives here rather than in the card itself.
+   Chart bodies are a fixed CHART_HEIGHT (240) plus a stats strip
+   and the card header, so ~380 is a close placeholder height and
+   the scroll length stays stable while off-screen. */
+
+function LazyCard(
+  props: AnalyticsChartCardProps,
+) {
+  return (
+    <LazyMount>
+      <AnalyticsChartCard {...props} />
+    </LazyMount>
+  );
+}
+
+/* ============================================================
    SCREEN
    ============================================================ */
 
@@ -121,6 +146,13 @@ export default function AnalyticsScreen() {
      ========================================================== */
 
   const scrollRef = useRef<ScrollView>(null);
+
+  // Shared scroll offset for the lazy chart sections. Created
+  // once; consumers subscribe instead of re-rendering the whole
+  // (very large) screen on every scroll frame.
+  const [scrollVisibility] = useState(
+    () => createScrollVisibility(),
+  );
 
   const reportRef = useRef<View>(null);
 
@@ -653,7 +685,35 @@ export default function AnalyticsScreen() {
               duration: QUICK_NAV_SCROLL_MS,
               easing: Easing.inOut(Easing.cubic),
               useNativeDriver: false,
-            }).start();
+            }).start(({ finished }) => {
+              if (!finished) {
+                return;
+              }
+
+              // Lazy chart sections mount during the scroll and
+              // can shift content height, so re-measure once the
+              // animation settles and snap exactly onto target.
+              section.measureInWindow(
+                (_sx2, sectionY2) => {
+                  nativeScroll.measureInWindow(
+                    (_fx2, scrollY2) => {
+                      const corrected =
+                        Math.max(
+                          sectionY2 -
+                            scrollY2 +
+                            scrollYRef.current -
+                            QUICK_NAV_SCROLL_INSET,
+                          0,
+                        );
+
+                      scrollOffset.setValue(
+                        corrected,
+                      );
+                    },
+                  );
+                },
+              );
+            });
           },
         );
       },
@@ -954,29 +1014,37 @@ export default function AnalyticsScreen() {
       {/* Fixed Navbar */}
       <NavBar />
 
-      <PullRefreshScroll
-        scrollRef={scrollRef}
-        style={styles.scrollView}
-        contentContainerStyle={[
-          styles.content,
-          { paddingHorizontal: screenPadding },
-        ]}
-        showsVerticalScrollIndicator={
-          false
-        }
-        onScroll={(event) => {
-          scrollYRef.current =
-            event.nativeEvent.contentOffset.y;
-        }}
-        scrollEventThrottle={16}
-        refreshing={analyticsRefreshing}
-        onRefresh={onAnalyticsRefresh}
-        refreshLabel={t(
-          "dashboard.common.pullToRefresh",
-        )}
-        refreshTint={colors.primary}
-        testID="pull-scroll"
+      <ScrollVisibilityProvider
+        visibility={scrollVisibility}
       >
+        <PullRefreshScroll
+          scrollRef={scrollRef}
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.content,
+            { paddingHorizontal: screenPadding },
+          ]}
+          showsVerticalScrollIndicator={
+            false
+          }
+          onScroll={(event) => {
+            const offsetY =
+              event.nativeEvent.contentOffset
+                .y;
+
+            scrollYRef.current = offsetY;
+
+            scrollVisibility.notify(offsetY);
+          }}
+          scrollEventThrottle={16}
+          refreshing={analyticsRefreshing}
+          onRefresh={onAnalyticsRefresh}
+          refreshLabel={t(
+            "dashboard.common.pullToRefresh",
+          )}
+          refreshTint={colors.primary}
+          testID="pull-scroll"
+        >
         {/* ======================================================
             ANALYTICS HEADER
         ====================================================== */}
@@ -1048,7 +1116,7 @@ export default function AnalyticsScreen() {
           {t("dashboard.analytics.sectionBattery")}
         </AppText>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Battery Level Over Time"
           subtitle="Average battery level per period, with the unsafe zone below the 20% safety floor marked."
           icon="battery-half-outline"
@@ -1060,9 +1128,9 @@ export default function AnalyticsScreen() {
           <BatteryLevelChart
             points={batteryPoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Unsafe Discharge Events"
           subtitle="Snapshots below 20% per period. Lower is better."
           icon="warning-outline"
@@ -1074,9 +1142,9 @@ export default function AnalyticsScreen() {
           <UnsafeDischargeChart
             points={unsafePoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Battery Activity"
           subtitle="How often it charges vs drains."
           icon="battery-half-outline"
@@ -1084,7 +1152,7 @@ export default function AnalyticsScreen() {
           <BatteryActivityChart
             slices={activitySlices}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
         {/* ======================================================
             SOLAR SECTION
@@ -1096,7 +1164,7 @@ export default function AnalyticsScreen() {
           {t("dashboard.analytics.sectionSolar")}
         </AppText>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Solar vs Load"
           subtitle="Whether the sun covers demand."
           icon="sunny-outline"
@@ -1108,9 +1176,9 @@ export default function AnalyticsScreen() {
           <SolarVsLoadChart
             points={solarLoadPoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Best Sun Days"
           subtitle="Peak panel output per day."
           icon="sunny-outline"
@@ -1122,9 +1190,9 @@ export default function AnalyticsScreen() {
           <BestSunDaysChart
             points={bestSunPoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Sun Hours"
           subtitle="How long the panel produced."
           icon="sunny-outline"
@@ -1136,9 +1204,9 @@ export default function AnalyticsScreen() {
           <SunHoursChart
             points={sunHoursPoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Solar Curve by Hour"
           subtitle="Best time of day for the sun."
           icon="sunny-outline"
@@ -1146,7 +1214,7 @@ export default function AnalyticsScreen() {
           <SolarCurveByHourChart
             points={solarCurvePoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
         {/* ======================================================
             ENERGY SECTION
@@ -1158,7 +1226,7 @@ export default function AnalyticsScreen() {
           {t("dashboard.analytics.sectionEnergy")}
         </AppText>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Energy In and Out"
           subtitle="Daily balance."
           icon="flash-outline"
@@ -1171,9 +1239,9 @@ export default function AnalyticsScreen() {
             inPoints={energyInPoints}
             outPoints={energyOutPoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Net Energy"
           subtitle="Surplus and deficit days."
           icon="flash-outline"
@@ -1185,9 +1253,9 @@ export default function AnalyticsScreen() {
           <NetEnergyChart
             points={netPoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Running Balance"
           subtitle="Whether stored energy grows or shrinks."
           icon="flash-outline"
@@ -1199,9 +1267,9 @@ export default function AnalyticsScreen() {
           <RunningBalanceChart
             points={balancePoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Solar Coverage"
           subtitle="Percent of your use the sun covered."
           icon="flash-outline"
@@ -1213,7 +1281,7 @@ export default function AnalyticsScreen() {
           <SolarCoverageChart
             points={coveragePoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
         {/* ======================================================
             HEALTH SECTION
@@ -1225,7 +1293,7 @@ export default function AnalyticsScreen() {
           {t("dashboard.analytics.sectionHealth")}
         </AppText>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Temperatures"
           subtitle="Heat trends."
           icon="pulse-outline"
@@ -1239,9 +1307,9 @@ export default function AnalyticsScreen() {
             solarPoints={solarTempPoints}
             interiorPoints={interiorTempPoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Temperature Alerts"
           subtitle="Days with high or critical heat."
           icon="pulse-outline"
@@ -1253,9 +1321,9 @@ export default function AnalyticsScreen() {
           <TemperatureAlertsChart
             points={tempAlertsPoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Device Uptime"
           subtitle="How reliable the ESP32 link is."
           icon="pulse-outline"
@@ -1267,9 +1335,9 @@ export default function AnalyticsScreen() {
           <UptimeChart
             points={uptimePoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Online vs Offline"
           subtitle="Share of time connected."
           icon="pulse-outline"
@@ -1277,7 +1345,7 @@ export default function AnalyticsScreen() {
           <OnlineOfflineChart
             share={onlineShare}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
         {/* ======================================================
             USAGE SECTION
@@ -1289,7 +1357,7 @@ export default function AnalyticsScreen() {
           {t("dashboard.analytics.sectionUsage")}
         </AppText>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Average vs Peak Load"
           subtitle="Typical and worst-case demand."
           icon="bulb-outline"
@@ -1301,9 +1369,9 @@ export default function AnalyticsScreen() {
           <AvgPeakLoadChart
             points={loadVsPeakPoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Power Use by Hour"
           subtitle="When to avoid heavy appliances."
           icon="bulb-outline"
@@ -1311,7 +1379,7 @@ export default function AnalyticsScreen() {
           <PowerByHourChart
             points={powerByHourPoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
         {/* ======================================================
             ANALYTICS PANEL
@@ -1342,6 +1410,7 @@ export default function AnalyticsScreen() {
         {/* Copyright */}
         <Copyright />
       </PullRefreshScroll>
+      </ScrollVisibilityProvider>
 
       {/* ========================================================
           REPORT FREQUENCY MODAL
