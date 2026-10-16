@@ -49,3 +49,6 @@ web.err
 web.log
 wizard.log
 src/services/sentry.ts.bak.*
+
+# supabase CLI local cache (machine-specific, regenerated)
+supabase/.temp/
