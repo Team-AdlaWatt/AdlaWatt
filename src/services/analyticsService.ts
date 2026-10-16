@@ -5158,6 +5158,345 @@ export async function generateAdlaWattPdf(
     10;
 
   /* ----------------------------------------------------------
+     KEY METRICS (derived analytics)
+     ---------------------------------------------------------- */
+
+  currentY =
+    addPdfSectionTitle(
+      doc,
+      "KEY METRICS",
+      currentY,
+    );
+
+  const kpiTableStartPage =
+    doc.getCurrentPageInfo().pageNumber;
+
+  getAutoTable()(
+    doc,
+    {
+      startY:
+        currentY,
+
+      tableWidth:
+        contentWidth,
+
+      margin: {
+        left:
+          horizontalMargin,
+
+        right:
+          horizontalMargin,
+
+        bottom:
+          20,
+      },
+
+      head: [
+        [
+          "Metric",
+          "Value",
+          "Note",
+        ],
+      ],
+
+      body:
+        reportData.kpis.map(
+          (entry) => [
+            entry.label,
+            entry.unit
+              ? `${entry.value} ${entry.unit}`
+              : entry.value,
+            entry.hint ?? "",
+          ],
+        ),
+
+      theme:
+        "plain",
+
+      styles: {
+        font:
+          "helvetica",
+
+        fontSize:
+          7.5,
+
+        cellPadding:
+          2.8,
+
+        textColor: [
+          31,
+          41,
+          55,
+        ],
+
+        fillColor: [
+          248,
+          245,
+          234,
+        ],
+      },
+
+      headStyles: {
+        fillColor: [
+          0,
+          168,
+          107,
+        ],
+
+        textColor: [
+          255,
+          255,
+          255,
+        ],
+
+        fontStyle:
+          "bold",
+      },
+
+      bodyStyles: {
+        fillColor: [
+          255,
+          255,
+          255,
+        ],
+      },
+
+      alternateRowStyles: {
+        fillColor: [
+          248,
+          245,
+          234,
+        ],
+      },
+
+      willDrawPage:
+        (
+          hookData,
+        ) => {
+          paintPdfContinuationPage(
+            doc,
+            hookData.pageNumber,
+            kpiTableStartPage,
+            pageWidth,
+            pageHeight,
+          );
+        },
+
+      columnStyles: {
+        0: {
+          cellWidth:
+            contentWidth * 0.46,
+        },
+
+        1: {
+          cellWidth:
+            contentWidth * 0.24,
+        },
+
+        2: {
+          cellWidth:
+            contentWidth * 0.3,
+        },
+      },
+    },
+  );
+
+  currentY =
+    (
+      doc as unknown as {
+        lastAutoTable?: {
+          finalY?: number;
+        };
+      }
+    ).lastAutoTable
+      ?.finalY ??
+    currentY + 30;
+
+  currentY +=
+    10;
+
+  /* ----------------------------------------------------------
+     AGGREGATED PERIODS (chart-aligned buckets)
+     ---------------------------------------------------------- */
+
+  currentY =
+    addPdfSectionTitle(
+      doc,
+      "AGGREGATED PERIODS",
+      currentY,
+    );
+
+  const periodsTableStartPage =
+    doc.getCurrentPageInfo().pageNumber;
+
+  getAutoTable()(
+    doc,
+    {
+      startY:
+        currentY,
+
+      tableWidth:
+        contentWidth,
+
+      margin: {
+        left:
+          horizontalMargin,
+
+        right:
+          horizontalMargin,
+
+        bottom:
+          20,
+      },
+
+      head: [
+        [
+          "Period",
+          "Samples",
+          "Avg Batt %",
+          "Min %",
+          "Max %",
+          "Energy In Wh",
+          "Energy Out Wh",
+          "Net Wh",
+          "Coverage %",
+          "Uptime %",
+          "Unsafe",
+          "Sun h",
+        ],
+      ],
+
+      body:
+        reportData.periods.map(
+          (period) => [
+            period.periodLabel,
+            String(period.sampleCount),
+            formatNumber(
+              period.avgBatteryLevel,
+            ),
+            formatNumber(
+              period.minBatteryLevel,
+            ),
+            formatNumber(
+              period.maxBatteryLevel,
+            ),
+            formatNumber(
+              period.energyInputWh,
+            ),
+            formatNumber(
+              period.energyOutputWh,
+            ),
+            formatNumber(
+              period.netEnergyWh,
+            ),
+            formatNumber(
+              period.solarCoveragePct,
+            ),
+            formatNumber(
+              period.uptimePct,
+            ),
+            String(
+              period.unsafeSampleCount,
+            ),
+            formatNumber(period.sunHours),
+          ],
+        ),
+
+      theme:
+        "plain",
+
+      styles: {
+        font:
+          "helvetica",
+
+        fontSize:
+          6.5,
+
+        cellPadding:
+          2,
+
+        overflow:
+          "linebreak",
+
+        textColor: [
+          31,
+          41,
+          55,
+        ],
+
+        fillColor: [
+          248,
+          245,
+          234,
+        ],
+      },
+
+      headStyles: {
+        fillColor: [
+          0,
+          168,
+          107,
+        ],
+
+        textColor: [
+          255,
+          255,
+          255,
+        ],
+
+        fontStyle:
+          "bold",
+
+        fontSize:
+          6.5,
+      },
+
+      bodyStyles: {
+        fillColor: [
+          255,
+          255,
+          255,
+        ],
+      },
+
+      alternateRowStyles: {
+        fillColor: [
+          248,
+          245,
+          234,
+        ],
+      },
+
+      willDrawPage:
+        (
+          hookData,
+        ) => {
+          paintPdfContinuationPage(
+            doc,
+            hookData.pageNumber,
+            periodsTableStartPage,
+            pageWidth,
+            pageHeight,
+          );
+        },
+    },
+  );
+
+  currentY =
+    (
+      doc as unknown as {
+        lastAutoTable?: {
+          finalY?: number;
+        };
+      }
+    ).lastAutoTable
+      ?.finalY ??
+    currentY + 30;
+
+  currentY +=
+    10;
+
+  /* ----------------------------------------------------------
      MONITORING HISTORY
      ---------------------------------------------------------- */
 
