@@ -175,10 +175,14 @@ export default function AnalyticsScreen() {
     setMonitoringHistory,
   ] = useState<MonitoringHistoryRow[]>([]);
 
+  // Which report format is currently being built, if any. Kept
+  // per-format (instead of one shared boolean) so only the button
+  // the user actually tapped shows "Preparing..." — the other
+  // stays labelled while still being disabled during the export.
   const [
-    isExporting,
-    setIsExporting,
-  ] = useState(false);
+    exportingReport,
+    setExportingReport,
+  ] = useState<ReportType | null>(null);
 
   const [
     exportStatus,
@@ -801,7 +805,7 @@ export default function AnalyticsScreen() {
       async (
         reportType: ReportType,
       ) => {
-        if (isExporting) {
+        if (exportingReport !== null) {
           return;
         }
 
@@ -918,7 +922,7 @@ export default function AnalyticsScreen() {
            Fabric can throw at load.
            ====================================================== */
 
-        setIsExporting(true);
+        setExportingReport(reportType);
 
         try {
           const reportData =
@@ -999,11 +1003,11 @@ export default function AnalyticsScreen() {
               "The report could not be generated. Please try again.",
           });
         } finally {
-          setIsExporting(false);
+          setExportingReport(null);
         }
       },
       [
-        isExporting,
+        exportingReport,
         monitoringHistory,
         openReportDirectly,
         reportFrequency,
@@ -1552,7 +1556,8 @@ export default function AnalyticsScreen() {
               handlePresetSelect
             }
             generateReport={generateReport}
-            exporting={isExporting}
+            exporting={exportingReport !== null}
+            exportingType={exportingReport}
             status={exportStatus}
             exportResult={exportResult}
             exportSheetVisible={

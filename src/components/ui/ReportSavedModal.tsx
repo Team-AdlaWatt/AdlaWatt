@@ -9,13 +9,10 @@ import {
   AccessibilityInfo,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
 } from "react-native";
-
-import {
-  useSafeAreaInsets,
-} from "react-native-safe-area-context";
 
 import { useTranslation } from "react-i18next";
 
@@ -28,25 +25,24 @@ import {
 
 import {
   Control,
-  Sheet,
   Touch,
 } from "@/constants/sizing";
 
 import { Radius } from "@/constants/theme";
 
 // ============================================================
-// REPORT SAVED SHEET
+// REPORT SAVED MODAL
 //
 // Post-export confirmation: the report is already written into
 // a folder the user can open, so the panel only has to say
 // where it landed and offer one tap to open it.
 //
-// Bottom-anchored (unlike the centered DropdownModal) because
-// both actions are short-lived and thumb-reached: "Open file"
-// sits directly above "Done", inside the bottom reach zone.
-// The card visuals still come from the shared tokens, so it
-// reads as the same design system as every other modal.
+// Centered card, matching DropdownModal exactly (same overlay,
+// same card geometry, same fade), so every modal in the app is
+// the same box rather than a mix of box and bottom sheet.
 // ============================================================
+
+const MODAL_RADIUS = 18;
 
 export type SavedReport = {
   filename: string;
@@ -54,10 +50,10 @@ export type SavedReport = {
 };
 
 interface ReportSavedModalProps {
-  /** Whether the sheet is on screen. */
+  /** Whether the modal is on screen. */
   visible: boolean;
   /** Saved file summary. Kept by the caller after closing so
-   * the sheet still has content while it slides away. */
+   * the modal still has content while it fades away. */
   result: SavedReport | null;
   onOpen: () => void;
   onClose: () => void;
@@ -71,7 +67,6 @@ export default function ReportSavedModal({
 }: ReportSavedModalProps) {
   const { t } = useTranslation();
   const colors = useAppColors();
-  const insets = useSafeAreaInsets();
 
   const styles = useMemo(
     () => getStyles(colors),
@@ -82,7 +77,7 @@ export default function ReportSavedModal({
     "dashboard.analytics.reportSavedTitle",
   );
 
-  // The sheet appears without focus moving into it, so a
+  // The modal appears without focus moving into it, so a
   // screen reader would otherwise miss the confirmation.
   useEffect(() => {
     if (!visible || !result) {
@@ -98,7 +93,7 @@ export default function ReportSavedModal({
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
+      animationType="fade"
       onRequestClose={onClose}
     >
       <Pressable
@@ -106,16 +101,9 @@ export default function ReportSavedModal({
         onPress={onClose}
       >
         <Pressable
-          style={[
-            styles.sheet,
-            {
-              paddingBottom:
-                insets.bottom +
-                Sheet.padding,
-            },
-          ]}
+          style={styles.card}
           accessibilityViewIsModal
-          // Swallow sheet taps so the overlay close doesn't
+          // Swallow card taps so the overlay close doesn't
           // fire. stopPropagation keeps web from delivering the
           // same touch to both responders.
           onPress={(event) => {
@@ -142,99 +130,110 @@ export default function ReportSavedModal({
             </AppText>
           </View>
 
-          <View style={styles.detailRow}>
-            <Ionicons
-              name="document-outline"
-              size={Touch.iconCompact}
-              color={colors.textSecondary}
-              style={styles.detailIcon}
-            />
+          {/*
+            Scrollable body so a large font scale or a long
+            file name cannot push the actions off the card —
+            same shrink-and-scroll behavior as DropdownModal.
+          */}
+          <ScrollView
+            style={styles.body}
+            contentContainerStyle={styles.bodyContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.detailRow}>
+              <Ionicons
+                name="document-outline"
+                size={Touch.iconCompact}
+                color={colors.textSecondary}
+                style={styles.detailIcon}
+              />
 
-            <AppText
-              variant="caption"
-              style={styles.filename}
-              numberOfLines={2}
-            >
-              {result?.filename}
-            </AppText>
-          </View>
-
-          <View style={styles.detailRow}>
-            <Ionicons
-              name="folder-outline"
-              size={Touch.iconCompact}
-              color={colors.textSecondary}
-              style={styles.detailIcon}
-            />
-
-            <AppText
-              variant="caption"
-              style={styles.location}
-              numberOfLines={2}
-            >
-              {t(
-                "dashboard.analytics.reportSavedTo",
-              )}{" "}
               <AppText
                 variant="caption"
-                style={styles.locationValue}
+                style={styles.filename}
+                numberOfLines={2}
               >
-                {result?.folderLabel}
+                {result?.filename}
               </AppText>
-            </AppText>
-          </View>
+            </View>
 
-          <Pressable
-            style={({ pressed }) => [
-              styles.actionButton,
-              styles.openButton,
-              pressed &&
-                styles.buttonPressed,
-            ]}
-            onPress={onOpen}
-            accessibilityRole="button"
-            accessibilityLabel={t(
-              "dashboard.analytics.reportOpenFile",
-            )}
-          >
-            <Ionicons
-              name="open-outline"
-              size={17}
-              color={colors.onPrimary}
-            />
+            <View style={styles.detailRow}>
+              <Ionicons
+                name="folder-outline"
+                size={Touch.iconCompact}
+                color={colors.textSecondary}
+                style={styles.detailIcon}
+              />
 
-            <AppText
-              variant="caption"
-              style={styles.openButtonText}
-            >
-              {t(
+              <AppText
+                variant="caption"
+                style={styles.location}
+                numberOfLines={2}
+              >
+                {t(
+                  "dashboard.analytics.reportSavedTo",
+                )}{" "}
+                <AppText
+                  variant="caption"
+                  style={styles.locationValue}
+                >
+                  {result?.folderLabel}
+                </AppText>
+              </AppText>
+            </View>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionButton,
+                styles.openButton,
+                pressed &&
+                  styles.buttonPressed,
+              ]}
+              onPress={onOpen}
+              accessibilityRole="button"
+              accessibilityLabel={t(
                 "dashboard.analytics.reportOpenFile",
               )}
-            </AppText>
-          </Pressable>
-
-          <Pressable
-            style={({ pressed }) => [
-              styles.actionButton,
-              styles.doneButton,
-              pressed &&
-                styles.buttonPressed,
-            ]}
-            onPress={onClose}
-            accessibilityRole="button"
-            accessibilityLabel={t(
-              "dashboard.analytics.reportDone",
-            )}
-          >
-            <AppText
-              variant="caption"
-              style={styles.doneButtonText}
             >
-              {t(
+              <Ionicons
+                name="open-outline"
+                size={17}
+                color={colors.onPrimary}
+              />
+
+              <AppText
+                variant="caption"
+                style={styles.openButtonText}
+              >
+                {t(
+                  "dashboard.analytics.reportOpenFile",
+                )}
+              </AppText>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.actionButton,
+                styles.doneButton,
+                pressed &&
+                  styles.buttonPressed,
+              ]}
+              onPress={onClose}
+              accessibilityRole="button"
+              accessibilityLabel={t(
                 "dashboard.analytics.reportDone",
               )}
-            </AppText>
-          </Pressable>
+            >
+              <AppText
+                variant="caption"
+                style={styles.doneButtonText}
+              >
+                {t(
+                  "dashboard.analytics.reportDone",
+                )}
+              </AppText>
+            </Pressable>
+          </ScrollView>
         </Pressable>
       </Pressable>
     </Modal>
@@ -254,20 +253,30 @@ const getStyles = (colors: AppColors) =>
     overlay: {
       flex: 1,
       backgroundColor: colors.overlay,
-      justifyContent: "flex-end",
+      justifyContent: "center",
       alignItems: "center",
+      padding: 20,
     },
 
-    sheet: {
+    card: {
       width: "100%",
-      maxWidth: Sheet.maxWidth,
+      maxWidth: 420,
+      maxHeight: "100%",
       backgroundColor: colors.elevated,
-      borderTopLeftRadius: Radius.lg,
-      borderTopRightRadius: Radius.lg,
       borderWidth: 1,
-      borderBottomWidth: 0,
       borderColor: colors.border,
-      padding: Sheet.padding,
+      borderRadius: MODAL_RADIUS,
+      padding: 17,
+    },
+
+    body: {
+      // Shrink (instead of overflowing) once the card hits its
+      // max height, so the actions stay on screen.
+      flexShrink: 1,
+    },
+
+    bodyContent: {
+      paddingBottom: 2,
     },
 
     titleRow: {

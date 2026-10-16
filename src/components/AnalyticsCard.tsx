@@ -127,6 +127,9 @@ export interface AnalyticsCardsProps {
     reportType: ReportType,
   ) => Promise<void>;
   exporting?: boolean;
+  /** Which format is mid-export: drives the per-button
+   * "Preparing..." label. Null when nothing is exporting. */
+  exportingType?: ReportType | null;
   status?: ReportExportStatus;
   /** Saved-report summary: opens the post-export sheet. */
   exportResult?: ReportExportResult;
@@ -169,6 +172,7 @@ export default function AnalyticsCards({
   onPresetSelect,
   generateReport,
   exporting = false,
+  exportingType = null,
   status,
   exportResult = null,
   exportSheetVisible = false,
@@ -345,6 +349,16 @@ export default function AnalyticsCards({
                   styles.buttonDisabled,
               ]}
               disabled={exporting}
+              accessibilityRole="button"
+              accessibilityState={{
+                disabled: exporting,
+                busy: exportingType === "CSV",
+              }}
+              accessibilityLabel={
+                exportingType === "CSV"
+                  ? "Preparing CSV report"
+                  : "Export CSV"
+              }
               onPress={() =>
                 generateReport(
                   "CSV",
@@ -363,8 +377,8 @@ export default function AnalyticsCards({
                   styles.exportPrimaryText
                 }
               >
-                {exporting
-                  ? "Exporting..."
+                {exportingType === "CSV"
+                  ? "Preparing..."
                   : "Export CSV"}
               </AppText>
             </Pressable>
@@ -378,6 +392,16 @@ export default function AnalyticsCards({
                   styles.buttonDisabled,
               ]}
               disabled={exporting}
+              accessibilityRole="button"
+              accessibilityState={{
+                disabled: exporting,
+                busy: exportingType === "PDF",
+              }}
+              accessibilityLabel={
+                exportingType === "PDF"
+                  ? "Preparing PDF report"
+                  : "Export PDF"
+              }
               onPress={() =>
                 generateReport(
                   "PDF",
@@ -396,8 +420,8 @@ export default function AnalyticsCards({
                   styles.exportPrimaryText
                 }
               >
-                {exporting
-                  ? "Exporting..."
+                {exportingType === "PDF"
+                  ? "Preparing..."
                   : "Export PDF"}
               </AppText>
             </Pressable>
