@@ -9,11 +9,15 @@
 import {
   PRINT_MAX_ROWS,
   buildReportHtml,
+  openReportPdfFile,
+  readReportFileText,
 } from "@/services/reportPrint";
 import {
   prepareReportData,
   type MonitoringHistoryRow,
 } from "@/services/analyticsService";
+import { File } from "expo-file-system";
+import * as Print from "expo-print";
 
 jest.mock("jspdf", () => ({
   jsPDF: jest.fn(),
@@ -26,11 +30,15 @@ jest.mock("jspdf-autotable", () => ({
 
 jest.mock("expo-print", () => ({
   printToFileAsync: jest.fn(),
+  printAsync: jest.fn(async () => undefined),
 }));
 
-jest.mock("expo-sharing", () => ({
-  isAvailableAsync: jest.fn(async () => true),
-  shareAsync: jest.fn(async () => undefined),
+// File is swapped out so the text reader can be exercised without
+// touching the native filesystem; the rest of the module (Paths)
+// stays real for the HTML tests.
+jest.mock("expo-file-system", () => ({
+  ...jest.requireActual("expo-file-system"),
+  File: jest.fn(),
 }));
 
 const row = (
@@ -165,5 +173,46 @@ describe("buildReportHtml", () => {
     expect(out).toContain(
       "&lt;script&gt;alert(1)&lt;/script&gt;",
     );
+  });
+});
+
+// The export flow never opens a share chooser: the PDF is handed
+// to the system document preview and the CSV is read back for the
+// in-app viewer. These lock those two exit paths.
+describe("report exit helpers", () => {
+  const pdf = {
+    uri: "file:///cache/adlawatt_daily_report.pdf",
+    filename: "adlawatt_daily_report.pdf",
+    mimeType: "application/pdf",
+  };
+
+  const csv = {
+    uri: "file:///cache/adlawatt_daily_report.csv",
+    filename: "adlawatt_daily_report.csv",
+    mimeType: "text/csv",
+  };
+
+  test("openReportPdfFile hands the local PDF to the system preview", async () => {
+    await openReportPdfFile(pdf);
+
+    expect(Print.printAsync).toHaveBeenCalledWith(
+      {
+        uri: pdf.uri,
+      },
+    );
+  });
+
+  test("readReportFileText returns the exported CSV text", async () => {
+    const text = "Period,Value\nDaily,1";
+
+    (File as unknown as jest.Mock).mockImplementation(
+      () => ({
+        text: jest.fn(async () => text),
+      }),
+    );
+
+    await expect(
+      readReportFileText(csv),
+    ).resolves.toBe(text);
   });
 });

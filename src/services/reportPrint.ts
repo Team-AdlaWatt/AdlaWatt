@@ -1,9 +1,11 @@
 // ============================================================
-// ADLAWATT NATIVE REPORT EXPORT (expo-print HTML + file handoff)
+// ADLAWATT NATIVE REPORT EXPORT (expo-print HTML + direct open)
 //
-// Builds the local report file and opens the system chooser on
-// it. Saving into the public Download folder is a separate step
-// (see reportStorage.ts) so this module stays a pure renderer.
+// Builds the local report file and opens it with no share sheet
+// involved: the PDF goes to the system document preview, the CSV
+// is read back as text for the in-app viewer. Saving into the
+// public Download folder is a separate step (see reportStorage.ts)
+// so this module stays a pure renderer.
 //
 // Real-file export for Android/iOS. The web path keeps using
 // the jsPDF template in analyticsService.ts; native renders a
@@ -23,7 +25,6 @@ import {
   Paths,
 } from "expo-file-system";
 import * as Print from "expo-print";
-import * as Sharing from "expo-sharing";
 
 import {
   formatNumber,
@@ -308,10 +309,10 @@ export const buildReportHtml = (
 // ============================================================
 // REPORT FILE
 //
-// A built report plus everything the two exit ramps need: the
-// Download-folder save reads the bytes, the system chooser
-// needs the mime type, dialog title and iOS UTI. Built once
-// per export and handed to whichever path runs.
+// A built report plus what the library's copy of the report
+// file is called: the local URI the viewer reads or previews,
+// the name shown in the UI, and the mime type that decides
+// which viewer the file gets.
 // ============================================================
 
 export interface ReportFile {
@@ -319,43 +320,39 @@ export interface ReportFile {
   uri: string;
   filename: string;
   mimeType: string;
-  dialogTitle: string;
-  UTI?: string;
 }
 
 // ============================================================
-// SHARE HELPERS
+// OPEN HELPERS
 // ============================================================
 
-const ensureSharingAvailable = async (): Promise<boolean> => {
-  try {
-    return await Sharing.isAvailableAsync();
-  } catch {
-    return false;
-  }
-};
-
-// Opens the system chooser on a local file. expo-sharing
-// rejects non-`file` schemes outright, which is why the saved
-// copy in the Download folder is not shared directly — this
-// shares the cache copy and the folder keeps its own copy.
-export const shareReportFile = async (
+/**
+ * Opens the built PDF in the system document preview.
+ *
+ * expo-print hands the local file straight to Android's built-in
+ * viewer, which renders the PDF full-screen (and doubles as the
+ * print dialog). Nothing is handed to a share chooser, so the
+ * report is shown directly.
+ *
+ * @param file Local `file://` PDF built by buildReportPdfFile.
+ */
+export const openReportPdfFile = async (
   file: ReportFile,
 ): Promise<void> => {
-  if (!(await ensureSharingAvailable())) {
-    throw new Error(
-      "Sharing is not available on this device.",
-    );
-  }
+  await Print.printAsync({ uri: file.uri });
+};
 
-  await Sharing.shareAsync(
-    file.uri,
-    {
-      mimeType: file.mimeType,
-      dialogTitle: file.dialogTitle,
-      UTI: file.UTI,
-    },
-  );
+/**
+ * Reads the built report back as text so the in-app viewer can
+ * display it. The cache copy is the exact file the writer
+ * produced, so the text matches the exported bytes.
+ *
+ * @param file Local `file://` file built by buildReportCsvFile.
+ */
+export const readReportFileText = async (
+  file: ReportFile,
+): Promise<string> => {
+  return new File(file.uri).text();
 };
 
 // ============================================================
@@ -378,7 +375,7 @@ export const buildReportPdfFile = async (
       html,
     });
 
-  // Rename to the report filename so the shared file arrives
+  // Rename to the report filename so the saved copy arrives
   // with a meaningful name instead of a print-temp name.
   const filename =
     getPdfReportFilename(reportData);
@@ -391,8 +388,8 @@ export const buildReportPdfFile = async (
   let localUri = uri;
 
   try {
-    // SDK57: File copy is async — await so the share target
-    // exists before shareAsync reads it.
+    // SDK57: File copy is async — await so the saved file
+    // exists before it is read back for the save or the viewer.
     await new File(uri).copy(target);
 
     localUri = target.uri;
@@ -409,9 +406,6 @@ export const buildReportPdfFile = async (
     uri: localUri,
     filename,
     mimeType: "application/pdf",
-    dialogTitle:
-      "AdlaWatt Analytics Report",
-    UTI: ".pdf",
   };
 };
 
@@ -442,8 +436,5 @@ export const buildReportCsvFile = async (
     uri: file.uri,
     filename,
     mimeType: "text/csv",
-    dialogTitle:
-      "AdlaWatt Analytics CSV Report",
-    UTI: "public.comma-separated-values-text",
   };
 };

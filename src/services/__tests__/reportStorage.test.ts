@@ -261,7 +261,7 @@ describe("saveReportFileToDownloads", () => {
 
   test("returns null when the folder picker is unavailable", async () => {
     // iOS/web have no StorageAccessFramework: the call throws and
-    // the caller falls back to the share sheet.
+    // the caller opens the built file directly instead.
     saf.requestDirectoryPermissionsAsync.mockRejectedValue(
       new Error("unavailable"),
     );

@@ -410,6 +410,7 @@ const fil = {
       goToGenerateReport: "Pumunta sa Generate Report",
       reportSavedTitle: "Nai-save na ang report",
       reportSavedTo: "Nai-save sa",
+      reportPreviewTitle: "Preview ng report",
       reportOpenFile: "Buksan ang file",
       reportDone: "Tapos na",
     },

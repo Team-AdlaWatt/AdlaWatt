@@ -393,6 +393,7 @@ const en = {
       goToGenerateReport: "Go to Generate Report",
       reportSavedTitle: "Report saved",
       reportSavedTo: "Saved to",
+      reportPreviewTitle: "Report preview",
       reportOpenFile: "Open file",
       reportDone: "Done",
     },

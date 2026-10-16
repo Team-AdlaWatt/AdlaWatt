@@ -3,6 +3,9 @@ import AnalyticsCards, {
   type ReportExportResult,
   type ReportExportStatus,
 } from "@/components/AnalyticsCard";
+import ReportViewerModal, {
+  type ViewedReport,
+} from "@/components/ui/ReportViewerModal";
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
 import ScreenContainer2 from "@/components/layout/ScreenContainer2";
@@ -200,6 +203,19 @@ export default function AnalyticsScreen() {
   const [
     exportSheetVisible,
     setExportSheetVisible,
+  ] = useState(false);
+
+  // CSV preview behind the in-app viewer. Split from the
+  // visibility flag (same as the saved sheet) so the text is
+  // still there while the viewer slides away.
+  const [
+    viewerReport,
+    setViewerReport,
+  ] = useState<ViewedReport | null>(null);
+
+  const [
+    viewerVisible,
+    setViewerVisible,
   ] = useState(false);
 
   const [
@@ -744,6 +760,42 @@ export default function AnalyticsScreen() {
      REPORT
      ========================================================== */
 
+  // Opens a built report without any share sheet: the PDF goes
+  // to the system document preview, the CSV is read back and
+  // shown in the in-app viewer. Used by both the post-export
+  // panel and the declined folder-grant path so every export
+  // ends in a direct open.
+  const openReportDirectly = useCallback(
+    async (file: ReportFile) => {
+      const {
+        openReportPdfFile,
+        readReportFileText,
+      } = await import(
+        "@/services/reportPrint"
+      );
+
+      if (
+        file.mimeType ===
+        "application/pdf"
+      ) {
+        await openReportPdfFile(file);
+
+        return;
+      }
+
+      setViewerReport({
+        filename: file.filename,
+        content:
+          await readReportFileText(
+            file,
+          ),
+      });
+
+      setViewerVisible(true);
+    },
+    [],
+  );
+
   const generateReport =
     useCallback(
       async (
@@ -856,14 +908,14 @@ export default function AnalyticsScreen() {
            NATIVE ANDROID / IOS EXPORT
            Real files: PDF via expo-print HTML, CSV via the
            shared CSV generator. Both are built into the app
-           cache, copied into a user-visible Download folder
-           through the Storage Access Framework, and only fall
-           back to the system share sheet when the folder grant
-           is declined.
+           cache, then copied into a user-visible Download folder
+           through the Storage Access Framework. Nothing reaches
+           a share chooser: when the folder grant is declined the
+           built file opens directly instead.
            Native modules are lazy-bound here (dynamic import)
-           so tab mount never evaluates expo-print/sharing/
-           file-system on release — web shims survive the
-           static import but Fabric can throw at load.
+           so tab mount never evaluates expo-print/file-system
+           on release — web shims survive the static import but
+           Fabric can throw at load.
            ====================================================== */
 
         setIsExporting(true);
@@ -880,7 +932,6 @@ export default function AnalyticsScreen() {
           const {
             buildReportCsvFile,
             buildReportPdfFile,
-            shareReportFile,
           } = await import(
             "@/services/reportPrint"
           );
@@ -901,8 +952,8 @@ export default function AnalyticsScreen() {
           );
 
           // null means the folder prompt was declined (or SAF
-          // is unavailable): keep the old share-sheet flow so
-          // an export is never blocked.
+          // is unavailable): open the built file directly so an
+          // export is never blocked, still with no share sheet.
           const saved =
             await saveReportFileToDownloads(
               reportFile.uri,
@@ -927,11 +978,13 @@ export default function AnalyticsScreen() {
             return;
           }
 
-          await shareReportFile(reportFile);
+          await openReportDirectly(
+            reportFile,
+          );
 
           setExportStatus({
             kind: "success",
-            message: `${reportType} report ready — choose where to save it.`,
+            message: `${reportType} report opened — allow folder access to save a copy.`,
           });
         } catch (error) {
           captureAppError(error, {
@@ -952,6 +1005,7 @@ export default function AnalyticsScreen() {
       [
         isExporting,
         monitoringHistory,
+        openReportDirectly,
         reportFrequency,
         range,
       ],
@@ -973,10 +1027,9 @@ export default function AnalyticsScreen() {
         }
       : null;
 
-  // Opens the saved report in whatever app handles its type.
-  // expo-sharing only accepts local `file://` URLs, so this
-  // shares the cache copy — the Download copy stays the
-  // durable one.
+  // Opens the saved report directly — the PDF in the system
+  // document preview, the CSV in the in-app viewer. No share
+  // sheet is involved at any point.
   const openExportedReport =
     useCallback(async () => {
       const saved = savedReport;
@@ -985,18 +1038,13 @@ export default function AnalyticsScreen() {
         return;
       }
 
-      // Close first: the chooser covers the screen anyway, and
-      // a second tap cannot fire the intent twice while the
+      // Close first: the viewer covers the screen anyway, and
+      // a second tap cannot fire the open twice while the
       // first one is still starting.
       setExportSheetVisible(false);
 
       try {
-        const { shareReportFile } =
-          await import(
-            "@/services/reportPrint"
-          );
-
-        await shareReportFile(saved);
+        await openReportDirectly(saved);
       } catch (error) {
         captureAppError(error, {
           flow: "analytics-report",
@@ -1010,7 +1058,7 @@ export default function AnalyticsScreen() {
             "The report could not be opened. Please try again.",
         });
       }
-    }, [savedReport]);
+    }, [savedReport, openReportDirectly]);
 
   /* ==========================================================
      DATE RANGE
@@ -1523,6 +1571,20 @@ export default function AnalyticsScreen() {
         <Copyright />
       </PullRefreshScroll>
       </ScrollVisibilityProvider>
+
+      {/* ========================================================
+          REPORT VIEWER
+          In-app reading surface for CSV exports. Full-screen
+          because the report is the content; no share sheet or
+          external app is ever launched.
+      ======================================================== */}
+      <ReportViewerModal
+        visible={viewerVisible}
+        result={viewerReport}
+        onClose={() =>
+          setViewerVisible(false)
+        }
+      />
 
       {/* ========================================================
           REPORT FREQUENCY MODAL

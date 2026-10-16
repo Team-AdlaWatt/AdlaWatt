@@ -20,7 +20,7 @@
 // a subfolder (typically Download/AdlaWatt).
 //
 // Declining the prompt is not an error: the function returns
-// null and the caller falls back to the share sheet, so an
+// null and the caller opens the built file directly, so an
 // export can never be blocked by a missing folder grant.
 // ============================================================
 
@@ -188,7 +188,7 @@ const findExistingChild = async (
  *
  * Returns null when the folder prompt was declined, when SAF is
  * unavailable (iOS/web have no equivalent), or when the write
- * fails — callers treat null as "fall back to the share sheet".
+ * fails — callers treat null as "open the built file directly".
  *
  * @param sourceUri Local `file://` copy of the report.
  * @param filename Document name to write, extension included.
