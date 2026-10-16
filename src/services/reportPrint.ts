@@ -148,9 +148,45 @@ export const buildReportHtml = (
         <td>${escapeHtml(row.deviceStatus)}</td>
         <td>${escapeHtml(row.batteryTemperature)}</td>
         <td>${escapeHtml(row.solarTemperature)}</td>
-        <td>${escapeHtml(row.voltage)}</td>
-        <td>${escapeHtml(row.energyInputWh)}</td>
-        <td>${escapeHtml(row.energyOutputWh)}</td>
+        <td>${escapeHtml(row.solarTimer)}</td>
+        <td>${escapeHtml(row.solarVoltage)}</td>
+        <td>${escapeHtml(row.solarCurrent)}</td>
+        <td>${escapeHtml(row.totalEnergy)}</td>
+      </tr>`,
+    )
+    .join("");
+
+  // Derived analytics, rendered from the shared ReportKpi list so
+  // the native PDF shows the same metrics as the web PDF + CSV.
+  const kpiRows = reportData.kpis
+    .map((entry) =>
+      kpi(
+        entry.label,
+        entry.unit
+          ? `${entry.value} ${entry.unit}`
+          : entry.value,
+      ),
+    )
+    .join("");
+
+  // Chart-aligned per-bucket aggregates, from the same
+  // ReportPeriodRow list the CSV exports.
+  const periodRows = reportData.periods
+    .map(
+      (period) => `
+      <tr>
+        <td>${escapeHtml(period.periodLabel)}</td>
+        <td>${period.sampleCount}</td>
+        <td>${formatNumber(period.avgBatteryLevel)}</td>
+        <td>${formatNumber(period.minBatteryLevel)}</td>
+        <td>${formatNumber(period.maxBatteryLevel)}</td>
+        <td>${formatNumber(period.energyInputWh)}</td>
+        <td>${formatNumber(period.energyOutputWh)}</td>
+        <td>${formatNumber(period.netEnergyWh)}</td>
+        <td>${formatNumber(period.solarCoveragePct)}</td>
+        <td>${formatNumber(period.uptimePct)}</td>
+        <td>${period.unsafeSampleCount}</td>
+        <td>${formatNumber(period.sunHours)}</td>
       </tr>`,
     )
     .join("");
@@ -208,21 +244,48 @@ export const buildReportHtml = (
     ${kpi("Time remaining", summary.latestTimeRemaining)}
   </div>
 
+  <div class="section-title">Key Metrics</div>
+  <div class="kpi-grid">
+    ${kpiRows}
+  </div>
+
+  <div class="section-title">Aggregated Periods</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Period</th>
+        <th>Samples</th>
+        <th>Avg Batt %</th>
+        <th>Min %</th>
+        <th>Max %</th>
+        <th>Energy In Wh</th>
+        <th>Energy Out Wh</th>
+        <th>Net Wh</th>
+        <th>Coverage %</th>
+        <th>Uptime %</th>
+        <th>Unsafe</th>
+        <th>Sun h</th>
+      </tr>
+    </thead>
+    <tbody>${periodRows}</tbody>
+  </table>
+
   <div class="section-title">Monitoring History</div>
   <table>
     <thead>
       <tr>
         <th>Recorded At</th>
-        <th>Batt %</th>
+        <th>Battery %</th>
         <th>Battery</th>
         <th>Solar W</th>
         <th>Load W</th>
         <th>Device</th>
-        <th>Batt C</th>
+        <th>Battery C</th>
         <th>Solar C</th>
-        <th>Volt</th>
-        <th>In Wh</th>
-        <th>Out Wh</th>
+        <th>Sol Timer</th>
+        <th>Sol V</th>
+        <th>Sol A</th>
+        <th>Total Wh</th>
       </tr>
     </thead>
     <tbody>${tableRows}</tbody>
