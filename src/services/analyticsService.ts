@@ -188,10 +188,78 @@ export interface AnalyticsReportData {
 
   monitoringRows: ReportMonitoringRow[];
 
+  /*
+   * Chart-aligned per-bucket aggregates. Same bucketing and same
+   * math as the analytics cards, so a report can never drift
+   * from what the screen shows.
+   */
+  periods: ReportPeriodRow[];
+
   summary: ReportSummary;
+
+  /*
+   * Derived analytics KPIs (solar coverage, uptime, unsafe
+   * discharge, best sun day, ...). Surfaced in both exports so
+   * the files carry insight, not just raw columns.
+   */
+  kpis: ReportKpi[];
 
   reportTitle: string;
   reportSubtitle: string;
+}
+
+/* ============================================================
+   CANONICAL REPORT SCHEMA
+   ------------------------------------------------------------
+   One schema feeds BOTH exports — CSV keeps full raw parity,
+   PDF shows a curated subset — and both mirror the on-screen
+   analytics. Layers, outermost first:
+     kpis           derived range-level analytics
+     periods        per-bucket aggregates (chart-aligned)
+     summary        range-level raw aggregates
+     monitoringRows raw per-sample rows (CSV detail)
+   ============================================================ */
+
+export interface ReportKpi {
+  /** Stable id; also the CSV row key. */
+  key: string;
+  label: string;
+  /** Pre-formatted value (already rounded/units applied). */
+  value: string;
+  /** Optional unit suffix for the PDF value cell. */
+  unit?: string;
+  /** Optional secondary note, e.g. which day was best. */
+  hint?: string;
+}
+
+export interface ReportPeriodRow {
+  /** Bucket label matching the charts (e.g. "Oct 16"). */
+  periodLabel: string;
+  sampleCount: number;
+
+  avgBatteryLevel: number;
+  minBatteryLevel: number;
+  maxBatteryLevel: number;
+
+  avgSolarInput: number;
+  maxSolarInput: number;
+
+  energyInputWh: number;
+  energyOutputWh: number;
+  netEnergyWh: number;
+  runningBalanceWh: number;
+  solarCoveragePct: number;
+
+  avgLoadW: number;
+  peakLoadW: number;
+
+  uptimePct: number;
+  unsafeSampleCount: number;
+  temperatureAlertCount: number;
+  sunHours: number;
+
+  avgBatteryTemperature: number;
+  avgSolarTemperature: number;
 }
 
 
@@ -1091,6 +1159,376 @@ export function createReportSummary(
    REPORT DATA PREPARATION
    ============================================================ */
 
+/*
+ * Chart-aligned period aggregates. Delegates to the SAME helper
+ * functions the analytics cards use, so the report cannot show a
+ * different number than the chart for the same bucket. Arrays
+ * come back index-aligned with `buckets`, so zipping is safe.
+ */
+export function buildReportPeriods(
+  monitoringHistory: MonitoringHistoryRow[],
+  reportFrequency: ReportFrequency,
+): ReportPeriodRow[] {
+  const buckets = groupMonitoringHistory(
+    monitoringHistory,
+    reportFrequency,
+  );
+
+  if (buckets.length === 0) {
+    return [];
+  }
+
+  const battery = getBatteryChartRangeData(
+    buckets,
+    reportFrequency,
+  );
+
+  const solar = getSolarChartData(
+    buckets,
+    reportFrequency,
+  );
+
+  const peakSolar = getBestSunDaysData(
+    buckets,
+    reportFrequency,
+  );
+
+  const energyInput = getEnergyInputChartData(
+    buckets,
+    reportFrequency,
+  );
+
+  const energyOutput =
+    getEnergyOutputChartData(
+      buckets,
+      reportFrequency,
+    );
+
+  const netEnergy = getNetEnergyData(
+    buckets,
+    reportFrequency,
+  );
+
+  const runningBalance =
+    getRunningBalanceData(
+      buckets,
+      reportFrequency,
+    );
+
+  const solarCoverage = getSolarCoverageData(
+    buckets,
+    reportFrequency,
+  );
+
+  const load = getLoadVsPeakData(
+    buckets,
+    reportFrequency,
+  );
+
+  const uptime = getUptimeData(
+    buckets,
+    reportFrequency,
+  );
+
+  const unsafe = getUnsafeDischargeChartData(
+    buckets,
+    reportFrequency,
+  );
+
+  const alerts = getTemperatureAlertsData(
+    buckets,
+    reportFrequency,
+  );
+
+  const sunHours = getSunHoursData(
+    buckets,
+    reportFrequency,
+  );
+
+  const batteryTemperature =
+    getBatteryTemperatureData(
+      buckets,
+      reportFrequency,
+    );
+
+  const solarTemperature =
+    getSolarTemperatureData(
+      buckets,
+      reportFrequency,
+    );
+
+  return buckets.map((bucket, index) => ({
+    periodLabel: formatDateLabel(
+      bucket.date,
+      reportFrequency,
+    ),
+    sampleCount: bucket.rows.length,
+
+    avgBatteryLevel: battery[index]?.value ?? 0,
+    minBatteryLevel: battery[index]?.min ?? 0,
+    maxBatteryLevel: battery[index]?.max ?? 0,
+
+    avgSolarInput: solar[index]?.value ?? 0,
+    maxSolarInput: peakSolar[index]?.value ?? 0,
+
+    energyInputWh: energyInput[index]?.value ?? 0,
+    energyOutputWh:
+      energyOutput[index]?.value ?? 0,
+    netEnergyWh: netEnergy[index]?.value ?? 0,
+    runningBalanceWh:
+      runningBalance[index]?.value ?? 0,
+    solarCoveragePct:
+      solarCoverage[index]?.value ?? 0,
+
+    avgLoadW: load[index]?.avg ?? 0,
+    peakLoadW: load[index]?.peak ?? 0,
+
+    uptimePct: uptime[index]?.value ?? 0,
+    unsafeSampleCount:
+      unsafe[index]?.value ?? 0,
+    temperatureAlertCount:
+      alerts[index]?.value ?? 0,
+    sunHours: sunHours[index]?.value ?? 0,
+
+    avgBatteryTemperature:
+      batteryTemperature[index]?.value ?? 0,
+    avgSolarTemperature:
+      solarTemperature[index]?.value ?? 0,
+  }));
+}
+
+/*
+ * Derived range-level KPIs. Everything here is reducible from
+ * the raw rows + summary, and matches the analytics definitions
+ * (CAUTION_SOC for unsafe, "Online" for uptime, High/Critical
+ * for temperature alerts, per-day max solar_timer for sun hours).
+ */
+export function buildReportKpis(
+  monitoringHistory: MonitoringHistoryRow[],
+  summary: ReportSummary,
+): ReportKpi[] {
+  const sampleCount = monitoringHistory.length;
+
+  let totalInputWh = 0;
+  let totalOutputWh = 0;
+  let onlineSamples = 0;
+  let unsafeSamples = 0;
+  let alertSamples = 0;
+  let peakLoadW = 0;
+
+  // Per-day reductions for the "best sun day" + sun-hours KPIs.
+  const sunHoursByDay = new Map<string, number>();
+  const peakSolarByDay = new Map<string, number>();
+
+  monitoringHistory.forEach((row) => {
+    totalInputWh += Math.max(
+      0,
+      toNumber(row.energy_input_wh),
+    );
+
+    totalOutputWh += Math.max(
+      0,
+      toNumber(row.energy_output_wh),
+    );
+
+    if (row.device_status === "Online") {
+      onlineSamples += 1;
+    }
+
+    if (
+      getDoDStatus(
+        toNumber(row.battery_level),
+      ) === "Unsafe"
+    ) {
+      unsafeSamples += 1;
+    }
+
+    if (
+      ALERT_TEMPERATURE_STATUSES.has(
+        String(
+          row.battery_temperature_status ??
+            "",
+        ),
+      ) ||
+      ALERT_TEMPERATURE_STATUSES.has(
+        String(
+          row.solar_temperature_status ??
+            "",
+        ),
+      )
+    ) {
+      alertSamples += 1;
+    }
+
+    peakLoadW = Math.max(
+      peakLoadW,
+      Math.max(
+        0,
+        toNumber(row.current_load),
+      ),
+    );
+
+    const dayKey = String(
+      row.recorded_at ?? "",
+    ).slice(0, 10);
+
+    if (!dayKey) {
+      return;
+    }
+
+    const sunHours =
+      parseSolarTimerHours(row.solar_timer);
+
+    sunHoursByDay.set(
+      dayKey,
+      Math.max(
+        sunHoursByDay.get(dayKey) ?? 0,
+        sunHours,
+      ),
+    );
+
+    peakSolarByDay.set(
+      dayKey,
+      Math.max(
+        peakSolarByDay.get(dayKey) ?? 0,
+        Math.max(
+          0,
+          toNumber(row.solar_input),
+        ),
+      ),
+    );
+  });
+
+  const totalSunHours = Array.from(
+    sunHoursByDay.values(),
+  ).reduce((sum, hours) => sum + hours, 0);
+
+  let bestSunDayKey = "";
+  let bestSunDayPeak = 0;
+
+  peakSolarByDay.forEach((peak, dayKey) => {
+    if (peak > bestSunDayPeak) {
+      bestSunDayPeak = peak;
+      bestSunDayKey = dayKey;
+    }
+  });
+
+  const netEnergyWh =
+    totalInputWh - totalOutputWh;
+
+  const solarCoveragePct =
+    totalOutputWh > 0
+      ? Math.max(
+          0,
+          (totalInputWh / totalOutputWh) *
+            100,
+        )
+      : 0;
+
+  const uptimePct =
+    sampleCount > 0
+      ? (onlineSamples / sampleCount) * 100
+      : 0;
+
+  const unsafePct =
+    sampleCount > 0
+      ? (unsafeSamples / sampleCount) * 100
+      : 0;
+
+  return [
+    {
+      key: "samples",
+      label: "Samples analysed",
+      value: String(sampleCount),
+    },
+    {
+      key: "avgBatteryLevel",
+      label: "Average battery level",
+      value: formatNumber(
+        summary.averageBatteryLevel,
+      ),
+      unit: "%",
+    },
+    {
+      key: "minBatteryLevel",
+      label: "Lowest battery level",
+      value: formatNumber(
+        summary.minimumBatteryLevel,
+      ),
+      unit: "%",
+    },
+    {
+      key: "unsafeDischarge",
+      label: "Unsafe discharge samples",
+      value: String(unsafeSamples),
+      unit: "% of samples",
+      hint: `${formatNumber(
+        unsafePct,
+      )}% of samples`,
+    },
+    {
+      key: "energyInput",
+      label: "Total energy in",
+      value: formatNumber(totalInputWh),
+      unit: "Wh",
+    },
+    {
+      key: "energyOutput",
+      label: "Total energy out",
+      value: formatNumber(totalOutputWh),
+      unit: "Wh",
+    },
+    {
+      key: "netEnergy",
+      label: "Net energy",
+      value: formatNumber(netEnergyWh),
+      unit: "Wh",
+    },
+    {
+      key: "solarCoverage",
+      label: "Solar coverage",
+      value: formatNumber(
+        solarCoveragePct,
+      ),
+      unit: "%",
+    },
+    {
+      key: "uptime",
+      label: "Device uptime",
+      value: formatNumber(uptimePct),
+      unit: "%",
+    },
+    {
+      key: "temperatureAlerts",
+      label: "Temperature alerts",
+      value: String(alertSamples),
+      unit: "samples",
+    },
+    {
+      key: "sunHours",
+      label: "Total sun hours",
+      value: formatNumber(totalSunHours),
+      unit: "h",
+    },
+    {
+      key: "bestSunDay",
+      label: "Best sun day",
+      value: bestSunDayKey || "N/A",
+      hint: bestSunDayKey
+        ? `peak ${formatNumber(
+            bestSunDayPeak,
+          )} W`
+        : undefined,
+    },
+    {
+      key: "peakLoad",
+      label: "Peak load",
+      value: formatNumber(peakLoadW),
+      unit: "W",
+    },
+  ];
+}
+
 export function prepareReportData(
   monitoringHistory: MonitoringHistoryRow[],
   reportFrequency: ReportFrequency,
@@ -1106,6 +1544,16 @@ export function prepareReportData(
       monitoringHistory,
     );
 
+  const periods = buildReportPeriods(
+    monitoringHistory,
+    reportFrequency,
+  );
+
+  const kpis = buildReportKpis(
+    monitoringHistory,
+    summary,
+  );
+
   return {
     frequency:
       reportFrequency,
@@ -1116,7 +1564,11 @@ export function prepareReportData(
 
     monitoringRows,
 
+    periods,
+
     summary,
+
+    kpis,
 
     reportTitle:
       "AdlaWatt Analytics Report",
