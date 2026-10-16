@@ -124,7 +124,18 @@ export interface AnalyticsCardsProps {
     reportType: ReportType,
   ) => Promise<void>;
   exporting?: boolean;
+  status?: ReportExportStatus;
 }
+
+/*
+ * Cross-platform export feedback. Replaces Alert.alert, which is
+ * a no-op on react-native-web, so web users previously got no
+ * response at all when a report had no data or failed.
+ */
+export type ReportExportStatus = {
+  kind: "info" | "error" | "success";
+  message: string;
+} | null;
 
 /* ============================================================
    ANALYTICS PANEL
@@ -139,6 +150,7 @@ export default function AnalyticsCards({
   onPresetSelect,
   generateReport,
   exporting = false,
+  status,
 }: AnalyticsCardsProps) {
   const colors = useAppColors();
 
@@ -367,6 +379,37 @@ export default function AnalyticsCards({
               </AppText>
             </Pressable>
           </View>
+
+          {status ? (
+            <View
+              style={[
+                styles.statusRow,
+                status.kind ===
+                "error"
+                  ? styles.statusError
+                  : status.kind ===
+                      "success"
+                    ? styles.statusSuccess
+                    : styles.statusInfo,
+              ]}
+            >
+              <AppText
+                variant="caption"
+                style={[
+                  styles.statusText,
+                  status.kind ===
+                  "error"
+                    ? styles.statusTextError
+                    : status.kind ===
+                        "success"
+                      ? styles.statusTextSuccess
+                      : styles.statusTextInfo,
+                ]}
+              >
+                {status.message}
+              </AppText>
+            </View>
+          ) : null}
         </View>
       </View>
     </>
@@ -549,5 +592,50 @@ export const analyticsDimensions = {
     exportPrimaryText: {
       color: colors.onPrimary,
       fontWeight: "700",
+    },
+
+    statusRow: {
+      width: "100%",
+      marginTop: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+    },
+
+    statusInfo: {
+      backgroundColor:
+        colors.selectedWash,
+      borderColor: colors.border,
+    },
+
+    statusSuccess: {
+      backgroundColor:
+        colors.selectedWash,
+      borderColor: colors.primary,
+    },
+
+    statusError: {
+      backgroundColor:
+        colors.selectedWash,
+      borderColor: colors.error,
+    },
+
+    statusText: {
+      lineHeight: 18,
+    },
+
+    statusTextInfo: {
+      color: colors.textSecondary,
+    },
+
+    statusTextSuccess: {
+      color: colors.primary,
+      fontWeight: "600",
+    },
+
+    statusTextError: {
+      color: colors.error,
+      fontWeight: "600",
     },
   });

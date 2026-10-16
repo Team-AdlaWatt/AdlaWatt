@@ -1,5 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
-import AnalyticsCards from "@/components/AnalyticsCard";
+import AnalyticsCards, {
+  type ReportExportStatus,
+} from "@/components/AnalyticsCard";
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
 import ScreenContainer2 from "@/components/layout/ScreenContainer2";
@@ -81,7 +83,6 @@ import React, {
   useState,
 } from "react";
 import {
-  Alert,
   Animated,
   Easing,
   Platform,
@@ -90,6 +91,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { captureAppError } from "@/services/sentry";
 
 /* ============================================================
    QUICK-NAV SCROLL
@@ -140,6 +142,13 @@ export default function AnalyticsScreen() {
     isExporting,
     setIsExporting,
   ] = useState(false);
+
+  const [
+    exportStatus,
+    setExportStatus,
+  ] = useState<ReportExportStatus>(
+    null,
+  );
 
   const [
     reportFrequency,
@@ -668,13 +677,19 @@ export default function AnalyticsScreen() {
           monitoringHistory.length ===
           0
         ) {
-          Alert.alert(
-            "No Data",
-            "There is no historical analytics data available for the selected date range.",
-          );
+          setExportStatus({
+            kind: "info",
+            message:
+              "No historical analytics data is available for the selected date range.",
+          });
 
           return;
         }
+
+        setExportStatus({
+          kind: "info",
+          message: `Preparing ${reportType} report…`,
+        });
 
         /* ======================================================
            WEB EXPORT (jsPDF template)
@@ -709,6 +724,12 @@ export default function AnalyticsScreen() {
                 filename,
               );
 
+              setExportStatus({
+                kind: "success",
+                message:
+                  "CSV report downloaded.",
+              });
+
               return;
             }
 
@@ -727,17 +748,25 @@ export default function AnalyticsScreen() {
               filename,
             );
 
+            setExportStatus({
+              kind: "success",
+              message:
+                "PDF report downloaded.",
+            });
+
             return;
           } catch (error) {
-            console.error(
-              "Web report export error:",
-              error,
-            );
+            captureAppError(error, {
+              flow: "analytics-report",
+              platform: "web",
+              reportType,
+            });
 
-            Alert.alert(
-              "Export Error",
-              "The report could not be generated.",
-            );
+            setExportStatus({
+              kind: "error",
+              message:
+                "The report could not be generated. Please try again.",
+            });
 
             return;
           }
@@ -779,22 +808,36 @@ export default function AnalyticsScreen() {
               reportData,
             );
 
+            setExportStatus({
+              kind: "success",
+              message:
+                "CSV report ready — choose where to save it.",
+            });
+
             return;
           }
 
           await printAndSharePdf(
             reportData,
           );
-        } catch (error) {
-          console.error(
-            "Native report export error:",
-            error,
-          );
 
-          Alert.alert(
-            "Export Error",
-            "The report could not be generated.",
-          );
+          setExportStatus({
+            kind: "success",
+            message:
+              "PDF report ready — choose where to save it.",
+          });
+        } catch (error) {
+          captureAppError(error, {
+            flow: "analytics-report",
+            platform: Platform.OS,
+            reportType,
+          });
+
+          setExportStatus({
+            kind: "error",
+            message:
+              "The report could not be generated. Please try again.",
+          });
         } finally {
           setIsExporting(false);
         }
@@ -1292,6 +1335,7 @@ export default function AnalyticsScreen() {
             }
             generateReport={generateReport}
             exporting={isExporting}
+            status={exportStatus}
           />
         </View>
 

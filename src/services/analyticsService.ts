@@ -228,6 +228,15 @@ export const ANALYTICS_PRESETS: {
 // long history ranges must be walked page by page.
 export const ANALYTICS_PAGE_SIZE = 1000;
 
+/*
+ * Upper bound on rows written into a CSV export. A full-year
+ * range can be ~100k rows and the joined string is the single
+ * largest allocation in the export path, so it is capped here
+ * (with a truncation notice) instead of risking an OOM crash.
+ * The on-screen summary always reflects the full range.
+ */
+export const CSV_MAX_ROWS = 20000;
+
 export const FREQUENCIES: ChartFrequency[] = [
   "Daily",
   "Weekly",
@@ -2650,22 +2659,31 @@ export function generateAdlaWattCsv(
   ];
 
   const monitoringCsvRows =
-    reportData.monitoringRows.map(
-      (row) => [
-        row.recordedAt,
-        row.batteryLevel,
-        row.batteryStatus,
-        row.solarInput,
-        row.currentLoad,
-        row.deviceStatus,
-        row.batteryTemperature,
-        row.solarTemperature,
-        row.solarTimer,
-        row.solarVoltage,
-        row.solarCurrent,
-        row.totalEnergy,
-      ],
-    );
+    reportData.monitoringRows
+      .slice(0, CSV_MAX_ROWS)
+      .map(
+        (row) => [
+          row.recordedAt,
+          row.batteryLevel,
+          row.batteryStatus,
+          row.solarInput,
+          row.currentLoad,
+          row.deviceStatus,
+          row.batteryTemperature,
+          row.solarTemperature,
+          row.solarTimer,
+          row.solarVoltage,
+          row.solarCurrent,
+          row.totalEnergy,
+        ],
+      );
+
+  const totalMonitoringRows =
+    reportData.monitoringRows.length;
+
+  const monitoringTruncated =
+    totalMonitoringRows >
+    CSV_MAX_ROWS;
 
   /*
    * Every row is padded to a single uniform column count so the
@@ -2708,6 +2726,13 @@ export function generateAdlaWattCsv(
     ],
     monitoringHeaders,
     ...monitoringCsvRows,
+    ...(monitoringTruncated
+      ? [
+          [
+            `Showing first ${CSV_MAX_ROWS} of ${totalMonitoringRows} records — narrow the date range for the complete dataset.`,
+          ],
+        ]
+      : []),
   );
 
   return sections
