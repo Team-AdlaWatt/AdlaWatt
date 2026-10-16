@@ -1,3 +1,5 @@
+[![Android Builds](https://github.com/Team-AdlaWatt/AdlaWatt/actions/workflows/android.yml/badge.svg)](https://github.com/Team-AdlaWatt/AdlaWatt/actions/workflows/android.yml)
+
 # AdlaWatt
 
 An IoT-based transportable off-grid solar energy harvesting system with a mobile application for real-time energy monitoring, appliance recommendations, notifications, and backup power management during electricity interruptions.
