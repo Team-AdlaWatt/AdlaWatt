@@ -12,6 +12,9 @@ import AppText from "@/components/ui/AppText";
 import {
   CalendarModal,
 } from "@/components/ui/CalendarModal";
+import ReportSavedModal, {
+  type SavedReport,
+} from "@/components/ui/ReportSavedModal";
 import {
   useAppColors,
   type AppColors,
@@ -125,6 +128,11 @@ export interface AnalyticsCardsProps {
   ) => Promise<void>;
   exporting?: boolean;
   status?: ReportExportStatus;
+  /** Saved-report summary: opens the post-export sheet. */
+  exportResult?: ReportExportResult;
+  exportSheetVisible?: boolean;
+  onOpenExportedReport?: () => void;
+  onDismissExportResult?: () => void;
 }
 
 /*
@@ -136,6 +144,17 @@ export type ReportExportStatus = {
   kind: "info" | "error" | "success";
   message: string;
 } | null;
+
+/*
+ * Native export outcome. The status row above reports whether
+ * the export ran; this carries the extra detail the success
+ * sheet needs — the file name and the folder it landed in.
+ */
+export type ReportExportResult =
+  | SavedReport
+  | null;
+
+const noop = () => {};
 
 /* ============================================================
    ANALYTICS PANEL
@@ -151,6 +170,10 @@ export default function AnalyticsCards({
   generateReport,
   exporting = false,
   status,
+  exportResult = null,
+  exportSheetVisible = false,
+  onOpenExportedReport,
+  onDismissExportResult,
 }: AnalyticsCardsProps) {
   const colors = useAppColors();
 
@@ -412,6 +435,20 @@ export default function AnalyticsCards({
           ) : null}
         </View>
       </View>
+
+      {/* ======================================================
+          POST-EXPORT SHEET
+          Native only: reports land in a real Download folder,
+          so the sheet confirms where and offers one tap to
+          open the file. Web downloads need no equivalent.
+      ====================================================== */}
+
+      <ReportSavedModal
+        visible={exportSheetVisible}
+        result={exportResult}
+        onOpen={onOpenExportedReport ?? noop}
+        onClose={onDismissExportResult ?? noop}
+      />
     </>
   );
 }

@@ -1,5 +1,9 @@
 // ============================================================
-// ADLAWATT NATIVE REPORT EXPORT (expo-print HTML + file share)
+// ADLAWATT NATIVE REPORT EXPORT (expo-print HTML + file handoff)
+//
+// Builds the local report file and opens the system chooser on
+// it. Saving into the public Download folder is a separate step
+// (see reportStorage.ts) so this module stays a pure renderer.
 //
 // Real-file export for Android/iOS. The web path keeps using
 // the jsPDF template in analyticsService.ts; native renders a
@@ -302,6 +306,24 @@ export const buildReportHtml = (
 };
 
 // ============================================================
+// REPORT FILE
+//
+// A built report plus everything the two exit ramps need: the
+// Download-folder save reads the bytes, the system chooser
+// needs the mime type, dialog title and iOS UTI. Built once
+// per export and handed to whichever path runs.
+// ============================================================
+
+export interface ReportFile {
+  /** Local `file://` copy in the cache directory. */
+  uri: string;
+  filename: string;
+  mimeType: string;
+  dialogTitle: string;
+  UTI?: string;
+}
+
+// ============================================================
 // SHARE HELPERS
 // ============================================================
 
@@ -313,13 +335,36 @@ const ensureSharingAvailable = async (): Promise<boolean> => {
   }
 };
 
+// Opens the system chooser on a local file. expo-sharing
+// rejects non-`file` schemes outright, which is why the saved
+// copy in the Download folder is not shared directly — this
+// shares the cache copy and the folder keeps its own copy.
+export const shareReportFile = async (
+  file: ReportFile,
+): Promise<void> => {
+  if (!(await ensureSharingAvailable())) {
+    throw new Error(
+      "Sharing is not available on this device.",
+    );
+  }
+
+  await Sharing.shareAsync(
+    file.uri,
+    {
+      mimeType: file.mimeType,
+      dialogTitle: file.dialogTitle,
+      UTI: file.UTI,
+    },
+  );
+};
+
 // ============================================================
 // PDF EXPORT (NATIVE)
 // ============================================================
 
-export const printAndSharePdf = async (
+export const buildReportPdfFile = async (
   reportData: AnalyticsReportData,
-): Promise<void> => {
+): Promise<ReportFile> => {
   const logoDataUrl =
     await loadLogoDataUrl();
 
@@ -343,47 +388,40 @@ export const printAndSharePdf = async (
     filename,
   );
 
-  let shareUri = uri;
+  let localUri = uri;
 
   try {
     // SDK57: File copy is async — await so the share target
     // exists before shareAsync reads it.
     await new File(uri).copy(target);
 
-    shareUri = target.uri;
+    localUri = target.uri;
   } catch (error) {
     console.warn(
-      "Report rename failed, sharing print output directly:",
+      "Report rename failed, using print output directly:",
       error instanceof Error
         ? error.message
         : error,
     );
   }
 
-  if (!(await ensureSharingAvailable())) {
-    throw new Error(
-      "Sharing is not available on this device.",
-    );
-  }
-
-  await Sharing.shareAsync(
-    shareUri,
-    {
-      mimeType: "application/pdf",
-      dialogTitle:
-        "AdlaWatt Analytics Report",
-      UTI: ".pdf",
-    },
-  );
+  return {
+    uri: localUri,
+    filename,
+    mimeType: "application/pdf",
+    dialogTitle:
+      "AdlaWatt Analytics Report",
+    UTI: ".pdf",
+  };
 };
 
 // ============================================================
 // CSV EXPORT (NATIVE)
 // ============================================================
 
-export const saveAndShareCsv = async (
+export const buildReportCsvFile = async (
   reportData: AnalyticsReportData,
-): Promise<void> => {
+): Promise<ReportFile> => {
   const csv = generateAdlaWattCsv(
     reportData,
   );
@@ -397,24 +435,15 @@ export const saveAndShareCsv = async (
   );
 
   // SDK57: File write is async — await so the CSV is
-  // flushed before shareAsync reads it.
+  // flushed before it is read back for the save.
   await file.write(csv);
 
-  const uri = file.uri;
-
-  if (!(await ensureSharingAvailable())) {
-    throw new Error(
-      "Sharing is not available on this device.",
-    );
-  }
-
-  await Sharing.shareAsync(
-    uri,
-    {
-      mimeType: "text/csv",
-      dialogTitle:
-        "AdlaWatt Analytics CSV Report",
-      UTI: "public.comma-separated-values-text",
-    },
-  );
+  return {
+    uri: file.uri,
+    filename,
+    mimeType: "text/csv",
+    dialogTitle:
+      "AdlaWatt Analytics CSV Report",
+    UTI: "public.comma-separated-values-text",
+  };
 };

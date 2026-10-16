@@ -408,6 +408,10 @@ const fil = {
       sectionUsage: "Paggamit",
       generateReport: "Generate Report",
       goToGenerateReport: "Pumunta sa Generate Report",
+      reportSavedTitle: "Nai-save na ang report",
+      reportSavedTo: "Nai-save sa",
+      reportOpenFile: "Buksan ang file",
+      reportDone: "Tapos na",
     },
     logs: {
       title: "Activity Logs",

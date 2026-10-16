@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import AnalyticsCards, {
+  type ReportExportResult,
   type ReportExportStatus,
 } from "@/components/AnalyticsCard";
 import Copyright from "@/components/ui/Copyright";
@@ -80,6 +81,7 @@ import {
   type BatteryActivitySlice,
   type UnsafeBarPoint,
 } from "@/services/analyticsService";
+import type { ReportFile } from "@/services/reportPrint";
 import React, {
   useCallback,
   useEffect,
@@ -181,6 +183,24 @@ export default function AnalyticsScreen() {
   ] = useState<ReportExportStatus>(
     null,
   );
+
+  // Native export outcome: the built file plus the folder it
+  // was saved into. Drives the post-export sheet, and is kept
+  // after the sheet closes so "Open file" still has its handle.
+  const [
+    savedReport,
+    setSavedReport,
+  ] = useState<
+    | (ReportFile & {
+        folderLabel: string;
+      })
+    | null
+  >(null);
+
+  const [
+    exportSheetVisible,
+    setExportSheetVisible,
+  ] = useState(false);
 
   const [
     reportFrequency,
@@ -835,8 +855,11 @@ export default function AnalyticsScreen() {
         /* ======================================================
            NATIVE ANDROID / IOS EXPORT
            Real files: PDF via expo-print HTML, CSV via the
-           shared CSV generator written to the cache directory.
-           Both are handed to the system share sheet.
+           shared CSV generator. Both are built into the app
+           cache, copied into a user-visible Download folder
+           through the Storage Access Framework, and only fall
+           back to the system share sheet when the folder grant
+           is declined.
            Native modules are lazy-bound here (dynamic import)
            so tab mount never evaluates expo-print/sharing/
            file-system on release — web shims survive the
@@ -855,36 +878,60 @@ export default function AnalyticsScreen() {
 
           // Lazy-bound: only evaluated on actual export press.
           const {
-            printAndSharePdf,
-            saveAndShareCsv,
+            buildReportCsvFile,
+            buildReportPdfFile,
+            shareReportFile,
           } = await import(
             "@/services/reportPrint"
           );
 
-          if (
+          const reportFile =
             reportType === "CSV"
-          ) {
-            await saveAndShareCsv(
-              reportData,
+              ? await buildReportCsvFile(
+                  reportData,
+                )
+              : await buildReportPdfFile(
+                  reportData,
+                );
+
+          const {
+            saveReportFileToDownloads,
+          } = await import(
+            "@/services/reportStorage"
+          );
+
+          // null means the folder prompt was declined (or SAF
+          // is unavailable): keep the old share-sheet flow so
+          // an export is never blocked.
+          const saved =
+            await saveReportFileToDownloads(
+              reportFile.uri,
+              reportFile.filename,
+              reportFile.mimeType,
             );
+
+          if (saved) {
+            setSavedReport({
+              ...reportFile,
+              folderLabel:
+                saved.folderLabel,
+            });
+
+            setExportSheetVisible(true);
 
             setExportStatus({
               kind: "success",
-              message:
-                "CSV report ready — choose where to save it.",
+              message: `${reportType} report saved to ${saved.folderLabel}.`,
             });
 
             return;
           }
 
-          await printAndSharePdf(
-            reportData,
-          );
+          await shareReportFile(reportFile);
 
           setExportStatus({
             kind: "success",
-            message:
-              "PDF report ready — choose where to save it.",
+            message: `${reportType} report ready — choose where to save it.`,
           });
         } catch (error) {
           captureAppError(error, {
@@ -909,6 +956,61 @@ export default function AnalyticsScreen() {
         range,
       ],
     );
+
+  /* ==========================================================
+     SAVED REPORT SHEET
+     ========================================================== */
+
+  // What the card renders: the sheet only needs the name and
+  // the folder, not the file handle.
+  const exportResult: ReportExportResult =
+    savedReport
+      ? {
+          filename:
+            savedReport.filename,
+          folderLabel:
+            savedReport.folderLabel,
+        }
+      : null;
+
+  // Opens the saved report in whatever app handles its type.
+  // expo-sharing only accepts local `file://` URLs, so this
+  // shares the cache copy — the Download copy stays the
+  // durable one.
+  const openExportedReport =
+    useCallback(async () => {
+      const saved = savedReport;
+
+      if (!saved) {
+        return;
+      }
+
+      // Close first: the chooser covers the screen anyway, and
+      // a second tap cannot fire the intent twice while the
+      // first one is still starting.
+      setExportSheetVisible(false);
+
+      try {
+        const { shareReportFile } =
+          await import(
+            "@/services/reportPrint"
+          );
+
+        await shareReportFile(saved);
+      } catch (error) {
+        captureAppError(error, {
+          flow: "analytics-report",
+          platform: Platform.OS,
+          reportType: "open",
+        });
+
+        setExportStatus({
+          kind: "error",
+          message:
+            "The report could not be opened. Please try again.",
+        });
+      }
+    }, [savedReport]);
 
   /* ==========================================================
      DATE RANGE
@@ -1404,6 +1506,16 @@ export default function AnalyticsScreen() {
             generateReport={generateReport}
             exporting={isExporting}
             status={exportStatus}
+            exportResult={exportResult}
+            exportSheetVisible={
+              exportSheetVisible
+            }
+            onOpenExportedReport={
+              openExportedReport
+            }
+            onDismissExportResult={() =>
+              setExportSheetVisible(false)
+            }
           />
         </View>
 
