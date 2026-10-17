@@ -122,44 +122,50 @@ describe("classifyTodayById", () => {
     expect(result.icon).toBe("moon-outline");
   });
 
-  test("id 801 + 02d -> Mostly sunny", () => {
+  test("id 801 + 02d -> Partly sunny", () => {
     expect(
       classifyTodayById({
         id: 801,
         iconCode: "02d",
         rainMm: null,
-      }).label,
-    ).toBe("Mostly sunny");
+      }),
+    ).toMatchObject({
+      label: "Partly sunny",
+      icon: "partly-sunny-outline",
+    });
   });
 
-  test("id 801 + 02n -> Mostly clear", () => {
+  test("id 801 + 02n -> Partly cloudy", () => {
     expect(
       classifyTodayById({
         id: 801,
         iconCode: "02n",
         rainMm: null,
-      }).label,
-    ).toBe("Mostly clear");
+      }),
+    ).toMatchObject({
+      label: "Partly cloudy",
+      icon: "cloudy-night-outline",
+    });
   });
 
-  test("id 802 + 03d -> Partly sunny", () => {
+  test("id 802 + 03d -> Partly Cloudy", () => {
     expect(
       classifyTodayById({
         id: 802,
         iconCode: "03d",
         rainMm: null,
       }).label,
-    ).toBe("Partly sunny");
+    ).toBe("Partly Cloudy");
   });
 
-  test("id 803 -> Mostly cloudy", () => {
+  test("id 803 -> Mostly Cloudy", () => {
     expect(
       classifyTodayById({
         id: 803,
         iconCode: "04d",
         rainMm: null,
       }).label,
-    ).toBe("Mostly cloudy");
+    ).toBe("Mostly Cloudy");
   });
 
   test("id 804 -> Overcast", () => {
@@ -172,7 +178,7 @@ describe("classifyTodayById", () => {
     ).toBe("Overcast");
   });
 
-  test("id 721 -> Hazy", () => {
+  test("id 721 -> Haze", () => {
     expect(
       classifyTodayById({
         id: 721,
@@ -180,19 +186,95 @@ describe("classifyTodayById", () => {
         rainMm: null,
       }),
     ).toMatchObject({
-      label: "Hazy",
+      label: "Haze",
       severity: "fog",
+      icon: "cloud-outline",
     });
   });
 
-  test("id 771 -> Squalls, not Hazy", () => {
+  test("id 771 -> Squalls, not Haze", () => {
     expect(
       classifyTodayById({
         id: 771,
         iconCode: "50d",
         rainMm: null,
-      }).label,
-    ).toBe("Squalls");
+      }),
+    ).toMatchObject({
+      label: "Squalls",
+      severity: "severe",
+    });
+  });
+
+  test("id 781 -> Tornado, never fog", () => {
+    expect(
+      classifyTodayById({
+        id: 781,
+        iconCode: "50d",
+        rainMm: null,
+      }),
+    ).toMatchObject({
+      label: "Tornado",
+      severity: "severe",
+    });
+  });
+
+  test("id 511 -> Freezing rain (not Heavy rain)", () => {
+    expect(
+      classifyTodayById({
+        id: 511,
+        iconCode: "10d",
+        rainMm: 1.0,
+      }),
+    ).toMatchObject({
+      label: "Freezing rain",
+      severity: "severe",
+      icon: "rainy-outline",
+    });
+  });
+
+  test("shower intensities: 520 light, 521 moderate, 522 severe, 531 moderate", () => {
+    expect(
+      classifyTodayById({ id: 520, iconCode: "09d", rainMm: 1.0 })
+        .severity,
+    ).toBe("light");
+    expect(
+      classifyTodayById({ id: 521, iconCode: "09d", rainMm: 2.0 })
+        .severity,
+    ).toBe("moderate");
+    expect(
+      classifyTodayById({ id: 522, iconCode: "09d", rainMm: 8.0 })
+        .severity,
+    ).toBe("severe");
+    expect(
+      classifyTodayById({ id: 531, iconCode: "09d", rainMm: 2.0 })
+        .severity,
+    ).toBe("moderate");
+  });
+
+  test("icon matches classification (rain -> rainy, clear day -> sunny)", () => {
+    expect(
+      classifyTodayById({
+        id: 500,
+        iconCode: "10d",
+        rainMm: 1.0,
+      }).icon,
+    ).toBe("rainy-outline");
+
+    expect(
+      classifyTodayById({
+        id: 800,
+        iconCode: "01d",
+        rainMm: null,
+      }).icon,
+    ).toBe("sunny-outline");
+
+    expect(
+      classifyTodayById({
+        id: 800,
+        iconCode: "01n",
+        rainMm: null,
+      }).icon,
+    ).toBe("moon-outline");
   });
 
   test("unknown id -> Condition unavailable", () => {
@@ -223,7 +305,7 @@ describe("resolveTodayDisplay", () => {
 
     if (result.kind === "live") {
       expect(result.classified.label).toBe(
-        "Mostly cloudy",
+        "Mostly Cloudy",
       );
     }
   });

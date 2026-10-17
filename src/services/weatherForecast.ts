@@ -8,6 +8,8 @@ import {
   formatCoordFallback,
   formatNetworkError,
   formatTimeoutError,
+  getFeelsMode,
+  getFeelsOffsetC,
   resolveFeelsLike,
   roundTemperature,
   type FeelsLikeSource,
@@ -432,16 +434,39 @@ function toRainMm(
 // both temp and feels_like at parse time so the card and
 // cache always see corrected values. Tune in JSON, no TS
 // change needed.
-function getTempOffsetC(): number {
-  const raw = (
+//
+// Day/night offsets (tempOffsetDayC / tempOffsetNightC) apply
+// to the Today card only; when both are 0 the base
+// tempOffsetC is used (the value the forecast leg keeps using).
+function getTempOffsetC(isDay?: boolean): number {
+  const calibration = (
     weatherJson as unknown as {
-      calibration?: { tempOffsetC?: unknown };
+      calibration?: {
+        tempOffsetC?: unknown;
+        tempOffsetDayC?: unknown;
+        tempOffsetNightC?: unknown;
+      };
     }
-  ).calibration?.tempOffsetC;
+  ).calibration;
 
-  return typeof raw === "number" && Number.isFinite(raw)
-    ? raw
-    : 0;
+  const pick = (value: unknown): number =>
+    typeof value === "number" && Number.isFinite(value)
+      ? value
+      : 0;
+
+  const base = pick(calibration?.tempOffsetC);
+  const day = pick(calibration?.tempOffsetDayC);
+  const night = pick(calibration?.tempOffsetNightC);
+
+  if (day === 0 && night === 0) {
+    return base;
+  }
+
+  if (typeof isDay !== "boolean") {
+    return base;
+  }
+
+  return isDay ? day : night;
 }
 
 function parseWeatherResponse(
@@ -582,21 +607,33 @@ function parseWeatherResponse(
       ? Math.round(rawHumidity)
       : undefined;
 
-  const offsetC = getTempOffsetC();
+  const isDay = !iconCode.endsWith("n");
+
+  const offsetC = getTempOffsetC(isDay);
 
   const correctedTemp = temperature + offsetC;
 
+  // feelsMode picks the source: "heat-index" (NOAA, from temp
+  // + humidity) or "openweather" (OWM's own feels_like).
+  const feelsMode = getFeelsMode();
+
   const resolvedFeels = resolveFeelsLike(
     correctedTemp,
-    humidity ?? null,
+    feelsMode === "openweather"
+      ? null
+      : (humidity ?? null),
     rawFeelsLike !== null
       ? rawFeelsLike + offsetC
       : null,
   );
 
+  const feelsOffsetC = getFeelsOffsetC();
+
   const feelsLike =
     resolvedFeels !== null
-      ? roundTemperature(resolvedFeels.value)
+      ? roundTemperature(
+          resolvedFeels.value + feelsOffsetC,
+        )
       : undefined;
 
   return {

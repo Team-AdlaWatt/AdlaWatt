@@ -24,6 +24,23 @@ jest.mock("expo-location", () => ({
   Accuracy: { Balanced: 3 },
 }));
 
+// Parsing tests assert raw + offset values, so keep the
+// production calibration out of them. Zeroing it here keeps
+// these assertions stable when weather.json is re-tuned.
+jest.mock("@/data/weather.json", () => {
+  const actual = jest.requireActual("@/data/weather.json");
+  return {
+    ...actual,
+    calibration: {
+      tempOffsetC: 0,
+      tempOffsetDayC: 0,
+      tempOffsetNightC: 0,
+      feelsMode: "heat-index",
+      feelsOffsetC: 0,
+    },
+  };
+});
+
 const mockLocation = Location as unknown as {
   requestForegroundPermissionsAsync: jest.Mock;
   hasServicesEnabledAsync: jest.Mock;
