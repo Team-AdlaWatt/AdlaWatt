@@ -21,7 +21,6 @@ import ManualCallout from "@/components/ManualCallout";
 import ManualSectionCard, {
   ManualSubRow,
 } from "@/components/ManualSectionCard";
-import ManualOpenButton from "@/components/ManualOpenButton";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -40,11 +39,6 @@ import {
 // shells via ManualSectionCard, severity-tinted ManualCallout
 // boxes, and a quick-jump chip row using the dashboard
 // scroll-to-section pattern.
-//
-// Figures: every figure's subject is a real dashboard screen, so
-// the manual renders a ManualOpenButton (live navigation) instead
-// of a screenshot — no bundled screenshots remain, and the screen
-// the user opens always matches the installed build.
 // ============================================================
 
 const CHIPS: {
@@ -147,17 +141,6 @@ export default function UserManualScreen() {
             style={styles.subtitle}
           >
             {t("dashboard.manual.subtitle")}
-          </AppText>
-
-          {/* Live-navigation hint, stated once for the whole
-              screen instead of on every open button (this app
-              has no back stack; screens are reached by tab). */}
-          <AppText
-            variant="caption"
-            style={styles.headerHint}
-          >
-            Green buttons open the live screen.
-            Return here via Menu → User Manual.
           </AppText>
         </View>
 
@@ -264,10 +247,9 @@ export default function UserManualScreen() {
               electrical grid.
             </ManualCallout>
 
-            <ManualOpenButton
-              label="Dashboard"
-              route="/dashboard"
-              icon="home"
+            <FigureSlot
+              label="Figure 1 — Dashboard overview"
+              styles={styles}
             />
           </ManualSectionCard>
         </View>
@@ -319,6 +301,11 @@ export default function UserManualScreen() {
               minute. You can also use a
               different email address.
             </ManualCallout>
+
+            <FigureSlot
+              label="Figure 2 — Register screen"
+              styles={styles}
+            />
           </ManualSectionCard>
         </View>
 
@@ -344,6 +331,11 @@ export default function UserManualScreen() {
               Password? instead of
               guessing.
             </ManualCallout>
+
+            <FigureSlot
+              label="Figure 3 — Login screen"
+              styles={styles}
+            />
           </ManualSectionCard>
         </View>
 
@@ -598,10 +590,9 @@ export default function UserManualScreen() {
               </Para>
             </ManualSubRow>
 
-            <ManualOpenButton
-              label="Appliances"
-              route="/dashboard/appliances"
-              icon="grid"
+            <FigureSlot
+              label="Figure 4 — Appliances list"
+              styles={styles}
             />
           </ManualSectionCard>
         </View>
@@ -638,18 +629,9 @@ export default function UserManualScreen() {
               holds the complete dataset.
             </ManualCallout>
 
-            <ManualOpenButton
-              label="Analytics"
-              route="/dashboard/analytics"
-              icon="bar-chart"
-            />
-            <ManualOpenButton
-              label="Generate Report"
-              route={{
-                pathname: "/dashboard/analytics",
-                params: { focus: "report" },
-              }}
-              icon="document-text"
+            <FigureSlot
+              label="Figure 5 — Analytics and exports"
+              styles={styles}
             />
           </ManualSectionCard>
         </View>
@@ -702,10 +684,9 @@ export default function UserManualScreen() {
               with Prev / Next.
             </Para>
 
-            <ManualOpenButton
-              label="Notifications"
-              route="/dashboard/notifications"
-              icon="notifications"
+            <FigureSlot
+              label="Figure 6 — Notifications list"
+              styles={styles}
             />
           </ManualSectionCard>
         </View>
@@ -731,12 +712,6 @@ export default function UserManualScreen() {
               the Dashboard preview links
               here via View All.
             </Para>
-
-            <ManualOpenButton
-              label="Activity Logs"
-              route="/dashboard/activity-logs"
-              icon="list"
-            />
           </ManualSectionCard>
         </View>
 
@@ -764,10 +739,9 @@ export default function UserManualScreen() {
               the app.
             </Para>
 
-            <ManualOpenButton
-              label="Components"
-              route="/dashboard/components"
-              icon="hardware-chip"
+            <FigureSlot
+              label="Figure 7 — Components grid"
+              styles={styles}
             />
           </ManualSectionCard>
         </View>
@@ -821,10 +795,9 @@ export default function UserManualScreen() {
               restarts and hold offline.
             </ManualCallout>
 
-            <ManualOpenButton
-              label="Menu"
-              route="/dashboard/menu"
-              icon="settings"
+            <FigureSlot
+              label="Figure 8 — Menu preferences"
+              styles={styles}
             />
           </ManualSectionCard>
         </View>
@@ -1195,6 +1168,38 @@ function Faq({
   );
 }
 
+function FigureSlot({
+  label,
+  styles,
+}: {
+  label: string;
+  styles: ReturnType<typeof getStyles>;
+}) {
+  const colors = useAppColors();
+
+  return (
+    <View
+      style={[
+        styles.figureSlot,
+        { borderColor: colors.border },
+      ]}
+      accessibilityRole="text"
+      accessibilityLabel={`${label}, screenshot pending`}
+    >
+      <AppText
+        variant="caption"
+        style={{
+          color: colors.textSecondary,
+          textAlign: "center",
+        }}
+      >
+        {label}
+        {"\n"}screenshot pending
+      </AppText>
+    </View>
+  );
+}
+
 const manualDimensions = {
   borderWidth: 3,
   cardRadius: 16,
@@ -1245,16 +1250,6 @@ const getStyles = (colors: AppColors) =>
       lineHeight: 19,
     },
 
-    headerHint: {
-      color: colors.textSecondary,
-
-      marginTop: 8,
-
-      fontWeight: "600",
-
-      lineHeight: 19,
-    },
-
     /* Contents chips */
 
     chipBlock: {
@@ -1291,5 +1286,19 @@ const getStyles = (colors: AppColors) =>
     chipText: {
       color: colors.primaryText,
       fontWeight: "600",
+    },
+
+    /* Figure placeholders */
+
+    figureSlot: {
+      width: "100%",
+      borderWidth: 2,
+      borderStyle: "dashed",
+      borderRadius: 12,
+      paddingVertical: 18,
+      paddingHorizontal: 12,
+      marginTop: 10,
+      alignItems: "center",
+      justifyContent: "center",
     },
   });
