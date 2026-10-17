@@ -21,6 +21,7 @@ import ManualCallout from "@/components/ManualCallout";
 import ManualSectionCard, {
   ManualSubRow,
 } from "@/components/ManualSectionCard";
+import ManualFigure from "@/components/ManualFigure";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -247,9 +248,9 @@ export default function UserManualScreen() {
               electrical grid.
             </ManualCallout>
 
-            <FigureSlot
+            <ManualFigure
+              source={require("@/assets/images/manual/dashboard-overview.png")}
               label="Figure 1 — Dashboard overview"
-              styles={styles}
             />
           </ManualSectionCard>
         </View>
@@ -302,9 +303,9 @@ export default function UserManualScreen() {
               different email address.
             </ManualCallout>
 
-            <FigureSlot
+            <ManualFigure
+              source={require("@/assets/images/manual/register-screen.png")}
               label="Figure 2 — Register screen"
-              styles={styles}
             />
           </ManualSectionCard>
         </View>
@@ -332,9 +333,9 @@ export default function UserManualScreen() {
               guessing.
             </ManualCallout>
 
-            <FigureSlot
+            <ManualFigure
+              source={require("@/assets/images/manual/login-screen.png")}
               label="Figure 3 — Login screen"
-              styles={styles}
             />
           </ManualSectionCard>
         </View>
@@ -590,9 +591,9 @@ export default function UserManualScreen() {
               </Para>
             </ManualSubRow>
 
-            <FigureSlot
+            <ManualFigure
+              source={require("@/assets/images/manual/appliances-list.png")}
               label="Figure 4 — Appliances list"
-              styles={styles}
             />
           </ManualSectionCard>
         </View>
@@ -629,9 +630,13 @@ export default function UserManualScreen() {
               holds the complete dataset.
             </ManualCallout>
 
-            <FigureSlot
-              label="Figure 5 — Analytics and exports"
-              styles={styles}
+            <ManualFigure
+              source={require("@/assets/images/manual/analytics-screen.png")}
+              label="Figure 5 — Analytics screen"
+            />
+            <ManualFigure
+              source={require("@/assets/images/manual/generate-report.png")}
+              label="Figure 5b — Generate report panel"
             />
           </ManualSectionCard>
         </View>
@@ -684,9 +689,9 @@ export default function UserManualScreen() {
               with Prev / Next.
             </Para>
 
-            <FigureSlot
+            <ManualFigure
+              source={require("@/assets/images/manual/notifications-screen.png")}
               label="Figure 6 — Notifications list"
-              styles={styles}
             />
           </ManualSectionCard>
         </View>
@@ -739,9 +744,9 @@ export default function UserManualScreen() {
               the app.
             </Para>
 
-            <FigureSlot
+            <ManualFigure
+              source={require("@/assets/images/manual/components-screen.png")}
               label="Figure 7 — Components grid"
-              styles={styles}
             />
           </ManualSectionCard>
         </View>
@@ -795,9 +800,9 @@ export default function UserManualScreen() {
               restarts and hold offline.
             </ManualCallout>
 
-            <FigureSlot
+            <ManualFigure
+              source={require("@/assets/images/manual/preferences-screen.png")}
               label="Figure 8 — Menu preferences"
-              styles={styles}
             />
           </ManualSectionCard>
         </View>
@@ -1168,38 +1173,6 @@ function Faq({
   );
 }
 
-function FigureSlot({
-  label,
-  styles,
-}: {
-  label: string;
-  styles: ReturnType<typeof getStyles>;
-}) {
-  const colors = useAppColors();
-
-  return (
-    <View
-      style={[
-        styles.figureSlot,
-        { borderColor: colors.border },
-      ]}
-      accessibilityRole="text"
-      accessibilityLabel={`${label}, screenshot pending`}
-    >
-      <AppText
-        variant="caption"
-        style={{
-          color: colors.textSecondary,
-          textAlign: "center",
-        }}
-      >
-        {label}
-        {"\n"}screenshot pending
-      </AppText>
-    </View>
-  );
-}
-
 const manualDimensions = {
   borderWidth: 3,
   cardRadius: 16,
@@ -1286,19 +1259,5 @@ const getStyles = (colors: AppColors) =>
     chipText: {
       color: colors.primaryText,
       fontWeight: "600",
-    },
-
-    /* Figure placeholders */
-
-    figureSlot: {
-      width: "100%",
-      borderWidth: 2,
-      borderStyle: "dashed",
-      borderRadius: 12,
-      paddingVertical: 18,
-      paddingHorizontal: 12,
-      marginTop: 10,
-      alignItems: "center",
-      justifyContent: "center",
     },
   });
