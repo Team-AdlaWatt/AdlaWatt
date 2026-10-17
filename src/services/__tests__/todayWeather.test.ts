@@ -3,11 +3,9 @@ import * as Location from "expo-location";
 
 import {
   canRefreshToday,
-  distanceKm,
   formatDataAge,
   heatIndexC,
   isStaleReading,
-  nearestArea,
   resolveCondition,
   resolveFeelsLike,
 } from "@/services/weatherConfig";
@@ -136,7 +134,7 @@ describe("resolveCondition main group", () => {
 });
 
 // ============================================================
-// COORDINATES: FAST PATH, ROUNDING, FALLBACK
+// COORDINATES: LIVE FIX, ROUNDING, FALLBACK
 // ============================================================
 
 describe("getWeather coordinates", () => {
@@ -150,10 +148,10 @@ describe("getWeather coordinates", () => {
     );
   };
 
-  test("reuses a recent fix, snapped to the city center", async () => {
+  test("uses a fresh fix, rounded to coordDecimals", async () => {
     grantLocation();
 
-    mockLocation.getLastKnownPositionAsync.mockResolvedValue(
+    mockLocation.getCurrentPositionAsync.mockResolvedValue(
       {
         coords: {
           latitude: 8.36789,
@@ -170,69 +168,31 @@ describe("getWeather coordinates", () => {
     await getWeather();
 
     expect(
-      mockLocation.getCurrentPositionAsync,
+      mockLocation.getLastKnownPositionAsync,
     ).not.toHaveBeenCalled();
+
+    expect(
+      mockLocation.getCurrentPositionAsync,
+    ).toHaveBeenCalled();
 
     const url = String(
       mockFetch.mock.calls[0]?.[0] ?? "",
     );
 
-    expect(url).toContain("lat=8.37");
-    expect(url).toContain("lon=124.86");
+    expect(url).toContain("lat=8.3679");
+    expect(url).toContain("lon=124.8732");
   });
 
-  test("nearby fixes snap to the same city center", async () => {
+  test("never reuses a last-known fix", async () => {
     grantLocation();
 
-    // Two doorsteps ~500m apart snap to the same city
-    // center: city data, not exact-point data.
+    // A last-known fix exists but must be ignored: the app
+    // always takes a live fix for the current location.
     mockLocation.getLastKnownPositionAsync.mockResolvedValue(
       {
         coords: {
-          latitude: 8.3644,
-          longitude: 124.8519,
-        },
-      },
-    );
-
-    mockLocation.getCurrentPositionAsync.mockResolvedValue(
-      {
-        coords: {
-          latitude: 8.3601,
-          longitude: 124.8501,
-        },
-      },
-    );
-
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => owmOk(),
-    });
-
-    await getWeather();
-    await getWeather({ fresh: true });
-
-    const firstUrl = String(
-      mockFetch.mock.calls[0]?.[0] ?? "",
-    );
-    const secondUrl = String(
-      mockFetch.mock.calls[1]?.[0] ?? "",
-    );
-
-    for (const url of [firstUrl, secondUrl]) {
-      expect(url).toContain("lat=8.37");
-      expect(url).toContain("lon=124.86");
-    }
-  });
-
-  test("fresh option skips the last-known reuse", async () => {
-    grantLocation();
-
-    mockLocation.getLastKnownPositionAsync.mockResolvedValue(
-      {
-        coords: {
-          latitude: 8.36789,
-          longitude: 124.87321,
+          latitude: 9.9,
+          longitude: 126.6,
         },
       },
     );
@@ -251,22 +211,18 @@ describe("getWeather coordinates", () => {
       json: async () => owmOk(),
     });
 
-    await getWeather({ fresh: true });
+    await getWeather();
 
     expect(
       mockLocation.getLastKnownPositionAsync,
     ).not.toHaveBeenCalled();
 
-    expect(
-      mockLocation.getCurrentPositionAsync,
-    ).toHaveBeenCalled();
-
     const url = String(
       mockFetch.mock.calls[0]?.[0] ?? "",
     );
 
-    expect(url).toContain("lat=8.37");
-    expect(url).toContain("lon=124.86");
+    expect(url).toContain("lat=8.1");
+    expect(url).toContain("lon=125.1");
   });
 
   test("explicit coordinates skip every GPS lookup", async () => {
@@ -299,12 +255,8 @@ describe("getWeather coordinates", () => {
     expect(url).toContain("lon=125.5");
   });
 
-  test("falls back to a fresh fix without a recent one", async () => {
+  test("falls back to a fresh fix when there is no recent one", async () => {
     grantLocation();
-
-    mockLocation.getLastKnownPositionAsync.mockResolvedValue(
-      null,
-    );
 
     mockLocation.getCurrentPositionAsync.mockResolvedValue(
       {
@@ -327,10 +279,10 @@ describe("getWeather coordinates", () => {
     ).toHaveBeenCalled();
 
     expect(data.mainGroup).toBe("Clouds");
-    expect(data.city).toBe("Manolo Fortich");
+    expect(data.city).toBe("Malaybalay");
   });
 
-  test("denial resolves to the default area", async () => {
+  test("denial resolves to the fallback point", async () => {
     mockLocation.requestForegroundPermissionsAsync.mockResolvedValue(
       { status: "denied" },
     );
@@ -350,17 +302,13 @@ describe("getWeather coordinates", () => {
       mockFetch.mock.calls[0]?.[0] ?? "",
     );
 
-    expect(url).toContain("lat=8.37");
-    expect(url).toContain("lon=124.86");
+    expect(url).toContain("lat=8.3697");
+    expect(url).toContain("lon=124.8644");
     expect(data.isFallback).toBe(true);
   });
 
   test("granted fix carries no fallback flag", async () => {
     grantLocation();
-
-    mockLocation.getLastKnownPositionAsync.mockResolvedValue(
-      null,
-    );
 
     mockLocation.getCurrentPositionAsync.mockResolvedValue(
       {
@@ -759,7 +707,7 @@ describe("fetch retry", () => {
     const data = await getWeather();
 
     expect(mockFetch).toHaveBeenCalledTimes(3);
-    expect(data.city).toBe("Manolo Fortich");
+    expect(data.city).toBe("Malaybalay");
   });
 
   test("401 fails immediately without retry", async () => {
@@ -926,45 +874,7 @@ describe("cache coords", () => {
 
     const data = await getWeather();
 
-    expect(data.city).toBe("Manolo Fortich");
+    expect(data.city).toBe("Malaybalay");
     expect(mockFetch).toHaveBeenCalledTimes(2);
-  });
-});
-
-// ============================================================
-// AREA SNAPPING
-// ============================================================
-
-describe("nearestArea / distanceKm", () => {
-  const areas = [
-    { name: "Manolo Fortich", lat: 8.3697, lon: 124.8644 },
-    { name: "Malaybalay", lat: 8.1575, lon: 125.1278 },
-  ];
-
-  test("picks the nearest configured area", () => {
-    expect(
-      nearestArea(8.4, 124.9, areas)?.name,
-    ).toBe("Manolo Fortich");
-
-    expect(
-      nearestArea(8.16, 125.13, areas)?.name,
-    ).toBe("Malaybalay");
-  });
-
-  test("returns null with no configured areas", () => {
-    expect(nearestArea(8.4, 124.9, [])).toBeNull();
-  });
-
-  test("distanceKm is symmetric and zero for the same point", () => {
-    expect(
-      distanceKm(8.3697, 124.8644, 8.3697, 124.8644),
-    ).toBeCloseTo(0, 5);
-
-    expect(
-      distanceKm(8.3697, 124.8644, 8.1575, 125.1278),
-    ).toBeCloseTo(
-      distanceKm(8.1575, 125.1278, 8.3697, 124.8644),
-      5,
-    );
   });
 });

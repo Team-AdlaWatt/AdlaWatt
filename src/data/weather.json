@@ -12,11 +12,9 @@
     "forecastRefreshMs": 10800000
   },
   "location": {
-    "areas": [
-      { "name": "Manolo Fortich", "lat": 8.3697, "lon": 124.8644 }
-    ],
-    "coordDecimals": 2,
-    "lastKnownMaxAgeMs": 120000
+    "fallbackLat": 8.3697,
+    "fallbackLon": 124.8644,
+    "coordDecimals": 4
   },
   "cache": {
     "todayMinutes": 15,
@@ -26,7 +24,7 @@
     "tempOffsetC": 0,
     "tempOffsetDayC": 0,
     "tempOffsetNightC": 0,
-    "feelsMode": "heat-index",
+    "feelsMode": "openweather",
     "feelsOffsetC": 0
   },
   "thresholds": {
