@@ -17,14 +17,14 @@ import { Touch } from "@/constants/sizing";
 // ============================================================
 // MANUAL OPEN BUTTON
 //
-// Live-navigation card for the in-app User Manual. Where a
-// figure's subject is a real dashboard screen, the manual
-// offers a button instead of a screenshot so the user lands on
-// the live screen with real data.
+// Live-navigation card for the in-app User Manual: every figure
+// in the manual is a real dashboard screen, so the manual offers
+// a button instead of a screenshot and the user lands on the
+// live screen with real data.
 //
-// Same visual language as ManualFigure (frozen brand green
-// with white type, shared via the manualFigure record in
-// colors.ts) so both card kinds read as one family.
+// Same visual language as the manual's figure cards used to be
+// (frozen brand green with white type, shared via the
+// manualFigure record in colors.ts).
 //
 // There is no navigation stack in this app (root + dashboard
 // layouts are Slots), so returning to the manual is the bottom
@@ -38,11 +38,6 @@ const MANUAL_FIGURE_COLORS =
 interface ManualOpenButtonProps {
   /** Screen name shown on the button, e.g. "Appliances". */
   label: string;
-  /**
-   * Secondary line naming what the button shows — usually the
-   * figure caption it replaces, e.g. "Figure 4 — Appliances list".
-   */
-  caption: string;
   /** Target dashboard route (typed routes are enforced). */
   route: Href;
   /** Leading icon matching the target screen. */
@@ -51,7 +46,6 @@ interface ManualOpenButtonProps {
 
 export default function ManualOpenButton({
   label,
-  caption,
   route,
   icon,
 }: ManualOpenButtonProps) {
@@ -63,7 +57,7 @@ export default function ManualOpenButton({
       ]}
       onPress={() => router.push(route)}
       accessibilityRole="button"
-      accessibilityLabel={`Open ${label} screen. ${caption}`}
+      accessibilityLabel={`Open ${label} screen`}
     >
       <View style={styles.row}>
         <Ionicons
@@ -72,21 +66,12 @@ export default function ManualOpenButton({
           color={MANUAL_FIGURE_COLORS.onSurface}
         />
 
-        <View style={styles.textBlock}>
-          <AppText
-            variant="body"
-            style={styles.label}
-          >
-            {`Open ${label}`}
-          </AppText>
-
-          <AppText
-            variant="caption"
-            style={styles.caption}
-          >
-            {caption}
-          </AppText>
-        </View>
+        <AppText
+          variant="body"
+          style={styles.label}
+        >
+          {`Open ${label}`}
+        </AppText>
 
         <Ionicons
           name="arrow-forward"
@@ -98,8 +83,8 @@ export default function ManualOpenButton({
   );
 }
 
-// Theme-independent by design: same frozen manualFigure record
-// ManualFigure uses, so the stylesheet needs no palette.
+// Theme-independent by design: the frozen manualFigure record in
+// colors.ts, so the stylesheet needs no palette.
 const styles = StyleSheet.create({
   card: {
     width: "100%",
@@ -126,19 +111,10 @@ const styles = StyleSheet.create({
     gap: 12,
   },
 
-  textBlock: {
-    flex: 1,
-  },
-
   label: {
+    flex: 1,
     color: MANUAL_FIGURE_COLORS.onSurface,
     fontWeight: "700",
     fontSize: 15,
-  },
-
-  caption: {
-    color:
-      MANUAL_FIGURE_COLORS.onSurfaceMuted,
-    marginTop: 2,
   },
 });

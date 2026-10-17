@@ -21,7 +21,6 @@ import ManualCallout from "@/components/ManualCallout";
 import ManualSectionCard, {
   ManualSubRow,
 } from "@/components/ManualSectionCard";
-import ManualFigure from "@/components/ManualFigure";
 import ManualOpenButton from "@/components/ManualOpenButton";
 import { useTranslation } from "react-i18next";
 
@@ -42,11 +41,10 @@ import {
 // boxes, and a quick-jump chip row using the dashboard
 // scroll-to-section pattern.
 //
-// Figures: where the subject is a real dashboard screen the
-// manual renders a ManualOpenButton (live navigation) instead
-// of a screenshot; only the auth screens (Register, Sign In)
-// keep ManualFigure screenshots, since the auth guard bounces
-// signed-in users away from those routes.
+// Figures: every figure's subject is a real dashboard screen, so
+// the manual renders a ManualOpenButton (live navigation) instead
+// of a screenshot — no bundled screenshots remain, and the screen
+// the user opens always matches the installed build.
 // ============================================================
 
 const CHIPS: {
@@ -268,7 +266,6 @@ export default function UserManualScreen() {
 
             <ManualOpenButton
               label="Dashboard"
-              caption="Figure 1 — Dashboard overview"
               route="/dashboard"
               icon="home"
             />
@@ -322,11 +319,6 @@ export default function UserManualScreen() {
               minute. You can also use a
               different email address.
             </ManualCallout>
-
-            <ManualFigure
-              source={require("@/assets/images/manual/register-screen.png")}
-              label="Figure 2 — Register screen"
-            />
           </ManualSectionCard>
         </View>
 
@@ -352,11 +344,6 @@ export default function UserManualScreen() {
               Password? instead of
               guessing.
             </ManualCallout>
-
-            <ManualFigure
-              source={require("@/assets/images/manual/login-screen.png")}
-              label="Figure 3 — Login screen"
-            />
           </ManualSectionCard>
         </View>
 
@@ -613,7 +600,6 @@ export default function UserManualScreen() {
 
             <ManualOpenButton
               label="Appliances"
-              caption="Figure 4 — Appliances list"
               route="/dashboard/appliances"
               icon="grid"
             />
@@ -654,13 +640,11 @@ export default function UserManualScreen() {
 
             <ManualOpenButton
               label="Analytics"
-              caption="Figure 5 — Analytics screen"
               route="/dashboard/analytics"
               icon="bar-chart"
             />
             <ManualOpenButton
               label="Generate Report"
-              caption="Figure 5b — Report export panel"
               route={{
                 pathname: "/dashboard/analytics",
                 params: { focus: "report" },
@@ -720,7 +704,6 @@ export default function UserManualScreen() {
 
             <ManualOpenButton
               label="Notifications"
-              caption="Figure 6 — Notifications list"
               route="/dashboard/notifications"
               icon="notifications"
             />
@@ -751,7 +734,6 @@ export default function UserManualScreen() {
 
             <ManualOpenButton
               label="Activity Logs"
-              caption="Your account activity history"
               route="/dashboard/activity-logs"
               icon="list"
             />
@@ -784,7 +766,6 @@ export default function UserManualScreen() {
 
             <ManualOpenButton
               label="Components"
-              caption="Figure 7 — Components grid"
               route="/dashboard/components"
               icon="hardware-chip"
             />
@@ -842,7 +823,6 @@ export default function UserManualScreen() {
 
             <ManualOpenButton
               label="Menu"
-              caption="Figure 8 — Menu preferences"
               route="/dashboard/menu"
               icon="settings"
             />
