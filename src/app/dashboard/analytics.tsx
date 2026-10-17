@@ -97,15 +97,28 @@ import {
   ScrollView,
   StyleSheet,
   View,
+  type LayoutChangeEvent,
 } from "react-native";
 import { captureAppError } from "@/services/sentry";
+import { useLocalSearchParams } from "expo-router";
 
 /* ============================================================
    QUICK-NAV SCROLL
    ============================================================ */
 
-const QUICK_NAV_SCROLL_MS = 1500;
-const QUICK_NAV_SCROLL_INSET = 12;
+// Jump duration for the "Generate Report" quick-nav. Deliberately
+// short: the target is the very end of a long feed, and a long
+// tween across the whole screen reads as lag, not as motion.
+const QUICK_NAV_SCROLL_BOTTOM_MS = 400;
+
+// Catch-up tween used when lazily mounted sections swap their
+// placeholders for real heights while the jump is in flight.
+const QUICK_NAV_CATCH_UP_MS = 200;
+
+// How long an explicit jump keeps re-snapping to the bottom, so
+// a section that mounts late cannot leave the view short of the
+// end it was asked to reach.
+const QUICK_NAV_BOTTOM_PIN_MS = 2000;
 
 /* ============================================================
    LAZY CHART CARD
@@ -156,11 +169,34 @@ export default function AnalyticsScreen() {
     () => createScrollVisibility(),
   );
 
-  const reportRef = useRef<View>(null);
-
   const scrollYRef = useRef(0);
 
-  // Stable Animated driver for the 1.5s scroll transition.
+  // Content and viewport heights, mirrored into refs (never
+  // state) so the very large screen is not re-rendered every
+  // time a lazy section reports its size.
+  const contentHeightRef = useRef(0);
+
+  const viewportHeightRef = useRef(0);
+
+  // Timestamp until which the quick-nav jump keeps re-snapping
+  // to the bottom. Cleared when the user drags, so the pin can
+  // never fight a real gesture.
+  const bottomPinUntilRef = useRef(0);
+
+  // Deep link from the manual's "Generate Report" button:
+  // /dashboard/analytics?focus=report. Tracked as a ref so the
+  // arrival scroll fires once, on the first measurement.
+  const params = useLocalSearchParams<{
+    focus?: string | string[];
+  }>();
+
+  const focusParam = Array.isArray(params.focus)
+    ? params.focus[0]
+    : params.focus;
+
+  const focusParamHandledRef = useRef(false);
+
+  // Stable Animated driver for the quick-nav scroll transition.
   // useState initializer (not useRef().current) per
   // react-hooks/refs: ref values must not be read on render.
   const [scrollOffset] = useState(
@@ -651,11 +687,11 @@ export default function AnalyticsScreen() {
   } = usePullToRefresh(loadAnalytics);
 
   /* ==========================================================
-     SMOOTH SCROLL-TO-SECTION
+     QUICK NAV — EXACT-BOTTOM SCROLL
      ========================================================== */
 
   // Drive the ScrollView with an Animated.Value so the
-  // scroll transition can run for a fixed 1.5s duration.
+  // quick-nav transition can be tweened rather than jumped.
   useEffect(() => {
     const scrollListenerId = scrollOffset.addListener(
       ({ value }) => {
@@ -671,77 +707,121 @@ export default function AnalyticsScreen() {
     };
   }, [scrollOffset]);
 
-  const scrollToSection = (
-    sectionRef: React.RefObject<View | null>,
-  ) => {
-    const section = sectionRef.current;
-    const scroll = scrollRef.current;
-
-    if (!section || !scroll) {
-      return;
-    }
-
-    const nativeScroll = scroll.getNativeScrollRef();
-
-    if (!nativeScroll) {
-      return;
-    }
-
-    // Measure both views in window coordinates so the
-    // target scroll offset stays correct no matter the
-    // current scroll position, on native and web.
-    section.measureInWindow(
-      (_sx, sectionWindowY) => {
-        nativeScroll.measureInWindow(
-          (_fx, scrollWindowY) => {
-            const target = Math.max(
-              sectionWindowY -
-                scrollWindowY +
-                scrollYRef.current -
-                QUICK_NAV_SCROLL_INSET,
-              0,
-            );
-
-            scrollOffset.setValue(scrollYRef.current);
-
-            Animated.timing(scrollOffset, {
-              toValue: target,
-              duration: QUICK_NAV_SCROLL_MS,
-              easing: Easing.inOut(Easing.cubic),
-              useNativeDriver: false,
-            }).start(({ finished }) => {
-              if (!finished) {
-                return;
-              }
-
-              // Lazy chart sections mount during the scroll and
-              // can shift content height, so re-measure once the
-              // animation settles and snap exactly onto target.
-              section.measureInWindow(
-                (_sx2, sectionY2) => {
-                  nativeScroll.measureInWindow(
-                    (_fx2, scrollY2) => {
-                      const corrected =
-                        Math.max(
-                          sectionY2 -
-                            scrollY2 +
-                            scrollYRef.current -
-                            QUICK_NAV_SCROLL_INSET,
-                          0,
-                        );
-
-                      scrollOffset.setValue(
-                        corrected,
-                      );
-                    },
-                  );
-                },
-              );
-            });
-          },
-        );
-      },
+  // The bottom is computed, never measured: content height minus
+  // viewport height is exact regardless of how much above it lazy
+  // sections add when they mount. (Measuring the report panel's
+  // top is what used to stop short — its position is not the end
+  // of the feed, and it kept moving mid-animation.)
+  const maxScrollOffset = () =>
+    Math.max(
+      0,
+      contentHeightRef.current -
+        viewportHeightRef.current,
     );
+
+  const scrollToBottom = ({
+    animated = true,
+  }: { animated?: boolean } = {}) => {
+    if (!scrollRef.current) {
+      return;
+    }
+
+    // Stay pinned for a short window: LazyMount placeholders are
+    // estimated (see LazyCard) and swap to real heights during
+    // and just after the jump, so each swap moves the true end.
+    bottomPinUntilRef.current =
+      Date.now() + QUICK_NAV_BOTTOM_PIN_MS;
+
+    // Deep-link arrival lands in the same frame: the screen has
+    // only just appeared, so there is nothing to tween from.
+    if (!animated) {
+      scrollOffset.setValue(maxScrollOffset());
+
+      return;
+    }
+
+    Animated.timing(scrollOffset, {
+      toValue: maxScrollOffset(),
+      duration: QUICK_NAV_SCROLL_BOTTOM_MS,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start(({ finished }) => {
+      // An interrupted tween was superseded by a catch-up
+      // (see below) that owns the final position.
+      if (!finished) {
+        return;
+      }
+
+      // Settle exactly on the bottom; later growth re-snaps
+      // through onContentSizeChange while the pin holds.
+      scrollOffset.setValue(maxScrollOffset());
+    });
+  };
+
+  // ?focus=report wants the report panel, so it wants the end of
+  // the feed. Waits until both heights are real (the first
+  // onContentSizeChange / onLayout pair) so the landing offset is
+  // not computed against a zero viewport.
+  const applyFocusParam = () => {
+    if (
+      focusParam !== "report" ||
+      focusParamHandledRef.current ||
+      contentHeightRef.current <= 0 ||
+      viewportHeightRef.current <= 0
+    ) {
+      return;
+    }
+
+    focusParamHandledRef.current = true;
+
+    scrollToBottom({ animated: false });
+  };
+
+  // Tracks the real content height and, while a jump is pinned,
+  // chases the end as lazy sections replace their placeholders.
+  const handleContentSizeChange = (
+    _width: number,
+    height: number,
+  ) => {
+    contentHeightRef.current = height;
+
+    applyFocusParam();
+
+    if (Date.now() >= bottomPinUntilRef.current) {
+      return;
+    }
+
+    const target = maxScrollOffset();
+
+    // Chase downward only. If content shrank (a section
+    // collapsed) the user is not yanked back up.
+    if (target <= scrollYRef.current + 1) {
+      return;
+    }
+
+    Animated.timing(scrollOffset, {
+      toValue: target,
+      duration: QUICK_NAV_CATCH_UP_MS,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  };
+
+  const handleViewportLayout = (
+    event: LayoutChangeEvent,
+  ) => {
+    viewportHeightRef.current =
+      event.nativeEvent.layout.height;
+
+    // The viewport can be the last of the two measurements to
+    // land, so the deep link waits for it here too.
+    applyFocusParam();
+  };
+
+  // A drag means the user has taken over: drop the pin so the
+  // scroll never snaps back under their finger.
+  const handleScrollBeginDrag = () => {
+    bottomPinUntilRef.current = 0;
   };
 
   /* ==========================================================
@@ -1170,6 +1250,13 @@ export default function AnalyticsScreen() {
 
             scrollVisibility.notify(offsetY);
           }}
+          onContentSizeChange={
+            handleContentSizeChange
+          }
+          onLayout={handleViewportLayout}
+          onScrollBeginDrag={
+            handleScrollBeginDrag
+          }
           scrollEventThrottle={16}
           refreshing={analyticsRefreshing}
           onRefresh={onAnalyticsRefresh}
@@ -1212,9 +1299,7 @@ export default function AnalyticsScreen() {
 
         <View style={styles.quickNavRow}>
           <Pressable
-            onPress={() =>
-              scrollToSection(reportRef)
-            }
+            onPress={() => scrollToBottom()}
             accessibilityRole="button"
             accessibilityLabel={t(
               "dashboard.analytics.goToGenerateReport",
@@ -1519,11 +1604,7 @@ export default function AnalyticsScreen() {
             ANALYTICS PANEL
             Report export + date-range controls.
         ====================================================== */}
-        <View
-          ref={reportRef}
-          collapsable={false}
-          style={styles.section}
-        >
+        <View style={styles.section}>
           <AnalyticsCards
             reportFrequency={reportFrequency}
             setReportModalVisible={
