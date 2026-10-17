@@ -12,9 +12,9 @@
     "forecastRefreshMs": 10800000
   },
   "location": {
-    "fallbackLat": 8.3644,
-    "fallbackLon": 124.8519,
-    "fallbackLabel": "Damilag, Manolo Fortich",
+    "areas": [
+      { "name": "Manolo Fortich", "lat": 8.3697, "lon": 124.8644 }
+    ],
     "coordDecimals": 2,
     "lastKnownMaxAgeMs": 120000
   },
@@ -24,10 +24,10 @@
   },
   "calibration": {
     "tempOffsetC": 0,
-    "tempOffsetDayC": -3,
-    "tempOffsetNightC": -3,
+    "tempOffsetDayC": 0,
+    "tempOffsetNightC": 0,
     "feelsMode": "heat-index",
-    "feelsOffsetC": 2
+    "feelsOffsetC": 0
   },
   "thresholds": {
     "hotC": 30,

@@ -10,9 +10,12 @@ import {
   formatTimeoutError,
   getFeelsMode,
   getFeelsOffsetC,
+  getWeatherAreas,
+  nearestArea,
   resolveFeelsLike,
   roundTemperature,
   type FeelsLikeSource,
+  type WeatherArea,
 } from "@/services/weatherConfig";
 
 // ============================================================
@@ -56,8 +59,12 @@ const REQUEST_TIMEOUT_MS = weatherJson.api.timeoutMs;
 export interface Coordinates {
   lat: number;
   lon: number;
-  // True when the household fallback cell stands in for a
-  // denied GPS fix (rendered as a default-location label).
+  // City/area the fix was snapped to. Used as the display
+  // label so the card shows the municipality, not the OWM
+  // nearest-place name.
+  areaName?: string;
+  // True when the default area stands in for a denied or
+  // unavailable GPS fix (rendered as a default-location label).
   isFallback?: boolean;
 }
 
@@ -144,15 +151,16 @@ function validateApiKey(): void {
 }
 
 // ============================================================
-// LOCATION (AREA, NOT EXACT POINT)
+// LOCATION (CITY CENTER, NOT EXACT POINT)
 //
-// Location answers "which area is the user in" — the
-// weather fetched is the area's, not the doorstep's, so a
-// user anywhere in Damilag gets Damilag data. Denial
-// resolves to the fixed household fallback cell (Damilag)
-// so the Today card always paints useful sky instead of an
-// error. Coordinates round to 2 decimals (~1.1 km cells):
-// every fix inside one area hits the same OWM cell.
+// Location answers "which city is the user in" — the weather
+// fetched is the city center's, not the barangay's, so every
+// user in Manolo Fortich gets the same reading. The GPS fix
+// picks the nearest configured area center; a denied or
+// unavailable fix resolves to the default (first) area so the
+// Today card always paints useful sky instead of an error.
+// Coordinates round to 2 decimals (~1.1 km cells) so a fix
+// inside one city hits one OWM cell.
 // ============================================================
 
 function roundCoord(value: number): number {
@@ -162,38 +170,75 @@ function roundCoord(value: number): number {
   return Math.round(value * factor) / factor;
 }
 
-function fallbackCoordinates(): Coordinates {
+function areaCoordinates(
+  area: WeatherArea,
+  isFallback: boolean = false,
+): Coordinates {
   return {
-    lat: weatherJson.location.fallbackLat,
-    lon: weatherJson.location.fallbackLon,
+    lat: roundCoord(area.lat),
+    lon: roundCoord(area.lon),
+    areaName: area.name,
+    ...(isFallback ? { isFallback: true as const } : {}),
   };
 }
 
 async function getCoordinates(options?: {
   fresh?: boolean;
 }): Promise<Coordinates> {
+  const areas = getWeatherAreas();
+
+  const defaultArea = (): Coordinates => {
+    const area = areas[0];
+
+    if (!area) {
+      throw new WeatherError(
+        "location_unavailable",
+        weatherJson.messages.errors.location_unavailable,
+      );
+    }
+
+    return areaCoordinates(area, true);
+  };
+
+  const snap = (
+    lat: number,
+    lon: number,
+  ): Coordinates => {
+    const area =
+      nearestArea(lat, lon, areas) ?? areas[0];
+
+    if (!area) {
+      throw new WeatherError(
+        "location_unavailable",
+        weatherJson.messages.errors.location_unavailable,
+      );
+    }
+
+    return areaCoordinates(area);
+  };
+
   const { status } =
     await Location.requestForegroundPermissionsAsync();
 
   if (status !== "granted") {
     console.warn(
-      "Location denied — using Damilag fallback.",
+      "Location denied — using the default area.",
     );
 
-    return {
-      ...fallbackCoordinates(),
-      isFallback: true,
-    };
+    return defaultArea();
   }
 
   const servicesEnabled =
     await Location.hasServicesEnabledAsync();
 
+  // No GPS services: fall back to the default area rather
+  // than failing the whole weather card.
   if (!servicesEnabled) {
-    throw new WeatherError(
-      "location_unavailable",
-      weatherJson.messages.errors.services_disabled
+    console.warn(
+      "Location services disabled — using the default area.",
     );
+
+    return defaultArea();
   }
 
   // Fast path: indoor GPS can be slow, so reuse a recent
@@ -214,10 +259,10 @@ async function getCoordinates(options?: {
         Number.isFinite(known.latitude) &&
         Number.isFinite(known.longitude)
       ) {
-        return {
-          lat: roundCoord(known.latitude),
-          lon: roundCoord(known.longitude),
-        };
+        return snap(
+          known.latitude,
+          known.longitude,
+        );
       }
     } catch {
       // Fall through to a fresh fix below.
@@ -231,35 +276,20 @@ async function getCoordinates(options?: {
         accuracy: Location.Accuracy.Balanced,
       });
 
-    const {
-      latitude,
-      longitude,
-    } = location.coords;
+    const { latitude, longitude } =
+      location.coords;
 
     if (
-      !Number.isFinite(latitude) ||
-      !Number.isFinite(longitude)
+      Number.isFinite(latitude) &&
+      Number.isFinite(longitude)
     ) {
-      throw new WeatherError(
-        "location_unavailable",
-        weatherJson.messages.errors.invalid_coordinates
-      );
+      return snap(latitude, longitude);
     }
-
-    return {
-      lat: roundCoord(latitude),
-      lon: roundCoord(longitude),
-    };
-  } catch (error) {
-    if (error instanceof WeatherError) {
-      throw error;
-    }
-
-    throw new WeatherError(
-      "location_unavailable",
-      weatherJson.messages.errors.location_unavailable
-    );
+  } catch {
+    // Fall back to the default area below.
   }
+
+  return defaultArea();
 }
 
 // ============================================================
@@ -558,13 +588,16 @@ function parseWeatherResponse(
   }
 
   const city =
-    typeof payload.name === "string" &&
-    payload.name.trim().length > 0
-      ? payload.name.trim()
-      : formatCoordFallback(
-          coordinates.lat,
-          coordinates.lon
-        );
+    typeof coordinates.areaName === "string" &&
+    coordinates.areaName.trim().length > 0
+      ? coordinates.areaName.trim()
+      : typeof payload.name === "string" &&
+          payload.name.trim().length > 0
+        ? payload.name.trim()
+        : formatCoordFallback(
+            coordinates.lat,
+            coordinates.lon
+          );
 
   const mainGroup =
     typeof rawMain === "string" &&
@@ -877,7 +910,7 @@ function debugTodayReading(
     lat: coordinates.lat,
     lon: coordinates.lon,
     gps: coordinates.isFallback
-      ? "fallback-Damilag"
+      ? "default-area"
       : "gps",
     name:
       typeof payload.name === "string"

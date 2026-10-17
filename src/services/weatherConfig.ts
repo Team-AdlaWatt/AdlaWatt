@@ -188,6 +188,118 @@ function assertWeatherConfig(): void {
       );
     }
   }
+
+  const areas = (
+    weatherJson as unknown as {
+      location?: { areas?: unknown };
+    }
+  ).location?.areas;
+
+  if (!Array.isArray(areas) || areas.length === 0) {
+    throw new Error(
+      "weather.json: location.areas must not be empty."
+    );
+  }
+
+  for (const area of areas) {
+    const entry = area as {
+      name?: unknown;
+      lat?: unknown;
+      lon?: unknown;
+    };
+
+    if (
+      typeof entry.name !== "string" ||
+      entry.name.trim().length === 0 ||
+      typeof entry.lat !== "number" ||
+      !Number.isFinite(entry.lat) ||
+      typeof entry.lon !== "number" ||
+      !Number.isFinite(entry.lon)
+    ) {
+      throw new Error(
+        "weather.json: every location area needs a name and finite lat/lon."
+      );
+    }
+  }
+}
+
+// ============================================================
+// AREAS (CITY CENTERS)
+//
+// OpenWeather is queried at a city center, not the user's
+// exact point, so every user in a city gets the same reading.
+// The GPS fix picks the nearest area; the list is config so
+// adding cities never needs a code change.
+// ============================================================
+
+export interface WeatherArea {
+  name: string;
+  lat: number;
+  lon: number;
+}
+
+export function getWeatherAreas(): WeatherArea[] {
+  const raw = (
+    weatherJson as unknown as {
+      location?: { areas?: unknown };
+    }
+  ).location?.areas;
+
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw.filter(
+    (area): area is WeatherArea =>
+      !!area &&
+      typeof (area as WeatherArea).name === "string" &&
+      typeof (area as WeatherArea).lat === "number" &&
+      Number.isFinite((area as WeatherArea).lat) &&
+      typeof (area as WeatherArea).lon === "number" &&
+      Number.isFinite((area as WeatherArea).lon),
+  );
+}
+
+// Haversine distance in kilometers. Pure, exported for tests.
+export function distanceKm(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  const R = 6371;
+  const toRad = (deg: number): number =>
+    (deg * Math.PI) / 180;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) ** 2;
+
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+// Nearest configured area (city) to a fix; null when the list
+// is empty.
+export function nearestArea(
+  lat: number,
+  lon: number,
+  areas: WeatherArea[] = getWeatherAreas(),
+): WeatherArea | null {
+  if (areas.length === 0) {
+    return null;
+  }
+
+  return areas.reduce((best, area) =>
+    distanceKm(lat, lon, area.lat, area.lon) <
+    distanceKm(lat, lon, best.lat, best.lon)
+      ? area
+      : best,
+  );
 }
 
 assertWeatherConfig();

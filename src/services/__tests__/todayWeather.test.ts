@@ -3,9 +3,11 @@ import * as Location from "expo-location";
 
 import {
   canRefreshToday,
+  distanceKm,
   formatDataAge,
   heatIndexC,
   isStaleReading,
+  nearestArea,
   resolveCondition,
   resolveFeelsLike,
 } from "@/services/weatherConfig";
@@ -148,7 +150,7 @@ describe("getWeather coordinates", () => {
     );
   };
 
-  test("reuses a recent fix, rounded to 2 decimals (area cell)", async () => {
+  test("reuses a recent fix, snapped to the city center", async () => {
     grantLocation();
 
     mockLocation.getLastKnownPositionAsync.mockResolvedValue(
@@ -176,14 +178,14 @@ describe("getWeather coordinates", () => {
     );
 
     expect(url).toContain("lat=8.37");
-    expect(url).toContain("lon=124.87");
+    expect(url).toContain("lon=124.86");
   });
 
-  test("nearby fixes share one area cell", async () => {
+  test("nearby fixes snap to the same city center", async () => {
     grantLocation();
 
-    // Two doorsteps ~500m apart in Damilag round to the
-    // same 2-decimal cell: area data, not exact-point data.
+    // Two doorsteps ~500m apart snap to the same city
+    // center: city data, not exact-point data.
     mockLocation.getLastKnownPositionAsync.mockResolvedValue(
       {
         coords: {
@@ -218,8 +220,8 @@ describe("getWeather coordinates", () => {
     );
 
     for (const url of [firstUrl, secondUrl]) {
-      expect(url).toContain("lat=8.36");
-      expect(url).toContain("lon=124.85");
+      expect(url).toContain("lat=8.37");
+      expect(url).toContain("lon=124.86");
     }
   });
 
@@ -263,8 +265,8 @@ describe("getWeather coordinates", () => {
       mockFetch.mock.calls[0]?.[0] ?? "",
     );
 
-    expect(url).toContain("lat=8.1");
-    expect(url).toContain("lon=125.1");
+    expect(url).toContain("lat=8.37");
+    expect(url).toContain("lon=124.86");
   });
 
   test("explicit coordinates skip every GPS lookup", async () => {
@@ -325,10 +327,10 @@ describe("getWeather coordinates", () => {
     ).toHaveBeenCalled();
 
     expect(data.mainGroup).toBe("Clouds");
-    expect(data.city).toBe("Malaybalay");
+    expect(data.city).toBe("Manolo Fortich");
   });
 
-  test("denial resolves to the Damilag fallback", async () => {
+  test("denial resolves to the default area", async () => {
     mockLocation.requestForegroundPermissionsAsync.mockResolvedValue(
       { status: "denied" },
     );
@@ -348,8 +350,8 @@ describe("getWeather coordinates", () => {
       mockFetch.mock.calls[0]?.[0] ?? "",
     );
 
-    expect(url).toContain("lat=8.3644");
-    expect(url).toContain("lon=124.8519");
+    expect(url).toContain("lat=8.37");
+    expect(url).toContain("lon=124.86");
     expect(data.isFallback).toBe(true);
   });
 
@@ -757,7 +759,7 @@ describe("fetch retry", () => {
     const data = await getWeather();
 
     expect(mockFetch).toHaveBeenCalledTimes(3);
-    expect(data.city).toBe("Malaybalay");
+    expect(data.city).toBe("Manolo Fortich");
   });
 
   test("401 fails immediately without retry", async () => {
@@ -869,14 +871,16 @@ describe("cache coords", () => {
 
     await getWeather();
 
-    grantFresh(9.0, 125.5);
-
     mockFetch.mockRejectedValue(
       new Error("offline"),
     );
 
+    // Explicit far coordinates bypass area snapping, so the
+    // cached city-center reading (>~5km away) is ignored.
     await expect(
-      getWeather(),
+      getWeather({
+        coordinates: { lat: 9.0, lon: 125.5 },
+      }),
     ).rejects.toThrow("offline");
   });
 
@@ -922,7 +926,45 @@ describe("cache coords", () => {
 
     const data = await getWeather();
 
-    expect(data.city).toBe("Malaybalay");
+    expect(data.city).toBe("Manolo Fortich");
     expect(mockFetch).toHaveBeenCalledTimes(2);
+  });
+});
+
+// ============================================================
+// AREA SNAPPING
+// ============================================================
+
+describe("nearestArea / distanceKm", () => {
+  const areas = [
+    { name: "Manolo Fortich", lat: 8.3697, lon: 124.8644 },
+    { name: "Malaybalay", lat: 8.1575, lon: 125.1278 },
+  ];
+
+  test("picks the nearest configured area", () => {
+    expect(
+      nearestArea(8.4, 124.9, areas)?.name,
+    ).toBe("Manolo Fortich");
+
+    expect(
+      nearestArea(8.16, 125.13, areas)?.name,
+    ).toBe("Malaybalay");
+  });
+
+  test("returns null with no configured areas", () => {
+    expect(nearestArea(8.4, 124.9, [])).toBeNull();
+  });
+
+  test("distanceKm is symmetric and zero for the same point", () => {
+    expect(
+      distanceKm(8.3697, 124.8644, 8.3697, 124.8644),
+    ).toBeCloseTo(0, 5);
+
+    expect(
+      distanceKm(8.3697, 124.8644, 8.1575, 125.1278),
+    ).toBeCloseTo(
+      distanceKm(8.1575, 125.1278, 8.3697, 124.8644),
+      5,
+    );
   });
 });
