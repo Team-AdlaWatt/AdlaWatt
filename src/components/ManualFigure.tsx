@@ -13,6 +13,7 @@ import {
 
 import { DropdownModal } from "@/components/ui/DropdownModal";
 import AppText from "@/components/ui/AppText";
+import { Colors } from "@/constants/colors";
 
 // ============================================================
 // MANUAL FIGURE
@@ -38,16 +39,13 @@ const PREVIEW_HEIGHT = 170;
 /** Fraction of the screen height used by the modal image. */
 const MODAL_IMAGE_RATIO = 0.62;
 
-// Fixed brand green for the preview card. White on #00805A is
-// 4.96:1 — passes WCAG 1.4.3 AA — in both themes, so the card
-// intentionally ignores the theme palette's dark-mode fill
-// (which would turn the green neutral and the text near-black).
-const PREVIEW_GREEN = "#00805A";
-const PREVIEW_ON_GREEN = "#FFFFFF";
-const PREVIEW_ON_GREEN_MUTED =
-  "rgba(255, 255, 255, 0.6)";
-const PREVIEW_DIVIDER =
-  "rgba(255, 255, 255, 0.25)";
+// Fixed brand green for the preview card (frozen record, shared
+// by both themes — see colors.ts). White on #00805A is 4.96:1,
+// so the card intentionally ignores the theme palette's
+// dark-mode fill (which would turn the green neutral and the
+// text near-black). ManualOpenButton uses the same record.
+const MANUAL_FIGURE_COLORS =
+  Colors.light.manualFigure;
 
 interface ManualFigureProps {
   source: ImageSourcePropType;
@@ -96,7 +94,7 @@ export default function ManualFigure({
             <Ionicons
               name="expand-outline"
               size={16}
-              color={PREVIEW_GREEN}
+              color={MANUAL_FIGURE_COLORS.surface}
             />
           </View>
         </Pressable>
@@ -146,17 +144,18 @@ export default function ManualFigure({
 }
 
 // Theme-independent by design: the green card and its white
-// text are fixed values (see PREVIEW_GREEN above), so the
-// stylesheet needs no palette.
+// text come from the frozen manualFigure record (see
+// colors.ts), so the stylesheet needs no palette.
 const styles = StyleSheet.create({
   frame: {
     width: "100%",
     borderWidth: 1,
-    borderColor: PREVIEW_GREEN,
+    borderColor: MANUAL_FIGURE_COLORS.surface,
     borderRadius: 12,
     marginTop: 10,
     overflow: "hidden",
-    backgroundColor: PREVIEW_GREEN,
+    backgroundColor:
+      MANUAL_FIGURE_COLORS.surface,
   },
 
   preview: {
@@ -179,7 +178,8 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: PREVIEW_ON_GREEN,
+    backgroundColor:
+      MANUAL_FIGURE_COLORS.onSurface,
   },
 
   captionBlock: {
@@ -188,17 +188,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderTopWidth: 1,
-    borderTopColor: PREVIEW_DIVIDER,
+    borderTopColor: MANUAL_FIGURE_COLORS.divider,
   },
 
   caption: {
-    color: PREVIEW_ON_GREEN,
+    color: MANUAL_FIGURE_COLORS.onSurface,
     textAlign: "center",
     fontWeight: "600",
   },
 
   captionHint: {
-    color: PREVIEW_ON_GREEN_MUTED,
+    color: MANUAL_FIGURE_COLORS.onSurfaceMuted,
     textAlign: "center",
     marginTop: 2,
   },
