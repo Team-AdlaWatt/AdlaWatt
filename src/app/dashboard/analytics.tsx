@@ -100,6 +100,7 @@ import {
   type LayoutChangeEvent,
 } from "react-native";
 import { captureAppError } from "@/services/sentry";
+import { useLocalSearchParams } from "expo-router";
 
 /* ============================================================
    QUICK-NAV SCROLL
@@ -181,6 +182,19 @@ export default function AnalyticsScreen() {
   // to the bottom. Cleared when the user drags, so the pin can
   // never fight a real gesture.
   const bottomPinUntilRef = useRef(0);
+
+  // Deep link from the manual's "Generate Report" button:
+  // /dashboard/analytics?focus=report. Tracked as a ref so the
+  // arrival scroll fires once, on the first measurement.
+  const params = useLocalSearchParams<{
+    focus?: string | string[];
+  }>();
+
+  const focusParam = Array.isArray(params.focus)
+    ? params.focus[0]
+    : params.focus;
+
+  const focusParamHandledRef = useRef(false);
 
   // Stable Animated driver for the quick-nav scroll transition.
   // useState initializer (not useRef().current) per
@@ -705,7 +719,9 @@ export default function AnalyticsScreen() {
         viewportHeightRef.current,
     );
 
-  const scrollToBottom = () => {
+  const scrollToBottom = ({
+    animated = true,
+  }: { animated?: boolean } = {}) => {
     if (!scrollRef.current) {
       return;
     }
@@ -715,6 +731,14 @@ export default function AnalyticsScreen() {
     // and just after the jump, so each swap moves the true end.
     bottomPinUntilRef.current =
       Date.now() + QUICK_NAV_BOTTOM_PIN_MS;
+
+    // Deep-link arrival lands in the same frame: the screen has
+    // only just appeared, so there is nothing to tween from.
+    if (!animated) {
+      scrollOffset.setValue(maxScrollOffset());
+
+      return;
+    }
 
     Animated.timing(scrollOffset, {
       toValue: maxScrollOffset(),
@@ -734,6 +758,25 @@ export default function AnalyticsScreen() {
     });
   };
 
+  // ?focus=report wants the report panel, so it wants the end of
+  // the feed. Waits until both heights are real (the first
+  // onContentSizeChange / onLayout pair) so the landing offset is
+  // not computed against a zero viewport.
+  const applyFocusParam = () => {
+    if (
+      focusParam !== "report" ||
+      focusParamHandledRef.current ||
+      contentHeightRef.current <= 0 ||
+      viewportHeightRef.current <= 0
+    ) {
+      return;
+    }
+
+    focusParamHandledRef.current = true;
+
+    scrollToBottom({ animated: false });
+  };
+
   // Tracks the real content height and, while a jump is pinned,
   // chases the end as lazy sections replace their placeholders.
   const handleContentSizeChange = (
@@ -741,6 +784,8 @@ export default function AnalyticsScreen() {
     height: number,
   ) => {
     contentHeightRef.current = height;
+
+    applyFocusParam();
 
     if (Date.now() >= bottomPinUntilRef.current) {
       return;
@@ -767,6 +812,10 @@ export default function AnalyticsScreen() {
   ) => {
     viewportHeightRef.current =
       event.nativeEvent.layout.height;
+
+    // The viewport can be the last of the two measurements to
+    // land, so the deep link waits for it here too.
+    applyFocusParam();
   };
 
   // A drag means the user has taken over: drop the pin so the
@@ -1250,7 +1299,7 @@ export default function AnalyticsScreen() {
 
         <View style={styles.quickNavRow}>
           <Pressable
-            onPress={scrollToBottom}
+            onPress={() => scrollToBottom()}
             accessibilityRole="button"
             accessibilityLabel={t(
               "dashboard.analytics.goToGenerateReport",
