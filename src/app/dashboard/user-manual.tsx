@@ -22,6 +22,7 @@ import ManualSectionCard, {
   ManualSubRow,
 } from "@/components/ManualSectionCard";
 import ManualFigure from "@/components/ManualFigure";
+import ManualOpenButton from "@/components/ManualOpenButton";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -40,6 +41,12 @@ import {
 // shells via ManualSectionCard, severity-tinted ManualCallout
 // boxes, and a quick-jump chip row using the dashboard
 // scroll-to-section pattern.
+//
+// Figures: where the subject is a real dashboard screen the
+// manual renders a ManualOpenButton (live navigation) instead
+// of a screenshot; only the auth screens (Register, Sign In)
+// keep ManualFigure screenshots, since the auth guard bounces
+// signed-in users away from those routes.
 // ============================================================
 
 const CHIPS: {
@@ -142,6 +149,17 @@ export default function UserManualScreen() {
             style={styles.subtitle}
           >
             {t("dashboard.manual.subtitle")}
+          </AppText>
+
+          {/* Live-navigation hint, stated once for the whole
+              screen instead of on every open button (this app
+              has no back stack; screens are reached by tab). */}
+          <AppText
+            variant="caption"
+            style={styles.headerHint}
+          >
+            Green buttons open the live screen.
+            Return here via Menu → User Manual.
           </AppText>
         </View>
 
@@ -248,9 +266,11 @@ export default function UserManualScreen() {
               electrical grid.
             </ManualCallout>
 
-            <ManualFigure
-              source={require("@/assets/images/manual/dashboard-overview.png")}
-              label="Figure 1 — Dashboard overview"
+            <ManualOpenButton
+              label="Dashboard"
+              caption="Figure 1 — Dashboard overview"
+              route="/dashboard"
+              icon="home"
             />
           </ManualSectionCard>
         </View>
@@ -591,9 +611,11 @@ export default function UserManualScreen() {
               </Para>
             </ManualSubRow>
 
-            <ManualFigure
-              source={require("@/assets/images/manual/appliances-list.png")}
-              label="Figure 4 — Appliances list"
+            <ManualOpenButton
+              label="Appliances"
+              caption="Figure 4 — Appliances list"
+              route="/dashboard/appliances"
+              icon="grid"
             />
           </ManualSectionCard>
         </View>
@@ -630,13 +652,20 @@ export default function UserManualScreen() {
               holds the complete dataset.
             </ManualCallout>
 
-            <ManualFigure
-              source={require("@/assets/images/manual/analytics-screen.png")}
-              label="Figure 5 — Analytics screen"
+            <ManualOpenButton
+              label="Analytics"
+              caption="Figure 5 — Analytics screen"
+              route="/dashboard/analytics"
+              icon="bar-chart"
             />
-            <ManualFigure
-              source={require("@/assets/images/manual/generate-report.png")}
-              label="Figure 5b — Generate report panel"
+            <ManualOpenButton
+              label="Generate Report"
+              caption="Figure 5b — Report export panel"
+              route={{
+                pathname: "/dashboard/analytics",
+                params: { focus: "report" },
+              }}
+              icon="document-text"
             />
           </ManualSectionCard>
         </View>
@@ -689,9 +718,11 @@ export default function UserManualScreen() {
               with Prev / Next.
             </Para>
 
-            <ManualFigure
-              source={require("@/assets/images/manual/notifications-screen.png")}
-              label="Figure 6 — Notifications list"
+            <ManualOpenButton
+              label="Notifications"
+              caption="Figure 6 — Notifications list"
+              route="/dashboard/notifications"
+              icon="notifications"
             />
           </ManualSectionCard>
         </View>
@@ -717,6 +748,13 @@ export default function UserManualScreen() {
               the Dashboard preview links
               here via View All.
             </Para>
+
+            <ManualOpenButton
+              label="Activity Logs"
+              caption="Your account activity history"
+              route="/dashboard/activity-logs"
+              icon="list"
+            />
           </ManualSectionCard>
         </View>
 
@@ -744,9 +782,11 @@ export default function UserManualScreen() {
               the app.
             </Para>
 
-            <ManualFigure
-              source={require("@/assets/images/manual/components-screen.png")}
-              label="Figure 7 — Components grid"
+            <ManualOpenButton
+              label="Components"
+              caption="Figure 7 — Components grid"
+              route="/dashboard/components"
+              icon="hardware-chip"
             />
           </ManualSectionCard>
         </View>
@@ -800,9 +840,11 @@ export default function UserManualScreen() {
               restarts and hold offline.
             </ManualCallout>
 
-            <ManualFigure
-              source={require("@/assets/images/manual/preferences-screen.png")}
-              label="Figure 8 — Menu preferences"
+            <ManualOpenButton
+              label="Menu"
+              caption="Figure 8 — Menu preferences"
+              route="/dashboard/menu"
+              icon="settings"
             />
           </ManualSectionCard>
         </View>
@@ -1219,6 +1261,16 @@ const getStyles = (colors: AppColors) =>
       marginTop: 6,
 
       fontWeight: "400",
+
+      lineHeight: 19,
+    },
+
+    headerHint: {
+      color: colors.textSecondary,
+
+      marginTop: 8,
+
+      fontWeight: "600",
 
       lineHeight: 19,
     },
