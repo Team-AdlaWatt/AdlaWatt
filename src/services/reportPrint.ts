@@ -1,5 +1,13 @@
 // ============================================================
-// ADLAWATT NATIVE REPORT EXPORT (expo-print HTML + file share)
+// ADLAWATT NATIVE REPORT EXPORT (expo-print HTML + direct open)
+//
+// Builds the local report file and hands it off for opening.
+// AdlaWatt never renders the PDF or the CSV itself: on Android
+// the built file goes to an external app through ACTION_VIEW
+// (see reportOpen.ts), and iOS falls back to the system document
+// preview. No share sheet is involved at any point. Saving into
+// the public Download folder is a separate step (see
+// reportStorage.ts) so this module stays a pure renderer.
 //
 // Real-file export for Android/iOS. The web path keeps using
 // the jsPDF template in analyticsService.ts; native renders a
@@ -19,7 +27,6 @@ import {
   Paths,
 } from "expo-file-system";
 import * as Print from "expo-print";
-import * as Sharing from "expo-sharing";
 
 import {
   formatNumber,
@@ -148,9 +155,45 @@ export const buildReportHtml = (
         <td>${escapeHtml(row.deviceStatus)}</td>
         <td>${escapeHtml(row.batteryTemperature)}</td>
         <td>${escapeHtml(row.solarTemperature)}</td>
-        <td>${escapeHtml(row.voltage)}</td>
-        <td>${escapeHtml(row.energyInputWh)}</td>
-        <td>${escapeHtml(row.energyOutputWh)}</td>
+        <td>${escapeHtml(row.solarTimer)}</td>
+        <td>${escapeHtml(row.solarVoltage)}</td>
+        <td>${escapeHtml(row.solarCurrent)}</td>
+        <td>${escapeHtml(row.totalEnergy)}</td>
+      </tr>`,
+    )
+    .join("");
+
+  // Derived analytics, rendered from the shared ReportKpi list so
+  // the native PDF shows the same metrics as the web PDF + CSV.
+  const kpiRows = reportData.kpis
+    .map((entry) =>
+      kpi(
+        entry.label,
+        entry.unit
+          ? `${entry.value} ${entry.unit}`
+          : entry.value,
+      ),
+    )
+    .join("");
+
+  // Chart-aligned per-bucket aggregates, from the same
+  // ReportPeriodRow list the CSV exports.
+  const periodRows = reportData.periods
+    .map(
+      (period) => `
+      <tr>
+        <td>${escapeHtml(period.periodLabel)}</td>
+        <td>${period.sampleCount}</td>
+        <td>${formatNumber(period.avgBatteryLevel)}</td>
+        <td>${formatNumber(period.minBatteryLevel)}</td>
+        <td>${formatNumber(period.maxBatteryLevel)}</td>
+        <td>${formatNumber(period.energyInputWh)}</td>
+        <td>${formatNumber(period.energyOutputWh)}</td>
+        <td>${formatNumber(period.netEnergyWh)}</td>
+        <td>${formatNumber(period.solarCoveragePct)}</td>
+        <td>${formatNumber(period.uptimePct)}</td>
+        <td>${period.unsafeSampleCount}</td>
+        <td>${formatNumber(period.sunHours)}</td>
       </tr>`,
     )
     .join("");
@@ -208,21 +251,48 @@ export const buildReportHtml = (
     ${kpi("Time remaining", summary.latestTimeRemaining)}
   </div>
 
+  <div class="section-title">Key Metrics</div>
+  <div class="kpi-grid">
+    ${kpiRows}
+  </div>
+
+  <div class="section-title">Aggregated Periods</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Period</th>
+        <th>Samples</th>
+        <th>Avg Batt %</th>
+        <th>Min %</th>
+        <th>Max %</th>
+        <th>Energy In Wh</th>
+        <th>Energy Out Wh</th>
+        <th>Net Wh</th>
+        <th>Coverage %</th>
+        <th>Uptime %</th>
+        <th>Unsafe</th>
+        <th>Sun h</th>
+      </tr>
+    </thead>
+    <tbody>${periodRows}</tbody>
+  </table>
+
   <div class="section-title">Monitoring History</div>
   <table>
     <thead>
       <tr>
         <th>Recorded At</th>
-        <th>Batt %</th>
+        <th>Battery %</th>
         <th>Battery</th>
         <th>Solar W</th>
         <th>Load W</th>
         <th>Device</th>
-        <th>Batt C</th>
+        <th>Battery C</th>
         <th>Solar C</th>
-        <th>Volt</th>
-        <th>In Wh</th>
-        <th>Out Wh</th>
+        <th>Sol Timer</th>
+        <th>Sol V</th>
+        <th>Sol A</th>
+        <th>Total Wh</th>
       </tr>
     </thead>
     <tbody>${tableRows}</tbody>
@@ -239,24 +309,47 @@ export const buildReportHtml = (
 };
 
 // ============================================================
-// SHARE HELPERS
+// REPORT FILE
+//
+// A built report plus what the library's copy of the report
+// file is called: the local URI the viewer reads or previews,
+// the name shown in the UI, and the mime type that decides
+// which viewer the file gets.
 // ============================================================
 
-const ensureSharingAvailable = async (): Promise<boolean> => {
-  try {
-    return await Sharing.isAvailableAsync();
-  } catch {
-    return false;
-  }
+export interface ReportFile {
+  /** Local `file://` copy in the cache directory. */
+  uri: string;
+  filename: string;
+  mimeType: string;
+}
+
+// ============================================================
+// OPEN HELPERS
+// ============================================================
+
+/**
+ * Opens a built report in the platform's own viewer.
+ *
+ * This is the non-Android fallback only. Android never uses it:
+ * there the report is handed to an external app through
+ * ACTION_VIEW (see reportOpen.ts) so AdlaWatt does not render it.
+ *
+ * @param file Local `file://` report built by buildReportPdfFile.
+ */
+export const openReportPdfFile = async (
+  file: ReportFile,
+): Promise<void> => {
+  await Print.printAsync({ uri: file.uri });
 };
 
 // ============================================================
 // PDF EXPORT (NATIVE)
 // ============================================================
 
-export const printAndSharePdf = async (
+export const buildReportPdfFile = async (
   reportData: AnalyticsReportData,
-): Promise<void> => {
+): Promise<ReportFile> => {
   const logoDataUrl =
     await loadLogoDataUrl();
 
@@ -270,7 +363,7 @@ export const printAndSharePdf = async (
       html,
     });
 
-  // Rename to the report filename so the shared file arrives
+  // Rename to the report filename so the saved copy arrives
   // with a meaningful name instead of a print-temp name.
   const filename =
     getPdfReportFilename(reportData);
@@ -280,47 +373,37 @@ export const printAndSharePdf = async (
     filename,
   );
 
-  let shareUri = uri;
+  let localUri = uri;
 
   try {
-    // SDK57: File copy is async — await so the share target
-    // exists before shareAsync reads it.
+    // SDK57: File copy is async — await so the saved file
+    // exists before it is read back for the save or the viewer.
     await new File(uri).copy(target);
 
-    shareUri = target.uri;
+    localUri = target.uri;
   } catch (error) {
     console.warn(
-      "Report rename failed, sharing print output directly:",
+      "Report rename failed, using print output directly:",
       error instanceof Error
         ? error.message
         : error,
     );
   }
 
-  if (!(await ensureSharingAvailable())) {
-    throw new Error(
-      "Sharing is not available on this device.",
-    );
-  }
-
-  await Sharing.shareAsync(
-    shareUri,
-    {
-      mimeType: "application/pdf",
-      dialogTitle:
-        "AdlaWatt Analytics Report",
-      UTI: ".pdf",
-    },
-  );
+  return {
+    uri: localUri,
+    filename,
+    mimeType: "application/pdf",
+  };
 };
 
 // ============================================================
 // CSV EXPORT (NATIVE)
 // ============================================================
 
-export const saveAndShareCsv = async (
+export const buildReportCsvFile = async (
   reportData: AnalyticsReportData,
-): Promise<void> => {
+): Promise<ReportFile> => {
   const csv = generateAdlaWattCsv(
     reportData,
   );
@@ -334,24 +417,12 @@ export const saveAndShareCsv = async (
   );
 
   // SDK57: File write is async — await so the CSV is
-  // flushed before shareAsync reads it.
+  // flushed before it is read back for the save.
   await file.write(csv);
 
-  const uri = file.uri;
-
-  if (!(await ensureSharingAvailable())) {
-    throw new Error(
-      "Sharing is not available on this device.",
-    );
-  }
-
-  await Sharing.shareAsync(
-    uri,
-    {
-      mimeType: "text/csv",
-      dialogTitle:
-        "AdlaWatt Analytics CSV Report",
-      UTI: "public.comma-separated-values-text",
-    },
-  );
+  return {
+    uri: file.uri,
+    filename,
+    mimeType: "text/csv",
+  };
 };

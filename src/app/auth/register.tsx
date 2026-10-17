@@ -373,6 +373,7 @@ export default function RegisterScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             autoComplete="username"
+            importantForAutofill="no"
             returnKeyType="next"
             onSubmitEditing={() =>
               emailRef.current?.focus()
@@ -391,6 +392,7 @@ export default function RegisterScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             autoComplete="email"
+            importantForAutofill="no"
             returnKeyType="next"
             onSubmitEditing={() =>
               passwordRef.current?.focus()
@@ -407,6 +409,7 @@ export default function RegisterScreen() {
             }}
             placeholder={t("passwordInput.placeholderNewPassword")}
             autoComplete="password-new"
+            importantForAutofill="no"
             returnKeyType="next"
             onSubmitEditing={() =>
               confirmPasswordRef.current?.focus()
@@ -423,6 +426,7 @@ export default function RegisterScreen() {
             }}
             placeholder={t("passwordInput.placeholderConfirmNewPassword")}
             autoComplete="password-new"
+            importantForAutofill="no"
             returnKeyType="done"
             onSubmitEditing={handleRegister}
             inputRef={confirmPasswordRef}

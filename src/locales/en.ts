@@ -391,6 +391,11 @@ const en = {
       sectionUsage: "Usage",
       generateReport: "Generate Report",
       goToGenerateReport: "Go to Generate Report",
+      reportSavedTitle: "Report saved",
+      reportSavedTo: "Saved to",
+      reportPreviewTitle: "Report preview",
+      reportOpenFile: "Open file",
+      reportDone: "Done",
     },
     logs: {
       title: "Activity Logs",

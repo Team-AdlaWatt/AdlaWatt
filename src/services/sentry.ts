@@ -12,8 +12,6 @@
 // - builds/OTA: EAS secret EXPO_PUBLIC_SENTRY_DSN (baked in)
 // ============================================================
 
-import { Platform } from "react-native";
-
 import * as Sentry from "@sentry/react-native";
 
 let initialized = false;

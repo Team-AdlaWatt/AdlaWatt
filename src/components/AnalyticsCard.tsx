@@ -12,11 +12,15 @@ import AppText from "@/components/ui/AppText";
 import {
   CalendarModal,
 } from "@/components/ui/CalendarModal";
+import ReportSavedModal, {
+  type SavedReport,
+} from "@/components/ui/ReportSavedModal";
 import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
 import {
+  ANALYTICS_PRESETS,
   AnalyticsRange,
   ReportFrequency,
   ReportType,
@@ -118,11 +122,42 @@ export interface AnalyticsCardsProps {
   range: AnalyticsRange;
   onFromDateChange: (date: Date) => void;
   onToDateChange: (date: Date) => void;
+  onPresetSelect?: (days: number) => void;
   generateReport: (
     reportType: ReportType,
   ) => Promise<void>;
   exporting?: boolean;
+  /** Which format is mid-export: drives the per-button
+   * "Preparing..." label. Null when nothing is exporting. */
+  exportingType?: ReportType | null;
+  status?: ReportExportStatus;
+  /** Saved-report summary: opens the post-export sheet. */
+  exportResult?: ReportExportResult;
+  exportSheetVisible?: boolean;
+  onOpenExportedReport?: () => void;
+  onDismissExportResult?: () => void;
 }
+
+/*
+ * Cross-platform export feedback. Replaces Alert.alert, which is
+ * a no-op on react-native-web, so web users previously got no
+ * response at all when a report had no data or failed.
+ */
+export type ReportExportStatus = {
+  kind: "info" | "error" | "success";
+  message: string;
+} | null;
+
+/*
+ * Native export outcome. The status row above reports whether
+ * the export ran; this carries the extra detail the success
+ * sheet needs — the file name and the folder it landed in.
+ */
+export type ReportExportResult =
+  | SavedReport
+  | null;
+
+const noop = () => {};
 
 /* ============================================================
    ANALYTICS PANEL
@@ -134,8 +169,15 @@ export default function AnalyticsCards({
   range,
   onFromDateChange,
   onToDateChange,
+  onPresetSelect,
   generateReport,
   exporting = false,
+  exportingType = null,
+  status,
+  exportResult = null,
+  exportSheetVisible = false,
+  onOpenExportedReport,
+  onDismissExportResult,
 }: AnalyticsCardsProps) {
   const colors = useAppColors();
 
@@ -194,6 +236,37 @@ export default function AnalyticsCards({
             Choose a frequency and pick a custom from/to date range
             for the report export.
           </AppText>
+
+          {onPresetSelect ? (
+            <View style={styles.presetRow}>
+              {ANALYTICS_PRESETS.map(
+                (preset) => (
+                  <Pressable
+                    key={preset.days}
+                    style={({ pressed }) => [
+                      styles.presetChip,
+                      pressed &&
+                        styles.buttonPressed,
+                    ]}
+                    onPress={() =>
+                      onPresetSelect(
+                        preset.days,
+                      )
+                    }
+                  >
+                    <AppText
+                      variant="caption"
+                      style={
+                        styles.presetChipText
+                      }
+                    >
+                      {preset.label}
+                    </AppText>
+                  </Pressable>
+                ),
+              )}
+            </View>
+          ) : null}
 
           <View
             style={
@@ -276,6 +349,16 @@ export default function AnalyticsCards({
                   styles.buttonDisabled,
               ]}
               disabled={exporting}
+              accessibilityRole="button"
+              accessibilityState={{
+                disabled: exporting,
+                busy: exportingType === "CSV",
+              }}
+              accessibilityLabel={
+                exportingType === "CSV"
+                  ? "Preparing CSV report"
+                  : "Export CSV"
+              }
               onPress={() =>
                 generateReport(
                   "CSV",
@@ -294,8 +377,8 @@ export default function AnalyticsCards({
                   styles.exportPrimaryText
                 }
               >
-                {exporting
-                  ? "Exporting..."
+                {exportingType === "CSV"
+                  ? "Preparing..."
                   : "Export CSV"}
               </AppText>
             </Pressable>
@@ -309,6 +392,16 @@ export default function AnalyticsCards({
                   styles.buttonDisabled,
               ]}
               disabled={exporting}
+              accessibilityRole="button"
+              accessibilityState={{
+                disabled: exporting,
+                busy: exportingType === "PDF",
+              }}
+              accessibilityLabel={
+                exportingType === "PDF"
+                  ? "Preparing PDF report"
+                  : "Export PDF"
+              }
               onPress={() =>
                 generateReport(
                   "PDF",
@@ -327,14 +420,59 @@ export default function AnalyticsCards({
                   styles.exportPrimaryText
                 }
               >
-                {exporting
-                  ? "Exporting..."
+                {exportingType === "PDF"
+                  ? "Preparing..."
                   : "Export PDF"}
               </AppText>
             </Pressable>
           </View>
+
+          {status ? (
+            <View
+              style={[
+                styles.statusRow,
+                status.kind ===
+                "error"
+                  ? styles.statusError
+                  : status.kind ===
+                      "success"
+                    ? styles.statusSuccess
+                    : styles.statusInfo,
+              ]}
+            >
+              <AppText
+                variant="caption"
+                style={[
+                  styles.statusText,
+                  status.kind ===
+                  "error"
+                    ? styles.statusTextError
+                    : status.kind ===
+                        "success"
+                      ? styles.statusTextSuccess
+                      : styles.statusTextInfo,
+                ]}
+              >
+                {status.message}
+              </AppText>
+            </View>
+          ) : null}
         </View>
       </View>
+
+      {/* ======================================================
+          POST-EXPORT SHEET
+          Native only: reports land in a real Download folder,
+          so the sheet confirms where and offers one tap to
+          open the file. Web downloads need no equivalent.
+      ====================================================== */}
+
+      <ReportSavedModal
+        visible={exportSheetVisible}
+        result={exportResult}
+        onOpen={onOpenExportedReport ?? noop}
+        onClose={onDismissExportResult ?? noop}
+      />
     </>
   );
 }
@@ -418,6 +556,29 @@ export const analyticsDimensions = {
       gap: 10,
     },
 
+    presetRow: {
+      width: "100%",
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      marginTop: 12,
+    },
+
+    presetChip: {
+      minHeight: 34,
+      paddingHorizontal: 14,
+      borderRadius: 999,
+      borderWidth: 2,
+      borderColor: colors.primary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    presetChipText: {
+      color: colors.primary,
+      fontWeight: "700",
+    },
+
     reportControl: {
       width: "100%",
     },
@@ -492,5 +653,50 @@ export const analyticsDimensions = {
     exportPrimaryText: {
       color: colors.onPrimary,
       fontWeight: "700",
+    },
+
+    statusRow: {
+      width: "100%",
+      marginTop: 12,
+      borderRadius: 12,
+      borderWidth: 1,
+      paddingHorizontal: 12,
+      paddingVertical: 9,
+    },
+
+    statusInfo: {
+      backgroundColor:
+        colors.selectedWash,
+      borderColor: colors.border,
+    },
+
+    statusSuccess: {
+      backgroundColor:
+        colors.selectedWash,
+      borderColor: colors.primary,
+    },
+
+    statusError: {
+      backgroundColor:
+        colors.selectedWash,
+      borderColor: colors.error,
+    },
+
+    statusText: {
+      lineHeight: 18,
+    },
+
+    statusTextInfo: {
+      color: colors.textSecondary,
+    },
+
+    statusTextSuccess: {
+      color: colors.primary,
+      fontWeight: "600",
+    },
+
+    statusTextError: {
+      color: colors.error,
+      fontWeight: "600",
     },
   });

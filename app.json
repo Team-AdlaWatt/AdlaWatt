@@ -7,9 +7,7 @@
     "icon": "./assets/images/adlawatt-icon.png",
     "scheme": "adlawatt",
     "userInterfaceStyle": "automatic",
-    "runtimeVersion": {
-      "policy": "fingerprint"
-    },
+    "runtimeVersion": "e552de68cf047f8c4681281ab6000865d965616a",
     "updates": {
       "url": "https://u.expo.dev/ba375929-16f4-4a21-b339-8b43e93ecfd2"
     },
@@ -25,7 +23,9 @@
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/adlawatt-icon.png"
       },
+      "googleServicesFile": "./google-services.json",
       "predictiveBackGestureEnabled": false,
+      "softwareKeyboardLayoutMode": "resize",
       "package": "com.teamadlawatt.adlawatt",
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -61,6 +61,13 @@
       ],
       "expo-web-browser",
       "expo-localization",
+      [
+        "expo-notifications",
+        {
+          "color": "#00A86B",
+          "defaultChannel": "adlawatt-alerts"
+        }
+      ],
       "expo-sharing",
       "expo-asset",
       "expo-font",
@@ -72,6 +79,16 @@
           "organization": "adlawatt",
           "project": "adlawatt-kr",
           "url": "https://sentry.io/"
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "buildArchs": ["arm64-v8a", "armeabi-v7a"],
+            "enableMinifyInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          }
         }
       ]
     ],

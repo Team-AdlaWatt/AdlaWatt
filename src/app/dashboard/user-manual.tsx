@@ -619,7 +619,7 @@ export default function UserManualScreen() {
             <Step n="2" text="Choose frequency from the dropdown." />
             <Step n="3" text="Tap From date and To date — calendar modals appear." />
             <Step n="4" text="Tap Export CSV (spreadsheet data) or Export PDF (formatted report)." />
-            <Step n="5" text="On phones the share sheet opens with the real file — save, send, then open in your file viewer. On web it downloads." />
+            <Step n="5" text="On phones the file is saved straight to your Download folder — the first export asks you to pick a folder once, so choose or create Download/AdlaWatt. A panel then confirms where it landed: Open file shows the report right away (PDF opens in your document viewer, CSV opens in an in-app preview) — there is no share chooser. If you skip the folder picker the report still opens directly. On web it downloads." />
             <Step n="6" text="Exporting… locks the buttons until done — no double taps." />
 
             <ManualCallout kind="note">

@@ -408,6 +408,11 @@ const ceb = {
       sectionUsage: "Paggamit",
       generateReport: "Generate Report",
       goToGenerateReport: "Adto sa Generate Report",
+      reportSavedTitle: "Na-save na ang report",
+      reportSavedTo: "Na-save sa",
+      reportPreviewTitle: "Preview sa report",
+      reportOpenFile: "Ablihi ang file",
+      reportDone: "Tapos na",
     },
     logs: {
       title: "Activity Logs",

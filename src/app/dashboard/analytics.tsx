@@ -1,10 +1,18 @@
 import { Ionicons } from "@expo/vector-icons";
-import AnalyticsCards from "@/components/AnalyticsCard";
+import AnalyticsCards, {
+  type ReportExportResult,
+  type ReportExportStatus,
+} from "@/components/AnalyticsCard";
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
 import ScreenContainer2 from "@/components/layout/ScreenContainer2";
 import AppText from "@/components/ui/AppText";
 import AnalyticsChartCard from "@/components/AnalyticsChartCard";
+import type { AnalyticsChartCardProps } from "@/components/AnalyticsChartCard";
+import LazyMount, {
+  ScrollVisibilityProvider,
+  createScrollVisibility,
+} from "@/components/LazyMount";
 import BatteryLevelChart, {
   BatteryLevelPoint,
 } from "@/components/charts/BatteryLevelChart";
@@ -41,6 +49,7 @@ import {
   REPORT_FREQUENCIES,
   ReportFrequency,
   ReportType,
+  createPresetRange,
   downloadCsvOnWeb,
   downloadPdfOnWeb,
   generateAdlaWattCsv,
@@ -72,6 +81,7 @@ import {
   type BatteryActivitySlice,
   type UnsafeBarPoint,
 } from "@/services/analyticsService";
+import type { ReportFile } from "@/services/reportPrint";
 import React, {
   useCallback,
   useEffect,
@@ -80,7 +90,6 @@ import React, {
   useState,
 } from "react";
 import {
-  Alert,
   Animated,
   Easing,
   Platform,
@@ -89,6 +98,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { captureAppError } from "@/services/sentry";
 
 /* ============================================================
    QUICK-NAV SCROLL
@@ -96,6 +106,26 @@ import {
 
 const QUICK_NAV_SCROLL_MS = 1500;
 const QUICK_NAV_SCROLL_INSET = 12;
+
+/* ============================================================
+   LAZY CHART CARD
+   ============================================================
+
+   AnalyticsChartCard is shared with the admin + manual screens,
+   so the lazy gate lives here rather than in the card itself.
+   Chart bodies are a fixed CHART_HEIGHT (240) plus a stats strip
+   and the card header, so ~380 is a close placeholder height and
+   the scroll length stays stable while off-screen. */
+
+function LazyCard(
+  props: AnalyticsChartCardProps,
+) {
+  return (
+    <LazyMount>
+      <AnalyticsChartCard {...props} />
+    </LazyMount>
+  );
+}
 
 /* ============================================================
    SCREEN
@@ -119,6 +149,13 @@ export default function AnalyticsScreen() {
 
   const scrollRef = useRef<ScrollView>(null);
 
+  // Shared scroll offset for the lazy chart sections. Created
+  // once; consumers subscribe instead of re-rendering the whole
+  // (very large) screen on every scroll frame.
+  const [scrollVisibility] = useState(
+    () => createScrollVisibility(),
+  );
+
   const reportRef = useRef<View>(null);
 
   const scrollYRef = useRef(0);
@@ -135,9 +172,38 @@ export default function AnalyticsScreen() {
     setMonitoringHistory,
   ] = useState<MonitoringHistoryRow[]>([]);
 
+  // Which report format is currently being built, if any. Kept
+  // per-format (instead of one shared boolean) so only the button
+  // the user actually tapped shows "Preparing..." — the other
+  // stays labelled while still being disabled during the export.
   const [
-    isExporting,
-    setIsExporting,
+    exportingReport,
+    setExportingReport,
+  ] = useState<ReportType | null>(null);
+
+  const [
+    exportStatus,
+    setExportStatus,
+  ] = useState<ReportExportStatus>(
+    null,
+  );
+
+  // Native export outcome: the built file plus the folder it
+  // was saved into. Drives the post-export sheet, and is kept
+  // after the sheet closes so "Open file" still has its handle.
+  const [
+    savedReport,
+    setSavedReport,
+  ] = useState<
+    | (ReportFile & {
+        folderLabel: string;
+      })
+    | null
+  >(null);
+
+  const [
+    exportSheetVisible,
+    setExportSheetVisible,
   ] = useState(false);
 
   const [
@@ -643,7 +709,35 @@ export default function AnalyticsScreen() {
               duration: QUICK_NAV_SCROLL_MS,
               easing: Easing.inOut(Easing.cubic),
               useNativeDriver: false,
-            }).start();
+            }).start(({ finished }) => {
+              if (!finished) {
+                return;
+              }
+
+              // Lazy chart sections mount during the scroll and
+              // can shift content height, so re-measure once the
+              // animation settles and snap exactly onto target.
+              section.measureInWindow(
+                (_sx2, sectionY2) => {
+                  nativeScroll.measureInWindow(
+                    (_fx2, scrollY2) => {
+                      const corrected =
+                        Math.max(
+                          sectionY2 -
+                            scrollY2 +
+                            scrollYRef.current -
+                            QUICK_NAV_SCROLL_INSET,
+                          0,
+                        );
+
+                      scrollOffset.setValue(
+                        corrected,
+                      );
+                    },
+                  );
+                },
+              );
+            });
           },
         );
       },
@@ -654,12 +748,44 @@ export default function AnalyticsScreen() {
      REPORT
      ========================================================== */
 
+  // Opens a built report in an external app — never in AdlaWatt
+  // and never through a share sheet. Used by both the post-export
+  // panel and the declined folder-grant path so every export ends
+  // in an external handoff.
+  //
+  // Android imports reportOpen lazily so expo-intent-launcher is
+  // only ever evaluated there; iOS has no ACTION_VIEW and keeps
+  // the system preview path.
+  const openReportDirectly = useCallback(
+    async (file: ReportFile) => {
+      if (Platform.OS === "android") {
+        const {
+          openReportWithSystemApp,
+        } = await import(
+          "@/services/reportOpen"
+        );
+
+        await openReportWithSystemApp(file);
+
+        return;
+      }
+
+      const { openReportPdfFile } =
+        await import(
+          "@/services/reportPrint"
+        );
+
+      await openReportPdfFile(file);
+    },
+    [],
+  );
+
   const generateReport =
     useCallback(
       async (
         reportType: ReportType,
       ) => {
-        if (isExporting) {
+        if (exportingReport !== null) {
           return;
         }
 
@@ -667,13 +793,19 @@ export default function AnalyticsScreen() {
           monitoringHistory.length ===
           0
         ) {
-          Alert.alert(
-            "No Data",
-            "There is no historical analytics data available for the selected date range.",
-          );
+          setExportStatus({
+            kind: "info",
+            message:
+              "No historical analytics data is available for the selected date range.",
+          });
 
           return;
         }
+
+        setExportStatus({
+          kind: "info",
+          message: `Preparing ${reportType} report…`,
+        });
 
         /* ======================================================
            WEB EXPORT (jsPDF template)
@@ -708,6 +840,12 @@ export default function AnalyticsScreen() {
                 filename,
               );
 
+              setExportStatus({
+                kind: "success",
+                message:
+                  "CSV report downloaded.",
+              });
+
               return;
             }
 
@@ -726,17 +864,25 @@ export default function AnalyticsScreen() {
               filename,
             );
 
+            setExportStatus({
+              kind: "success",
+              message:
+                "PDF report downloaded.",
+            });
+
             return;
           } catch (error) {
-            console.error(
-              "Web report export error:",
-              error,
-            );
+            captureAppError(error, {
+              flow: "analytics-report",
+              platform: "web",
+              reportType,
+            });
 
-            Alert.alert(
-              "Export Error",
-              "The report could not be generated.",
-            );
+            setExportStatus({
+              kind: "error",
+              message:
+                "The report could not be generated. Please try again.",
+            });
 
             return;
           }
@@ -745,15 +891,18 @@ export default function AnalyticsScreen() {
         /* ======================================================
            NATIVE ANDROID / IOS EXPORT
            Real files: PDF via expo-print HTML, CSV via the
-           shared CSV generator written to the cache directory.
-           Both are handed to the system share sheet.
+           shared CSV generator. Both are built into the app
+           cache, then copied into a user-visible Download folder
+           through the Storage Access Framework. Nothing reaches
+           a share chooser: when the folder grant is declined the
+           built file opens directly instead.
            Native modules are lazy-bound here (dynamic import)
-           so tab mount never evaluates expo-print/sharing/
-           file-system on release — web shims survive the
-           static import but Fabric can throw at load.
+           so tab mount never evaluates expo-print/file-system
+           on release — web shims survive the static import but
+           Fabric can throw at load.
            ====================================================== */
 
-        setIsExporting(true);
+        setExportingReport(reportType);
 
         try {
           const reportData =
@@ -765,46 +914,135 @@ export default function AnalyticsScreen() {
 
           // Lazy-bound: only evaluated on actual export press.
           const {
-            printAndSharePdf,
-            saveAndShareCsv,
+            buildReportCsvFile,
+            buildReportPdfFile,
           } = await import(
             "@/services/reportPrint"
           );
 
-          if (
+          const reportFile =
             reportType === "CSV"
-          ) {
-            await saveAndShareCsv(
-              reportData,
+              ? await buildReportCsvFile(
+                  reportData,
+                )
+              : await buildReportPdfFile(
+                  reportData,
+                );
+
+          const {
+            saveReportFileToDownloads,
+          } = await import(
+            "@/services/reportStorage"
+          );
+
+          // null means the folder prompt was declined (or SAF
+          // is unavailable): open the built file directly so an
+          // export is never blocked, still with no share sheet.
+          const saved =
+            await saveReportFileToDownloads(
+              reportFile.uri,
+              reportFile.filename,
+              reportFile.mimeType,
             );
+
+          if (saved) {
+            setSavedReport({
+              ...reportFile,
+              folderLabel:
+                saved.folderLabel,
+            });
+
+            setExportSheetVisible(true);
+
+            setExportStatus({
+              kind: "success",
+              message: `${reportType} report saved to ${saved.folderLabel}.`,
+            });
 
             return;
           }
 
-          await printAndSharePdf(
-            reportData,
-          );
-        } catch (error) {
-          console.error(
-            "Native report export error:",
-            error,
+          await openReportDirectly(
+            reportFile,
           );
 
-          Alert.alert(
-            "Export Error",
-            "The report could not be generated.",
-          );
+          setExportStatus({
+            kind: "success",
+            message: `${reportType} report opened — allow folder access to save a copy.`,
+          });
+        } catch (error) {
+          captureAppError(error, {
+            flow: "analytics-report",
+            platform: Platform.OS,
+            reportType,
+          });
+
+          setExportStatus({
+            kind: "error",
+            message:
+              "The report could not be generated. Please try again.",
+          });
         } finally {
-          setIsExporting(false);
+          setExportingReport(null);
         }
       },
       [
-        isExporting,
+        exportingReport,
         monitoringHistory,
+        openReportDirectly,
         reportFrequency,
         range,
       ],
     );
+
+  /* ==========================================================
+     SAVED REPORT SHEET
+     ========================================================== */
+
+  // What the card renders: the sheet only needs the name and
+  // the folder, not the file handle.
+  const exportResult: ReportExportResult =
+    savedReport
+      ? {
+          filename:
+            savedReport.filename,
+          folderLabel:
+            savedReport.folderLabel,
+        }
+      : null;
+
+  // Opens the saved report directly — the PDF in the system
+  // document preview, the CSV in the in-app viewer. No share
+  // sheet is involved at any point.
+  const openExportedReport =
+    useCallback(async () => {
+      const saved = savedReport;
+
+      if (!saved) {
+        return;
+      }
+
+      // Close first: the viewer covers the screen anyway, and
+      // a second tap cannot fire the open twice while the
+      // first one is still starting.
+      setExportSheetVisible(false);
+
+      try {
+        await openReportDirectly(saved);
+      } catch (error) {
+        captureAppError(error, {
+          flow: "analytics-report",
+          platform: Platform.OS,
+          reportType: "open",
+        });
+
+        setExportStatus({
+          kind: "error",
+          message:
+            "The report could not be opened. Please try again.",
+        });
+      }
+    }, [savedReport, openReportDirectly]);
 
   /* ==========================================================
      DATE RANGE
@@ -879,34 +1117,68 @@ export default function AnalyticsScreen() {
       [],
     );
 
+  /*
+   * Quick range preset (7D/30D/90D/1Y). Presets never exceed
+   * today, matching the custom pickers so the query window and
+   * the displayed range stay consistent.
+   */
+  const handlePresetSelect =
+    useCallback(
+      (days: number) => {
+        const today =
+          new Date();
+
+        const preset =
+          createPresetRange(days);
+
+        setRange({
+          start: preset.start,
+          end:
+            preset.end.getTime() >
+            today.getTime()
+              ? today
+              : preset.end,
+        });
+      },
+      [],
+    );
+
   return (
     <ScreenContainer2>
       {/* Fixed Navbar */}
       <NavBar />
 
-      <PullRefreshScroll
-        scrollRef={scrollRef}
-        style={styles.scrollView}
-        contentContainerStyle={[
-          styles.content,
-          { paddingHorizontal: screenPadding },
-        ]}
-        showsVerticalScrollIndicator={
-          false
-        }
-        onScroll={(event) => {
-          scrollYRef.current =
-            event.nativeEvent.contentOffset.y;
-        }}
-        scrollEventThrottle={16}
-        refreshing={analyticsRefreshing}
-        onRefresh={onAnalyticsRefresh}
-        refreshLabel={t(
-          "dashboard.common.pullToRefresh",
-        )}
-        refreshTint={colors.primary}
-        testID="pull-scroll"
+      <ScrollVisibilityProvider
+        visibility={scrollVisibility}
       >
+        <PullRefreshScroll
+          scrollRef={scrollRef}
+          style={styles.scrollView}
+          contentContainerStyle={[
+            styles.content,
+            { paddingHorizontal: screenPadding },
+          ]}
+          showsVerticalScrollIndicator={
+            false
+          }
+          onScroll={(event) => {
+            const offsetY =
+              event.nativeEvent.contentOffset
+                .y;
+
+            scrollYRef.current = offsetY;
+
+            scrollVisibility.notify(offsetY);
+          }}
+          scrollEventThrottle={16}
+          refreshing={analyticsRefreshing}
+          onRefresh={onAnalyticsRefresh}
+          refreshLabel={t(
+            "dashboard.common.pullToRefresh",
+          )}
+          refreshTint={colors.primary}
+          testID="pull-scroll"
+        >
         {/* ======================================================
             ANALYTICS HEADER
         ====================================================== */}
@@ -978,7 +1250,7 @@ export default function AnalyticsScreen() {
           {t("dashboard.analytics.sectionBattery")}
         </AppText>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Battery Level Over Time"
           subtitle="Average battery level per period, with the unsafe zone below the 20% safety floor marked."
           icon="battery-half-outline"
@@ -990,9 +1262,9 @@ export default function AnalyticsScreen() {
           <BatteryLevelChart
             points={batteryPoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Unsafe Discharge Events"
           subtitle="Snapshots below 20% per period. Lower is better."
           icon="warning-outline"
@@ -1004,9 +1276,9 @@ export default function AnalyticsScreen() {
           <UnsafeDischargeChart
             points={unsafePoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Battery Activity"
           subtitle="How often it charges vs drains."
           icon="battery-half-outline"
@@ -1014,7 +1286,7 @@ export default function AnalyticsScreen() {
           <BatteryActivityChart
             slices={activitySlices}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
         {/* ======================================================
             SOLAR SECTION
@@ -1026,7 +1298,7 @@ export default function AnalyticsScreen() {
           {t("dashboard.analytics.sectionSolar")}
         </AppText>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Solar vs Load"
           subtitle="Whether the sun covers demand."
           icon="sunny-outline"
@@ -1038,9 +1310,9 @@ export default function AnalyticsScreen() {
           <SolarVsLoadChart
             points={solarLoadPoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Best Sun Days"
           subtitle="Peak panel output per day."
           icon="sunny-outline"
@@ -1052,9 +1324,9 @@ export default function AnalyticsScreen() {
           <BestSunDaysChart
             points={bestSunPoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Sun Hours"
           subtitle="How long the panel produced."
           icon="sunny-outline"
@@ -1066,9 +1338,9 @@ export default function AnalyticsScreen() {
           <SunHoursChart
             points={sunHoursPoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Solar Curve by Hour"
           subtitle="Best time of day for the sun."
           icon="sunny-outline"
@@ -1076,7 +1348,7 @@ export default function AnalyticsScreen() {
           <SolarCurveByHourChart
             points={solarCurvePoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
         {/* ======================================================
             ENERGY SECTION
@@ -1088,7 +1360,7 @@ export default function AnalyticsScreen() {
           {t("dashboard.analytics.sectionEnergy")}
         </AppText>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Energy In and Out"
           subtitle="Daily balance."
           icon="flash-outline"
@@ -1101,9 +1373,9 @@ export default function AnalyticsScreen() {
             inPoints={energyInPoints}
             outPoints={energyOutPoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Net Energy"
           subtitle="Surplus and deficit days."
           icon="flash-outline"
@@ -1115,9 +1387,9 @@ export default function AnalyticsScreen() {
           <NetEnergyChart
             points={netPoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Running Balance"
           subtitle="Whether stored energy grows or shrinks."
           icon="flash-outline"
@@ -1129,9 +1401,9 @@ export default function AnalyticsScreen() {
           <RunningBalanceChart
             points={balancePoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Solar Coverage"
           subtitle="Percent of your use the sun covered."
           icon="flash-outline"
@@ -1143,7 +1415,7 @@ export default function AnalyticsScreen() {
           <SolarCoverageChart
             points={coveragePoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
         {/* ======================================================
             HEALTH SECTION
@@ -1155,7 +1427,7 @@ export default function AnalyticsScreen() {
           {t("dashboard.analytics.sectionHealth")}
         </AppText>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Temperatures"
           subtitle="Heat trends."
           icon="pulse-outline"
@@ -1169,9 +1441,9 @@ export default function AnalyticsScreen() {
             solarPoints={solarTempPoints}
             interiorPoints={interiorTempPoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Temperature Alerts"
           subtitle="Days with high or critical heat."
           icon="pulse-outline"
@@ -1183,9 +1455,9 @@ export default function AnalyticsScreen() {
           <TemperatureAlertsChart
             points={tempAlertsPoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Device Uptime"
           subtitle="How reliable the ESP32 link is."
           icon="pulse-outline"
@@ -1197,9 +1469,9 @@ export default function AnalyticsScreen() {
           <UptimeChart
             points={uptimePoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Online vs Offline"
           subtitle="Share of time connected."
           icon="pulse-outline"
@@ -1207,7 +1479,7 @@ export default function AnalyticsScreen() {
           <OnlineOfflineChart
             share={onlineShare}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
         {/* ======================================================
             USAGE SECTION
@@ -1219,7 +1491,7 @@ export default function AnalyticsScreen() {
           {t("dashboard.analytics.sectionUsage")}
         </AppText>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Average vs Peak Load"
           subtitle="Typical and worst-case demand."
           icon="bulb-outline"
@@ -1231,9 +1503,9 @@ export default function AnalyticsScreen() {
           <AvgPeakLoadChart
             points={loadVsPeakPoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
-        <AnalyticsChartCard
+        <LazyCard
           title="Power Use by Hour"
           subtitle="When to avoid heavy appliances."
           icon="bulb-outline"
@@ -1241,7 +1513,7 @@ export default function AnalyticsScreen() {
           <PowerByHourChart
             points={powerByHourPoints}
           />
-        </AnalyticsChartCard>
+        </LazyCard>
 
         {/* ======================================================
             ANALYTICS PANEL
@@ -1260,14 +1532,30 @@ export default function AnalyticsScreen() {
             range={range}
             onFromDateChange={setFromDate}
             onToDateChange={setToDate}
+            onPresetSelect={
+              handlePresetSelect
+            }
             generateReport={generateReport}
-            exporting={isExporting}
+            exporting={exportingReport !== null}
+            exportingType={exportingReport}
+            status={exportStatus}
+            exportResult={exportResult}
+            exportSheetVisible={
+              exportSheetVisible
+            }
+            onOpenExportedReport={
+              openExportedReport
+            }
+            onDismissExportResult={() =>
+              setExportSheetVisible(false)
+            }
           />
         </View>
 
         {/* Copyright */}
         <Copyright />
       </PullRefreshScroll>
+      </ScrollVisibilityProvider>
 
       {/* ========================================================
           REPORT FREQUENCY MODAL

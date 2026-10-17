@@ -423,6 +423,7 @@ export default function ForgotPasswordScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             autoComplete="email"
+            importantForAutofill="no"
             returnKeyType="done"
             onSubmitEditing={handleSend}
             bottomGap={0}
@@ -551,6 +552,7 @@ export default function ForgotPasswordScreen() {
                         }}
                         placeholder={t("passwordInput.placeholderCreateNew")}
                         autoComplete="password-new"
+                        importantForAutofill="no"
                         returnKeyType="next"
                         onSubmitEditing={() =>
                           confirmPasswordRef.current?.focus()
@@ -567,6 +569,7 @@ export default function ForgotPasswordScreen() {
                         }}
                         placeholder={t("passwordInput.placeholderConfirmNew")}
                         autoComplete="password-new"
+                        importantForAutofill="no"
                         returnKeyType="done"
                         onSubmitEditing={handleUpdate}
                         inputRef={confirmPasswordRef}

@@ -24,3 +24,19 @@
 [data-testid="pull-scroll"] {
   overscroll-behavior-y: contain;
 }
+
+/* ============================================================
+   Autofill fields: stop Chrome/Safari from painting their own
+   (pale yellow) background and text color over the app's dark
+   input surface. The long transition keeps the app's own
+   background-color; currentColor keeps the app's text color.
+   ============================================================ */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: currentColor;
+  transition:
+    background-color 600000s 0s,
+    color 600000s 0s;
+}
