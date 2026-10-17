@@ -203,7 +203,156 @@ short, readable summary.
 
 ---
 
+### 6. The User Manual's figures were empty boxes
+
+**Summary**
+Every section of the User Manual pointed at a picture — "Figure 1", "Figure 2", and
+so on — but the boxes were empty and nothing could be tapped. You had to leave the
+manual, find the screen yourself, and hope it still looked the same.
+
+**Steps to Reproduce**
+1. Open Menu, then User Manual.
+2. Scroll to any section that mentions a figure.
+3. Tap the figure box.
+
+**Expected Behavior**
+The figure shows the screen it describes, or takes you straight to it.
+
+**Actual Behavior**
+An empty, labeled box. Nothing to see, nothing to tap.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Each figure is now a green "Open Dashboard" / "Open Appliances" / "Open
+Analytics" button that opens the real screen with live data. Generate Report,
+Notifications, Components, and Menu got one too, and Activity Logs — which had
+nothing — now has one as well.
+**Note:** We tried real screenshots first, then dropped them: they go out of date the
+moment a screen changes. The Register and Sign In sections now explain the steps in
+words, since the app sends signed-in users away from those screens anyway.
+
+---
+
+### 7. The Generate Report button stopped short and felt slow
+
+**Summary**
+On the Analytics screen, the quick button that should jump to the report panel
+scrolled down but stopped before the end, so you still had to scroll the rest of the
+way yourself. The slide also took a slow 1.5 seconds, and it aimed at the top of the
+panel instead of the end of the page.
+
+**Steps to Reproduce**
+1. Open the Analytics screen.
+2. Tap the Generate Report button near the top.
+3. Wait for the scroll to stop.
+
+**Expected Behavior**
+You land at the very end of the page in a fraction of a second, with the report panel
+in view.
+
+**Actual Behavior**
+The scroll ended above the bottom, leaving the panel off screen.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** The jump now takes 0.4 seconds and lands exactly at the bottom. It works
+out the position from the page's real length minus the screen height instead of
+measuring the panel's top edge, so it can't stop short, and it stops instantly if you
+touch the screen while it is moving.
+
+---
+
+### 8. Charts loading mid-scroll changed the page length and broke the jump
+
+**Summary**
+Analytics draws its charts only when they come into view; until then each one is an
+estimated placeholder. During a quick jump the scroll and the chart loading raced
+each other, so by the time the scroll settled the page had grown and the spot it had
+aimed at was no longer the bottom. The same button could land in a different place
+depending on what had already loaded.
+
+**Steps to Reproduce**
+1. Open the Analytics screen on a fresh start, before any chart has loaded.
+2. Tap the Generate Report button.
+3. Compare where the scroll stops with the real end of the page.
+
+**Expected Behavior**
+You end at the real end of the page, no matter when the charts finish loading.
+
+**Actual Behavior**
+The page grew after the scroll settled, leaving you above the bottom.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** While a jump is running, the screen now tracks the page's real height and
+follows the end as placeholders turn into real charts (for up to two seconds), so the
+final position is the true bottom. Any future "jump to section" button on this screen
+benefits too, because chart loading is what made the old position calculations
+unreliable.
+
+---
+
+### 9. Opening the report from the manual landed at the top of Analytics
+
+**Summary**
+The manual's Generate Report button took you to the Analytics screen but at the very
+top, so you still had to find the report panel yourself. The button promised a
+shortcut and delivered the long way around.
+
+**Steps to Reproduce**
+1. Open Menu, then User Manual.
+2. Under Analytics, tap Open Generate Report.
+3. Look at where the Analytics screen opens.
+
+**Expected Behavior**
+Analytics opens with the report panel already in view.
+
+**Actual Behavior**
+Analytics opened at the top of the page.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** The manual's button now tells Analytics to open at the report panel, so it
+arrives at the end of the page with nothing left to scroll.
+
+---
+
+### 10. The app carried half a megabyte of screenshots nothing displayed
+
+**Summary**
+While reviewing the manual change we found nine screenshots (508 KB in total) still
+bundled with the app after the manual had switched to live buttons. Nothing
+referenced them, so every install was paying for images no one could ever see.
+
+**Steps to Reproduce**
+1. List the manual images in `assets/images/manual`.
+2. Search the code for anything that uses them.
+3. Check what the manual actually shows.
+
+**Expected Behavior**
+The app ships only the images it displays.
+
+**Actual Behavior**
+Nine unused images were bundled — about half a megabyte.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** All nine screenshots were removed, so the manual now ships no images at
+all.
+
+---
+
 ## Still To Do
 
-- Test the real APK on a phone and confirm all five issues above are gone.
+- Test the real APK on a phone and confirm all ten issues above are gone.
 - Small pre-existing warning in the code cleanup (not related to these fixes).
