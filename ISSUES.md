@@ -417,10 +417,11 @@ reachable, and the account stayed unverified.
 **Fixed:** The app now sends an app-specific redirect
 (`adlawatt://auth/callback`) on sign-up and resend, and the Supabase project's
 Site URL + Redirect URLs were set to the app's deep links, so the link no
-longer falls back to `localhost`. Email confirmation is also temporarily
-turned off (`mailer_autoconfirm`), so sign-up signs the user in immediately.
-**Note:** Turn confirmation back on once the deep-link flow is confirmed
-working end to end.
+longer falls back to `localhost`. Email confirmation is back on: sign-up shows
+the "check your email" dialog, the confirmation template carries
+`{{ .ConfirmationURL }}` with `redirect_to=adlawatt://auth/callback`, and the
+link verifies on Supabase, reopens the app, and is exchanged on `/auth/callback`
+before the layout routes to the dashboard.
 
 ---
 
@@ -539,7 +540,5 @@ redirect URI for the browser hand-off to complete.
 
 ## Still To Do
 
-- Turn email confirmation back on in Supabase and verify the deep-link flow
-  (issue 12) end to end.
 - Update the ESP32 firmware so watt_hours is reported on the 756 Wh scale.
 - Small pre-existing warning in the code cleanup (not related to these fixes).
