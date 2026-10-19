@@ -53,7 +53,6 @@ export const GIVEN_CATALOG: CatalogItem[] = [
   { key: "catalog:kitchen:portable-rechargeable-blender", name: "Portable Rechargeable Blender", wattMin: 20, wattMax: 60, display: catalogDisplay(20, 60), uiArea: "Kitchen Area" },
   { key: "catalog:kitchen:tabletop-cold-water-dispenser", name: "Tabletop Cold Water Dispenser", wattMin: 50, wattMax: 80, display: catalogDisplay(50, 80), uiArea: "Kitchen Area" },
   { key: "catalog:kitchen:rechargeable-water-dispenser-pump", name: "Rechargeable Water Dispenser Pump", wattMin: 2, wattMax: 5, display: catalogDisplay(2, 5), uiArea: "Kitchen Area" },
-  { key: "catalog:kitchen:rechargeable-mini-food-chopper", name: "Rechargeable Mini Food Chopper", wattMin: 10, wattMax: 30, display: catalogDisplay(10, 30), uiArea: "Kitchen Area" },
   // Work/Study Area
   { key: "catalog:work:laptop-charger", name: "Laptop Charger", wattMin: 45, wattMax: 65, display: catalogDisplay(45, 65), uiArea: "Work/Study Area" },
   { key: "catalog:work:led-study-desk-lamp", name: "LED Study Desk Lamp", wattMin: 5, wattMax: 12, display: catalogDisplay(5, 12), uiArea: "Work/Study Area" },
