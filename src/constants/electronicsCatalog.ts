@@ -201,7 +201,7 @@ export const CATALOG_IMAGES: Record<string, number> = {
   "catalog:living:digital-tv-set-top-box": require("@/assets/images/appliances/tv-box.png"),
   "catalog:living:mini-soundbar": require("@/assets/images/appliances/speaker.png"),
   "catalog:living:portable-bluetooth-speaker": require("@/assets/images/appliances/speaker.png"),
-  "catalog:living:desk-fan": require("@/assets/images/appliances/mini-fan.png"),
+  "catalog:living:desk-fan": require("@/assets/images/appliances/desk-fan.png"),
   "catalog:bedroom:wall-fan": require("@/assets/images/appliances/clip-fan.png"),
   "catalog:bedroom:clip-fan": require("@/assets/images/appliances/clip-fan.png"),
   "catalog:bedroom:tablet-charger": require("@/assets/images/appliances/charger.png"),
