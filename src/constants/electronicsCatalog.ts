@@ -35,7 +35,6 @@ export const GIVEN_CATALOG: CatalogItem[] = [
   // Living Area
   { key: "catalog:living:led-smart-tv", name: "LED Smart TV (32 to 43 inch)", wattMin: 30, wattMax: 80, display: catalogDisplay(30, 80), uiArea: "Living Area" },
   { key: "catalog:living:digital-tv-set-top-box", name: "Digital TV Set-Top Box", wattMin: 5, wattMax: 15, display: catalogDisplay(5, 15), uiArea: "Living Area" },
-  { key: "catalog:living:mini-soundbar", name: "Mini Soundbar", wattMin: 10, wattMax: 50, display: catalogDisplay(10, 50), uiArea: "Living Area" },
   { key: "catalog:living:portable-bluetooth-speaker", name: "Portable Bluetooth Speaker", wattMin: 5, wattMax: 20, display: catalogDisplay(5, 20), uiArea: "Living Area" },
   { key: "catalog:living:desk-fan", name: "Desk Fan", wattMin: 25, wattMax: 45, display: catalogDisplay(25, 45), uiArea: "Living Area" },
   { key: "catalog:living:mini-led-projector", name: "Mini LED Projector", wattMin: 30, wattMax: 60, display: catalogDisplay(30, 60), uiArea: "Living Area" },
@@ -50,7 +49,6 @@ export const GIVEN_CATALOG: CatalogItem[] = [
   { key: "catalog:kitchen:small-rice-cooker", name: "Small Rice Cooker", wattMin: 300, wattMax: 500, display: catalogDisplay(300, 500), uiArea: "Kitchen Area" },
   { key: "catalog:kitchen:mini-electric-multi-cooker", name: "Mini Electric Multi-Cooker", wattMin: 300, wattMax: 500, display: catalogDisplay(300, 500), uiArea: "Kitchen Area" },
   { key: "catalog:kitchen:basic-kitchen-blender", name: "Basic Kitchen Blender", wattMin: 200, wattMax: 350, display: catalogDisplay(200, 350), uiArea: "Kitchen Area" },
-  { key: "catalog:kitchen:portable-rechargeable-blender", name: "Portable Rechargeable Blender", wattMin: 20, wattMax: 60, display: catalogDisplay(20, 60), uiArea: "Kitchen Area" },
   { key: "catalog:kitchen:tabletop-cold-water-dispenser", name: "Tabletop Cold Water Dispenser", wattMin: 50, wattMax: 80, display: catalogDisplay(50, 80), uiArea: "Kitchen Area" },
   { key: "catalog:kitchen:rechargeable-water-dispenser-pump", name: "Rechargeable Water Dispenser Pump", wattMin: 2, wattMax: 5, display: catalogDisplay(2, 5), uiArea: "Kitchen Area" },
   // Work/Study Area
@@ -190,7 +188,6 @@ export const CATALOG_IMAGES: Record<string, number> = {
   "catalog:general:rechargeable-emergency-light": require("@/assets/images/appliances/green-emergency-light.png"),
   "catalog:living:led-smart-tv": require("@/assets/images/appliances/led-tv.png"),
   "catalog:living:digital-tv-set-top-box": require("@/assets/images/appliances/tv-box.png"),
-  "catalog:living:mini-soundbar": require("@/assets/images/appliances/speaker.png"),
   "catalog:living:portable-bluetooth-speaker": require("@/assets/images/appliances/speaker.png"),
   "catalog:living:mini-led-projector": require("@/assets/images/appliances/mini-projector.png"),
   "catalog:living:desk-fan": require("@/assets/images/appliances/desk-fan.png"),
@@ -203,7 +200,6 @@ export const CATALOG_IMAGES: Record<string, number> = {
   "catalog:kitchen:small-rice-cooker": require("@/assets/images/appliances/rice-cooker.png"),
   "catalog:kitchen:mini-electric-multi-cooker": require("@/assets/images/appliances/multi-cooker.png"),
   "catalog:kitchen:basic-kitchen-blender": require("@/assets/images/appliances/blender.png"),
-  "catalog:kitchen:portable-rechargeable-blender": require("@/assets/images/appliances/blender.png"),
   "catalog:kitchen:tabletop-cold-water-dispenser": require("@/assets/images/appliances/water-dispenser.png"),
   "catalog:kitchen:rechargeable-water-dispenser-pump": require("@/assets/images/appliances/water-dispenser-pump.png"),
   "catalog:work:laptop-charger": require("@/assets/images/appliances/laptop-charger.png"),
