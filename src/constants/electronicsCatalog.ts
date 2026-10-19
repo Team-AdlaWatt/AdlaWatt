@@ -205,6 +205,7 @@ export const CATALOG_IMAGES: Record<string, number> = {
   "catalog:kitchen:basic-kitchen-blender": require("@/assets/images/appliances/blender.png"),
   "catalog:kitchen:portable-rechargeable-blender": require("@/assets/images/appliances/blender.png"),
   "catalog:kitchen:tabletop-cold-water-dispenser": require("@/assets/images/appliances/water-dispenser.png"),
+  "catalog:kitchen:rechargeable-water-dispenser-pump": require("@/assets/images/appliances/water-dispenser-pump.png"),
   "catalog:work:laptop-charger": require("@/assets/images/appliances/laptop-charger.png"),
   "catalog:work:led-study-desk-lamp": require("@/assets/images/appliances/desk-lamp.png"),
   "catalog:work:basic-inkjet-printer": require("@/assets/images/appliances/printer.png"),
