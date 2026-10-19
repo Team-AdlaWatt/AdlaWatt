@@ -5,7 +5,7 @@
 # collect-only (see jest.config.js) — informational until
 # the suite stabilizes.
 
-name: ci
+name: Android Builds
 
 on:
   push:
