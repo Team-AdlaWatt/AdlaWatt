@@ -40,7 +40,7 @@ import {
   CUSTOM_AREA,
   GIVEN_CATALOG,
   type CatalogItem,
-} from "@/constants/applianceCatalog";
+} from "@/constants/electronicsCatalog";
 import { logAppliance } from "@/services/activityLogService";
 import {
   useAppColors,
@@ -183,6 +183,7 @@ const parseWattInterval = (
  * UI area colors
  */
 const areaColors: Record<string, string> = {
+  General: Colors.light.areas.general,
   "Living Area": Colors.light.areas.living,
   "Bedroom": Colors.light.areas.bedroom,
   "Kitchen Area": Colors.light.areas.kitchen,
@@ -1587,6 +1588,7 @@ export default function ApplianceModal({
   // ============================================================
 
   const sections = [
+    "General",
     "Living Area",
     "Bedroom",
     "Kitchen Area",
