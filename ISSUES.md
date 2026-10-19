@@ -389,8 +389,157 @@ before recommendations reflect the new capacity — still to do on the hardware 
 
 ---
 
+### 12. Account verification via Supabase auth fails
+
+**Summary**
+After creating an account, the email verification link opened
+`http://localhost:3000`, which cannot be reached from a phone. Verification
+never completed because the link pointed at a development address instead of
+the app.
+
+**Steps to Reproduce**
+1. Register a new account.
+2. Open the confirmation email on the phone.
+3. Tap the verification link.
+
+**Expected Behavior**
+The link verifies the account and hands the user back to the app.
+
+**Actual Behavior**
+The browser showed "localhost:3000 refused to connect" / the page was not
+reachable, and the account stayed unverified.
+
+**Environment**
+- **Device:** Android and iOS phone
+- **Browser:** Brave (default)
+- **App Version:** v1.0.0
+
+**Fixed:** The app now sends an app-specific redirect
+(`adlawatt://auth/callback`) on sign-up and resend, and the Supabase project's
+Site URL + Redirect URLs were set to the app's deep links, so the link no
+longer falls back to `localhost`. Email confirmation is also temporarily
+turned off (`mailer_autoconfirm`), so sign-up signs the user in immediately.
+**Note:** Turn confirmation back on once the deep-link flow is confirmed
+working end to end.
+
+---
+
+### 13. Create-account password labels incorrectly said "New"
+
+**Summary**
+On the create-account screen the two password fields were labeled "New
+Password" and "Confirm New Password". A brand-new user has no existing
+password, so calling it "new" is confusing and wrong.
+
+**Steps to Reproduce**
+1. Open the create-account screen.
+2. Look at the two password field labels.
+
+**Expected Behavior**
+The labels read "Password" and "Confirm Password".
+
+**Actual Behavior**
+The labels read "New Password" and "Confirm New Password".
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** The create-account fields now use the plain "Password" label and a
+new "Confirm Password" label (`labelConfirmPassword`). The reset and
+change-password flows keep the correct "new password" wording, added in
+English, Filipino, and Cebuano.
+
+---
+
+### 14. Create-account confirm-password placeholder was wrong
+
+**Summary**
+The confirm-password field on the create-account screen did not show its
+intended hint. It fell back to generic text because its translation key was
+missing from every language file.
+
+**Steps to Reproduce**
+1. Open the create-account screen.
+2. Tap into the confirm-password field and read the placeholder.
+
+**Expected Behavior**
+The field shows "Enter password to confirm".
+
+**Actual Behavior**
+The field showed a fallback/generic placeholder instead of the intended hint.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Added the missing `passwordInput.placeholderConfirmNewPassword`
+string ("Enter password to confirm") in English, Filipino, and Cebuano, so the
+field no longer falls back.
+
+---
+
+### 15. Reset password via Supabase auth fails
+
+**Summary**
+Requesting a password reset sent a recovery email whose link opened
+`http://localhost:3000`, which is unreachable from a phone, so the password
+could never be reset.
+
+**Steps to Reproduce**
+1. Open the sign-in screen and choose "Forgot password".
+2. Enter the account email and send the recovery email.
+3. Open the email and tap the reset link.
+
+**Expected Behavior**
+The link opens the in-app reset screen where the user can set a new password.
+
+**Actual Behavior**
+The browser showed a `localhost` page that could not be found.
+
+**Environment**
+- **Device:** Android and iOS phone
+- **App Version:** v1.0.0
+
+**Fixed:** Recovery links now target `adlawatt://auth/forgot-password` (via a
+shared redirect helper) and that URL is allowlisted in the Supabase project,
+so the link returns to the app instead of `localhost`.
+
+---
+
+### 16. Login with Google fails
+
+**Summary**
+Signing in with Google ended at `http://localhost:3000`, which is unreachable
+from a phone, so the user never got back into the app.
+
+**Steps to Reproduce**
+1. Open the sign-in screen.
+2. Tap "Continue with Google" and pick an account.
+
+**Expected Behavior**
+Google returns the user to the app and signs them in.
+
+**Actual Behavior**
+The browser ended on a `localhost` page that could not be found.
+
+**Environment**
+- **Device:** Android and iOS phone
+- **Browser:** Brave (default)
+- **App Version:** v1.0.0
+
+**Fixed:** Google sign-in now passes `adlawatt://auth/callback` as the
+redirect, that URL is allowlisted in the Supabase project, and Google is
+enabled as a provider — so OAuth returns to the app.
+**Note:** The Google Cloud OAuth client must list
+`https://nxdabgvbwunyeffzrzta.supabase.co/auth/v1/callback` as an authorized
+redirect URI for the browser hand-off to complete.
+
+---
+
 ## Still To Do
 
-- Test the real APK on a phone and confirm all eleven issues above are gone.
+- Turn email confirmation back on in Supabase and verify the deep-link flow
+  (issue 12) end to end.
 - Update the ESP32 firmware so watt_hours is reported on the 756 Wh scale.
 - Small pre-existing warning in the code cleanup (not related to these fixes).
