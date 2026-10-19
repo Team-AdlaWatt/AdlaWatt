@@ -26,40 +26,40 @@ export const catalogDisplay = (
 
 export const GIVEN_CATALOG: CatalogItem[] = [
   // General
-  { key: "catalog:general:led-light-bulb", name: "LED Light Bulb", wattMin: 5, wattMax: 18, display: catalogDisplay(5, 18), uiArea: "General" },
+  { key: "catalog:general:led-light-bulb", name: "LED Light Bulb", wattMin: 3, wattMax: 18, display: catalogDisplay(3, 18), uiArea: "General" },
   { key: "catalog:general:stand-fan", name: "Stand Fan", wattMin: 35, wattMax: 75, display: catalogDisplay(35, 75), uiArea: "General" },
-  { key: "catalog:general:exhaust-fan", name: "Exhaust Fan", wattMin: 15, wattMax: 45, display: catalogDisplay(15, 45), uiArea: "General" },
+  { key: "catalog:general:exhaust-fan", name: "Exhaust Fan", wattMin: 10, wattMax: 45, display: catalogDisplay(10, 45), uiArea: "General" },
   { key: "catalog:general:wifi-router", name: "Wi-Fi Router", wattMin: 5, wattMax: 20, display: catalogDisplay(5, 20), uiArea: "General" },
   { key: "catalog:general:smartphone-fast-charger", name: "Smartphone Fast Charger", wattMin: 10, wattMax: 33, display: catalogDisplay(10, 33), uiArea: "General" },
-  { key: "catalog:general:rechargeable-emergency-light", name: "Rechargeable Emergency Light", wattMin: 5, wattMax: 15, display: catalogDisplay(5, 15), uiArea: "General" },
+  { key: "catalog:general:rechargeable-emergency-light", name: "Rechargeable Emergency Light", wattMin: 3, wattMax: 15, display: catalogDisplay(3, 15), uiArea: "General" },
   // Living Area
   { key: "catalog:living:led-smart-tv", name: "LED Smart TV (32 to 43 inch)", wattMin: 30, wattMax: 80, display: catalogDisplay(30, 80), uiArea: "Living Area" },
   { key: "catalog:living:digital-tv-set-top-box", name: "Digital TV Set-Top Box", wattMin: 5, wattMax: 15, display: catalogDisplay(5, 15), uiArea: "Living Area" },
-  { key: "catalog:living:portable-bluetooth-speaker", name: "Portable Bluetooth Speaker", wattMin: 5, wattMax: 20, display: catalogDisplay(5, 20), uiArea: "Living Area" },
+  { key: "catalog:living:portable-bluetooth-speaker", name: "Portable Bluetooth Speaker", wattMin: 3, wattMax: 20, display: catalogDisplay(3, 20), uiArea: "Living Area" },
   { key: "catalog:living:desk-fan", name: "Desk Fan", wattMin: 25, wattMax: 45, display: catalogDisplay(25, 45), uiArea: "Living Area" },
-  { key: "catalog:living:mini-led-projector", name: "Mini LED Projector", wattMin: 30, wattMax: 60, display: catalogDisplay(30, 60), uiArea: "Living Area" },
+  { key: "catalog:living:mini-led-projector", name: "Mini LED Projector", wattMin: 20, wattMax: 80, display: catalogDisplay(20, 80), uiArea: "Living Area" },
   // Bedroom
-  { key: "catalog:bedroom:clip-fan", name: "Clip Fan", wattMin: 20, wattMax: 40, display: catalogDisplay(20, 40), uiArea: "Bedroom" },
-  { key: "catalog:bedroom:rechargeable-handheld-fan", name: "Rechargeable Handheld Fan", wattMin: 3, wattMax: 10, display: catalogDisplay(3, 10), uiArea: "Bedroom" },
-  { key: "catalog:bedroom:tablet-charger", name: "Tablet Charger", wattMin: 10, wattMax: 20, display: catalogDisplay(10, 20), uiArea: "Bedroom" },
-  { key: "catalog:bedroom:led-night-light", name: "LED Night Light", wattMin: 1, wattMax: 5, display: catalogDisplay(1, 5), uiArea: "Bedroom" },
-  { key: "catalog:bedroom:electric-mosquito-swatter", name: "Electric Mosquito Swatter", wattMin: 2, wattMax: 5, display: catalogDisplay(2, 5), uiArea: "Bedroom" },
+  { key: "catalog:bedroom:clip-fan", name: "Clip Fan", wattMin: 10, wattMax: 40, display: catalogDisplay(10, 40), uiArea: "Bedroom" },
+  { key: "catalog:bedroom:rechargeable-handheld-fan", name: "Rechargeable Handheld Fan", wattMin: 2, wattMax: 10, display: catalogDisplay(2, 10), uiArea: "Bedroom" },
+  { key: "catalog:bedroom:tablet-charger", name: "Tablet Charger", wattMin: 10, wattMax: 30, display: catalogDisplay(10, 30), uiArea: "Bedroom" },
+  { key: "catalog:bedroom:led-night-light", name: "LED Night Light", wattMin: 0.5, wattMax: 5, display: catalogDisplay(0.5, 5), uiArea: "Bedroom" },
+  { key: "catalog:bedroom:electric-mosquito-swatter", name: "Electric Mosquito Swatter", wattMin: 1, wattMax: 5, display: catalogDisplay(1, 5), uiArea: "Bedroom" },
   // Kitchen Area
-  { key: "catalog:kitchen:small-inverter-refrigerator", name: "Small Inverter Refrigerator", wattMin: 60, wattMax: 120, display: catalogDisplay(60, 120), uiArea: "Kitchen Area" },
-  { key: "catalog:kitchen:small-rice-cooker", name: "Small Rice Cooker", wattMin: 300, wattMax: 500, display: catalogDisplay(300, 500), uiArea: "Kitchen Area" },
-  { key: "catalog:kitchen:mini-electric-multi-cooker", name: "Mini Electric Multi-Cooker", wattMin: 300, wattMax: 500, display: catalogDisplay(300, 500), uiArea: "Kitchen Area" },
-  { key: "catalog:kitchen:basic-kitchen-blender", name: "Basic Kitchen Blender", wattMin: 200, wattMax: 350, display: catalogDisplay(200, 350), uiArea: "Kitchen Area" },
-  { key: "catalog:kitchen:tabletop-cold-water-dispenser", name: "Tabletop Cold Water Dispenser", wattMin: 50, wattMax: 80, display: catalogDisplay(50, 80), uiArea: "Kitchen Area" },
-  { key: "catalog:kitchen:rechargeable-water-dispenser-pump", name: "Rechargeable Water Dispenser Pump", wattMin: 2, wattMax: 5, display: catalogDisplay(2, 5), uiArea: "Kitchen Area" },
+  { key: "catalog:kitchen:small-inverter-refrigerator", name: "Small Inverter Refrigerator", wattMin: 40, wattMax: 120, display: catalogDisplay(40, 120), uiArea: "Kitchen Area" },
+  { key: "catalog:kitchen:small-rice-cooker", name: "Small Rice Cooker", wattMin: 200, wattMax: 500, display: catalogDisplay(200, 500), uiArea: "Kitchen Area" },
+  { key: "catalog:kitchen:mini-electric-multi-cooker", name: "Mini Electric Multi-Cooker", wattMin: 300, wattMax: 700, display: catalogDisplay(300, 700), uiArea: "Kitchen Area" },
+  { key: "catalog:kitchen:basic-kitchen-blender", name: "Basic Kitchen Blender", wattMin: 200, wattMax: 500, display: catalogDisplay(200, 500), uiArea: "Kitchen Area" },
+  { key: "catalog:kitchen:tabletop-cold-water-dispenser", name: "Tabletop Cold Water Dispenser", wattMin: 50, wattMax: 100, display: catalogDisplay(50, 100), uiArea: "Kitchen Area" },
+  { key: "catalog:kitchen:rechargeable-water-dispenser-pump", name: "Rechargeable Water Dispenser Pump", wattMin: 1, wattMax: 5, display: catalogDisplay(1, 5), uiArea: "Kitchen Area" },
   // Work/Study Area
-  { key: "catalog:work:laptop-charger", name: "Laptop Charger", wattMin: 45, wattMax: 65, display: catalogDisplay(45, 65), uiArea: "Work/Study Area" },
-  { key: "catalog:work:led-study-desk-lamp", name: "LED Study Desk Lamp", wattMin: 5, wattMax: 12, display: catalogDisplay(5, 12), uiArea: "Work/Study Area" },
+  { key: "catalog:work:laptop-charger", name: "Laptop Charger", wattMin: 30, wattMax: 65, display: catalogDisplay(30, 65), uiArea: "Work/Study Area" },
+  { key: "catalog:work:led-study-desk-lamp", name: "LED Study Desk Lamp", wattMin: 3, wattMax: 12, display: catalogDisplay(3, 12), uiArea: "Work/Study Area" },
   { key: "catalog:work:basic-inkjet-printer", name: "Basic Inkjet Printer", wattMin: 10, wattMax: 30, display: catalogDisplay(10, 30), uiArea: "Work/Study Area" },
-  { key: "catalog:work:power-bank-charger", name: "Power Bank Charger", wattMin: 10, wattMax: 22, display: catalogDisplay(10, 22), uiArea: "Work/Study Area" },
+  { key: "catalog:work:power-bank-charger", name: "Power Bank Charger", wattMin: 10, wattMax: 30, display: catalogDisplay(10, 30), uiArea: "Work/Study Area" },
   { key: "catalog:work:wireless-earbuds-charging-case", name: "Wireless Earbuds Charging Case", wattMin: 2, wattMax: 5, display: catalogDisplay(2, 5), uiArea: "Work/Study Area" },
   // Bathroom Area
-  { key: "catalog:bath:twin-tub-washing-machine", name: "Twin-Tub Washing Machine", wattMin: 150, wattMax: 350, display: catalogDisplay(150, 350), uiArea: "Bathroom Area" },
-  { key: "catalog:bath:rechargeable-hair-clipper", name: "Rechargeable Hair Clipper", wattMin: 5, wattMax: 10, display: catalogDisplay(5, 10), uiArea: "Bathroom Area" },
+  { key: "catalog:bath:twin-tub-washing-machine", name: "Twin-Tub Washing Machine", wattMin: 120, wattMax: 400, display: catalogDisplay(120, 400), uiArea: "Bathroom Area" },
+  { key: "catalog:bath:rechargeable-hair-clipper", name: "Rechargeable Hair Clipper", wattMin: 3, wattMax: 10, display: catalogDisplay(3, 10), uiArea: "Bathroom Area" },
 ];
 
 export const CATALOG_BY_KEY = new Map(
