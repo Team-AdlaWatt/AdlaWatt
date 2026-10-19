@@ -249,10 +249,6 @@ const ceb = {
         "Naka-sign in ka. Dad-on ka sa imong dashboard.",
       googleIncomplete:
         "Wala mahuman ang Google sign-in. Palihug sulayi pag-usab gikan sa sign-in screen.",
-      continueToDashboard: "Padayon",
-      webSuccessTitle: "Nahuman na ang Pagpamatuod",
-      webSuccessSubtitle:
-        "Mobalik na sa app karon, o siraha kini nga window.",
       backToSignIn: "Balik sa Sign In",
       goToResetPassword: "Adto sa Reset Password",
       footerPrompt: "Kinahanglan ug bag-ong account?",

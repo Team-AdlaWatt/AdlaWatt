@@ -227,10 +227,6 @@ const en = {
       signedIn: "You are signed in. Taking you to your dashboard.",
       googleIncomplete:
         "Google sign-in was not completed. Please try again from the sign-in screen.",
-      continueToDashboard: "Continue",
-      webSuccessTitle: "Verification complete",
-      webSuccessSubtitle:
-        "Return to the app now, or close this window.",
       backToSignIn: "Back to Sign In",
       goToResetPassword: "Go to Reset Password",
       footerPrompt: "Need a new account?",

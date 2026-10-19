@@ -249,10 +249,6 @@ const fil = {
         "Naka-sign in ka. Dadalhin ka sa iyong dashboard.",
       googleIncomplete:
         "Hindi nakumpleto ang Google sign-in. Pakisubukang muli mula sa sign-in screen.",
-      continueToDashboard: "Magpatuloy",
-      webSuccessTitle: "Kumpleto na ang Pagpapatotoo",
-      webSuccessSubtitle:
-        "Bumalik na sa app ngayon, o isara ang window na ito.",
       backToSignIn: "Bumalik sa Sign In",
       goToResetPassword: "Pumunta sa Reset Password",
       footerPrompt: "Kailangan ng bagong account?",
