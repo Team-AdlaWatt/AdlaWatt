@@ -12,12 +12,10 @@
     "forecastRefreshMs": 10800000
   },
   "location": {
-    "fallbackLat": 8.3697,
-    "fallbackLon": 124.8644,
-    "coordDecimals": 4
+    "coordDecimals": 4,
+    "changeThresholdKm": 1
   },
   "cache": {
-    "todayMinutes": 15,
     "staleMinutes": 30
   },
   "calibration": {

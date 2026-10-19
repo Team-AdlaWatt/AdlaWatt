@@ -401,7 +401,7 @@ export default function RegisterScreen() {
           />
 
           <PasswordInput
-            label={t("passwordInput.labelNewPassword")}
+            label={t("passwordInput.labelPassword")}
             value={password}
             onChangeText={(text) => {
               setPassword(text);
@@ -418,7 +418,7 @@ export default function RegisterScreen() {
           />
 
           <PasswordInput
-            label={t("passwordInput.labelConfirmNewPassword")}
+            label={t("passwordInput.labelConfirmPassword")}
             value={confirmPassword}
             onChangeText={(text) => {
               setConfirmPassword(text);

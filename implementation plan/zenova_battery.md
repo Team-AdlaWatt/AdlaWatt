@@ -54,11 +54,11 @@ Use voltage for immediate voltage monitoring and safety logic, but **do not** le
 | Battery model                       | ZENOVA 12 V 30 Ah lithium battery       |
 | Battery quantity                    | 2                                       |
 | Configuration                       | Parallel                                |
-| Bank voltage                        | 12 V nominal                            |
+| Bank voltage                        | 12.6 V nominal                          |
 | Bank capacity                       | 60 Ah                                   |
-| Nominal stored energy               | 720 Wh                                  |
-| Usable energy target                | 576 Wh (80%)                            |
-| Energy reserve                      | 144 Wh (20%)                            |
+| Nominal stored energy               | 756 Wh                                  |
+| Usable energy target                | 604.8 Wh (80%)                          |
+| Energy reserve                      | 151.2 Wh (20%)                          |
 | Maximum preferred DoD               | 80%                                     |
 | Minimum preferred SoC               | 20%                                     |
 | Label operating-voltage range       | 8.4 – 12.6 V                            |
@@ -70,9 +70,9 @@ Use voltage for immediate voltage monitoring and safety logic, but **do not** le
 ### Energy calculations
 
 ```
-12 V × 60 Ah = 720 Wh (nominal)
-720 Wh × 0.80 = 576 Wh (usable)
-720 Wh × 0.20 = 144 Wh (reserve)
+12.6 V × 60 Ah = 756 Wh (nominal)
+756 Wh × 0.80 = 604.8 Wh (usable)
+756 Wh × 0.20 = 151.2 Wh (reserve)
 ```
 
 ---
@@ -83,8 +83,8 @@ Use voltage for immediate voltage monitoring and safety logic, but **do not** le
 |-------------------|-----------------------------|----------------------------------------------------------------|
 | SoC               | —                           | Percentage of estimated energy remaining                      |
 | DoD               | —                           | Percentage of capacity already used                           |
-| Remaining energy  | (SoC / 100) × 720 Wh        | Estimated watt-hours still stored                             |
-| Used energy       | (DoD / 100) × 720 Wh        | Estimated watt-hours removed                                  |
+| Remaining energy  | (SoC / 100) × 756 Wh        | Estimated watt-hours still stored                             |
+| Used energy       | (DoD / 100) × 756 Wh        | Estimated watt-hours removed                                  |
 
 **Do not** redefine 20% SoC as 0%. Show the actual SoC and separately identify whether the DoD safety limit has been reached.
 
@@ -180,8 +180,8 @@ SoC_new = SoC_old + ((Ah_charged - Ah_discharged) / 60 Ah) × 100
 Or use energy directly:
 
 ```
-E_remaining = 720 Wh + E_charged - E_discharged
-SoC = 100 × (E_remaining / 720 Wh)
+E_remaining = 756 Wh + E_charged - E_discharged
+SoC = 100 × (E_remaining / 756 Wh)
 ```
 
 - Clamp the estimate to **0 – 100%**.
@@ -252,9 +252,9 @@ Do **not** apply a universal 30-second SoC lock. Keep live voltage visible, labe
 
 ## Provisional 1% SoC Table
 
-Provides 1% display steps from 100% to 0% for the 720 Wh bank.
+Provides 1% display steps from 100% to 0% for the 756 Wh bank.
 
-> **Remaining Wh = 720 × (SoC / 100)**
+> **Remaining Wh = 756 × (SoC / 100)**
 >
 > The voltage column is a **provisional rested-voltage estimate**. It is not a factory-verified ZENOVA curve and must be replaced by values from a controlled discharge test of the actual battery bank.
 
@@ -262,121 +262,121 @@ Provides 1% display steps from 100% to 0% for the 720 Wh bank.
 
 | SoC | DoD | Remaining energy | Rested voltage | Status |
 |-----|-----|------------------|----------------|--------|
-| 100% | 0%  | 720.0 Wh         | 12.600 V       | Fully charged; charge-complete reference |
-| 99%  | 1%  | 712.8 Wh         | 12.570 V       | Near full; upper charge region |
-| 98%  | 2%  | 705.6 Wh         | 12.540 V       | Near full; upper charge region |
-| 97%  | 3%  | 698.4 Wh         | 12.510 V       | Near full; upper charge region |
-| 96%  | 4%  | 691.2 Wh         | 12.480 V       | Near full; upper charge region |
-| 95%  | 5%  | 684.0 Wh         | 12.450 V       | Very high charge; normal use |
-| 94%  | 6%  | 676.8 Wh         | 12.420 V       | Very high charge; normal use |
-| 93%  | 7%  | 669.6 Wh         | 12.390 V       | Very high charge; normal use |
-| 92%  | 8%  | 662.4 Wh         | 12.360 V       | Very high charge; normal use |
-| 91%  | 9%  | 655.2 Wh         | 12.330 V       | Very high charge; normal use |
-| 90%  | 10% | 648.0 Wh         | 12.300 V       | High charge; normal use |
-| 89%  | 11% | 640.8 Wh         | 12.270 V       | High charge; normal use |
-| 88%  | 12% | 633.6 Wh         | 12.240 V       | High charge; normal use |
-| 87%  | 13% | 626.4 Wh         | 12.210 V       | High charge; normal use |
-| 86%  | 14% | 619.2 Wh         | 12.180 V       | High charge; normal use |
-| 85%  | 15% | 612.0 Wh         | 12.150 V       | High charge; normal use |
-| 84%  | 16% | 604.8 Wh         | 12.120 V       | High charge; normal use |
-| 83%  | 17% | 597.6 Wh         | 12.090 V       | High charge; normal use |
-| 82%  | 18% | 590.4 Wh         | 12.060 V       | High charge; normal use |
-| 81%  | 19% | 583.2 Wh         | 12.030 V       | High charge; normal use |
-| 80%  | 20% | 576.0 Wh         | 12.000 V       | Normal operating range |
-| 79%  | 21% | 568.8 Wh         | 11.970 V       | Normal operating range |
-| 78%  | 22% | 561.6 Wh         | 11.940 V       | Normal operating range |
-| 77%  | 23% | 554.4 Wh         | 11.910 V       | Normal operating range |
-| 76%  | 24% | 547.2 Wh         | 11.880 V       | Normal operating range |
-| 75%  | 25% | 540.0 Wh         | 11.850 V       | Normal operating range |
-| 74%  | 26% | 532.8 Wh         | 11.820 V       | Normal operating range |
-| 73%  | 27% | 525.6 Wh         | 11.790 V       | Normal operating range |
-| 72%  | 28% | 518.4 Wh         | 11.760 V       | Normal operating range |
-| 71%  | 29% | 511.2 Wh         | 11.730 V       | Normal operating range |
-| 70%  | 30% | 504.0 Wh         | 11.700 V       | Normal operating range |
+| 100% | 0%  | 756.0 Wh         | 12.600 V       | Fully charged; charge-complete reference |
+| 99%  | 1%  | 748.4 Wh         | 12.570 V       | Near full; upper charge region |
+| 98%  | 2%  | 740.9 Wh         | 12.540 V       | Near full; upper charge region |
+| 97%  | 3%  | 733.3 Wh         | 12.510 V       | Near full; upper charge region |
+| 96%  | 4%  | 725.8 Wh         | 12.480 V       | Near full; upper charge region |
+| 95%  | 5%  | 718.2 Wh         | 12.450 V       | Very high charge; normal use |
+| 94%  | 6%  | 710.6 Wh         | 12.420 V       | Very high charge; normal use |
+| 93%  | 7%  | 703.1 Wh         | 12.390 V       | Very high charge; normal use |
+| 92%  | 8%  | 695.5 Wh         | 12.360 V       | Very high charge; normal use |
+| 91%  | 9%  | 688.0 Wh         | 12.330 V       | Very high charge; normal use |
+| 90%  | 10% | 680.4 Wh         | 12.300 V       | High charge; normal use |
+| 89%  | 11% | 672.8 Wh         | 12.270 V       | High charge; normal use |
+| 88%  | 12% | 665.3 Wh         | 12.240 V       | High charge; normal use |
+| 87%  | 13% | 657.7 Wh         | 12.210 V       | High charge; normal use |
+| 86%  | 14% | 650.2 Wh         | 12.180 V       | High charge; normal use |
+| 85%  | 15% | 642.6 Wh         | 12.150 V       | High charge; normal use |
+| 84%  | 16% | 635.0 Wh         | 12.120 V       | High charge; normal use |
+| 83%  | 17% | 627.5 Wh         | 12.090 V       | High charge; normal use |
+| 82%  | 18% | 619.9 Wh         | 12.060 V       | High charge; normal use |
+| 81%  | 19% | 612.4 Wh         | 12.030 V       | High charge; normal use |
+| 80%  | 20% | 604.8 Wh         | 12.000 V       | Normal operating range |
+| 79%  | 21% | 597.2 Wh         | 11.970 V       | Normal operating range |
+| 78%  | 22% | 589.7 Wh         | 11.940 V       | Normal operating range |
+| 77%  | 23% | 582.1 Wh         | 11.910 V       | Normal operating range |
+| 76%  | 24% | 574.6 Wh         | 11.880 V       | Normal operating range |
+| 75%  | 25% | 567.0 Wh         | 11.850 V       | Normal operating range |
+| 74%  | 26% | 559.4 Wh         | 11.820 V       | Normal operating range |
+| 73%  | 27% | 551.9 Wh         | 11.790 V       | Normal operating range |
+| 72%  | 28% | 544.3 Wh         | 11.760 V       | Normal operating range |
+| 71%  | 29% | 536.8 Wh         | 11.730 V       | Normal operating range |
+| 70%  | 30% | 529.2 Wh         | 11.700 V       | Normal operating range |
 
 ### 69% – 40%
 
 | SoC | DoD | Remaining energy | Rested voltage | Status |
 |-----|-----|------------------|----------------|--------|
-| 69% | 31% | 496.8 Wh         | 11.670 V       | Normal operating range |
-| 68% | 32% | 489.6 Wh         | 11.640 V       | Normal operating range |
-| 67% | 33% | 482.4 Wh         | 11.610 V       | Normal operating range |
-| 66% | 34% | 475.2 Wh         | 11.580 V       | Normal operating range |
-| 65% | 35% | 468.0 Wh         | 11.550 V       | Normal operating range |
-| 64% | 36% | 460.8 Wh         | 11.520 V       | Normal operating range |
-| 63% | 37% | 453.6 Wh         | 11.490 V       | Normal operating range |
-| 62% | 38% | 446.4 Wh         | 11.460 V       | Normal operating range |
-| 61% | 39% | 439.2 Wh         | 11.430 V       | Normal operating range |
-| 60% | 40% | 432.0 Wh         | 11.400 V       | Normal operating range |
-| 59% | 41% | 424.8 Wh         | 11.386 V       | Normal operating range |
-| 58% | 42% | 417.6 Wh         | 11.372 V       | Normal operating range |
-| 57% | 43% | 410.4 Wh         | 11.358 V       | Normal operating range |
-| 56% | 44% | 403.2 Wh         | 11.344 V       | Normal operating range |
-| 55% | 45% | 396.0 Wh         | 11.330 V       | Normal operating range |
-| 54% | 46% | 388.8 Wh         | 11.314 V       | Normal operating range |
-| 53% | 47% | 381.6 Wh         | 11.298 V       | Normal operating range |
-| 52% | 48% | 374.4 Wh         | 11.282 V       | Normal operating range |
-| 51% | 49% | 367.2 Wh         | 11.266 V       | Normal operating range |
-| 50% | 50% | 360.0 Wh         | 11.250 V       | Half capacity remaining; plan charging |
-| 49% | 51% | 352.8 Wh         | 11.236 V       | Below half; plan charging |
-| 48% | 52% | 345.6 Wh         | 11.222 V       | Below half; plan charging |
-| 47% | 53% | 338.4 Wh         | 11.208 V       | Below half; plan charging |
-| 46% | 54% | 331.2 Wh         | 11.194 V       | Below half; plan charging |
-| 45% | 55% | 324.0 Wh         | 11.180 V       | Below half; plan charging |
-| 44% | 56% | 316.8 Wh         | 11.164 V       | Below half; plan charging |
-| 43% | 57% | 309.6 Wh         | 11.148 V       | Below half; plan charging |
-| 42% | 58% | 302.4 Wh         | 11.132 V       | Below half; plan charging |
-| 41% | 59% | 295.2 Wh         | 11.116 V       | Below half; plan charging |
-| 40% | 60% | 288.0 Wh         | 11.100 V       | Moderate energy remaining; plan charging |
-| 39% | 61% | 280.8 Wh         | 11.086 V       | Moderate energy remaining; plan charging |
+| 69% | 31% | 521.6 Wh         | 11.670 V       | Normal operating range |
+| 68% | 32% | 514.1 Wh         | 11.640 V       | Normal operating range |
+| 67% | 33% | 506.5 Wh         | 11.610 V       | Normal operating range |
+| 66% | 34% | 499.0 Wh         | 11.580 V       | Normal operating range |
+| 65% | 35% | 491.4 Wh         | 11.550 V       | Normal operating range |
+| 64% | 36% | 483.8 Wh         | 11.520 V       | Normal operating range |
+| 63% | 37% | 476.3 Wh         | 11.490 V       | Normal operating range |
+| 62% | 38% | 468.7 Wh         | 11.460 V       | Normal operating range |
+| 61% | 39% | 461.2 Wh         | 11.430 V       | Normal operating range |
+| 60% | 40% | 453.6 Wh         | 11.400 V       | Normal operating range |
+| 59% | 41% | 446.0 Wh         | 11.386 V       | Normal operating range |
+| 58% | 42% | 438.5 Wh         | 11.372 V       | Normal operating range |
+| 57% | 43% | 430.9 Wh         | 11.358 V       | Normal operating range |
+| 56% | 44% | 423.4 Wh         | 11.344 V       | Normal operating range |
+| 55% | 45% | 415.8 Wh         | 11.330 V       | Normal operating range |
+| 54% | 46% | 408.2 Wh         | 11.314 V       | Normal operating range |
+| 53% | 47% | 400.7 Wh         | 11.298 V       | Normal operating range |
+| 52% | 48% | 393.1 Wh         | 11.282 V       | Normal operating range |
+| 51% | 49% | 385.6 Wh         | 11.266 V       | Normal operating range |
+| 50% | 50% | 378.0 Wh         | 11.250 V       | Half capacity remaining; plan charging |
+| 49% | 51% | 370.4 Wh         | 11.236 V       | Below half; plan charging |
+| 48% | 52% | 362.9 Wh         | 11.222 V       | Below half; plan charging |
+| 47% | 53% | 355.3 Wh         | 11.208 V       | Below half; plan charging |
+| 46% | 54% | 347.8 Wh         | 11.194 V       | Below half; plan charging |
+| 45% | 55% | 340.2 Wh         | 11.180 V       | Below half; plan charging |
+| 44% | 56% | 332.6 Wh         | 11.164 V       | Below half; plan charging |
+| 43% | 57% | 325.1 Wh         | 11.148 V       | Below half; plan charging |
+| 42% | 58% | 317.5 Wh         | 11.132 V       | Below half; plan charging |
+| 41% | 59% | 310.0 Wh         | 11.116 V       | Below half; plan charging |
+| 40% | 60% | 302.4 Wh         | 11.100 V       | Moderate energy remaining; plan charging |
+| 39% | 61% | 294.8 Wh         | 11.086 V       | Moderate energy remaining; plan charging |
 
 ### 38% – 10%
 
 | SoC | DoD | Remaining energy | Rested voltage | Status |
 |-----|-----|------------------|----------------|--------|
-| 38% | 62% | 273.6 Wh         | 11.072 V       | Moderate energy remaining; plan charging |
-| 37% | 63% | 266.4 Wh         | 11.058 V       | Moderate energy remaining; plan charging |
-| 36% | 64% | 259.2 Wh         | 11.044 V       | Moderate energy remaining; plan charging |
-| 35% | 65% | 252.0 Wh         | 11.030 V       | Moderate energy remaining; plan charging |
-| 34% | 66% | 244.8 Wh         | 11.014 V       | Moderate energy remaining; plan charging |
-| 33% | 67% | 237.6 Wh         | 10.998 V       | Moderate energy remaining; plan charging |
-| 32% | 68% | 230.4 Wh         | 10.982 V       | Moderate energy remaining; plan charging |
-| 31% | 69% | 223.2 Wh         | 10.966 V       | Moderate energy remaining; plan charging |
-| 30% | 70% | 216.0 Wh         | 10.950 V       | Low battery; reduce nonessential load |
-| 29% | 71% | 208.8 Wh         | 10.920 V       | Low battery; prepare charging |
-| 28% | 72% | 201.6 Wh         | 10.890 V       | Low battery; prepare charging |
-| 27% | 73% | 194.4 Wh         | 10.860 V       | Low battery; prepare charging |
-| 26% | 74% | 187.2 Wh         | 10.830 V       | Low battery; prepare charging |
-| 25% | 75% | 180.0 Wh         | 10.800 V       | Low battery; charge soon |
-| 24% | 76% | 172.8 Wh         | 10.770 V       | Low battery; charge soon |
-| 23% | 77% | 165.6 Wh         | 10.740 V       | Low battery; charge soon |
-| 22% | 78% | 158.4 Wh         | 10.710 V       | Low battery; charge soon |
-| 21% | 79% | 151.2 Wh         | 10.680 V       | Low battery; approaching safe cutoff |
-| 20% | 80% | 144.0 Wh         | 10.650 V       | 80% DoD reached; recommended normal-use cutoff |
-| 19% | 81% | 136.8 Wh         | 10.606 V       | Emergency reserve; recharge immediately |
-| 18% | 82% | 129.6 Wh         | 10.562 V       | Emergency reserve; recharge immediately |
-| 17% | 83% | 122.4 Wh         | 10.518 V       | Emergency reserve; recharge immediately |
-| 16% | 84% | 115.2 Wh         | 10.474 V       | Critical reserve; stop nonessential loads |
-| 15% | 85% | 108.0 Wh         | 10.430 V       | Critical reserve; recharge now |
-| 14% | 86% | 100.8 Wh         | 10.384 V       | Critical reserve; recharge now |
-| 13% | 87% | 93.6 Wh          | 10.338 V       | Critical reserve; recharge now |
-| 12% | 88% | 86.4 Wh          | 10.292 V       | Critical reserve; recharge now |
-| 11% | 89% | 79.2 Wh          | 10.246 V       | Very low; avoid continued operation |
-| 10% | 90% | 72.0 Wh          | 10.200 V       | Very low; stop load and recharge |
+| 38% | 62% | 287.3 Wh         | 11.072 V       | Moderate energy remaining; plan charging |
+| 37% | 63% | 279.7 Wh         | 11.058 V       | Moderate energy remaining; plan charging |
+| 36% | 64% | 272.2 Wh         | 11.044 V       | Moderate energy remaining; plan charging |
+| 35% | 65% | 264.6 Wh         | 11.030 V       | Moderate energy remaining; plan charging |
+| 34% | 66% | 257.0 Wh         | 11.014 V       | Moderate energy remaining; plan charging |
+| 33% | 67% | 249.5 Wh         | 10.998 V       | Moderate energy remaining; plan charging |
+| 32% | 68% | 241.9 Wh         | 10.982 V       | Moderate energy remaining; plan charging |
+| 31% | 69% | 234.4 Wh         | 10.966 V       | Moderate energy remaining; plan charging |
+| 30% | 70% | 226.8 Wh         | 10.950 V       | Low battery; reduce nonessential load |
+| 29% | 71% | 219.2 Wh         | 10.920 V       | Low battery; prepare charging |
+| 28% | 72% | 211.7 Wh         | 10.890 V       | Low battery; prepare charging |
+| 27% | 73% | 204.1 Wh         | 10.860 V       | Low battery; prepare charging |
+| 26% | 74% | 196.6 Wh         | 10.830 V       | Low battery; prepare charging |
+| 25% | 75% | 189.0 Wh         | 10.800 V       | Low battery; charge soon |
+| 24% | 76% | 181.4 Wh         | 10.770 V       | Low battery; charge soon |
+| 23% | 77% | 173.9 Wh         | 10.740 V       | Low battery; charge soon |
+| 22% | 78% | 166.3 Wh         | 10.710 V       | Low battery; charge soon |
+| 21% | 79% | 158.8 Wh         | 10.680 V       | Low battery; approaching safe cutoff |
+| 20% | 80% | 151.2 Wh         | 10.650 V       | 80% DoD reached; recommended normal-use cutoff |
+| 19% | 81% | 143.6 Wh         | 10.606 V       | Emergency reserve; recharge immediately |
+| 18% | 82% | 136.1 Wh         | 10.562 V       | Emergency reserve; recharge immediately |
+| 17% | 83% | 128.5 Wh         | 10.518 V       | Emergency reserve; recharge immediately |
+| 16% | 84% | 121.0 Wh         | 10.474 V       | Critical reserve; stop nonessential loads |
+| 15% | 85% | 113.4 Wh         | 10.430 V       | Critical reserve; recharge now |
+| 14% | 86% | 105.8 Wh         | 10.384 V       | Critical reserve; recharge now |
+| 13% | 87% | 98.3 Wh          | 10.338 V       | Critical reserve; recharge now |
+| 12% | 88% | 90.7 Wh          | 10.292 V       | Critical reserve; recharge now |
+| 11% | 89% | 83.2 Wh          | 10.246 V       | Very low; avoid continued operation |
+| 10% | 90% | 75.6 Wh          | 10.200 V       | Very low; stop load and recharge |
 
 ### 9% – 0%
 
 | SoC | DoD | Remaining energy | Rested voltage | Status |
 |-----|-----|------------------|----------------|--------|
-| 9%  | 91% | 64.8 Wh          | 10.080 V       | — |
-| 8%  | 92% | 57.6 Wh          | 9.960 V        | Very low; stop load and recharge |
-| 7%  | 93% | 50.4 Wh          | 9.840 V        | Deep-discharge region; recharge immediately |
-| 6%  | 94% | 43.2 Wh          | 9.720 V        | Deep-discharge region; recharge immediately |
-| 5%  | 95% | 36.0 Wh          | 9.600 V        | Near empty; avoid use |
-| 4%  | 96% | 28.8 Wh          | 9.480 V        | Near empty; BMS cutoff may occur |
-| 3%  | 97% | 21.6 Wh          | 9.360 V        | Near empty; stop all loads |
-| 2%  | 98% | 14.4 Wh          | 9.240 V        | Near empty; stop all loads |
-| 1%  | 99% | 7.2 Wh           | 9.120 V        | Essentially empty; recharge immediately |
+| 9%  | 91% | 68.0 Wh          | 10.080 V       | — |
+| 8%  | 92% | 60.5 Wh          | 9.960 V        | Very low; stop load and recharge |
+| 7%  | 93% | 52.9 Wh          | 9.840 V        | Deep-discharge region; recharge immediately |
+| 6%  | 94% | 45.4 Wh          | 9.720 V        | Deep-discharge region; recharge immediately |
+| 5%  | 95% | 37.8 Wh          | 9.600 V        | Near empty; avoid use |
+| 4%  | 96% | 30.2 Wh          | 9.480 V        | Near empty; BMS cutoff may occur |
+| 3%  | 97% | 22.7 Wh          | 9.360 V        | Near empty; stop all loads |
+| 2%  | 98% | 15.1 Wh          | 9.240 V        | Near empty; stop all loads |
+| 1%  | 99% | 7.6 Wh           | 9.120 V        | Essentially empty; recharge immediately |
 | 0%  | 100% | 0.0 Wh          | 9.000 V        | Empty estimate; BMS may disconnect |
 
 ---
@@ -387,7 +387,7 @@ Provides 1% display steps from 100% to 0% for the 720 Wh bank.
 - Call the result **"Voltage-Based SoC Estimate"** — do not call the voltage values factory verified or exact.
 - Use the **INA228 energy count** as the primary long-term SoC source.
 - Use live voltage mainly for monitoring, voltage safety, and connection detection.
-- Use **20% SoC / 144 Wh / 80% DoD** as the preferred normal-use cutoff.
+- Use **20% SoC / 151.2 Wh / 80% DoD** as the preferred normal-use cutoff.
 - Treat the **8.4 V** label boundary as an absolute low limit, not a daily operating target.
 
 ---

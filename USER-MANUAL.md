@@ -117,7 +117,7 @@ The Dashboard is the home screen. It updates in real time whenever the AdlaWatt 
 - **Watt-hours + time remaining** — stored energy and the estimated runtime at the current load, e.g. `7h 45m`.
 - **Depth of discharge (DoD)** — *Safe* means normal use; *Unsafe* means the battery is drained past its healthy limit and needs recharging immediately.
 
-**The 20% rule.** Treat **20% battery as your empty line** for daily use. The battery keeps a 144 Wh safety reserve (20% of its 720 Wh capacity) that the app never counts as usable. Appliance advice, alerts, and the DoD status all follow this rule: at or below 20%, the system considers the battery unsafe for further loads.
+**The 20% rule.** Treat **20% battery as your empty line** for daily use. The battery keeps a 151.2 Wh safety reserve (20% of its 756 Wh capacity) that the app never counts as usable. Appliance advice, alerts, and the DoD status all follow this rule: at or below 20%, the system considers the battery unsafe for further loads.
 
 ### Solar section
 
@@ -323,8 +323,8 @@ This manual covers app operation. For hardware faults (damaged panel, enclosure,
 
 - **State of charge (SoC)** — battery level as a percentage (0–100%).
 - **Depth of discharge (DoD)** — how much of the battery has been used; *Unsafe* means past the healthy limit.
-- **Watt-hour (Wh)** — energy unit. Your battery holds 720 Wh total; 144 Wh is locked as reserve, leaving 576 Wh usable.
-- **Reserve floor** — the protected 20% (144 Wh) the app never counts as spendable.
+- **Watt-hour (Wh)** — energy unit. Your battery holds 756 Wh total; 151.2 Wh is locked as reserve, leaving 604.8 Wh usable.
+- **Reserve floor** — the protected 20% (151.2 Wh) the app never counts as spendable.
 - **Load** — the combined wattage your connected appliances draw right now.
 - **Solar input / solar status** — incoming panel watts, rated Low / Moderate / High.
 - **Time remaining** — estimated runtime at the current load (e.g. `7h 45m`).

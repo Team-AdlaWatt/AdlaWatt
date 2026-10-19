@@ -48,9 +48,11 @@ const en = {
     labelPassword: "Password",
     labelNewPassword: "New Password",
     labelConfirmNewPassword: "Confirm New Password",
+    labelConfirmPassword: "Confirm Password",
     placeholderPassword: "Enter your password",
     placeholderNewPassword: "Create a password",
     placeholderConfirmPassword: "Confirm your password",
+    placeholderConfirmNewPassword: "Enter password to confirm",
     placeholderCreateNew: "Create a new password",
     placeholderConfirmNew: "Confirm your new password",
     showA11y: "Show password for 5 seconds",
@@ -225,10 +227,6 @@ const en = {
       signedIn: "You are signed in. Taking you to your dashboard.",
       googleIncomplete:
         "Google sign-in was not completed. Please try again from the sign-in screen.",
-      continueToDashboard: "Continue to Dashboard",
-      webSuccessTitle: "Authentication Succeeded",
-      webSuccessSubtitle:
-        "You may now close this tab and return to the application.",
       backToSignIn: "Back to Sign In",
       goToResetPassword: "Go to Reset Password",
       footerPrompt: "Need a new account?",

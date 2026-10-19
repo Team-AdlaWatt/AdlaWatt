@@ -47,7 +47,7 @@ import {
 //
 // Same shell as login/register: AuthLogo + AuthHeader +
 // form + AuthFooter + Copyright. Recovery links land here
-// directly (see getRecoveryRedirectTo) and this screen
+// directly (see getAuthRedirect) and this screen
 // exchanges the link's PKCE code — or verifies its
 // token_hash — itself, so no callback UI ever appears.
 //

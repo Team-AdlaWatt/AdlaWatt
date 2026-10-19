@@ -78,7 +78,7 @@ A battery gauge with smooth animated transitions and a live weather card are ren
 
 The application allows users to view or select household appliances and receive recommendations based on the available battery state.
 
-A battery-aware recommendation engine (`src/services/recommendation.ts`) classifies the battery tier (Safe / Caution / Unsafe) using remaining energy, the 144 Wh reserve floor (20% of the 720 Wh ZENOVA 12V 30Ah ×2 nominal, 576 Wh usable), voltage, and depth of discharge, then estimates per-appliance runtime from the usable energy and the appliance power range (`wattage_min`/`wattage_max`). The engine computes the full analysis (tier, usable Wh, charge-scaled wattage cap, voltage headroom, budget share, runtime range, `recommended` / `care` / `notRecommended` verdict, reasons, load-stack checks) while the dashboard and Appliances screens expose the simplified two-badge display:
+A battery-aware recommendation engine (`src/services/recommendation.ts`) classifies the battery tier (Safe / Caution / Unsafe) using remaining energy, the 151.2 Wh reserve floor (20% of the 756 Wh ZENOVA 12V 30Ah ×2 nominal, 604.8 Wh usable), voltage, and depth of discharge, then estimates per-appliance runtime from the usable energy and the appliance power range (`wattage_min`/`wattage_max`). The engine computes the full analysis (tier, usable Wh, charge-scaled wattage cap, voltage headroom, budget share, runtime range, `recommended` / `care` / `notRecommended` verdict, reasons, load-stack checks) while the dashboard and Appliances screens expose the simplified two-badge display:
 
 - **OK to use** — `recommended` or `care` (usable with care)
 - **Not advisable** — `notRecommended` (blocked battery, unsafe voltage, over wattage cap, draws > 25%/hr, < 10 minutes runtime, or invalid wattage)
@@ -355,7 +355,7 @@ The AdlaWatt physical prototype consists of power and IoT components.
 | 5V DC Fan | Provides cooling when required |
 | Buck Converter | Steps down voltage for low-voltage components |
 
-The component list and images in the app (`components.tsx` `componentImages` → `assets/images/components/`) are the source of truth for the prototype. Battery capacity reference for the recommendation engine is ZENOVA 12V 30Ah ×2 in parallel (720 Wh nominal, 144 Wh reserve, 576 Wh usable); INA228 is the primary SoC source with voltage backup (see `implementation plan/zenova_battery.md`).
+The component list and images in the app (`components.tsx` `componentImages` → `assets/images/components/`) are the source of truth for the prototype. Battery capacity reference for the recommendation engine is ZENOVA 12V 30Ah ×2 in parallel (756 Wh nominal, 151.2 Wh reserve, 604.8 Wh usable); INA228 is the primary SoC source with voltage backup (see `implementation plan/zenova_battery.md`).
 
 ---
 
@@ -921,7 +921,7 @@ The final build configuration may change as the project approaches deployment.
 - [x] Live weather card (OpenWeatherMap + location) + 5-day solar forecast
 - [x] Appliance catalog overhaul (slim schema, `GIVEN_CATALOG`, archive flag, 3-dot menu, archives view)
 - [x] Advisable / Caution / Not Advisable appliance states and filters
-- [x] Battery-aware appliance recommendation engine (ZENOVA 720 Wh / 144 Wh reserve)
+- [x] Battery-aware appliance recommendation engine (ZENOVA 756 Wh / 151.2 Wh reserve)
 - [x] Component monitoring with real-time status (INA228, DS18B20, DHT22, SPI TFT)
 - [x] Notification service (auto-generated alerts, transition-gated rules, cooldowns)
 - [x] Safety threshold rules live on fixed engineering constants (800 W / 11.6 V / 14.6 V); admin dashboard is a non-functional shell (login/logout/exit only)
@@ -1003,7 +1003,7 @@ The capstone documentation identifies the following major system characteristics
 | ---------------------- | ------------------------------------------------- |
 | System Type            | IoT-based off-grid solar energy harvesting system |
 | Intended Use           | Backup power during electricity interruptions     |
-| Battery                | ZENOVA 12V 30Ah ×2 parallel (720 Wh nominal, 144 Wh reserve, 576 Wh usable) |
+| Battery                | ZENOVA 12V 30Ah ×2 parallel (756 Wh nominal, 151.2 Wh reserve, 604.8 Wh usable) |
 | Inverter               | 1000W                                             |
 | Solar Monitoring       | INA228 (Input)                                    |
 | Load Monitoring        | INA228 (Output)                                   |

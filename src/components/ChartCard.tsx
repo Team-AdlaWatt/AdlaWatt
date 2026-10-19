@@ -10,6 +10,7 @@ import {
   AccessibilityInfo,
   Animated,
   Easing,
+  Linking,
   Pressable,
   StyleSheet,
   View,
@@ -21,6 +22,10 @@ import Svg, {
 } from "react-native-svg";
 
 import AppText from "@/components/ui/AppText";
+import {
+  BATTERY_CAPACITY_WH,
+  BATTERY_RESERVE_WH,
+} from "@/constants/battery";
 import { Colors } from "@/constants/colors";
 
 import {
@@ -78,13 +83,11 @@ interface WeatherData {
   description: string;
   mainGroup?: string;
   observedAt?: number;
-  isFallback?: boolean;
   // Id-based classifier fields (service v2). Absent on
   // legacy objects — the Today card shows neutral instead.
   conditionId?: number;
   iconCode?: string;
   rainMm?: number | null;
-  cacheVersion?: number;
 }
 
 type NonBatteryChartType =
@@ -127,6 +130,10 @@ interface ChartCardProps {
   // display-only, preserving every other usage.
   onRefreshToday?: () => void;
   todayRefreshing?: boolean;
+  // Last live weather-fetch failure (code + message). When
+  // present with no reading, the weather card renders an
+  // explicit error/location state instead of blank sky.
+  weatherError?: { code: string; message: string } | null;
 }
 
 // ============================================================
@@ -149,9 +156,9 @@ const LOW_BATTERY_THRESHOLD = 20;
 
 const WATT_HOURS_MIN = 0;
 
-const WATT_HOURS_MAX = 720;
+const WATT_HOURS_MAX = BATTERY_CAPACITY_WH;
 
-const LOW_WATT_HOURS_THRESHOLD = 144;
+const LOW_WATT_HOURS_THRESHOLD = BATTERY_RESERVE_WH;
 
 const LOW_VOLTAGE_THRESHOLD = 10.65;
 
@@ -275,6 +282,7 @@ export default function ChartCard({
   forecastError = "",
   onRefreshToday,
   todayRefreshing = false,
+  weatherError = null,
 }: ChartCardProps) {
 
   const colors = useAppColors();
@@ -1695,9 +1703,9 @@ export default function ChartCard({
           : `${peakDays.length} peak days: ${peakDays.join(", ")}. Good day to charge fully.`;
 
     // Today honesty: age from OWM `dt`, stale past the
-    // configured window, and the fallback-location label.
-    // Age renders at paint time and refreshes with every
-    // weather cycle (interval, foreground, tap).
+    // configured window. Age renders at paint time and
+    // refreshes with every weather cycle (interval,
+    // foreground, tap).
     const todayObservedAt =
       weather?.observedAt;
 
@@ -1712,16 +1720,29 @@ export default function ChartCard({
         ? formatDataAge(todayObservedAt)
         : null;
 
-    const todayLocationLabel =
-      weather?.isFallback
-        ? `${weatherData.label} (default location)`
-        : weatherData.label;
+    const todayLocationLabel = weatherData.label;
 
     const canTapRefresh =
       typeof onRefreshToday === "function";
 
     const todayBusy =
       loading || todayRefreshing;
+
+    // Explicit weather/location error state: shown only when
+    // a live fetch failed and there is no reading to paint.
+    // Location codes get the settings recovery path.
+    const hasWeatherError =
+      !loading && !weather && !!weatherError;
+
+    const isLocationError =
+      !!weatherError &&
+      (weatherError.code === "permission_denied" ||
+        weatherError.code === "services_disabled" ||
+        weatherError.code === "location_unavailable");
+
+    const weatherErrorTitle = isLocationError
+      ? "Location needed"
+      : "Weather unavailable";
 
     return (
       <View
@@ -1798,6 +1819,107 @@ export default function ChartCard({
           }
         >
 
+          {hasWeatherError ? (
+            <View
+              style={
+                styles.weatherErrorState
+              }
+            >
+
+              <Ionicons
+                name={
+                  isLocationError
+                    ? "location-outline"
+                    : "cloud-offline-outline"
+                }
+                size={32}
+                color={colors.primary}
+              />
+
+              <AppText
+                variant="body"
+                style={
+                  styles.weatherErrorTitle
+                }
+              >
+                {weatherErrorTitle}
+              </AppText>
+
+              <AppText
+                variant="caption"
+                style={
+                  styles.weatherErrorMessage
+                }
+              >
+                {weatherError?.message}
+              </AppText>
+
+              <View
+                style={
+                  styles.weatherErrorActions
+                }
+              >
+
+                {isLocationError ? (
+                  <Pressable
+                    style={
+                      styles.weatherErrorPrimary
+                    }
+                    accessibilityRole="button"
+                    accessibilityLabel="Open Settings"
+                    onPress={() => {
+                      void Linking.openSettings();
+                    }}
+                  >
+                    <AppText
+                      variant="caption"
+                      style={
+                        styles.weatherErrorPrimaryText
+                      }
+                    >
+                      Open Settings
+                    </AppText>
+                  </Pressable>
+                ) : null}
+
+                {canTapRefresh ? (
+                  <Pressable
+                    style={[
+                      isLocationError
+                        ? styles.weatherErrorSecondary
+                        : styles.weatherErrorPrimary,
+                      todayBusy
+                        ? styles.weatherErrorDisabled
+                        : null,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Try again"
+                    accessibilityState={{
+                      busy: todayBusy,
+                      disabled: todayBusy,
+                    }}
+                    disabled={todayBusy}
+                    onPress={onRefreshToday}
+                  >
+                    <AppText
+                      variant="caption"
+                      style={
+                        isLocationError
+                          ? styles.weatherErrorSecondaryText
+                          : styles.weatherErrorPrimaryText
+                      }
+                    >
+                      {todayBusy
+                        ? "Trying…"
+                        : "Try again"}
+                    </AppText>
+                  </Pressable>
+                ) : null}
+
+              </View>
+
+            </View>
+          ) : (
           <Pressable
             style={[
               styles.weatherTodayCard,
@@ -1923,6 +2045,7 @@ export default function ChartCard({
             </View>
 
           </Pressable>
+          )}
 
         </View>
 
@@ -2201,41 +2324,43 @@ export default function ChartCard({
           }
         >
 
-          <View
-            style={
-              styles.weatherForecastLocationRow
-            }
-          >
-
-            <Ionicons
-              name="location-outline"
-              size={14}
-              color={
-                colors.textSecondary
-              }
-              style={{ marginRight: 4 }}
-            />
-
-            <AppText
-              variant="caption"
-              numberOfLines={1}
+          {!hasWeatherError ? (
+            <View
               style={
-                styles.weatherForecastLocation
+                styles.weatherForecastLocationRow
               }
             >
-              {`${todayLocationLabel} • Updated ${
-                todayAgeLabel ??
-                (forecast
-                  ? formatClockTime(
-                      new Date(
-                        forecast.fetchedAt
-                      )
-                    )
-                  : "—")
-              }`}
-            </AppText>
 
-          </View>
+              <Ionicons
+                name="location-outline"
+                size={14}
+                color={
+                  colors.textSecondary
+                }
+                style={{ marginRight: 4 }}
+              />
+
+              <AppText
+                variant="caption"
+                numberOfLines={1}
+                style={
+                  styles.weatherForecastLocation
+                }
+              >
+                {`${todayLocationLabel} • Updated ${
+                  todayAgeLabel ??
+                  (forecast
+                    ? formatClockTime(
+                        new Date(
+                          forecast.fetchedAt
+                        )
+                      )
+                    : "—")
+                }`}
+              </AppText>
+
+            </View>
+          ) : null}
 
           {todayStale && weather ? (
             <AppText
@@ -3406,6 +3531,81 @@ const getStyles = (colors: AppColors) =>
     color: colors.errorDark,
     fontSize: 12,
     fontWeight: "600",
+  },
+
+  // ==========================================================
+  // WEATHER / LOCATION ERROR STATE
+  //
+  // Shown in place of the Today card when a live fetch fails
+  // and there is no reading to paint (permission denied,
+  // services off, GPS unavailable, or network/API failure).
+  // ==========================================================
+
+  weatherErrorState: {
+    width: "100%",
+    alignItems: "center",
+    backgroundColor: colors.glass.white,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    rowGap: 8,
+  },
+
+  weatherErrorTitle: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+
+  weatherErrorMessage: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: "500",
+    textAlign: "center",
+    lineHeight: 16,
+  },
+
+  weatherErrorActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    columnGap: 10,
+    marginTop: 4,
+  },
+
+  weatherErrorPrimary: {
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+
+  weatherErrorPrimaryText: {
+    color: colors.onPrimary,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  weatherErrorSecondary: {
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+
+  weatherErrorSecondaryText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  weatherErrorDisabled: {
+    opacity: 0.5,
   },
 
   weatherForecastList: {

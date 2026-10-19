@@ -5,9 +5,9 @@
 // Native imports, so it can be verified anywhere.
 //
 // Battery capacity reference (ZENOVA 12V 30Ah x2 parallel):
-//   - Nominal energy             : 720 Wh
-//   - 20% SoC reserve floor      : 144 Wh
-//   - 80% depth of discharge     : 576 Wh usable window
+//   - Nominal energy             : 756 Wh
+//   - 20% SoC reserve floor      : 151.2 Wh
+//   - 80% depth of discharge     : 604.8 Wh usable window
 //
 // The engine performs the full analysis:
 //   - Battery tier classification
@@ -25,6 +25,11 @@
 //   - notRecommended   : blocked, unsafe voltage, over the charge
 //                        wattage cap, or draws > 25%/hr
 // ============================================================
+
+import {
+  BATTERY_CAPACITY_WH,
+  BATTERY_RESERVE_WH,
+} from "@/constants/battery";
 
 // ============================================================
 // TYPES
@@ -134,9 +139,9 @@ export interface RecommendBatchResult {
 // CONSTANTS
 // ============================================================
 
-export const BATTERY_NOMINAL_WH = 720;
+export const BATTERY_NOMINAL_WH = BATTERY_CAPACITY_WH;
 
-export const RESERVE_WH = 144;
+export const RESERVE_WH = BATTERY_RESERVE_WH;
 
 export const CAUTION_SOC = 20;
 
@@ -175,7 +180,7 @@ export const RUNTIME_CARE_MIN_HOURS =
 // DEFAULT_RECOMMENDATION_CONFIG). Thresholds are NOT admin
 // published — this object is the single place to tune them.
 // Shared with the TFT firmware to avoid drift: unsafe
-// 10.6V, caution 10.75V, 144Wh reserve, 800W warn, 1000W
+// 10.6V, caution 10.75V, 151.2Wh reserve, 800W warn, 1000W
 // cap (see the firmware notes in zenova_battery.md).
 // ============================================================
 
@@ -240,7 +245,7 @@ export const DEFAULT_RECOMMENDATION_CONFIG: RecommendationConfig =
   };
 
 // No-data state: never "OK". Supersedes the old optimistic
-// DEFAULT_BATTERY_STATE (100%/12.6V/720Wh with no reading),
+// DEFAULT_BATTERY_STATE (100%/12.6V/756Wh with no reading),
 // which made everything advisable on missing data. A missing
 // or stale lastUpdated blocks via classifyBatteryState.
 export const NO_BATTERY_DATA: BatteryStateInput =
@@ -603,7 +608,7 @@ export const parseWattageRange = (
 // ============================================================
 // 3. RUNTIME CALCULATION
 //
-// usable_Wh = remaining_Wh - 144  (the 20% reserve floor).
+// usable_Wh = remaining_Wh - 151.2  (the 20% reserve floor).
 //
 // Higher wattage consumes energy faster, so:
 //   runtime_min = usable_Wh / max_wattage  (safety floor)

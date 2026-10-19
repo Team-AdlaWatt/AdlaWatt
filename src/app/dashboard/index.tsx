@@ -46,6 +46,7 @@ import { canRefreshToday } from "@/services/weatherConfig";
 import {
   type Coordinates,
   type WeatherData,
+  WeatherError,
   getCurrentCoordinates,
   getWeather,
 } from "@/services/weatherForecast";
@@ -166,6 +167,14 @@ export default function DashboardScreen() {
   const [weatherLoading, setWeatherLoading] =
     useState(true);
 
+  // Last live-fetch failure (code + message from
+  // WeatherError). Drives the Today card's location/error
+  // state — never masked by stored data, cleared on success.
+  const [weatherError, setWeatherError] = useState<{
+    code: string;
+    message: string;
+  } | null>(null);
+
   // Manual Today-card refresh state: busy flag for the
   // card plus an in-flight guard so tap storms collapse
   // into one fetch. lastFetchRef stamps every attempt for
@@ -174,6 +183,11 @@ export default function DashboardScreen() {
     useState(false);
 
   const todayInflightRef = useRef(false);
+
+  // True while the most recent weather attempt failed.
+  // Lets "Try again" bypass the 2-minute quota gate —
+  // a failure must never lock the user out of a retry.
+  const lastAttemptFailedRef = useRef(false);
 
   const lastFetchRef =
     useRef<number | null>(null);
@@ -220,12 +234,16 @@ export default function DashboardScreen() {
 
         hasLoadedWeather.current = true;
 
+        lastAttemptFailedRef.current = false;
+
         setWeather(current);
+        setWeatherError(null);
       } catch (error) {
         // Keep the last known value on background refresh
         // failures; only blank the card if nothing has
-        // loaded yet. Log a warning (not an error) so
-        // transient weather failures stay quiet.
+        // loaded yet. The error (code + message) always
+        // reaches the card so location problems surface as
+        // an explicit state instead of silent stale sky.
         console.warn(
           "Weather refresh failed:",
           error instanceof Error
@@ -233,10 +251,28 @@ export default function DashboardScreen() {
             : error,
         );
 
-        if (
-          screenMounted.current &&
-          !hasLoadedWeather.current
-        ) {
+        if (!screenMounted.current) {
+          return;
+        }
+
+        lastAttemptFailedRef.current = true;
+
+        setWeatherError(
+          error instanceof WeatherError
+            ? {
+                code: error.code,
+                message: error.message,
+              }
+            : {
+                code: "unknown",
+                message:
+                  error instanceof Error
+                    ? error.message
+                    : "Weather unavailable.",
+              },
+        );
+
+        if (!hasLoadedWeather.current) {
           setWeather(null);
         }
       } finally {
@@ -373,7 +409,11 @@ export default function DashboardScreen() {
     if (
       !screenMounted.current ||
       todayInflightRef.current ||
-      !canRefreshToday(lastFetchRef.current)
+      // A failed attempt (e.g. location denied) must stay
+      // retryable — the 2-minute quota gate only protects
+      // successful refreshes.
+      (!lastAttemptFailedRef.current &&
+        !canRefreshToday(lastFetchRef.current))
     ) {
       return;
     }
@@ -445,9 +485,13 @@ export default function DashboardScreen() {
 
     // Refetch when the app returns to the foreground so a
     // unit left open (or backgrounded past the interval)
-    // repaints without waiting for the next tick. Skipped
-    // when the last fetch is fresher than one interval —
-    // avoids useless calls on quick app switches.
+    // repaints without waiting for the next tick. The
+    // weather leg always re-runs: it re-requests location
+    // permission (the OS dialog shows only while undetermined;
+    // after a settings round-trip this is the recovery path)
+    // and pulls the latest OpenWeather reading. The forecast
+    // keeps its age gate — its 3-hour slots never change
+    // faster, so quick app switches would waste calls.
     const foregroundSub =
       AppState.addEventListener(
         "change",
@@ -456,15 +500,15 @@ export default function DashboardScreen() {
             return;
           }
 
+          loadWeather();
+
           const last = lastFetchRef.current;
 
           if (
             last === null ||
             Date.now() - last >
-              WEATHER_REFRESH_INTERVAL_MS
+              FORECAST_REFRESH_INTERVAL_MS
           ) {
-            loadWeather();
-
             loadForecast();
           }
         },
@@ -809,6 +853,7 @@ export default function DashboardScreen() {
                 type="weather"
                 monitoring={monitoring}
                 weather={weather}
+                weatherError={weatherError}
                 loading={weatherLoading}
                 forecast={forecast}
                 forecastLoading={forecastLoading}

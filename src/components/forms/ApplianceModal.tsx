@@ -34,6 +34,10 @@ import AppText from "@/components/ui/AppText";
 import EmptyState from "@/components/ui/EmptyState";
 import SearchBox from "@/components/ui/SearchBox";
 
+import {
+  BATTERY_CAPACITY_WH,
+  BATTERY_MAX_APPLIANCE_W,
+} from "@/constants/battery";
 import { Colors } from "@/constants/colors";
 import {
   CATALOG_IMAGES,
@@ -170,7 +174,7 @@ const parseWattInterval = (
     !Number.isFinite(min) ||
     !Number.isFinite(max) ||
     min < 1 ||
-    max > 720 ||
+    max > BATTERY_MAX_APPLIANCE_W ||
     min > max
   ) {
     return null;
@@ -240,7 +244,7 @@ export default function ApplianceModal({
 
   // Live interval validity: the strict twin inputs admit
   // only well-formed sides, but an interval can still be
-  // incomplete ("12-") or reversed ("720-129"). The confirm
+  // incomplete ("12-") or reversed ("756-129"). The confirm
   // button stays disabled until the whole interval passes
   // the exact submit rules below.
   const customWattsValid = useMemo(() => {
@@ -865,7 +869,7 @@ export default function ApplianceModal({
 
     if (!interval) {
       setCustomError(
-        "Enter a valid wattage interval between 1W and 720W.",
+        `Enter a valid wattage interval between 1W and ${BATTERY_MAX_APPLIANCE_W}W.`,
       );
       return;
     }
@@ -1048,7 +1052,7 @@ export default function ApplianceModal({
 
     if (!interval) {
       setCustomError(
-        "Enter a valid wattage interval between 1W and 720W.",
+        `Enter a valid wattage interval between 1W and ${BATTERY_MAX_APPLIANCE_W}W.`,
       );
       return;
     }
@@ -1880,7 +1884,8 @@ export default function ApplianceModal({
                       variant="body"
                       style={styles.advisoryTitle}
                     >
-                      Battery Capacity: 720 Wh
+                      Battery Capacity:{" "}
+                      {BATTERY_CAPACITY_WH} Wh
                     </AppText>
 
                     <AppText
