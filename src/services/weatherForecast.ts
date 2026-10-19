@@ -1,7 +1,5 @@
 import * as Location from "expo-location";
 
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
 import weatherJson from "@/data/weather.json";
 import {
   formatApiError,
@@ -22,11 +20,18 @@ import {
 //
 // Flow:
 //   1. Validate the OpenWeather API key.
-//   2. Request foreground location permission.
-//   3. Read the current GPS coordinates (balanced accuracy).
+//   2. Request foreground location permission (re-asked on
+//      every call — a denial is never cached in app state).
+//      Denials and unavailable GPS throw; there is no
+//      silent fallback point.
+//   3. Read the current GPS coordinates (high accuracy).
 //   4. Call OpenWeatherMap Current Weather:
 //      /data/2.5/weather?lat={lat}&lon={lon}&appid={key}&units=metric
 //   5. Validate the response and map it to WeatherData.
+//
+// No persistent cache: every reading is a live OpenWeather
+// fetch. Failures throw so the UI can show an error state
+// instead of stored data.
 // ============================================================
 
 // The API key is declared in .env / .env.local as
@@ -56,24 +61,19 @@ const REQUEST_TIMEOUT_MS = weatherJson.api.timeoutMs;
 export interface Coordinates {
   lat: number;
   lon: number;
-  // True when the fixed fallback point stands in for a denied
-  // or unavailable GPS fix (rendered as a default-location
-  // label).
-  isFallback?: boolean;
 }
 
 export interface WeatherData {
   temperature: number;
-  // OWM `main.feels_like` (°C, 1-decimal). Optional so v2
-  // caches without it still validate and render.
+  // OWM `main.feels_like` (°C, 1-decimal). Optional: absent
+  // when the response carries no usable value.
   feelsLike?: number;
-  // Which path produced feelsLike: NOAA heat index from
-  // live temp + humidity, or live OWM `feels_like`.
-  // Persisted with the reading so logs stay conclusive.
+  // Which path produced feelsLike: NOAA heat index from live
+  // temp + humidity, or live OWM `feels_like`. Persisted with
+  // the reading so logs stay conclusive.
   feelsSource?: FeelsLikeSource;
   // OWM `main.humidity` (%, 0-100). Optional like
-  // feelsLike: absent on legacy payloads, shown with the
-  // feels-like line when present.
+  // feelsLike: shown with the feels-like line when present.
   humidity?: number;
   description: string;
   city: string;
@@ -82,28 +82,21 @@ export interface WeatherData {
   // conditionId, never by this string.
   mainGroup?: string;
   // OWM `dt` (ms): when the reading was made — the truthful
-  // basis for "Updated Xm ago". Absent on legacy payloads.
+  // basis for "Updated Xm ago". Absent on malformed payloads.
   observedAt?: number;
-  // True when the reading covers the fallback cell rather
-  // than the user's own fix.
-  isFallback?: boolean;
-  // OWM weather[0].id: the Today card's main
-  // classification. Required on fresh readings (cache v2).
+  // OWM weather[0].id: the Today card's main classification.
   conditionId: number;
   // OWM weather[0].icon: day/night suffix + icon lookup.
-  // Required on fresh readings.
   iconCode: string;
   // Measured rain (mm) from rain["1h"] ?? rain["3h"].
   // Null when the response carries no amount — never 0.
   rainMm: number | null;
-  cacheVersion: number;
 }
-
-export const TODAY_CACHE_VERSION = 3;
 
 export type WeatherErrorCode =
   | "missing_key"
   | "permission_denied"
+  | "services_disabled"
   | "location_unavailable"
   | "api"
   | "timeout"
@@ -148,10 +141,15 @@ function validateApiKey(): void {
 // LOCATION (LIVE GPS, EXACT POINT)
 //
 // Each fetch uses the device's current GPS fix, so a user
-// gets their own coordinates — no curated city list. A denied
-// or unavailable fix resolves to a fixed fallback point so
-// the Today card always paints useful sky instead of an
-// error. Coordinates round to coordDecimals (4 ≈ 11 m).
+// gets their own coordinates — no curated city list and no
+// silent fallback point. Permission is re-requested on every
+// call (the OS shows the dialog only while undetermined; once
+// denied, the UI routes the user to app settings). Denied
+// permission, disabled services, or a failed fix throw a
+// descriptive WeatherError so the card can show a location
+// error state instead of another city's weather.
+//
+// Coordinates round to coordDecimals (4 ≈ 11 m).
 // ============================================================
 
 function roundCoord(value: number): number {
@@ -161,12 +159,70 @@ function roundCoord(value: number): number {
   return Math.round(value * factor) / factor;
 }
 
-function fallbackCoordinates(): Coordinates {
-  return {
-    lat: weatherJson.location.fallbackLat,
-    lon: weatherJson.location.fallbackLon,
-    isFallback: true,
-  };
+// ============================================================
+// LOCATION CHANGE DETECTION (HAVERSINE)
+//
+// Pure geometry helpers: distance between two fixes in km
+// and a >=1km "user moved" predicate. The last successful fix
+// of the session is kept in memory for change detection.
+// ============================================================
+
+const LOCATION_CHANGE_THRESHOLD_KM =
+  typeof weatherJson.location.changeThresholdKm ===
+    "number" &&
+  Number.isFinite(weatherJson.location.changeThresholdKm)
+    ? weatherJson.location.changeThresholdKm
+    : 1;
+
+const EARTH_RADIUS_KM = 6371.0088;
+
+function toRad(deg: number): number {
+  return (deg * Math.PI) / 180;
+}
+
+export function haversineDistanceKm(
+  a: Coordinates,
+  b: Coordinates,
+): number {
+  const dLat = toRad(b.lat - a.lat);
+  const dLon = toRad(b.lon - a.lon);
+
+  const sinLat = Math.sin(dLat / 2);
+  const sinLon = Math.sin(dLon / 2);
+
+  const h =
+    sinLat * sinLat +
+    Math.cos(toRad(a.lat)) *
+      Math.cos(toRad(b.lat)) *
+      sinLon * sinLon;
+
+  return (
+    2 *
+    EARTH_RADIUS_KM *
+    Math.asin(Math.min(1, Math.sqrt(h)))
+  );
+}
+
+export function detectLocationChange(
+  prev: Coordinates | null,
+  next: Coordinates,
+): boolean {
+  if (!prev) {
+    return true;
+  }
+
+  return (
+    haversineDistanceKm(prev, next) >=
+    LOCATION_CHANGE_THRESHOLD_KM
+  );
+}
+
+// Last successful GPS fix of this app session (module scope:
+// resets on app restart, never persisted).
+let lastKnownLocation: Coordinates | null = null;
+
+export function getLastKnownLocation(): Coordinates | null {
+  return lastKnownLocation;
 }
 
 async function getCoordinates(_options?: {
@@ -176,32 +232,28 @@ async function getCoordinates(_options?: {
     await Location.requestForegroundPermissionsAsync();
 
   if (status !== "granted") {
-    console.warn(
-      "Location denied — using the fallback point.",
+    throw new WeatherError(
+      "permission_denied",
+      weatherJson.messages.errors.permission_denied,
     );
-
-    return fallbackCoordinates();
   }
 
   const servicesEnabled =
     await Location.hasServicesEnabledAsync();
 
-  // No GPS services: fall back to the fixed point rather
-  // than failing the whole weather card.
   if (!servicesEnabled) {
-    console.warn(
-      "Location services disabled — using the fallback point.",
+    throw new WeatherError(
+      "services_disabled",
+      weatherJson.messages.errors.services_disabled,
     );
-
-    return fallbackCoordinates();
   }
 
-  // Always request a fresh fix so the reading tracks the
+  // A fresh high-accuracy fix so the reading tracks the
   // user's live location (no last-known reuse).
   try {
     const location =
       await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
+        accuracy: Location.Accuracy.High,
       });
 
     const { latitude, longitude } =
@@ -211,16 +263,23 @@ async function getCoordinates(_options?: {
       Number.isFinite(latitude) &&
       Number.isFinite(longitude)
     ) {
-      return {
+      const coords: Coordinates = {
         lat: roundCoord(latitude),
         lon: roundCoord(longitude),
       };
+
+      lastKnownLocation = coords;
+
+      return coords;
     }
   } catch {
-    // Fall back to the fixed point below.
+    // Falls through to the throw below.
   }
 
-  return fallbackCoordinates();
+  throw new WeatherError(
+    "location_unavailable",
+    weatherJson.messages.errors.location_unavailable,
+  );
 }
 
 // ============================================================
@@ -233,7 +292,7 @@ async function getCoordinates(_options?: {
 // Retry: HTTP 429 + 5xx only, up to 3 attempts ~1s apart.
 // 401 (bad key), other 4xx, timeouts, and network errors
 // fail immediately — retrying a bad key burns quota and
-// retrying offline only delays the cache fallback.
+// retrying offline only delays the error the UI shows.
 // ============================================================
 
 const MAX_FETCH_ATTEMPTS = 3;
@@ -392,9 +451,8 @@ function toRainMm(
 }
 
 // Local calibration offset (°C) from weather.json. Added to
-// both temp and feels_like at parse time so the card and
-// cache always see corrected values. Tune in JSON, no TS
-// change needed.
+// both temp and feels_like at parse time so the card always
+// sees corrected values. Tune in JSON, no TS change needed.
 //
 // Day/night offsets (tempOffsetDayC / tempOffsetNightC) apply
 // to the Today card only; when both are 0 the base
@@ -449,7 +507,7 @@ function parseWeatherResponse(
 
   // Belt-and-suspenders behind response.ok: an explicit
   // non-200 code means the body is an error document, never
-  // a reading — reject before anything can be cached.
+  // a reading — reject it.
   if (
     payload.cod !== undefined &&
     payload.cod !== 200 &&
@@ -485,7 +543,7 @@ function parseWeatherResponse(
   }
 
   // The Today card classifies by weather[0].id. A reading
-  // without it is unusable — reject before caching.
+  // without it is unusable — reject it.
   const conditionId = toFiniteNumber(rawId);
 
   if (
@@ -618,175 +676,10 @@ function parseWeatherResponse(
     ...(observedAt
       ? { observedAt }
       : {}),
-    ...(coordinates.isFallback
-      ? { isFallback: true as const }
-      : {}),
     conditionId,
     iconCode,
     rainMm,
-    cacheVersion: TODAY_CACHE_VERSION,
   };
-}
-
-// ============================================================
-// TODAY CACHE (v3)
-//
-// Write-through AsyncStorage copy of the last good reading.
-// Served when the network, the API, or GPS fails so the
-// Today card paints cached sky instead of going blank — the
-// same offline pattern as the monitoring last-reading cache.
-// Best-effort: a blocked store never breaks the fetch.
-//
-// v3 stores the id-based classifier fields (conditionId,
-// iconCode, rainMm) plus feelsLike + calibration offset.
-// Entries without cacheVersion 3 are legacy and are
-// discarded, never classified.
-// ============================================================
-
-export const TODAY_CACHE_KEY =
-  "adlawatt.weather.today.v3";
-
-interface CachedTodayWeather {
-  data: WeatherData;
-  fetchedAt: number;
-  cacheVersion: number;
-  // Fix the reading was taken at. Entries written before
-  // coords were stored omit it and still serve.
-  lat?: number;
-  lon?: number;
-}
-
-// ~5km degree box (0.05° lat ≈ 5.5km; lon similar near the
-// equator). A fresh fix outside the cached cell ignores the
-// cache so weather is never shown for the wrong place.
-const CACHE_MAX_SHIFT_DEG = 0.05;
-
-function readCacheCoords(
-  parsed: Partial<CachedTodayWeather>,
-): Pick<Coordinates, "lat" | "lon"> | null {
-  if (
-    typeof parsed.lat === "number" &&
-    Number.isFinite(parsed.lat) &&
-    typeof parsed.lon === "number" &&
-    Number.isFinite(parsed.lon)
-  ) {
-    return {
-      lat: parsed.lat,
-      lon: parsed.lon,
-    };
-  }
-
-  return null;
-}
-
-async function readTodayCache(): Promise<CachedTodayWeather | null> {
-  try {
-    const raw = await AsyncStorage.getItem(
-      TODAY_CACHE_KEY,
-    );
-
-    if (!raw) {
-      return null;
-    }
-
-    const parsed = JSON.parse(raw) as Partial<CachedTodayWeather>;
-
-    if (
-      !parsed ||
-      typeof parsed !== "object" ||
-      !parsed.data ||
-      typeof parsed.data !== "object" ||
-      typeof parsed.fetchedAt !== "number"
-    ) {
-      return null;
-    }
-
-    // Discard legacy entries: no version, older version, or
-    // a payload without classifier fields. Never classify
-    // legacy readings.
-    if (
-      parsed.cacheVersion !== TODAY_CACHE_VERSION
-    ) {
-      return null;
-    }
-
-    const data = parsed.data as Partial<WeatherData>;
-
-    if (
-      typeof data.conditionId !== "number" ||
-      !Number.isFinite(data.conditionId) ||
-      typeof data.iconCode !== "string" ||
-      data.iconCode.trim().length === 0 ||
-      typeof data.temperature !== "number" ||
-      !Number.isFinite(data.temperature) ||
-      typeof data.city !== "string"
-    ) {
-      return null;
-    }
-
-    // feelsLike stays optional: drop it when corrupt so a
-    // bad cache value never reaches the card.
-    const cached = parsed.data as WeatherData;
-
-    if (
-      cached.feelsLike !== undefined &&
-      (typeof cached.feelsLike !== "number" ||
-        !Number.isFinite(cached.feelsLike))
-    ) {
-      delete (cached as Partial<WeatherData>).feelsLike;
-    }
-
-    // humidity stays optional like feelsLike: live OWM
-    // value only, dropped when corrupt.
-    if (
-      cached.humidity !== undefined &&
-      (typeof cached.humidity !== "number" ||
-        !Number.isFinite(cached.humidity) ||
-        cached.humidity < 0 ||
-        cached.humidity > 100)
-    ) {
-      delete (cached as Partial<WeatherData>).humidity;
-    }
-
-    // feelsSource stays optional: dropped when unknown so
-    // old caches without it still validate.
-    if (
-      cached.feelsSource !== undefined &&
-      cached.feelsSource !== "heat-index" &&
-      cached.feelsSource !== "openweather"
-    ) {
-      delete (cached as Partial<WeatherData>).feelsSource;
-    }
-
-    return {
-      data: cached,
-      fetchedAt: parsed.fetchedAt,
-      cacheVersion: TODAY_CACHE_VERSION,
-      ...(readCacheCoords(parsed) ?? {}),
-    };
-  } catch {
-    return null;
-  }
-}
-
-async function writeTodayCache(
-  data: WeatherData,
-  coordinates: Coordinates,
-): Promise<void> {
-  try {
-    await AsyncStorage.setItem(
-      TODAY_CACHE_KEY,
-      JSON.stringify({
-        data,
-        fetchedAt: Date.now(),
-        cacheVersion: TODAY_CACHE_VERSION,
-        lat: coordinates.lat,
-        lon: coordinates.lon,
-      }),
-    );
-  } catch {
-    // Intentionally ignored.
-  }
 }
 
 declare const __DEV__: boolean | undefined;
@@ -802,7 +695,6 @@ function isDev(): boolean {
 }
 
 function debugTodayReading(
-  source: "live" | "cache",
   coordinates: Coordinates,
   raw: unknown,
   data: WeatherData,
@@ -834,12 +726,8 @@ function debugTodayReading(
   const parsed = data as Partial<WeatherData>;
 
   console.debug("[today-weather]", {
-    source,
     lat: coordinates.lat,
     lon: coordinates.lon,
-    gps: coordinates.isFallback
-      ? "default-area"
-      : "gps",
     name:
       typeof payload.name === "string"
         ? payload.name
@@ -862,7 +750,6 @@ function debugTodayReading(
     rain1h: payload.rain?.["1h"] ?? null,
     rain3h: payload.rain?.["3h"] ?? null,
     rainMm: data.rainMm,
-    fromCache: source === "cache",
   });
 }
 
@@ -870,10 +757,13 @@ function debugTodayReading(
 // GET WEATHER
 //
 // Concurrent callers share one in-flight request, so an old
-// response can never overwrite newer state or cache — there
-// is only ever a single writer. A manual refresh passes
-// fresh:true to force a new GPS fix + fetch even while
-// another fetch is in flight.
+// response can never overwrite newer state — there is only
+// ever a single writer. A manual refresh passes fresh:true
+// to force a new GPS fix + fetch even while another fetch is
+// in flight.
+//
+// Every call is a live OpenWeather fetch; failures propagate
+// to the caller (no stored reading is ever substituted).
 // ============================================================
 
 let inflightToday: Promise<WeatherData> | null =
@@ -884,7 +774,7 @@ export function getWeather(options?: {
   // Explicit fix (e.g. one fresh fix shared with the forecast
   // leg). Bypasses the shared in-flight slot — a shared
   // response for different coordinates would paint the
-  // wrong cell — and skips its own GPS lookup.
+  // wrong place — and skips its own GPS lookup.
   coordinates?: Coordinates;
 }): Promise<WeatherData> {
   if (options?.fresh || options?.coordinates) {
@@ -918,92 +808,35 @@ async function runWeatherFetch(options?: {
     options?.coordinates ??
     (await getCoordinates(options));
 
-  try {
-    const response =
-      await fetchCurrentWeather(
-        coordinates
-      );
+  const response =
+    await fetchCurrentWeather(coordinates);
 
-    const parsed = parseWeatherResponse(
-      response,
-      coordinates
-    );
+  const parsed = parseWeatherResponse(
+    response,
+    coordinates,
+  );
 
-    const data: WeatherData =
-      typeof parsed.observedAt === "number"
-        ? parsed
-        : {
-            ...parsed,
-            observedAt: Date.now(),
-          };
+  const data: WeatherData =
+    typeof parsed.observedAt === "number"
+      ? parsed
+      : {
+          ...parsed,
+          observedAt: Date.now(),
+        };
 
-    debugTodayReading(
-      "live",
-      coordinates,
-      response,
-      data,
-    );
+  debugTodayReading(
+    coordinates,
+    response,
+    data,
+  );
 
-    await writeTodayCache(data, coordinates);
-
-    return data;
-  } catch (error) {
-    // A missing key is a config bug, not weather — surface
-    // it loudly instead of masking it with stale cache.
-    if (
-      error instanceof WeatherError &&
-      error.code === "missing_key"
-    ) {
-      throw error;
-    }
-
-    const cached = await readTodayCache();
-
-    if (cached) {
-      if (
-        cached.lat !== undefined &&
-        cached.lon !== undefined &&
-        (Math.abs(
-          cached.lat - coordinates.lat,
-        ) > CACHE_MAX_SHIFT_DEG ||
-          Math.abs(
-            cached.lon - coordinates.lon,
-          ) > CACHE_MAX_SHIFT_DEG)
-      ) {
-        console.warn(
-          "Cached weather is from >~5km away — ignoring.",
-        );
-      } else {
-        const ageMin = Math.round(
-          (Date.now() - cached.fetchedAt) / 60000,
-        );
-
-        console.warn(
-          `Weather fetch failed — serving ${ageMin}m-old cache:`,
-          error instanceof Error
-            ? error.message
-            : error,
-        );
-
-        debugTodayReading(
-          "cache",
-          coordinates,
-          null,
-          cached.data,
-        );
-
-        return cached.data;
-      }
-    }
-
-    throw error;
-  }
+  return data;
 }
 
 // ============================================================
 // CURRENT COORDINATES
 //
-// Shared balanced-accuracy fix for consumers that need raw
+// Shared high-accuracy fix for consumers that need raw
 // coordinates (e.g. the 5-day forecast) without fetching
 // current weather.
 // ============================================================

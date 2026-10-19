@@ -10,8 +10,10 @@ import {
   resolveFeelsLike,
 } from "@/services/weatherConfig";
 import {
-  TODAY_CACHE_KEY,
+  WeatherError,
+  detectLocationChange,
   getWeather,
+  haversineDistanceKm,
 } from "@/services/weatherForecast";
 
 // expo-location ships native code that does not exist under
@@ -21,7 +23,7 @@ jest.mock("expo-location", () => ({
   hasServicesEnabledAsync: jest.fn(),
   getLastKnownPositionAsync: jest.fn(),
   getCurrentPositionAsync: jest.fn(),
-  Accuracy: { Balanced: 3 },
+  Accuracy: { Balanced: 3, High: 4 },
 }));
 
 // Parsing tests assert raw + offset values, so keep the
@@ -40,6 +42,10 @@ jest.mock("@/data/weather.json", () => {
     },
   };
 });
+
+// The removed legacy cache key — asserted to stay empty.
+const LEGACY_CACHE_KEY =
+  "adlawatt.weather.today.v3";
 
 const mockLocation = Location as unknown as {
   requestForegroundPermissionsAsync: jest.Mock;
@@ -67,6 +73,28 @@ const owmOk = (
   name: "Malaybalay",
   ...overrides,
 });
+
+const grantLocation = (
+  lat: number = 8.37,
+  lon: number = 124.87,
+) => {
+  mockLocation.requestForegroundPermissionsAsync.mockResolvedValue(
+    { status: "granted" },
+  );
+
+  mockLocation.hasServicesEnabledAsync.mockResolvedValue(
+    true,
+  );
+
+  mockLocation.getCurrentPositionAsync.mockResolvedValue(
+    {
+      coords: {
+        latitude: lat,
+        longitude: lon,
+      },
+    },
+  );
+};
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -134,31 +162,12 @@ describe("resolveCondition main group", () => {
 });
 
 // ============================================================
-// COORDINATES: LIVE FIX, ROUNDING, FALLBACK
+// COORDINATES: LIVE FIX, ROUNDING, HARD ERRORS
 // ============================================================
 
 describe("getWeather coordinates", () => {
-  const grantLocation = () => {
-    mockLocation.requestForegroundPermissionsAsync.mockResolvedValue(
-      { status: "granted" },
-    );
-
-    mockLocation.hasServicesEnabledAsync.mockResolvedValue(
-      true,
-    );
-  };
-
-  test("uses a fresh fix, rounded to coordDecimals", async () => {
-    grantLocation();
-
-    mockLocation.getCurrentPositionAsync.mockResolvedValue(
-      {
-        coords: {
-          latitude: 8.36789,
-          longitude: 124.87321,
-        },
-      },
-    );
+  test("uses a fresh high-accuracy fix, rounded", async () => {
+    grantLocation(8.36789, 124.87321);
 
     mockFetch.mockResolvedValue({
       ok: true,
@@ -173,7 +182,11 @@ describe("getWeather coordinates", () => {
 
     expect(
       mockLocation.getCurrentPositionAsync,
-    ).toHaveBeenCalled();
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accuracy: 4,
+      }),
+    );
 
     const url = String(
       mockFetch.mock.calls[0]?.[0] ?? "",
@@ -184,7 +197,7 @@ describe("getWeather coordinates", () => {
   });
 
   test("never reuses a last-known fix", async () => {
-    grantLocation();
+    grantLocation(8.1, 125.1);
 
     // A last-known fix exists but must be ignored: the app
     // always takes a live fix for the current location.
@@ -193,15 +206,6 @@ describe("getWeather coordinates", () => {
         coords: {
           latitude: 9.9,
           longitude: 126.6,
-        },
-      },
-    );
-
-    mockLocation.getCurrentPositionAsync.mockResolvedValue(
-      {
-        coords: {
-          latitude: 8.1,
-          longitude: 125.1,
         },
       },
     );
@@ -255,34 +259,7 @@ describe("getWeather coordinates", () => {
     expect(url).toContain("lon=125.5");
   });
 
-  test("falls back to a fresh fix when there is no recent one", async () => {
-    grantLocation();
-
-    mockLocation.getCurrentPositionAsync.mockResolvedValue(
-      {
-        coords: {
-          latitude: 8.1,
-          longitude: 125.1,
-        },
-      },
-    );
-
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => owmOk(),
-    });
-
-    const data = await getWeather();
-
-    expect(
-      mockLocation.getCurrentPositionAsync,
-    ).toHaveBeenCalled();
-
-    expect(data.mainGroup).toBe("Clouds");
-    expect(data.city).toBe("Malaybalay");
-  });
-
-  test("denial resolves to the fallback point", async () => {
+  test("denial throws permission_denied and never fetches", async () => {
     mockLocation.requestForegroundPermissionsAsync.mockResolvedValue(
       { status: "denied" },
     );
@@ -292,50 +269,35 @@ describe("getWeather coordinates", () => {
       json: async () => owmOk(),
     });
 
-    const data = await getWeather();
+    await expect(getWeather()).rejects.toMatchObject({
+      name: "WeatherError",
+      code: "permission_denied",
+    });
 
     expect(
       mockLocation.getCurrentPositionAsync,
     ).not.toHaveBeenCalled();
 
-    const url = String(
-      mockFetch.mock.calls[0]?.[0] ?? "",
-    );
-
-    expect(url).toContain("lat=8.3697");
-    expect(url).toContain("lon=124.8644");
-    expect(data.isFallback).toBe(true);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  test("granted fix carries no fallback flag", async () => {
-    grantLocation();
-
-    mockLocation.getCurrentPositionAsync.mockResolvedValue(
-      {
-        coords: {
-          latitude: 8.1,
-          longitude: 125.1,
-        },
-      },
+  test("disabled location services throw services_disabled", async () => {
+    mockLocation.requestForegroundPermissionsAsync.mockResolvedValue(
+      { status: "granted" },
     );
 
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => owmOk(),
+    mockLocation.hasServicesEnabledAsync.mockResolvedValue(
+      false,
+    );
+
+    await expect(getWeather()).rejects.toMatchObject({
+      code: "services_disabled",
     });
 
-    const data = await getWeather();
-
-    expect(data.isFallback).toBeUndefined();
+    expect(mockFetch).not.toHaveBeenCalled();
   });
-});
 
-// ============================================================
-// TODAY CACHE
-// ============================================================
-
-describe("getWeather cache", () => {
-  const grantFresh = () => {
+  test("a failed GPS fix throws location_unavailable", async () => {
     mockLocation.requestForegroundPermissionsAsync.mockResolvedValue(
       { status: "granted" },
     );
@@ -344,59 +306,24 @@ describe("getWeather cache", () => {
       true,
     );
 
-    mockLocation.getLastKnownPositionAsync.mockResolvedValue(
-      null,
+    mockLocation.getCurrentPositionAsync.mockRejectedValue(
+      new Error("gps timeout"),
     );
 
-    mockLocation.getCurrentPositionAsync.mockResolvedValue(
-      {
-        coords: {
-          latitude: 8.37,
-          longitude: 124.87,
-        },
-      },
-    );
-  };
-
-  test("seeds the cache on success, serves it on failure", async () => {
-    grantFresh();
-
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => owmOk(),
+    await expect(getWeather()).rejects.toMatchObject({
+      code: "location_unavailable",
     });
 
-    const live = await getWeather();
-
-    // No calibration offset (tempOffsetC 0): 32.4 -> 32, 34.2 -> 34
-    expect(live.temperature).toBe(32);
-    expect(live.feelsLike).toBe(34);
-    // No humidity in this payload: OWM fallback path.
-    expect(live.feelsSource).toBe("openweather");
-    expect(live.humidity).toBeUndefined();
-    expect(live.conditionId).toBe(803);
-    expect(live.iconCode).toBe("04d");
-    expect(live.rainMm).toBeNull();
-    expect(live.cacheVersion).toBe(3);
-
-    const stored = await AsyncStorage.getItem(
-      TODAY_CACHE_KEY,
-    );
-
-    expect(stored).not.toBeNull();
-
-    mockFetch.mockRejectedValueOnce(
-      new Error("offline"),
-    );
-
-    const cached = await getWeather();
-
-    expect(cached).toEqual(live);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
+});
 
+// ============================================================
+// PARSING (HUMIDITY, FEELS, OBSERVED-AT)
+// ============================================================
+
+describe("getWeather parsing", () => {
   test("humidity parses live and feels-like uses heat index", async () => {
-    grantFresh();
-
     mockFetch.mockResolvedValue({
       ok: true,
       json: async () =>
@@ -423,57 +350,13 @@ describe("getWeather cache", () => {
     );
     expect(live.humidity).toBe(80);
     expect(live.feelsSource).toBe("heat-index");
+    expect(live.conditionId).toBe(803);
+    expect(live.iconCode).toBe("04d");
+    expect(live.rainMm).toBeNull();
   });
 
-  test("throws when nothing is cached and fetch fails", async () => {
-    grantFresh();
-
-    mockFetch.mockResolvedValue({
-      ok: false,
-      status: 429,
-    });
-
-    await expect(
-      getWeather(),
-    ).rejects.toThrow();
-  });
-
-  test("missing weather id is invalid and never cached", async () => {
-    grantFresh();
-
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () =>
-        owmOk({
-          weather: [
-            {
-              main: "Clouds",
-              description: "broken clouds",
-              icon: "04d",
-            },
-          ],
-        }),
-    });
-
-    await expect(
-      getWeather(),
-    ).rejects.toThrow();
-
-    expect(
-      await AsyncStorage.getItem(TODAY_CACHE_KEY),
-    ).toBeNull();
-  });
-});
-
-// ============================================================
-// OBSERVED-AT AGE
-// ============================================================
-
-describe("observedAt age", () => {
   test("owm dt becomes the observation time", async () => {
-    mockLocation.requestForegroundPermissionsAsync.mockResolvedValue(
-      { status: "denied" },
-    );
+    grantLocation();
 
     mockFetch.mockResolvedValue({
       ok: true,
@@ -488,9 +371,7 @@ describe("observedAt age", () => {
   });
 
   test("missing dt falls back to the fetch time", async () => {
-    mockLocation.requestForegroundPermissionsAsync.mockResolvedValue(
-      { status: "denied" },
-    );
+    grantLocation();
 
     mockFetch.mockResolvedValue({
       ok: true,
@@ -508,6 +389,175 @@ describe("observedAt age", () => {
     expect(data.observedAt ?? 0).toBeGreaterThanOrEqual(
       before,
     );
+  });
+
+  test("missing weather id rejects", async () => {
+    grantLocation();
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () =>
+        owmOk({
+          weather: [
+            {
+              main: "Clouds",
+              description: "broken clouds",
+              icon: "04d",
+            },
+          ],
+        }),
+    });
+
+    await expect(
+      getWeather(),
+    ).rejects.toMatchObject({
+      code: "invalid_response",
+    });
+  });
+});
+
+// ============================================================
+// HAVERSINE / LOCATION CHANGE
+// ============================================================
+
+describe("haversineDistanceKm", () => {
+  test("same point is zero", () => {
+    expect(
+      haversineDistanceKm(
+        { lat: 8.37, lon: 124.87 },
+        { lat: 8.37, lon: 124.87 },
+      ),
+    ).toBe(0);
+  });
+
+  test("one degree of latitude is ~111 km", () => {
+    const km = haversineDistanceKm(
+      { lat: 8, lon: 124 },
+      { lat: 9, lon: 124 },
+    );
+
+    expect(km).toBeGreaterThan(110);
+    expect(km).toBeLessThan(112);
+  });
+});
+
+describe("detectLocationChange", () => {
+  test("no previous fix counts as changed", () => {
+    expect(
+      detectLocationChange(null, {
+        lat: 8.37,
+        lon: 124.87,
+      }),
+    ).toBe(true);
+  });
+
+  test("sub-kilometre drift is not a change", () => {
+    expect(
+      detectLocationChange(
+        { lat: 8.37, lon: 124.87 },
+        { lat: 8.3705, lon: 124.87 },
+      ),
+    ).toBe(false);
+  });
+
+  test("kilometre-plus move is a change", () => {
+    expect(
+      detectLocationChange(
+        { lat: 8.37, lon: 124.87 },
+        { lat: 8.39, lon: 124.87 },
+      ),
+    ).toBe(true);
+  });
+});
+
+// ============================================================
+// NO PERSISTED CACHE (LIVE-ONLY READINGS)
+// ============================================================
+
+describe("live-only readings", () => {
+  test("success writes nothing to AsyncStorage", async () => {
+    grantLocation();
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => owmOk(),
+    });
+
+    await getWeather();
+
+    expect(
+      await AsyncStorage.getItem(LEGACY_CACHE_KEY),
+    ).toBeNull();
+  });
+
+  test("a stored reading is never served on failure", async () => {
+    // Seed a valid-looking stored reading under the old
+    // cache key: it must be ignored, not painted.
+    await AsyncStorage.setItem(
+      LEGACY_CACHE_KEY,
+      JSON.stringify({
+        data: {
+          temperature: 30,
+          description: "clear sky",
+          city: "Cached",
+          conditionId: 800,
+          iconCode: "01d",
+          rainMm: null,
+        },
+        fetchedAt: Date.now(),
+        cacheVersion: 3,
+        lat: 8.37,
+        lon: 124.87,
+      }),
+    );
+
+    grantLocation();
+
+    mockFetch.mockRejectedValue(
+      new Error("offline"),
+    );
+
+    await expect(
+      getWeather(),
+    ).rejects.toThrow("offline");
+  });
+
+  test("a failed fetch rejects even after a success", async () => {
+    grantLocation();
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => owmOk(),
+    });
+
+    await getWeather();
+
+    mockFetch.mockRejectedValue(
+      new Error("offline"),
+    );
+
+    await expect(
+      getWeather({ fresh: true }),
+    ).rejects.toThrow("offline");
+  });
+
+  test("non-200 cod rejects and caches nothing", async () => {
+    grantLocation();
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => owmOk({ cod: 404 }),
+    });
+
+    await expect(
+      getWeather(),
+    ).rejects.toMatchObject({
+      code: "invalid_response",
+    });
+
+    expect(
+      await AsyncStorage.getItem(LEGACY_CACHE_KEY),
+    ).toBeNull();
   });
 });
 
@@ -661,34 +711,8 @@ describe("resolveFeelsLike", () => {
 // ============================================================
 
 describe("fetch retry", () => {
-  const grantFresh = (
-    lat: number = 8.37,
-    lon: number = 124.87,
-  ) => {
-    mockLocation.requestForegroundPermissionsAsync.mockResolvedValue(
-      { status: "granted" },
-    );
-
-    mockLocation.hasServicesEnabledAsync.mockResolvedValue(
-      true,
-    );
-
-    mockLocation.getLastKnownPositionAsync.mockResolvedValue(
-      null,
-    );
-
-    mockLocation.getCurrentPositionAsync.mockResolvedValue(
-      {
-        coords: {
-          latitude: lat,
-          longitude: lon,
-        },
-      },
-    );
-  };
-
   test("retries 429/5xx up to success", async () => {
-    grantFresh();
+    grantLocation();
 
     mockFetch
       .mockResolvedValueOnce({
@@ -711,7 +735,7 @@ describe("fetch retry", () => {
   });
 
   test("401 fails immediately without retry", async () => {
-    grantFresh();
+    grantLocation();
 
     mockFetch.mockResolvedValue({
       ok: false,
@@ -726,7 +750,7 @@ describe("fetch retry", () => {
   });
 
   test("network failure does not retry", async () => {
-    grantFresh();
+    grantLocation();
 
     mockFetch.mockRejectedValue(
       new Error("offline"),
@@ -746,22 +770,7 @@ describe("fetch retry", () => {
 
 describe("shared flight", () => {
   test("concurrent callers share one fetch", async () => {
-    mockLocation.requestForegroundPermissionsAsync.mockResolvedValue(
-      { status: "granted" },
-    );
-
-    mockLocation.hasServicesEnabledAsync.mockResolvedValue(
-      true,
-    );
-
-    mockLocation.getLastKnownPositionAsync.mockResolvedValue(
-      {
-        coords: {
-          latitude: 8.37,
-          longitude: 124.87,
-        },
-      },
-    );
+    grantLocation(8.37, 124.87);
 
     mockFetch.mockResolvedValue({
       ok: true,
@@ -779,102 +788,18 @@ describe("shared flight", () => {
 });
 
 // ============================================================
-// CACHE COORDS + DISTANCE RULE + COD
+// WEATHER ERROR SHAPE
 // ============================================================
 
-describe("cache coords", () => {
-  const grantFresh = (
-    lat: number,
-    lon: number,
-  ) => {
-    mockLocation.requestForegroundPermissionsAsync.mockResolvedValue(
-      { status: "granted" },
+describe("WeatherError", () => {
+  test("carries the code and message", () => {
+    const error = new WeatherError(
+      "permission_denied",
+      "nope",
     );
 
-    mockLocation.hasServicesEnabledAsync.mockResolvedValue(
-      true,
-    );
-
-    mockLocation.getLastKnownPositionAsync.mockResolvedValue(
-      null,
-    );
-
-    mockLocation.getCurrentPositionAsync.mockResolvedValue(
-      {
-        coords: {
-          latitude: lat,
-          longitude: lon,
-        },
-      },
-    );
-  };
-
-  test("far fix ignores the cache", async () => {
-    grantFresh(8.37, 124.87);
-
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => owmOk(),
-    });
-
-    await getWeather();
-
-    mockFetch.mockRejectedValue(
-      new Error("offline"),
-    );
-
-    // Explicit far coordinates bypass area snapping, so the
-    // cached city-center reading (>~5km away) is ignored.
-    await expect(
-      getWeather({
-        coordinates: { lat: 9.0, lon: 125.5 },
-      }),
-    ).rejects.toThrow("offline");
-  });
-
-  test("legacy v1 cache is discarded", async () => {
-    grantFresh(8.37, 124.87);
-
-    await AsyncStorage.setItem(
-      TODAY_CACHE_KEY,
-      JSON.stringify({
-        data: {
-          temperature: 30,
-          description: "clear sky",
-          city: "Cached",
-        },
-        fetchedAt: Date.now(),
-      }),
-    );
-
-    mockFetch.mockRejectedValue(
-      new Error("offline"),
-    );
-
-    await expect(
-      getWeather(),
-    ).rejects.toThrow("offline");
-  });
-
-  test("non-200 cod never caches, serves cache instead", async () => {
-    grantFresh(8.37, 124.87);
-
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => owmOk(),
-    });
-
-    await getWeather();
-
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () =>
-        owmOk({ cod: 404 }),
-    });
-
-    const data = await getWeather();
-
-    expect(data.city).toBe("Malaybalay");
-    expect(mockFetch).toHaveBeenCalledTimes(2);
+    expect(error.name).toBe("WeatherError");
+    expect(error.code).toBe("permission_denied");
+    expect(error.message).toBe("nope");
   });
 });
