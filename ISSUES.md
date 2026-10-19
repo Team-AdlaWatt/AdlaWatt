@@ -352,7 +352,45 @@ all.
 
 ---
 
+### 11. [Chore] The battery capacity reference was 720 Wh, now 756 Wh
+
+**Summary**
+The battery bank is rated 756 Wh (12.6 V × 60 Ah), but the app still described a
+720 Wh pack with a 144 Wh reserve and 576 Wh usable. Because the appliance
+recommendation engine reads the battery's energy, every label, limit, and
+recommendation was built on the older 720 Wh figure.
+
+**Steps to Reproduce**
+1. Open the Appliances screen and add an appliance, or open Menu, then User Manual.
+2. Look at the battery capacity and reserve figures shown.
+3. Compare them with the battery datasheet (756 Wh, 20% reserve = 151.2 Wh).
+
+**Expected Behavior**
+The app shows 756 Wh total, a 151.2 Wh reserve, and 604.8 Wh usable, and the
+recommendations and wattage limits follow those numbers.
+
+**Actual Behavior**
+The app used 720 Wh / 144 Wh / 576 Wh and capped appliance wattage at 720 W.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Updated the recommendation engine (`BATTERY_NOMINAL_WH` 756, `RESERVE_WH`
+151.2), the battery gauge ceiling (756 Wh) and low threshold (151.2 Wh), the
+appliance wattage cap (756 W), the in-app advisory and User Manual, and the
+README / implementation-plan docs, including the 1% SoC table recomputed as
+756 × SoC ÷ 100. The capacity, reserve, and usable figures now come from a
+single source of truth (`src/constants/battery.ts`) shared by the engine, the
+battery gauge, and the appliance modals — 756 is the basis, the old 720 value is
+gone.
+**Note:** The ESP32 firmware must also report `watt_hours` on the 756 Wh scale
+before recommendations reflect the new capacity — still to do on the hardware side.
+
+---
+
 ## Still To Do
 
-- Test the real APK on a phone and confirm all ten issues above are gone.
+- Test the real APK on a phone and confirm all eleven issues above are gone.
+- Update the ESP32 firmware so watt_hours is reported on the 756 Wh scale.
 - Small pre-existing warning in the code cleanup (not related to these fixes).

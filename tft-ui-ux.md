@@ -134,7 +134,7 @@ Widgets: SoC% bar + V, Load W, Solar W + Low/Mod/High, 3 temps mini, relay state
 +------+--------------------------------+
 ```
 
-Source: ADC batt divider → V; SoC% mapped 9.0–12.6V (EMA 5–10 samples); usableWh = remaining − 144Wh reserve.
+Source: ADC batt divider → V; SoC% mapped 9.0–12.6V (EMA 5–10 samples); usableWh = remaining − 151.2Wh reserve.
 
 ### 3.3 Solar
 
@@ -209,7 +209,7 @@ Supabase history, 17 analytics charts, 5-day forecast strip, appliance carousel,
 | Sun level | thresholds on Solar W | Low/Mod/High mirrors app badge |
 | Load W | batt discharge shunt or smart plug | cap 800W warn, 1000W block |
 
-Thresholds (copied from app): `SoC low 20%, reserve 144Wh / full 720Wh, caution 10.65V, unsafe 10.6V, notify band 11.6–14.6V, max load 1000W`.
+Thresholds (copied from app): `SoC low 20%, reserve 151.2Wh / full 756Wh, caution 10.65V, unsafe 10.6V, notify band 11.6–14.6V, max load 1000W`.
 
 ## 5. Color palette (copied from `src/constants/colors.ts`)
 
