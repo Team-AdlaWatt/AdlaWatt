@@ -189,7 +189,6 @@ const areaColors: Record<string, string> = {
   "Kitchen Area": Colors.light.areas.kitchen,
   "Work/Study Area": Colors.light.areas.study,
   "Bathroom Area": Colors.light.areas.bathroom,
-  "Porch": Colors.light.areas.porch,
 };
 
 const getAreaColor = (
@@ -1594,7 +1593,6 @@ export default function ApplianceModal({
     "Kitchen Area",
     "Work/Study Area",
     "Bathroom Area",
-    "Porch",
   ];
 
   // ============================================================

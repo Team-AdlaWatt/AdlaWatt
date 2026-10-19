@@ -39,9 +39,7 @@ export const GIVEN_CATALOG: CatalogItem[] = [
   { key: "catalog:living:portable-bluetooth-speaker", name: "Portable Bluetooth Speaker", wattMin: 5, wattMax: 20, display: catalogDisplay(5, 20), uiArea: "Living Area" },
   { key: "catalog:living:desk-fan", name: "Desk Fan", wattMin: 25, wattMax: 45, display: catalogDisplay(25, 45), uiArea: "Living Area" },
   { key: "catalog:living:mini-led-projector", name: "Mini LED Projector", wattMin: 30, wattMax: 60, display: catalogDisplay(30, 60), uiArea: "Living Area" },
-  { key: "catalog:living:smart-wifi-plug", name: "Smart Wi-Fi Plug", wattMin: 0.5, wattMax: 2, display: catalogDisplay(0.5, 2), uiArea: "Living Area" },
   // Bedroom
-  { key: "catalog:bedroom:wall-fan", name: "Wall Fan", wattMin: 40, wattMax: 60, display: catalogDisplay(40, 60), uiArea: "Bedroom" },
   { key: "catalog:bedroom:clip-fan", name: "Clip Fan", wattMin: 20, wattMax: 40, display: catalogDisplay(20, 40), uiArea: "Bedroom" },
   { key: "catalog:bedroom:rechargeable-handheld-fan", name: "Rechargeable Handheld Fan", wattMin: 3, wattMax: 10, display: catalogDisplay(3, 10), uiArea: "Bedroom" },
   { key: "catalog:bedroom:tablet-charger", name: "Tablet Charger", wattMin: 10, wattMax: 20, display: catalogDisplay(10, 20), uiArea: "Bedroom" },
@@ -65,11 +63,6 @@ export const GIVEN_CATALOG: CatalogItem[] = [
   // Bathroom Area
   { key: "catalog:bath:twin-tub-washing-machine", name: "Twin-Tub Washing Machine", wattMin: 150, wattMax: 350, display: catalogDisplay(150, 350), uiArea: "Bathroom Area" },
   { key: "catalog:bath:rechargeable-hair-clipper", name: "Rechargeable Hair Clipper", wattMin: 5, wattMax: 10, display: catalogDisplay(5, 10), uiArea: "Bathroom Area" },
-  { key: "catalog:bath:rechargeable-electric-toothbrush", name: "Rechargeable Electric Toothbrush", wattMin: 1, wattMax: 3, display: catalogDisplay(1, 3), uiArea: "Bathroom Area" },
-  // Porch
-  { key: "catalog:porch:led-floodlight", name: "LED Floodlight", wattMin: 10, wattMax: 30, display: catalogDisplay(10, 30), uiArea: "Porch" },
-  { key: "catalog:porch:wired-cctv-camera", name: "Wired CCTV Camera", wattMin: 5, wattMax: 12, display: catalogDisplay(5, 12), uiArea: "Porch" },
-  { key: "catalog:porch:wifi-security-camera", name: "Wi-Fi Security Camera", wattMin: 2, wattMax: 6, display: catalogDisplay(2, 6), uiArea: "Porch" },
 ];
 
 export const CATALOG_BY_KEY = new Map(
@@ -201,7 +194,6 @@ export const CATALOG_IMAGES: Record<string, number> = {
   "catalog:living:mini-soundbar": require("@/assets/images/appliances/speaker.png"),
   "catalog:living:portable-bluetooth-speaker": require("@/assets/images/appliances/speaker.png"),
   "catalog:living:desk-fan": require("@/assets/images/appliances/desk-fan.png"),
-  "catalog:bedroom:wall-fan": require("@/assets/images/appliances/clip-fan.png"),
   "catalog:bedroom:clip-fan": require("@/assets/images/appliances/clip-fan.png"),
   "catalog:bedroom:tablet-charger": require("@/assets/images/appliances/charger.png"),
   "catalog:bedroom:led-night-light": require("@/assets/images/appliances/night-light.png"),
@@ -220,8 +212,6 @@ export const CATALOG_IMAGES: Record<string, number> = {
   "catalog:work:wireless-earbuds-charging-case": require("@/assets/images/appliances/earbuds-charging-case.png"),
   "catalog:bath:twin-tub-washing-machine": require("@/assets/images/appliances/washing-machine.png"),
   "catalog:bath:rechargeable-hair-clipper": require("@/assets/images/appliances/hair-clipper.png"),
-  "catalog:porch:wired-cctv-camera": require("@/assets/images/appliances/cctv-camera.png"),
-  "catalog:porch:wifi-security-camera": require("@/assets/images/appliances/cctv-camera.png"),
 };
 
 // Aliases for callers that use the new naming.

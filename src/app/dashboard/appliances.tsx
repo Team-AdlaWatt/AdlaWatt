@@ -65,7 +65,6 @@ type Area =
   | "Kitchen Area"
   | "Work/Study Area"
   | "Bathroom Area"
-  | "Porch"
   | "Custom";
 
 type SelectedAppliance = {
@@ -178,7 +177,6 @@ const areaMap: Record<
   "Kitchen Area": "Kitchen Area",
   "Work/Study Area": "Work/Study Area",
   "Bathroom Area": "Bathroom Area",
-  Porch: "Porch",
   Custom: "Custom Appliances",
 };
 
@@ -830,7 +828,6 @@ export default function AppliancesScreen() {
             "Kitchen Area",
             "Work/Study Area",
             "Bathroom Area",
-            "Porch",
             "Custom",
           ] as Area[]
         ).map((option) => (
