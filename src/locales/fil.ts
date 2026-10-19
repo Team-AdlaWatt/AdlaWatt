@@ -53,10 +53,13 @@ const fil = {
     labelNewPassword: "Bagong Password",
     labelConfirmNewPassword:
       "Kumpirmahin ang Bagong Password",
+    labelConfirmPassword: "Kumpirmahin ang Password",
     placeholderPassword: "Ilagay ang iyong password",
     placeholderNewPassword: "Lumikha ng password",
     placeholderConfirmPassword:
       "Kumpirmahin ang iyong password",
+    placeholderConfirmNewPassword:
+      "Ilagay ang password para kumpirmahin",
     placeholderCreateNew: "Lumikha ng bagong password",
     placeholderConfirmNew:
       "Kumpirmahin ang iyong bagong password",
@@ -246,10 +249,10 @@ const fil = {
         "Naka-sign in ka. Dadalhin ka sa iyong dashboard.",
       googleIncomplete:
         "Hindi nakumpleto ang Google sign-in. Pakisubukang muli mula sa sign-in screen.",
-      continueToDashboard: "Magpatuloy sa Dashboard",
-      webSuccessTitle: "Tagumpay ang Pagpapatotoo",
+      continueToDashboard: "Magpatuloy",
+      webSuccessTitle: "Kumpleto na ang Pagpapatotoo",
       webSuccessSubtitle:
-        "Maaari mo nang isara ang tab na ito at bumalik sa application.",
+        "Bumalik na sa app ngayon, o isara ang window na ito.",
       backToSignIn: "Bumalik sa Sign In",
       goToResetPassword: "Pumunta sa Reset Password",
       footerPrompt: "Kailangan ng bagong account?",

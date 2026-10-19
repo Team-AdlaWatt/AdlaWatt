@@ -53,10 +53,13 @@ const ceb = {
     labelNewPassword: "Bag-ong Password",
     labelConfirmNewPassword:
       "Kumpirmahi ang Bag-ong Password",
+    labelConfirmPassword: "Kumpirmaha ang Password",
     placeholderPassword: "Isulod ang imong password",
     placeholderNewPassword: "Pagbuhat ug password",
     placeholderConfirmPassword:
       "Kumpirmahi ang imong password",
+    placeholderConfirmNewPassword:
+      "Isulod ang password aron kumpirmahon",
     placeholderCreateNew: "Pagbuhat ug bag-ong password",
     placeholderConfirmNew:
       "Kumpirmahi ang imong bag-ong password",
@@ -246,10 +249,10 @@ const ceb = {
         "Naka-sign in ka. Dad-on ka sa imong dashboard.",
       googleIncomplete:
         "Wala mahuman ang Google sign-in. Palihug sulayi pag-usab gikan sa sign-in screen.",
-      continueToDashboard: "Padayon sa Dashboard",
-      webSuccessTitle: "Milampos ang Pagpamatuod",
+      continueToDashboard: "Padayon",
+      webSuccessTitle: "Nahuman na ang Pagpamatuod",
       webSuccessSubtitle:
-        "Mahimo na nimong isira kini nga tab ug mobalik sa application.",
+        "Mobalik na sa app karon, o siraha kini nga window.",
       backToSignIn: "Balik sa Sign In",
       goToResetPassword: "Adto sa Reset Password",
       footerPrompt: "Kinahanglan ug bag-ong account?",

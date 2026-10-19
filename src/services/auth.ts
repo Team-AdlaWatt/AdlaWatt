@@ -95,32 +95,36 @@ export function resolvePostLoginRoute(
 }
 
 // ============================================================
-// EMAIL REDIRECT
+// AUTH REDIRECT
 // ============================================================
 //
-// Dev-only manual-login flow: we intentionally omit
-// emailRedirectTo so Supabase confirms on its hosted page.
-// This avoids baking http://localhost:8081 into the email,
-// which is unreachable when opened on another device.
+// Every email / OAuth link must return the user to a
+// reachable target. Native uses the app's custom scheme
+// (adlawatt://auth/...) so the OS hands the link off to the
+// app — no http(s)://localhost dependency that is unreachable
+// on a phone. Web uses the current origin.
 //
-// getEmailRedirectTo is kept for the future auto-login flow
-// (adlawatt://auth/callback + /auth/callback) but is currently
-// unused.
+// The returned value is passed as emailRedirectTo / redirectTo
+// and MUST be allowlisted in Supabase Auth > URL Configuration
+// > Redirect URLs (adlawatt://auth/callback,
+// adlawatt://auth/forgot-password, and the web origin).
 // ============================================================
 
-export const getEmailRedirectTo = (): string | undefined => {
+export const getAuthRedirect = (
+    path: string,
+): string | undefined => {
     if (Platform.OS === "web") {
         if (
             typeof window !== "undefined" &&
             window.location?.origin
         ) {
-            return `${window.location.origin}${Routes.AUTH_CALLBACK}`;
+            return `${window.location.origin}${path}`;
         }
 
         return undefined;
     }
 
-    return `adlawatt:/${Routes.AUTH_CALLBACK}`;
+    return `adlawatt://${path.replace(/^\/+/, "")}`;
 };
 
 export async function resendConfirmation(email: string) {
@@ -149,8 +153,13 @@ export async function resendConfirmation(email: string) {
     const { error } = await supabase.auth.resend({
         type: "signup",
         email: cleanEmail,
-        // No emailRedirectTo: let Supabase confirm on its hosted
-        // page so the link works from any device.
+        options: {
+            // Return to the app, not the Supabase Site URL
+            // (localhost by default) — see getAuthRedirect.
+            emailRedirectTo: getAuthRedirect(
+                Routes.AUTH_CALLBACK,
+            ),
+        },
     });
 
     if (error) {
@@ -194,25 +203,9 @@ const recoveryTimestamps = new Map<string, number>();
 
 // Recovery links land directly on the reset screen so the
 // email-confirmation step stays embedded there. Must be
-// allowlisted in Supabase URL Configuration:
-//   web:    <origin>/auth/forgot-password
-//   native: adlawatt:///auth/forgot-password
-export const getRecoveryRedirectTo = ():
-    | string
-    | undefined => {
-    if (Platform.OS === "web") {
-        if (
-            typeof window !== "undefined" &&
-            window.location?.origin
-        ) {
-            return `${window.location.origin}${Routes.FORGOT_PASSWORD}`;
-        }
-
-        return undefined;
-    }
-
-    return `adlawatt:/${Routes.FORGOT_PASSWORD}`;
-};
+// allowlisted in Supabase Auth > URL Configuration >
+// Redirect URLs (adlawatt://auth/forgot-password and the web
+// origin). The target itself comes from getAuthRedirect.
 
 export async function requestPasswordReset(email: string) {
     const cleanEmail = email.trim().toLowerCase();
@@ -246,7 +239,11 @@ export async function requestPasswordReset(email: string) {
 
     const { error } = await supabase.auth.resetPasswordForEmail(
         cleanEmail,
-        { redirectTo: getRecoveryRedirectTo() },
+        {
+            redirectTo: getAuthRedirect(
+                Routes.FORGOT_PASSWORD,
+            ),
+        },
     );
 
     if (error) {
@@ -435,8 +432,11 @@ export async function registerUser(
                         username: cleanUsername,
                         terms_agreed: termsAgreed,
                     },
-                    // No emailRedirectTo: Supabase-hosted confirmation
-                    // works from any device (no localhost dependency).
+                    // Return to the app, not the Supabase Site URL
+                    // (localhost by default) — see getAuthRedirect.
+                    emailRedirectTo: getAuthRedirect(
+                        Routes.AUTH_CALLBACK,
+                    ),
                 },
             });
 
@@ -743,8 +743,8 @@ export async function loginUser(
 // Google enabled with the Google Cloud Web-client ID + secret,
 // and the redirect allowlisted:
 //   web:    <origin>/auth/callback
-//   native: adlawatt:///auth/callback (matches
-//           getEmailRedirectTo + Routes.AUTH_CALLBACK)
+//   native: adlawatt://auth/callback (matches
+//           getAuthRedirect + Routes.AUTH_CALLBACK)
 //
 // Profile rows for OAuth users are auto-created by the
 // public.handle_new_auth_user_profile() trigger (username
@@ -789,7 +789,9 @@ const extractOAuthError = (url: string): string => {
 
 export async function signInWithGoogle() {
     try {
-        const redirectTo = getEmailRedirectTo();
+        const redirectTo = getAuthRedirect(
+            Routes.AUTH_CALLBACK,
+        );
 
         const { data, error } =
             await supabase.auth.signInWithOAuth({
