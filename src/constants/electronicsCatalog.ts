@@ -192,7 +192,7 @@ export function resolveRow(
 export const CATALOG_IMAGES: Record<string, number> = {
   "catalog:general:led-light-bulb": require("@/assets/images/appliances/bulb.png"),
   "catalog:general:stand-fan": require("@/assets/images/appliances/stand-fan.png"),
-  "catalog:general:exhaust-fan": require("@/assets/images/appliances/exhaust-fan.png"),
+  "catalog:general:exhaust-fan": require("@/assets/images/appliances/green-exhaust-fan.png"),
   "catalog:general:wifi-router": require("@/assets/images/appliances/router.png"),
   "catalog:general:smartphone-fast-charger": require("@/assets/images/appliances/green-charger.png"),
   "catalog:general:rechargeable-emergency-light": require("@/assets/images/appliances/green-emergency-light.png"),
