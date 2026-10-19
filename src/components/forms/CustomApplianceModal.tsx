@@ -20,6 +20,9 @@ import {
   type AppColors,
 } from "@/hooks/useAppColors";
 import {
+  BATTERY_MAX_APPLIANCE_W,
+} from "@/constants/battery";
+import {
   Radius,
 } from "@/constants/theme";
 import { Control, Field } from "@/constants/sizing";
@@ -69,7 +72,8 @@ const defaultPhoto = require(
 // string: split for display, rejoin on edit. The parent's
 // validation, prefill, and resets work unchanged.
 // Strict per-side rule: digits, one dot, max 2 decimals,
-// max 3 integer digits, integer value at most 720. Empty
+// max 3 integer digits, integer value at most
+// BATTERY_MAX_APPLIANCE_W. Empty
 // is always fine (deletion never blocked). Rejected
 // keystrokes keep the previous text with no error flash.
 const splitWatts = (watts: string): [string, string] => {
@@ -97,7 +101,7 @@ const sanitizeWattSide = (
 
   const intPart = clean.split(".")[0] ?? "";
 
-  if (intPart !== "" && Number(intPart) > 720) {
+  if (intPart !== "" && Number(intPart) > BATTERY_MAX_APPLIANCE_W) {
     return null;
   }
 

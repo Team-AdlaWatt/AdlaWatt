@@ -22,6 +22,10 @@ import Svg, {
 } from "react-native-svg";
 
 import AppText from "@/components/ui/AppText";
+import {
+  BATTERY_CAPACITY_WH,
+  BATTERY_RESERVE_WH,
+} from "@/constants/battery";
 import { Colors } from "@/constants/colors";
 
 import {
@@ -152,9 +156,9 @@ const LOW_BATTERY_THRESHOLD = 20;
 
 const WATT_HOURS_MIN = 0;
 
-const WATT_HOURS_MAX = 720;
+const WATT_HOURS_MAX = BATTERY_CAPACITY_WH;
 
-const LOW_WATT_HOURS_THRESHOLD = 144;
+const LOW_WATT_HOURS_THRESHOLD = BATTERY_RESERVE_WH;
 
 const LOW_VOLTAGE_THRESHOLD = 10.65;
 
