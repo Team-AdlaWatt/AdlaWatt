@@ -59,7 +59,6 @@ export const GIVEN_CATALOG: CatalogItem[] = [
   // Work/Study Area
   { key: "catalog:work:laptop-charger", name: "Laptop Charger", wattMin: 45, wattMax: 65, display: catalogDisplay(45, 65), uiArea: "Work/Study Area" },
   { key: "catalog:work:led-study-desk-lamp", name: "LED Study Desk Lamp", wattMin: 5, wattMax: 12, display: catalogDisplay(5, 12), uiArea: "Work/Study Area" },
-  { key: "catalog:work:mini-usb-desk-fan", name: "Mini USB Desk Fan", wattMin: 3, wattMax: 10, display: catalogDisplay(3, 10), uiArea: "Work/Study Area" },
   { key: "catalog:work:basic-inkjet-printer", name: "Basic Inkjet Printer", wattMin: 10, wattMax: 30, display: catalogDisplay(10, 30), uiArea: "Work/Study Area" },
   { key: "catalog:work:power-bank-charger", name: "Power Bank Charger", wattMin: 10, wattMax: 22, display: catalogDisplay(10, 22), uiArea: "Work/Study Area" },
   { key: "catalog:work:wireless-earbuds-charging-case", name: "Wireless Earbuds Charging Case", wattMin: 2, wattMax: 5, display: catalogDisplay(2, 5), uiArea: "Work/Study Area" },
@@ -216,7 +215,6 @@ export const CATALOG_IMAGES: Record<string, number> = {
   "catalog:kitchen:tabletop-cold-water-dispenser": require("@/assets/images/appliances/water-dispenser.png"),
   "catalog:work:laptop-charger": require("@/assets/images/appliances/laptop-charger.png"),
   "catalog:work:led-study-desk-lamp": require("@/assets/images/appliances/desk-lamp.png"),
-  "catalog:work:mini-usb-desk-fan": require("@/assets/images/appliances/mini-fan.png"),
   "catalog:work:basic-inkjet-printer": require("@/assets/images/appliances/printer.png"),
   "catalog:work:power-bank-charger": require("@/assets/images/appliances/power-bank-charger.png"),
   "catalog:work:wireless-earbuds-charging-case": require("@/assets/images/appliances/earbuds-charging-case.png"),
