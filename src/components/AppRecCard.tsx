@@ -24,7 +24,7 @@ import AppText from "@/components/ui/AppText";
 import { Colors } from "@/constants/colors";
 import {
   CATALOG_IMAGES,
-} from "@/constants/applianceCatalog";
+} from "@/constants/electronicsCatalog";
 import {
   useAppColors,
   type AppColors,

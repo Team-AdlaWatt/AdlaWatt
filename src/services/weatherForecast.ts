@@ -8,6 +8,8 @@ import {
   formatCoordFallback,
   formatNetworkError,
   formatTimeoutError,
+  getFeelsMode,
+  getFeelsOffsetC,
   resolveFeelsLike,
   roundTemperature,
   type FeelsLikeSource,
@@ -54,8 +56,9 @@ const REQUEST_TIMEOUT_MS = weatherJson.api.timeoutMs;
 export interface Coordinates {
   lat: number;
   lon: number;
-  // True when the household fallback cell stands in for a
-  // denied GPS fix (rendered as a default-location label).
+  // True when the fixed fallback point stands in for a denied
+  // or unavailable GPS fix (rendered as a default-location
+  // label).
   isFallback?: boolean;
 }
 
@@ -142,15 +145,13 @@ function validateApiKey(): void {
 }
 
 // ============================================================
-// LOCATION (AREA, NOT EXACT POINT)
+// LOCATION (LIVE GPS, EXACT POINT)
 //
-// Location answers "which area is the user in" — the
-// weather fetched is the area's, not the doorstep's, so a
-// user anywhere in Damilag gets Damilag data. Denial
-// resolves to the fixed household fallback cell (Damilag)
-// so the Today card always paints useful sky instead of an
-// error. Coordinates round to 2 decimals (~1.1 km cells):
-// every fix inside one area hits the same OWM cell.
+// Each fetch uses the device's current GPS fix, so a user
+// gets their own coordinates — no curated city list. A denied
+// or unavailable fix resolves to a fixed fallback point so
+// the Today card always paints useful sky instead of an
+// error. Coordinates round to coordDecimals (4 ≈ 11 m).
 // ============================================================
 
 function roundCoord(value: number): number {
@@ -164,10 +165,11 @@ function fallbackCoordinates(): Coordinates {
   return {
     lat: weatherJson.location.fallbackLat,
     lon: weatherJson.location.fallbackLon,
+    isFallback: true,
   };
 }
 
-async function getCoordinates(options?: {
+async function getCoordinates(_options?: {
   fresh?: boolean;
 }): Promise<Coordinates> {
   const { status } =
@@ -175,89 +177,50 @@ async function getCoordinates(options?: {
 
   if (status !== "granted") {
     console.warn(
-      "Location denied — using Damilag fallback.",
+      "Location denied — using the fallback point.",
     );
 
-    return {
-      ...fallbackCoordinates(),
-      isFallback: true,
-    };
+    return fallbackCoordinates();
   }
 
   const servicesEnabled =
     await Location.hasServicesEnabledAsync();
 
+  // No GPS services: fall back to the fixed point rather
+  // than failing the whole weather card.
   if (!servicesEnabled) {
-    throw new WeatherError(
-      "location_unavailable",
-      weatherJson.messages.errors.services_disabled
+    console.warn(
+      "Location services disabled — using the fallback point.",
     );
+
+    return fallbackCoordinates();
   }
 
-  // Fast path: indoor GPS can be slow, so reuse a recent
-  // fix before paying for a fresh one. Manual refresh
-  // passes fresh:true to skip this and force a new fix.
-  if (!options?.fresh) {
-    try {
-      const lastKnown =
-        await Location.getLastKnownPositionAsync({
-          maxAge:
-            weatherJson.location.lastKnownMaxAgeMs,
-        });
-
-      const known = lastKnown?.coords;
-
-      if (
-        known &&
-        Number.isFinite(known.latitude) &&
-        Number.isFinite(known.longitude)
-      ) {
-        return {
-          lat: roundCoord(known.latitude),
-          lon: roundCoord(known.longitude),
-        };
-      }
-    } catch {
-      // Fall through to a fresh fix below.
-    }
-  }
-
-  // Balanced accuracy: fast to resolve and battery-friendly.
+  // Always request a fresh fix so the reading tracks the
+  // user's live location (no last-known reuse).
   try {
     const location =
       await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
       });
 
-    const {
-      latitude,
-      longitude,
-    } = location.coords;
+    const { latitude, longitude } =
+      location.coords;
 
     if (
-      !Number.isFinite(latitude) ||
-      !Number.isFinite(longitude)
+      Number.isFinite(latitude) &&
+      Number.isFinite(longitude)
     ) {
-      throw new WeatherError(
-        "location_unavailable",
-        weatherJson.messages.errors.invalid_coordinates
-      );
+      return {
+        lat: roundCoord(latitude),
+        lon: roundCoord(longitude),
+      };
     }
-
-    return {
-      lat: roundCoord(latitude),
-      lon: roundCoord(longitude),
-    };
-  } catch (error) {
-    if (error instanceof WeatherError) {
-      throw error;
-    }
-
-    throw new WeatherError(
-      "location_unavailable",
-      weatherJson.messages.errors.location_unavailable
-    );
+  } catch {
+    // Fall back to the fixed point below.
   }
+
+  return fallbackCoordinates();
 }
 
 // ============================================================
@@ -432,16 +395,39 @@ function toRainMm(
 // both temp and feels_like at parse time so the card and
 // cache always see corrected values. Tune in JSON, no TS
 // change needed.
-function getTempOffsetC(): number {
-  const raw = (
+//
+// Day/night offsets (tempOffsetDayC / tempOffsetNightC) apply
+// to the Today card only; when both are 0 the base
+// tempOffsetC is used (the value the forecast leg keeps using).
+function getTempOffsetC(isDay?: boolean): number {
+  const calibration = (
     weatherJson as unknown as {
-      calibration?: { tempOffsetC?: unknown };
+      calibration?: {
+        tempOffsetC?: unknown;
+        tempOffsetDayC?: unknown;
+        tempOffsetNightC?: unknown;
+      };
     }
-  ).calibration?.tempOffsetC;
+  ).calibration;
 
-  return typeof raw === "number" && Number.isFinite(raw)
-    ? raw
-    : 0;
+  const pick = (value: unknown): number =>
+    typeof value === "number" && Number.isFinite(value)
+      ? value
+      : 0;
+
+  const base = pick(calibration?.tempOffsetC);
+  const day = pick(calibration?.tempOffsetDayC);
+  const night = pick(calibration?.tempOffsetNightC);
+
+  if (day === 0 && night === 0) {
+    return base;
+  }
+
+  if (typeof isDay !== "boolean") {
+    return base;
+  }
+
+  return isDay ? day : night;
 }
 
 function parseWeatherResponse(
@@ -582,21 +568,33 @@ function parseWeatherResponse(
       ? Math.round(rawHumidity)
       : undefined;
 
-  const offsetC = getTempOffsetC();
+  const isDay = !iconCode.endsWith("n");
+
+  const offsetC = getTempOffsetC(isDay);
 
   const correctedTemp = temperature + offsetC;
 
+  // feelsMode picks the source: "heat-index" (NOAA, from temp
+  // + humidity) or "openweather" (OWM's own feels_like).
+  const feelsMode = getFeelsMode();
+
   const resolvedFeels = resolveFeelsLike(
     correctedTemp,
-    humidity ?? null,
+    feelsMode === "openweather"
+      ? null
+      : (humidity ?? null),
     rawFeelsLike !== null
       ? rawFeelsLike + offsetC
       : null,
   );
 
+  const feelsOffsetC = getFeelsOffsetC();
+
   const feelsLike =
     resolvedFeels !== null
-      ? roundTemperature(resolvedFeels.value)
+      ? roundTemperature(
+          resolvedFeels.value + feelsOffsetC,
+        )
       : undefined;
 
   return {
@@ -840,7 +838,7 @@ function debugTodayReading(
     lat: coordinates.lat,
     lon: coordinates.lon,
     gps: coordinates.isFallback
-      ? "fallback-Damilag"
+      ? "default-area"
       : "gps",
     name:
       typeof payload.name === "string"

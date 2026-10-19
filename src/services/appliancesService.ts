@@ -6,7 +6,7 @@ import {
   levelFromWatts,
   type ApplianceRow,
   type ResolvedAppliance,
-} from "@/constants/applianceCatalog";
+} from "@/constants/electronicsCatalog";
 
 // v5 schema select: user picks only. Catalog wattage/area
 // come from GIVEN_CATALOG in code, never from these columns.

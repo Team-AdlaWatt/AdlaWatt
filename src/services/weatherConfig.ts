@@ -114,6 +114,8 @@ function assertWeatherConfig(): void {
       label?: unknown;
       day?: unknown;
       night?: unknown;
+      icon?: unknown;
+      iconNight?: unknown;
       severity?: unknown;
     };
 
@@ -151,6 +153,23 @@ function assertWeatherConfig(): void {
       throw new Error(
         `weather.json: unknown classification severity "${String(entry.severity)}".`
       );
+    }
+
+    for (const iconKey of ["icon", "iconNight"] as const) {
+      const icon = entry[iconKey];
+
+      if (icon === undefined) {
+        continue;
+      }
+
+      if (
+        typeof icon !== "string" ||
+        !(icon in Ionicons.glyphMap)
+      ) {
+        throw new Error(
+          `weather.json: unknown classification ${iconKey} "${String(icon)}".`
+        );
+      }
     }
   }
 
@@ -585,6 +604,8 @@ interface IdRange {
   label?: string;
   day?: string;
   night?: string;
+  icon?: string;
+  iconNight?: string;
   severity: WeatherSeverity;
 }
 
@@ -718,6 +739,28 @@ function iconForCode(
   return fallback.icon as keyof typeof Ionicons.glyphMap;
 }
 
+// The Today card's icon is derived from the same classification
+// range as its label, so the two can never disagree. Day/night
+// variants come from the range (`icon` / `iconNight`); a range
+// without an icon falls back to the OWM icon-code lookup.
+function iconForRange(
+  range: IdRange,
+  isDay: boolean,
+): keyof typeof Ionicons.glyphMap | null {
+  const candidate = isDay
+    ? range.icon
+    : (range.iconNight ?? range.icon);
+
+  if (
+    typeof candidate === "string" &&
+    candidate in Ionicons.glyphMap
+  ) {
+    return candidate as keyof typeof Ionicons.glyphMap;
+  }
+
+  return null;
+}
+
 export interface ClassifiedToday {
   label: string;
   subtext?: string;
@@ -732,7 +775,7 @@ export function classifyTodayById(args: {
   rainMm: number | null;
 }): ClassifiedToday {
   const isDay = !args.iconCode.trim().endsWith("n");
-  const icon = iconForCode(args.iconCode);
+  const codeIcon = iconForCode(args.iconCode);
   const confirm = classificationConfirmRange();
 
   const range = findIdRange(args.id);
@@ -747,11 +790,13 @@ export function classifyTodayById(args: {
         "estimateSubtext",
         "Estimate",
       ),
-      icon,
+      icon: codeIcon,
       severity: "cloudy",
       isDay,
     };
   }
+
+  const icon = iconForRange(range, isDay) ?? codeIcon;
 
   const label =
     typeof range.label === "string"
@@ -977,4 +1022,39 @@ export function resolveFeelsLike(
   }
 
   return null;
+}
+
+// ============================================================
+// CALIBRATION
+//
+// Config-driven bias correction (weather.json calibration).
+// `feelsMode` picks the feels-like source; `feelsOffsetC` is an
+// optional nudge applied after the value is resolved. Defaults
+// keep behavior unchanged (heat index, no offset).
+// ============================================================
+
+export type FeelsMode = "heat-index" | "openweather";
+
+export function getFeelsMode(): FeelsMode {
+  const raw = (
+    weatherJson as unknown as {
+      calibration?: { feelsMode?: unknown };
+    }
+  ).calibration?.feelsMode;
+
+  return raw === "openweather"
+    ? "openweather"
+    : "heat-index";
+}
+
+export function getFeelsOffsetC(): number {
+  const raw = (
+    weatherJson as unknown as {
+      calibration?: { feelsOffsetC?: unknown };
+    }
+  ).calibration?.feelsOffsetC;
+
+  return typeof raw === "number" && Number.isFinite(raw)
+    ? raw
+    : 0;
 }

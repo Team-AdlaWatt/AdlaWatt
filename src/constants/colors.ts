@@ -18,6 +18,7 @@
 
 // ——— classification data colors (frozen, both themes) ———
 const areaColors = {
+  general: "#00A86B",
   living: "#00A86B",
   bedroom: "#9B59B6",
   kitchen: "#FFBF00",

@@ -29,7 +29,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import { Colors } from "@/constants/colors";
 import {
   CATALOG_IMAGES,
-} from "@/constants/applianceCatalog";
+} from "@/constants/electronicsCatalog";
 import {
   useAppColors,
   type AppColors,
@@ -59,12 +59,12 @@ type PowerLevel =
 
 type Area =
   | "All Areas"
+  | "General"
   | "Living Area"
   | "Bedroom"
   | "Kitchen Area"
   | "Work/Study Area"
   | "Bathroom Area"
-  | "Porch"
   | "Custom";
 
 type SelectedAppliance = {
@@ -171,12 +171,12 @@ const areaMap: Record<
   Exclude<Area, "All Areas">,
   string
 > = {
+  General: "General",
   "Living Area": "Living Area",
   Bedroom: "Bedroom",
   "Kitchen Area": "Kitchen Area",
   "Work/Study Area": "Work/Study Area",
   "Bathroom Area": "Bathroom Area",
-  Porch: "Porch",
   Custom: "Custom Appliances",
 };
 
@@ -822,12 +822,12 @@ export default function AppliancesScreen() {
         {(
           [
             "All Areas",
+            "General",
             "Living Area",
             "Bedroom",
             "Kitchen Area",
             "Work/Study Area",
             "Bathroom Area",
-            "Porch",
             "Custom",
           ] as Area[]
         ).map((option) => (

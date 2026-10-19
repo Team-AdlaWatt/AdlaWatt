@@ -24,6 +24,23 @@ jest.mock("expo-location", () => ({
   Accuracy: { Balanced: 3 },
 }));
 
+// Parsing tests assert raw + offset values, so keep the
+// production calibration out of them. Zeroing it here keeps
+// these assertions stable when weather.json is re-tuned.
+jest.mock("@/data/weather.json", () => {
+  const actual = jest.requireActual("@/data/weather.json");
+  return {
+    ...actual,
+    calibration: {
+      tempOffsetC: 0,
+      tempOffsetDayC: 0,
+      tempOffsetNightC: 0,
+      feelsMode: "heat-index",
+      feelsOffsetC: 0,
+    },
+  };
+});
+
 const mockLocation = Location as unknown as {
   requestForegroundPermissionsAsync: jest.Mock;
   hasServicesEnabledAsync: jest.Mock;
@@ -117,7 +134,7 @@ describe("resolveCondition main group", () => {
 });
 
 // ============================================================
-// COORDINATES: FAST PATH, ROUNDING, FALLBACK
+// COORDINATES: LIVE FIX, ROUNDING, FALLBACK
 // ============================================================
 
 describe("getWeather coordinates", () => {
@@ -131,10 +148,10 @@ describe("getWeather coordinates", () => {
     );
   };
 
-  test("reuses a recent fix, rounded to 2 decimals (area cell)", async () => {
+  test("uses a fresh fix, rounded to coordDecimals", async () => {
     grantLocation();
 
-    mockLocation.getLastKnownPositionAsync.mockResolvedValue(
+    mockLocation.getCurrentPositionAsync.mockResolvedValue(
       {
         coords: {
           latitude: 8.36789,
@@ -151,69 +168,31 @@ describe("getWeather coordinates", () => {
     await getWeather();
 
     expect(
-      mockLocation.getCurrentPositionAsync,
+      mockLocation.getLastKnownPositionAsync,
     ).not.toHaveBeenCalled();
+
+    expect(
+      mockLocation.getCurrentPositionAsync,
+    ).toHaveBeenCalled();
 
     const url = String(
       mockFetch.mock.calls[0]?.[0] ?? "",
     );
 
-    expect(url).toContain("lat=8.37");
-    expect(url).toContain("lon=124.87");
+    expect(url).toContain("lat=8.3679");
+    expect(url).toContain("lon=124.8732");
   });
 
-  test("nearby fixes share one area cell", async () => {
+  test("never reuses a last-known fix", async () => {
     grantLocation();
 
-    // Two doorsteps ~500m apart in Damilag round to the
-    // same 2-decimal cell: area data, not exact-point data.
+    // A last-known fix exists but must be ignored: the app
+    // always takes a live fix for the current location.
     mockLocation.getLastKnownPositionAsync.mockResolvedValue(
       {
         coords: {
-          latitude: 8.3644,
-          longitude: 124.8519,
-        },
-      },
-    );
-
-    mockLocation.getCurrentPositionAsync.mockResolvedValue(
-      {
-        coords: {
-          latitude: 8.3601,
-          longitude: 124.8501,
-        },
-      },
-    );
-
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => owmOk(),
-    });
-
-    await getWeather();
-    await getWeather({ fresh: true });
-
-    const firstUrl = String(
-      mockFetch.mock.calls[0]?.[0] ?? "",
-    );
-    const secondUrl = String(
-      mockFetch.mock.calls[1]?.[0] ?? "",
-    );
-
-    for (const url of [firstUrl, secondUrl]) {
-      expect(url).toContain("lat=8.36");
-      expect(url).toContain("lon=124.85");
-    }
-  });
-
-  test("fresh option skips the last-known reuse", async () => {
-    grantLocation();
-
-    mockLocation.getLastKnownPositionAsync.mockResolvedValue(
-      {
-        coords: {
-          latitude: 8.36789,
-          longitude: 124.87321,
+          latitude: 9.9,
+          longitude: 126.6,
         },
       },
     );
@@ -232,15 +211,11 @@ describe("getWeather coordinates", () => {
       json: async () => owmOk(),
     });
 
-    await getWeather({ fresh: true });
+    await getWeather();
 
     expect(
       mockLocation.getLastKnownPositionAsync,
     ).not.toHaveBeenCalled();
-
-    expect(
-      mockLocation.getCurrentPositionAsync,
-    ).toHaveBeenCalled();
 
     const url = String(
       mockFetch.mock.calls[0]?.[0] ?? "",
@@ -280,12 +255,8 @@ describe("getWeather coordinates", () => {
     expect(url).toContain("lon=125.5");
   });
 
-  test("falls back to a fresh fix without a recent one", async () => {
+  test("falls back to a fresh fix when there is no recent one", async () => {
     grantLocation();
-
-    mockLocation.getLastKnownPositionAsync.mockResolvedValue(
-      null,
-    );
 
     mockLocation.getCurrentPositionAsync.mockResolvedValue(
       {
@@ -311,7 +282,7 @@ describe("getWeather coordinates", () => {
     expect(data.city).toBe("Malaybalay");
   });
 
-  test("denial resolves to the Damilag fallback", async () => {
+  test("denial resolves to the fallback point", async () => {
     mockLocation.requestForegroundPermissionsAsync.mockResolvedValue(
       { status: "denied" },
     );
@@ -331,17 +302,13 @@ describe("getWeather coordinates", () => {
       mockFetch.mock.calls[0]?.[0] ?? "",
     );
 
-    expect(url).toContain("lat=8.3644");
-    expect(url).toContain("lon=124.8519");
+    expect(url).toContain("lat=8.3697");
+    expect(url).toContain("lon=124.8644");
     expect(data.isFallback).toBe(true);
   });
 
   test("granted fix carries no fallback flag", async () => {
     grantLocation();
-
-    mockLocation.getLastKnownPositionAsync.mockResolvedValue(
-      null,
-    );
 
     mockLocation.getCurrentPositionAsync.mockResolvedValue(
       {
@@ -852,14 +819,16 @@ describe("cache coords", () => {
 
     await getWeather();
 
-    grantFresh(9.0, 125.5);
-
     mockFetch.mockRejectedValue(
       new Error("offline"),
     );
 
+    // Explicit far coordinates bypass area snapping, so the
+    // cached city-center reading (>~5km away) is ignored.
     await expect(
-      getWeather(),
+      getWeather({
+        coordinates: { lat: 9.0, lon: 125.5 },
+      }),
     ).rejects.toThrow("offline");
   });
 
