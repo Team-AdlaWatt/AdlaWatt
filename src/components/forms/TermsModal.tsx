@@ -109,6 +109,8 @@ export default function TermsModal({
               style={styles.updated}
             >
               Last Updated: [October 20, 2026]
+              {"\n"}
+              Previous Update: [August 8, 2026]
             </AppText>
 
             <Section
