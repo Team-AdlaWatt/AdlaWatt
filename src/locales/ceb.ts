@@ -376,11 +376,11 @@ const ceb = {
       roleDocumenter: "Documenter",
       roleDataAnalyst: "Data Analyst",
       dev1Bio:
-        "Nag-develop ug nag-maintain sa software ug system firmware, gihiusa ang real-time sensor data, lakip ang battery levels, solar input, ug temperature, sa mobile app ug nag-program sa recommendation algorithms.",
+        "Naghimo ug nag-maintain sa AdlaWatt mobile application, gihiusa ang live nga battery, solar, ug temperature data gikan sa mga sensor sa system ngadto sa klaro ug real-time nga kasinatian, ug nag-develop sa recommendation logic nga nagsulti sa mga user kung unsang appliance ang luwas nga mapadagan sa ilang kasamtangang kuryente.",
       dev2Bio:
-        "Nagsulat ug user manuals, system setup guides, technical documentation, ug safety instructions para sa pagpadagan sa AdlaWatt hardware ug mobile application.",
+        "Nagdokumento sa tibuok AdlaWatt system, gikan sa hardware setup ug safety guidance hangtod sa in-app user manual, aron magamit, masabtan, ug mapadayon sa mga user ug sunod nga researchers ang proyekto nga may kasiguruhan.",
       dev3Bio:
-        "Nag-analisar sa mosulod nga sensor telemetry, lakip ang solar generation patterns, konsumo sa kuryente sa mga appliance, ug performance sa baterya, aron ma-optimize ang efficiency sa system ug mapalambo ang smart appliance recommendations.",
+        "Nagtuon sa mosulod nga sensor data sa system, gikan sa solar generation ug appliance power draw hangtod sa performance sa baterya, ug gihimong insights kini aron mapalambo ang efficiency sa system ug mapabiling tukma ang appliance recommendations.",
       contactDetails: "Contact Details",
     },
     manual: {

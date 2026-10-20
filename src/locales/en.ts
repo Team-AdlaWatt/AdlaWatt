@@ -358,11 +358,11 @@ const en = {
       roleDocumenter: "Documenter",
       roleDataAnalyst: "Data Analyst",
       dev1Bio:
-        "Develops and maintains software and system firmware, integrating real-time sensor data, including battery levels, solar input, and temperature, into the mobile app and programming recommendation algorithms.",
+        "Builds and maintains the AdlaWatt mobile application, connecting live battery, solar, and temperature data from the system's sensors into a clear, real-time experience, and developing the recommendation logic that tells users which appliances their available power can safely run.",
       dev2Bio:
-        "Authors user manuals, system setup guides, technical documentation, and safety instructions for operating the AdlaWatt hardware and mobile application.",
+        "Documents the entire AdlaWatt system, from hardware setup and safety guidance to the in-app user manual, so users and future researchers can operate, understand, and build on the project with confidence.",
       dev3Bio:
-        "Analyzes incoming sensor telemetry, including solar generation patterns, appliance power consumption, and battery performance, to optimize system efficiency and refine smart appliance recommendations.",
+        "Studies the system's incoming sensor data, from solar generation and appliance power draw to battery performance, turning those readings into insights that improve system efficiency and keep the appliance recommendations accurate.",
       contactDetails: "Contact Details",
     },
     manual: {
