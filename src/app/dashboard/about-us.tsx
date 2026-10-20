@@ -92,7 +92,6 @@ export default function AboutUsScreen() {
           image={require("@/assets/images/developers/d1.jpg")}
           name="Francis Adrian Idul"
           role={t("dashboard.about.roleProgrammer")}
-          roleColor= {colors.primary}
           description={t("dashboard.about.dev1Bio")}
         />
 
@@ -101,7 +100,6 @@ export default function AboutUsScreen() {
           image={require("@/assets/images/developers/d2.jpg")}
           name="Rhics T. Geonzon"
           role={t("dashboard.about.roleDocumenter")}
-          roleColor={colors.areas.study}
           description={t("dashboard.about.dev2Bio")}
         />
 
@@ -110,7 +108,6 @@ export default function AboutUsScreen() {
           image={require("@/assets/images/developers/d3.jpg")}
           name="Troy M. Rojo"
           role={t("dashboard.about.roleDataAnalyst")}
-          roleColor={colors.secondary}
           description={t("dashboard.about.dev3Bio")}
         />
 
@@ -180,7 +177,6 @@ interface DeveloperProfileProps {
   image: any;
   name: string;
   role: string;
-  roleColor: string;
   description: string;
 }
 
@@ -188,7 +184,6 @@ function DeveloperProfile({
   image,
   name,
   role,
-  roleColor,
   description,
 }: DeveloperProfileProps) {
   const colors = useAppColors();
@@ -214,7 +209,7 @@ function DeveloperProfile({
           style={[
             styles.roleBadge,
             {
-              backgroundColor: roleColor,
+              backgroundColor: colors.primary,
             },
           ]}
         >
@@ -223,10 +218,7 @@ function DeveloperProfile({
             style={[
               styles.roleText,
               {
-                color:
-                  roleColor === colors.primary
-                    ? colors.onPrimary
-                    : colors.text,
+                color: colors.onPrimary,
               },
             ]}
           >
@@ -460,7 +452,7 @@ const getStyles = (colors: AppColors) =>
     borderWidth:
       aboutDimensions.glassBorderWidth,
 
-    borderColor: colors.secondary,
+    borderColor: colors.cardBorder,
 
     borderRadius:
       aboutDimensions.glassRadius,
