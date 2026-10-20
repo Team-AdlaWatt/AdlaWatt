@@ -45,7 +45,6 @@ import {
   formatForecastSummary,
   isStaleReading,
   resolveTodayDisplay,
-  todayEstimateSubtext,
   todayUnavailableLabel,
 } from "@/services/weatherConfig";
 
@@ -104,13 +103,9 @@ interface CardData {
   value?: string;
   // Secondary honest line ("Feels like 30°C") shown
   // below the actual temp, with live humidity when the
-  // reading carries it. Separate from subtext so honesty
-  // notes are never overwritten.
+  // reading carries it.
   feelsLike?: string;
   badge?: string;
-  // Honesty note under the badge
-  // ("Not confirmed nearby" / "Estimate").
-  subtext?: string;
   badgeStyle?: object;
   badgeTextStyle?: object;
 }
@@ -1937,7 +1932,7 @@ export default function ChartCard({
                 ? "button"
                 : "none"
             }
-            accessibilityLabel={`Today, ${todayLabel.weekday} ${todayLabel.date}, ${todayBusy ? "updating weather" : `${weatherData.value}${weatherData.feelsLike ? `, ${weatherData.feelsLike}` : ""}, ${weatherData.badge ?? ""}${weatherData.subtext ? `, ${weatherData.subtext}` : ""}`}${canTapRefresh ? ", tap to refresh" : ""}`}
+            accessibilityLabel={`Today, ${todayLabel.weekday} ${todayLabel.date}, ${todayBusy ? "updating weather" : `${weatherData.value}${weatherData.feelsLike ? `, ${weatherData.feelsLike}` : ""}, ${weatherData.badge ?? ""}`}${canTapRefresh ? ", tap to refresh" : ""}`}
             accessibilityState={
               canTapRefresh
                 ? {
@@ -2035,18 +2030,6 @@ export default function ChartCard({
               >
                 {weatherData.badge ?? ""}
               </AppText>
-
-              {weatherData.subtext ? (
-                <AppText
-                  variant="caption"
-                  numberOfLines={1}
-                  style={
-                    styles.weatherTodaySubtext
-                  }
-                >
-                  {weatherData.subtext}
-                </AppText>
-              ) : null}
 
             </View>
 
@@ -2809,7 +2792,6 @@ function getCardData(
         "—";
 
       const unavailable = todayUnavailableLabel();
-      const estimate = todayEstimateSubtext();
 
       // Legacy (no classifier fields) or stale (>30min):
       // temp + Updated-age still render; the condition
@@ -2829,8 +2811,6 @@ function getCardData(
             : {}),
 
           badge: unavailable,
-
-          subtext: weather ? estimate : undefined,
 
           badgeStyle:
             themedStyles.overcastWeatherBadge,
@@ -2888,10 +2868,6 @@ function getCardData(
           : {}),
 
         badge: classified.label,
-
-        ...(classified.subtext
-          ? { subtext: classified.subtext }
-          : {}),
 
         badgeStyle,
 
