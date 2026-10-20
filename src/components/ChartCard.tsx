@@ -44,8 +44,8 @@ import {
   formatForecastDay,
   formatForecastSummary,
   isStaleReading,
-  resolveTodayDisplay,
-  todayUnavailableLabel,
+  resolveCondition,
+  type WeatherSeverity,
 } from "@/services/weatherConfig";
 
 // ============================================================
@@ -2791,73 +2791,20 @@ function getCardData(
         weather?.city ??
         "—";
 
-      const unavailable = todayUnavailableLabel();
+      // Condition comes from OpenWeather's own description —
+      // the app never invents a "possible" label here.
+      const description =
+        weather?.description ??
+        "Clear sky";
 
-      // Legacy (no classifier fields) or stale (>30min):
-      // temp + Updated-age still render; the condition
-      // stays neutral instead of a possibly-false label.
-      const display = resolveTodayDisplay(weather);
-
-      if (display.kind === "neutral") {
-        return {
-          icon: "cloud-outline",
-
-          label: cityLabel,
-
-          value: tempValue,
-
-          ...(actualValue
-            ? { feelsLike: actualValue }
-            : {}),
-
-          badge: unavailable,
-
-          badgeStyle:
-            themedStyles.overcastWeatherBadge,
-
-          badgeTextStyle:
-            themedStyles.overcastWeatherBadgeText,
-        };
-      }
-
-      const classified = display.classified;
-
-      const badgeStyle =
-        classified.severity === "fog"
-          ? themedStyles.fogWeatherBadge
-          : classified.severity === "severe"
-            ? themedStyles.redWeatherBadge
-            : classified.severity === "moderate"
-              ? themedStyles.orangeWeatherBadge
-              : classified.severity === "light"
-                ? themedStyles.yellowWeatherBadge
-                : classified.severity === "clear"
-                  ? themedStyles.clearWeatherBadge
-                  : /sunny|mostly clear|partly cloudy|partly sunny|mostly sunny/i.test(
-                      classified.label,
-                    )
-                    ? themedStyles.partlyCloudyWeatherBadge
-                    : themedStyles.overcastWeatherBadge;
-
-      const badgeTextStyle =
-        classified.severity === "fog"
-          ? themedStyles.fogWeatherBadgeText
-          : classified.severity === "severe"
-            ? themedStyles.redWeatherBadgeText
-            : classified.severity === "moderate"
-              ? themedStyles.orangeWeatherBadgeText
-              : classified.severity === "light"
-                ? themedStyles.yellowWeatherBadgeText
-                : classified.severity === "clear"
-                  ? themedStyles.clearWeatherBadgeText
-                  : /sunny|mostly clear|partly cloudy|partly sunny|mostly sunny/i.test(
-                      classified.label,
-                    )
-                    ? themedStyles.partlyCloudyWeatherBadgeText
-                    : themedStyles.overcastWeatherBadgeText;
+      const mainGroup =
+        weather?.mainGroup;
 
       return {
-        icon: classified.icon,
+        icon: getWeatherIcon(
+          description,
+          mainGroup,
+        ),
 
         label: cityLabel,
 
@@ -2867,11 +2814,20 @@ function getCardData(
           ? { feelsLike: actualValue }
           : {}),
 
-        badge: classified.label,
+        badge: description,
 
-        badgeStyle,
+        badgeStyle: getWeatherBadgeStyle(
+          description,
+          themedStyles,
+          mainGroup,
+        ),
 
-        badgeTextStyle,
+        badgeTextStyle:
+          getWeatherBadgeTextStyle(
+            description,
+            themedStyles,
+            mainGroup,
+          ),
       };
     }
 
@@ -3033,13 +2989,127 @@ function formatSolarTimer(
 
 // ============================================================
 // WEATHER ICON
+//
+// OpenWeather sends free-form descriptions (e.g. "moderate
+// rain", "few clouds"), so the mapping below matches on
+// keywords and always falls back to a valid icon. The stable
+// `main` group (Clear, Rain, ...) wins when present.
 // ============================================================
 
-// The Today card classifies by OpenWeather's condition id
-// (classifyTodayById) and looks the icon up by OWM icon
-// code — no description-text matching anywhere in this
-// card. resolveCondition stays for the 4-day forecast and
-// solar-outlook logic in forecast.ts.
+function getWeatherIcon(
+  description: string,
+  mainGroup?: string,
+): keyof typeof Ionicons.glyphMap {
+  return resolveCondition(
+    description,
+    mainGroup,
+  ).icon;
+}
+
+// ============================================================
+// WEATHER SEVERITY
+//
+// Collapses any OpenWeather description into one of a small
+// set of severity buckets used to pick a badge color.
+// ============================================================
+
+function getWeatherSeverity(
+  description: string,
+  mainGroup?: string,
+): WeatherSeverity {
+  return resolveCondition(
+    description,
+    mainGroup,
+  ).severity;
+}
+
+// ============================================================
+// WEATHER BADGE STYLE
+// ============================================================
+
+function getWeatherBadgeStyle(
+  description: string,
+  themedStyles: ReturnType<typeof getStyles>,
+  mainGroup?: string,
+) {
+  switch (
+    getWeatherSeverity(description, mainGroup)
+  ) {
+    case "clear":
+      return themedStyles.clearWeatherBadge;
+
+    case "cloudy":
+      // Few / scattered / broken clouds feel "partly".
+      if (
+        /partly|few|scattered|broken/.test(
+          description.toLowerCase(),
+        )
+      ) {
+        return themedStyles.partlyCloudyWeatherBadge;
+      }
+
+      return themedStyles.overcastWeatherBadge;
+
+    case "fog":
+      return themedStyles.fogWeatherBadge;
+
+    case "light":
+      return themedStyles.yellowWeatherBadge;
+
+    case "moderate":
+      return themedStyles.orangeWeatherBadge;
+
+    case "severe":
+      return themedStyles.redWeatherBadge;
+
+    default:
+      return themedStyles.clearWeatherBadge;
+  }
+}
+
+// ============================================================
+// WEATHER BADGE TEXT STYLE
+// ============================================================
+
+function getWeatherBadgeTextStyle(
+  description: string,
+  themedStyles: ReturnType<typeof getStyles>,
+  mainGroup?: string,
+) {
+  switch (
+    getWeatherSeverity(description, mainGroup)
+  ) {
+    case "clear":
+      return themedStyles.clearWeatherBadgeText;
+
+    case "cloudy":
+      // Few / scattered / broken clouds feel "partly".
+      if (
+        /partly|few|scattered|broken/.test(
+          description.toLowerCase(),
+        )
+      ) {
+        return themedStyles.partlyCloudyWeatherBadgeText;
+      }
+
+      return themedStyles.overcastWeatherBadgeText;
+
+    case "fog":
+      return themedStyles.fogWeatherBadgeText;
+
+    case "light":
+      return themedStyles.yellowWeatherBadgeText;
+
+    case "moderate":
+      return themedStyles.orangeWeatherBadgeText;
+
+    case "severe":
+      return themedStyles.redWeatherBadgeText;
+
+    default:
+      return themedStyles.clearWeatherBadgeText;
+  }
+}
 
 // ============================================================
 // TEMPERATURE BADGE STYLE
