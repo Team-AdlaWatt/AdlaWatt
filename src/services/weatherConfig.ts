@@ -518,6 +518,82 @@ export function formatBestSunSummary(
 }
 
 // ============================================================
+// FORECAST SUMMARY
+//
+// Data-driven footer line for the 4-day strip. Branches come
+// from weather.json (forecast.summary) and are driven by the
+// days' real classified conditions, rain chance, temp flags,
+// and solar outlook — never a fixed string.
+// ============================================================
+
+interface ForecastSummaryInput {
+  weekday: string;
+  isRainy: boolean;
+  isHighSun: boolean;
+  isCold: boolean;
+  isHot: boolean;
+}
+
+export function formatForecastSummary(
+  days: ForecastSummaryInput[],
+): string {
+  const summary = (
+    weatherJson as unknown as {
+      forecast?: {
+        summary?: {
+          rainyDayCount?: number;
+          rainyDays?: string;
+          bestSun?: string;
+          coolest?: string;
+          mixed?: string;
+        };
+      };
+    }
+  ).forecast?.summary;
+
+  const rainyDaysText =
+    summary?.rainyDays ??
+    "{count} rainy days ahead — keep the battery topped up.";
+  const bestSunText =
+    summary?.bestSun ??
+    "Best sun: {day} — good day to charge fully.";
+  const coolestText =
+    summary?.coolest ?? "Coolest {day}.";
+  const mixedText =
+    summary?.mixed ??
+    "Mixed skies — charge whenever the sun is out.";
+
+  const cutoff =
+    typeof summary?.rainyDayCount === "number" &&
+    Number.isInteger(summary.rainyDayCount)
+      ? summary.rainyDayCount
+      : 2;
+
+  const rainyDays = days.filter((day) => day.isRainy);
+
+  if (rainyDays.length >= cutoff) {
+    return rainyDaysText.replace(
+      "{count}",
+      String(rainyDays.length),
+    );
+  }
+
+  const bestSunDay = days.find((day) => day.isHighSun);
+
+  if (bestSunDay) {
+    return bestSunText.replace("{day}", bestSunDay.weekday);
+  }
+
+  const coldDay = days.find((day) => day.isCold);
+
+  if (coldDay) {
+    return coolestText.replace("{day}", coldDay.weekday);
+  }
+
+  return mixedText;
+}
+
+// ============================================================
 // DATA AGE / STALENESS / REFRESH GUARD
 //
 // Pure helpers for honest age display ("Updated 12m ago"),
@@ -848,6 +924,37 @@ export function classifyTodayById(args: {
     severity: range.severity,
     isDay,
   };
+}
+
+// ============================================================
+// ID-BASED PEAK RANKING (forecast)
+//
+// Ranks a 3-hour forecast slot using the same id taxonomy the
+// Today card classifies with, so "most extreme wins" agrees
+// with the label the day later shows. Falls back to the
+// description-keyword severity when a slot carries no id.
+// Does not alter any Today-card behavior.
+// ============================================================
+
+export function severityRankById(args: {
+  id?: number;
+  description: string;
+  main?: string;
+}): number {
+  if (
+    typeof args.id === "number" &&
+    Number.isInteger(args.id)
+  ) {
+    const range = findIdRange(args.id);
+
+    if (range) {
+      return severityRank(range.severity);
+    }
+  }
+
+  return severityRank(
+    resolveCondition(args.description, args.main).severity,
+  );
 }
 
 export function todaySkyNote(): string {

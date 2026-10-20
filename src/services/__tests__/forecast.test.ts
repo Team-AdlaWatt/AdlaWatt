@@ -79,7 +79,7 @@ describe("getForecast upcoming days", () => {
     expect(result.upcoming[0].tempMin).toBe(28 + 1);
   });
 
-  test("prefers stable OWM main group over description keywords", async () => {
+  test("peak label + icon come from the id classifier (confirmed rain)", async () => {
     const tz = 28800;
 
     mockFetch.mockResolvedValue({
@@ -96,7 +96,8 @@ describe("getForecast upcoming days", () => {
                 icon: "10d",
               },
             ],
-            clouds: { all: 10 },
+            rain: { "3h": 0.6 },
+            clouds: { all: 40 },
           }),
         ],
         city: { name: "Malaybalay", timezone: tz },
@@ -106,8 +107,133 @@ describe("getForecast upcoming days", () => {
     const result = await getForecast(8.368, 124.873);
 
     expect(result.upcoming).toHaveLength(1);
-    expect(result.upcoming[0].solarOutlook).toBe("Low");
+
+    // Same classifier as the Today card: measured rain
+    // confirms the id, so the label is the real condition.
+    expect(result.upcoming[0].peakDescription).toBe("Light rain");
+    expect(result.upcoming[0].peakIcon).toBe("rainy-outline");
     expect(result.upcoming[0].peakSeverity).toBe("light");
+    expect(result.upcoming[0].peakSubtext).toBeUndefined();
+  });
+
+  test("unconfirmed rain softens to 'possible' with subtext", async () => {
+    const tz = 28800;
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        list: [
+          entry({
+            dt: localNoonDt(1, tz),
+            weather: [
+              {
+                id: 500,
+                main: "Rain",
+                description: "light rain",
+                icon: "10d",
+              },
+            ],
+            // No rain amount -> not confirmed nearby.
+            clouds: { all: 40 },
+          }),
+        ],
+        city: { name: "Malaybalay", timezone: tz },
+      }),
+    });
+
+    const result = await getForecast(8.368, 124.873);
+
+    expect(result.upcoming[0].peakDescription).toBe("Rain possible");
+    expect(result.upcoming[0].peakSubtext).toBe("Not confirmed nearby");
+    expect(result.upcoming[0].peakSeverity).toBe("cloudy");
+  });
+
+  test("clear id 800 resolves to Sunny with the day icon", async () => {
+    const tz = 28800;
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        list: [
+          entry({
+            dt: localNoonDt(1, tz),
+            weather: [
+              {
+                id: 800,
+                main: "Clear",
+                description: "clear sky",
+                icon: "01d",
+              },
+            ],
+          }),
+        ],
+        city: { name: "Malaybalay", timezone: tz },
+      }),
+    });
+
+    const result = await getForecast(8.368, 124.873);
+
+    expect(result.upcoming[0].peakDescription).toBe("Sunny");
+    expect(result.upcoming[0].peakIcon).toBe("sunny-outline");
+  });
+
+  test("popMax is the all-day max across night and day slots", async () => {
+    const tz = 28800;
+    const noon = localNoonDt(1, tz);
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        list: [
+          entry({
+            dt: noon,
+            dt_txt: "2024-10-16 04:00:00",
+            pop: 0.1,
+          }),
+          entry({
+            // Night slot (00:00 local) with the highest pop.
+            dt: noon - 12 * 3600,
+            dt_txt: "2024-10-16 04:00:00",
+            pop: 0.8,
+          }),
+        ],
+        city: { name: "Malaybalay", timezone: tz },
+      }),
+    });
+
+    const result = await getForecast(8.368, 124.873);
+
+    expect(result.upcoming[0].popMax).toBeCloseTo(0.8);
+  });
+
+  test("slot without an id falls back to the keyword path", async () => {
+    const tz = 28800;
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        list: [
+          entry({
+            dt: localNoonDt(1, tz),
+            weather: [
+              {
+                main: "Rain",
+                description: "moderate rain",
+                icon: "10d",
+              },
+            ],
+          }),
+        ],
+        city: { name: "Malaybalay", timezone: tz },
+      }),
+    });
+
+    const result = await getForecast(8.368, 124.873);
+
+    expect(result.upcoming[0].peakDescription).toBe(
+      "moderate rain",
+    );
+    expect(result.upcoming[0].peakIcon).toBe("rainy-outline");
   });
 
   test("rejects invalid slots, throws when none remain", async () => {

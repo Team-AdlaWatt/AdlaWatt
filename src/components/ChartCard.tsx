@@ -42,6 +42,7 @@ import {
   formatClockTime,
   formatDataAge,
   formatForecastDay,
+  formatForecastSummary,
   isStaleReading,
   resolveTodayDisplay,
   todayEstimateSubtext,
@@ -1681,26 +1682,31 @@ export default function ChartCard({
       solarOutlook: string,
     ): boolean => solarOutlook === "High";
 
-    // Peak-day summary for the footer line under the
-    // location row. Counts binary Peak days across the
-    // same 4 rows rendered above.
-    const peakDays: string[] = forecast
-      ? forecast.upcoming
-          .slice(0, 4)
-          .filter((day) =>
-            isPeakDay(day.solarOutlook),
-          )
-          .map((day) => day.weekday)
+    // Data-driven summary for the footer line under the
+    // location row. Derived from the SAME 4 days rendered
+    // above: classified peak condition (severe/light => rainy),
+    // all-day rain chance, temp flags, and solar outlook.
+    const summaryDays = forecast
+      ? forecast.upcoming.slice(0, 4).map((day) => ({
+          weekday: day.weekday,
+          isRainy:
+            day.peakSeverity === "severe" ||
+            day.peakSeverity === "light" ||
+            day.peakSeverity === "moderate",
+          isHighSun: isPeakDay(day.solarOutlook),
+          isCold:
+            day.tempFlag === "cold" ||
+            day.tempFlag === "both",
+          isHot:
+            day.tempFlag === "hot" ||
+            day.tempFlag === "both",
+        }))
       : [];
 
     const peakSummary: string =
-      peakDays.length === 0
+      summaryDays.length === 0
         ? formatBestSunSummary(null)
-        : peakDays.length === 1
-          ? formatBestSunSummary(
-              peakDays[0],
-            )
-          : `${peakDays.length} peak days: ${peakDays.join(", ")}. Good day to charge fully.`;
+        : formatForecastSummary(summaryDays);
 
     // Today honesty: age from OWM `dt`, stale past the
     // configured window. Age renders at paint time and
@@ -2161,7 +2167,7 @@ export default function ChartCard({
                         : styles.weatherForecastRowItemRainy,
                     ]}
                     accessibilityRole="none"
-                    accessibilityLabel={`${day.weekday} ${day.dateLabel}, ${day.tempMax} degrees, low ${day.tempMin} degrees${rainPct > 0 ? `, rain ${rainPct} percent` : ""}, ${day.peakDescription}, ${day.solarOutlook} sun${day.tempFlag ? `, ${day.tempFlag}` : ""}`}
+                    accessibilityLabel={`${day.weekday} ${day.dateLabel}, ${day.tempMax} degrees, low ${day.tempMin} degrees, rain ${rainPct} percent, ${day.peakDescription}${day.peakSubtext ? `, ${day.peakSubtext}` : ""}, ${day.solarOutlook} sun${day.tempFlag ? `, ${day.tempFlag}` : ""}`}
                   >
 
                     <View
@@ -2216,27 +2222,25 @@ export default function ChartCard({
                         </AppText>
                       </AppText>
 
-                      {rainPct > 0 ? (
-                        <View
+                      <View
+                        style={
+                          styles.weatherForecastPopRow
+                        }
+                      >
+                        <Ionicons
+                          name="water-outline"
+                          size={12}
+                          color={colors.accentContent}
+                        />
+                        <AppText
+                          variant="caption"
                           style={
-                            styles.weatherForecastPopRow
+                            styles.weatherForecastPop
                           }
                         >
-                          <Ionicons
-                            name="water-outline"
-                            size={12}
-                            color={colors.accentContent}
-                          />
-                          <AppText
-                            variant="caption"
-                            style={
-                              styles.weatherForecastPop
-                            }
-                          >
-                            {`${rainPct}%`}
-                          </AppText>
-                        </View>
-                      ) : null}
+                          {`${rainPct}%`}
+                        </AppText>
+                      </View>
 
                       <AppText
                         variant="caption"
@@ -2247,6 +2251,18 @@ export default function ChartCard({
                       >
                         {day.peakDescription}
                       </AppText>
+
+                      {day.peakSubtext ? (
+                        <AppText
+                          variant="caption"
+                          numberOfLines={1}
+                          style={
+                            styles.weatherForecastSubtext
+                          }
+                        >
+                          {day.peakSubtext}
+                        </AppText>
+                      ) : null}
                     </View>
 
                     <View style={{ rowGap: 4, alignItems: "flex-end" }}>
@@ -3756,6 +3772,13 @@ const getStyles = (colors: AppColors) =>
     fontSize: 12,
     textAlign: "center",
     textTransform: "capitalize",
+  },
+
+  weatherForecastSubtext: {
+    color: colors.textSecondary,
+    fontSize: 10,
+    textAlign: "center",
+    opacity: 0.8,
   },
 
   weatherForecastPill: {
