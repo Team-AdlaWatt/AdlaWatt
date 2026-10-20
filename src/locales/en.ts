@@ -349,11 +349,10 @@ const en = {
     },
     about: {
       title: "About Us",
-      subtitle: "Learn more about AdlaWatt and its purpose.",
-      tagline:
-        "An IoT-Based Off-Grid Solar Backup Power System with Real-Time Energy Monitoring and Appliance Recommendation",
-      overview:
-        "AdlaWatt is a transportable, off-grid solar backup power system designed to provide households with an affordable and reliable source of electricity during power interruptions. The system collects solar energy using a solar panel, stores it in a battery inside a secure lockable enclosure, and supplies backup power to everyday appliances through a built-in AC outlet. Through real-time sensors and a simple mobile application, users can view live battery levels, incoming solar power, energy consumption, and safety temperatures, while receiving smart appliance recommendations based on their remaining battery capacity. By bringing real-time monitoring and energy guidance together, AdlaWatt empowers families to easily control their energy usage, keep essential devices running safely, and maintain power during blackouts.",
+      subtitle: "Meet the team behind AdlaWatt.",
+      teamName: "Team AdlaWatt",
+      teamBio:
+        "Team AdlaWatt is a group of student researchers from Northern Bukidnon State College behind the AdlaWatt off-grid solar backup power system. The team set out to give households a practical way to keep power and stay informed during outages, and has worked together from concept and hardware build-through to the design, development, and testing of the AdlaWatt mobile application. Their goal is simple: make backup energy easier to understand, safer to use, and within reach for everyday families.",
       developers: "Developers",
       roleProgrammer: "Programmer",
       roleDocumenter: "Documenter",

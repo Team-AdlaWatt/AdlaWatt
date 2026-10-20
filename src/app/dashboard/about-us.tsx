@@ -62,27 +62,20 @@ export default function AboutUsScreen() {
           </AppText>
         </View>
 
-        {/* AdlaWatt Introduction */}
-        <View style={styles.introduction}>
+        {/* Team AdlaWatt */}
+        <View style={styles.teamCard}>
           <AppText
             variant="heading"
-            style={styles.adlawattTitle}
+            style={styles.teamName}
           >
-            AdlaWatt
+            {t("dashboard.about.teamName")}
           </AppText>
 
           <AppText
             variant="caption"
-            style={styles.adlawattSubtitle}
+            style={styles.teamBio}
           >
-            {t("dashboard.about.tagline")}
-          </AppText>
-
-          <AppText
-            variant="caption"
-            style={styles.overview}
-          >
-            {t("dashboard.about.overview")}
+            {t("dashboard.about.teamBio")}
           </AppText>
         </View>
 
@@ -345,43 +338,43 @@ const getStyles = (colors: AppColors) =>
   },
 
   /* -------------------------------------------------------
-     AdlaWatt Introduction
+     Team AdlaWatt
      ------------------------------------------------------- */
 
-  introduction: {
+  teamCard: {
     width: "100%",
+
+    backgroundColor: colors.glass.white,
+
+    borderWidth:
+      aboutDimensions.glassBorderWidth,
+
+    borderColor: colors.cardBorder,
+
+    borderRadius:
+      aboutDimensions.glassRadius,
+
+    padding: 18,
 
     marginBottom: 22,
   },
 
-  adlawattTitle: {
+  teamName: {
     color: colors.text,
 
     fontWeight: "700",
 
-    fontSize: 24,
+    fontSize: 20,
   },
 
-  adlawattSubtitle: {
+  teamBio: {
     color: colors.textSecondary,
 
-    marginTop: 5,
-
-    lineHeight: 20,
-
-    fontWeight: "500",
-  },
-
-  overview: {
-    color: colors.text,
-
-    marginTop: 14,
+    marginTop: 10,
 
     lineHeight: 22,
 
     fontWeight: "400",
-
-    textAlign: "left",
   },
 
   /* -------------------------------------------------------

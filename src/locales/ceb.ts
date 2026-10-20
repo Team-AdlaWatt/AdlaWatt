@@ -367,11 +367,10 @@ const ceb = {
     },
     about: {
       title: "About Us",
-      subtitle: "Pagkat-on bahin sa AdlaWatt ug sa katuyoan niini.",
-      tagline:
-        "Usa ka IoT-Based Off-Grid Solar Backup Power System nga adunay Real-Time Energy Monitoring ug Appliance Recommendation",
-      overview:
-        "Ang AdlaWatt usa ka madalang off-grid solar backup power system nga gidisenyo aron hatagan ang mga panimalay ug barato ug kasaligan nga kuryente panahon sa brownout. Gikolekta sa system ang solar energy gamit ang solar panel, gitipigan kini sa baterya sulod sa secure nga lockable enclosure, ug naghatag ug backup power sa adlaw-adlaw nga mga appliance pinaagi sa built-in AC outlet. Pinaagi sa real-time sensors ug yano nga mobile application, makita sa mga user ang live nga battery levels, mosulod nga solar power, konsumo sa enerhiya, ug mga safety temperature, samtang makadawat ug maalamon nga appliance recommendation base sa nahabilin nga battery capacity. Sa paghiusa sa real-time monitoring ug giya sa enerhiya, gihatagan sa AdlaWatt ang mga pamilya ug katakus nga kontrolon ang ilang paggamit sa enerhiya, magpabiling luwas ang importanteng mga device, ug magpabilin ang kuryente panahon sa blackout.",
+      subtitle: "Ilaila ang team sa likod sa AdlaWatt.",
+      teamName: "Team AdlaWatt",
+      teamBio:
+        "Ang Team AdlaWatt usa ka grupo sa mga student researchers gikan sa Northern Bukidnon State College nga naa sa likod sa AdlaWatt off-grid solar backup power system. Ang tumong sa team mao ang paghatag sa mga panimalay ug praktikal nga paagi aron mapadayon ang kuryente ug makapabiling may kahibalo panahon sa outage, ug nagtrabaho nga nagkahiusa gikan sa konsepto ug paghimo sa hardware hangtod sa disenyo, pag-develop, ug pag-test sa AdlaWatt mobile application. Simple lang ang ilang tumong: himuon ang backup energy nga mas sayon sabton, mas luwas gamiton, ug maabot sa matag pamilya.",
       developers: "Mga Developer",
       roleProgrammer: "Programmer",
       roleDocumenter: "Documenter",
