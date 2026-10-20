@@ -42,10 +42,10 @@ import {
   formatClockTime,
   formatDataAge,
   formatForecastDay,
+  formatForecastSummary,
   isStaleReading,
-  resolveTodayDisplay,
-  todayEstimateSubtext,
-  todayUnavailableLabel,
+  resolveCondition,
+  type WeatherSeverity,
 } from "@/services/weatherConfig";
 
 // ============================================================
@@ -103,13 +103,9 @@ interface CardData {
   value?: string;
   // Secondary honest line ("Feels like 30°C") shown
   // below the actual temp, with live humidity when the
-  // reading carries it. Separate from subtext so honesty
-  // notes are never overwritten.
+  // reading carries it.
   feelsLike?: string;
   badge?: string;
-  // Honesty note under the badge
-  // ("Not confirmed nearby" / "Estimate").
-  subtext?: string;
   badgeStyle?: object;
   badgeTextStyle?: object;
 }
@@ -1681,26 +1677,31 @@ export default function ChartCard({
       solarOutlook: string,
     ): boolean => solarOutlook === "High";
 
-    // Peak-day summary for the footer line under the
-    // location row. Counts binary Peak days across the
-    // same 4 rows rendered above.
-    const peakDays: string[] = forecast
-      ? forecast.upcoming
-          .slice(0, 4)
-          .filter((day) =>
-            isPeakDay(day.solarOutlook),
-          )
-          .map((day) => day.weekday)
+    // Data-driven summary for the footer line under the
+    // location row. Derived from the SAME 4 days rendered
+    // above: classified peak condition (severe/light => rainy),
+    // all-day rain chance, temp flags, and solar outlook.
+    const summaryDays = forecast
+      ? forecast.upcoming.slice(0, 4).map((day) => ({
+          weekday: day.weekday,
+          isRainy:
+            day.peakSeverity === "severe" ||
+            day.peakSeverity === "light" ||
+            day.peakSeverity === "moderate",
+          isHighSun: isPeakDay(day.solarOutlook),
+          isCold:
+            day.tempFlag === "cold" ||
+            day.tempFlag === "both",
+          isHot:
+            day.tempFlag === "hot" ||
+            day.tempFlag === "both",
+        }))
       : [];
 
     const peakSummary: string =
-      peakDays.length === 0
+      summaryDays.length === 0
         ? formatBestSunSummary(null)
-        : peakDays.length === 1
-          ? formatBestSunSummary(
-              peakDays[0],
-            )
-          : `${peakDays.length} peak days: ${peakDays.join(", ")}. Good day to charge fully.`;
+        : formatForecastSummary(summaryDays);
 
     // Today honesty: age from OWM `dt`, stale past the
     // configured window. Age renders at paint time and
@@ -1931,7 +1932,7 @@ export default function ChartCard({
                 ? "button"
                 : "none"
             }
-            accessibilityLabel={`Today, ${todayLabel.weekday} ${todayLabel.date}, ${todayBusy ? "updating weather" : `${weatherData.value}${weatherData.feelsLike ? `, ${weatherData.feelsLike}` : ""}, ${weatherData.badge ?? ""}${weatherData.subtext ? `, ${weatherData.subtext}` : ""}`}${canTapRefresh ? ", tap to refresh" : ""}`}
+            accessibilityLabel={`Today, ${todayLabel.weekday} ${todayLabel.date}, ${todayBusy ? "updating weather" : `${weatherData.value}${weatherData.feelsLike ? `, ${weatherData.feelsLike}` : ""}, ${weatherData.badge ?? ""}`}${canTapRefresh ? ", tap to refresh" : ""}`}
             accessibilityState={
               canTapRefresh
                 ? {
@@ -2029,18 +2030,6 @@ export default function ChartCard({
               >
                 {weatherData.badge ?? ""}
               </AppText>
-
-              {weatherData.subtext ? (
-                <AppText
-                  variant="caption"
-                  numberOfLines={1}
-                  style={
-                    styles.weatherTodaySubtext
-                  }
-                >
-                  {weatherData.subtext}
-                </AppText>
-              ) : null}
 
             </View>
 
@@ -2161,7 +2150,7 @@ export default function ChartCard({
                         : styles.weatherForecastRowItemRainy,
                     ]}
                     accessibilityRole="none"
-                    accessibilityLabel={`${day.weekday} ${day.dateLabel}, ${day.tempMax} degrees, low ${day.tempMin} degrees${rainPct > 0 ? `, rain ${rainPct} percent` : ""}, ${day.peakDescription}, ${day.solarOutlook} sun${day.tempFlag ? `, ${day.tempFlag}` : ""}`}
+                    accessibilityLabel={`${day.weekday} ${day.dateLabel}, ${day.tempMax} degrees, low ${day.tempMin} degrees, rain ${rainPct} percent, ${day.peakDescription}${day.peakSubtext ? `, ${day.peakSubtext}` : ""}, ${day.solarOutlook} sun${day.tempFlag ? `, ${day.tempFlag}` : ""}`}
                   >
 
                     <View
@@ -2216,27 +2205,25 @@ export default function ChartCard({
                         </AppText>
                       </AppText>
 
-                      {rainPct > 0 ? (
-                        <View
+                      <View
+                        style={
+                          styles.weatherForecastPopRow
+                        }
+                      >
+                        <Ionicons
+                          name="water-outline"
+                          size={12}
+                          color={colors.accentContent}
+                        />
+                        <AppText
+                          variant="caption"
                           style={
-                            styles.weatherForecastPopRow
+                            styles.weatherForecastPop
                           }
                         >
-                          <Ionicons
-                            name="water-outline"
-                            size={12}
-                            color={colors.accentContent}
-                          />
-                          <AppText
-                            variant="caption"
-                            style={
-                              styles.weatherForecastPop
-                            }
-                          >
-                            {`${rainPct}%`}
-                          </AppText>
-                        </View>
-                      ) : null}
+                          {`${rainPct}%`}
+                        </AppText>
+                      </View>
 
                       <AppText
                         variant="caption"
@@ -2247,6 +2234,18 @@ export default function ChartCard({
                       >
                         {day.peakDescription}
                       </AppText>
+
+                      {day.peakSubtext ? (
+                        <AppText
+                          variant="caption"
+                          numberOfLines={1}
+                          style={
+                            styles.weatherForecastSubtext
+                          }
+                        >
+                          {day.peakSubtext}
+                        </AppText>
+                      ) : null}
                     </View>
 
                     <View style={{ rowGap: 4, alignItems: "flex-end" }}>
@@ -2792,76 +2791,20 @@ function getCardData(
         weather?.city ??
         "—";
 
-      const unavailable = todayUnavailableLabel();
-      const estimate = todayEstimateSubtext();
+      // Condition comes from OpenWeather's own description —
+      // the app never invents a "possible" label here.
+      const description =
+        weather?.description ??
+        "Clear sky";
 
-      // Legacy (no classifier fields) or stale (>30min):
-      // temp + Updated-age still render; the condition
-      // stays neutral instead of a possibly-false label.
-      const display = resolveTodayDisplay(weather);
-
-      if (display.kind === "neutral") {
-        return {
-          icon: "cloud-outline",
-
-          label: cityLabel,
-
-          value: tempValue,
-
-          ...(actualValue
-            ? { feelsLike: actualValue }
-            : {}),
-
-          badge: unavailable,
-
-          subtext: weather ? estimate : undefined,
-
-          badgeStyle:
-            themedStyles.overcastWeatherBadge,
-
-          badgeTextStyle:
-            themedStyles.overcastWeatherBadgeText,
-        };
-      }
-
-      const classified = display.classified;
-
-      const badgeStyle =
-        classified.severity === "fog"
-          ? themedStyles.fogWeatherBadge
-          : classified.severity === "severe"
-            ? themedStyles.redWeatherBadge
-            : classified.severity === "moderate"
-              ? themedStyles.orangeWeatherBadge
-              : classified.severity === "light"
-                ? themedStyles.yellowWeatherBadge
-                : classified.severity === "clear"
-                  ? themedStyles.clearWeatherBadge
-                  : /sunny|mostly clear|partly cloudy|partly sunny|mostly sunny/i.test(
-                      classified.label,
-                    )
-                    ? themedStyles.partlyCloudyWeatherBadge
-                    : themedStyles.overcastWeatherBadge;
-
-      const badgeTextStyle =
-        classified.severity === "fog"
-          ? themedStyles.fogWeatherBadgeText
-          : classified.severity === "severe"
-            ? themedStyles.redWeatherBadgeText
-            : classified.severity === "moderate"
-              ? themedStyles.orangeWeatherBadgeText
-              : classified.severity === "light"
-                ? themedStyles.yellowWeatherBadgeText
-                : classified.severity === "clear"
-                  ? themedStyles.clearWeatherBadgeText
-                  : /sunny|mostly clear|partly cloudy|partly sunny|mostly sunny/i.test(
-                      classified.label,
-                    )
-                    ? themedStyles.partlyCloudyWeatherBadgeText
-                    : themedStyles.overcastWeatherBadgeText;
+      const mainGroup =
+        weather?.mainGroup;
 
       return {
-        icon: classified.icon,
+        icon: getWeatherIcon(
+          description,
+          mainGroup,
+        ),
 
         label: cityLabel,
 
@@ -2871,15 +2814,20 @@ function getCardData(
           ? { feelsLike: actualValue }
           : {}),
 
-        badge: classified.label,
+        badge: description,
 
-        ...(classified.subtext
-          ? { subtext: classified.subtext }
-          : {}),
+        badgeStyle: getWeatherBadgeStyle(
+          description,
+          themedStyles,
+          mainGroup,
+        ),
 
-        badgeStyle,
-
-        badgeTextStyle,
+        badgeTextStyle:
+          getWeatherBadgeTextStyle(
+            description,
+            themedStyles,
+            mainGroup,
+          ),
       };
     }
 
@@ -3041,13 +2989,127 @@ function formatSolarTimer(
 
 // ============================================================
 // WEATHER ICON
+//
+// OpenWeather sends free-form descriptions (e.g. "moderate
+// rain", "few clouds"), so the mapping below matches on
+// keywords and always falls back to a valid icon. The stable
+// `main` group (Clear, Rain, ...) wins when present.
 // ============================================================
 
-// The Today card classifies by OpenWeather's condition id
-// (classifyTodayById) and looks the icon up by OWM icon
-// code — no description-text matching anywhere in this
-// card. resolveCondition stays for the 4-day forecast and
-// solar-outlook logic in forecast.ts.
+function getWeatherIcon(
+  description: string,
+  mainGroup?: string,
+): keyof typeof Ionicons.glyphMap {
+  return resolveCondition(
+    description,
+    mainGroup,
+  ).icon;
+}
+
+// ============================================================
+// WEATHER SEVERITY
+//
+// Collapses any OpenWeather description into one of a small
+// set of severity buckets used to pick a badge color.
+// ============================================================
+
+function getWeatherSeverity(
+  description: string,
+  mainGroup?: string,
+): WeatherSeverity {
+  return resolveCondition(
+    description,
+    mainGroup,
+  ).severity;
+}
+
+// ============================================================
+// WEATHER BADGE STYLE
+// ============================================================
+
+function getWeatherBadgeStyle(
+  description: string,
+  themedStyles: ReturnType<typeof getStyles>,
+  mainGroup?: string,
+) {
+  switch (
+    getWeatherSeverity(description, mainGroup)
+  ) {
+    case "clear":
+      return themedStyles.clearWeatherBadge;
+
+    case "cloudy":
+      // Few / scattered / broken clouds feel "partly".
+      if (
+        /partly|few|scattered|broken/.test(
+          description.toLowerCase(),
+        )
+      ) {
+        return themedStyles.partlyCloudyWeatherBadge;
+      }
+
+      return themedStyles.overcastWeatherBadge;
+
+    case "fog":
+      return themedStyles.fogWeatherBadge;
+
+    case "light":
+      return themedStyles.yellowWeatherBadge;
+
+    case "moderate":
+      return themedStyles.orangeWeatherBadge;
+
+    case "severe":
+      return themedStyles.redWeatherBadge;
+
+    default:
+      return themedStyles.clearWeatherBadge;
+  }
+}
+
+// ============================================================
+// WEATHER BADGE TEXT STYLE
+// ============================================================
+
+function getWeatherBadgeTextStyle(
+  description: string,
+  themedStyles: ReturnType<typeof getStyles>,
+  mainGroup?: string,
+) {
+  switch (
+    getWeatherSeverity(description, mainGroup)
+  ) {
+    case "clear":
+      return themedStyles.clearWeatherBadgeText;
+
+    case "cloudy":
+      // Few / scattered / broken clouds feel "partly".
+      if (
+        /partly|few|scattered|broken/.test(
+          description.toLowerCase(),
+        )
+      ) {
+        return themedStyles.partlyCloudyWeatherBadgeText;
+      }
+
+      return themedStyles.overcastWeatherBadgeText;
+
+    case "fog":
+      return themedStyles.fogWeatherBadgeText;
+
+    case "light":
+      return themedStyles.yellowWeatherBadgeText;
+
+    case "moderate":
+      return themedStyles.orangeWeatherBadgeText;
+
+    case "severe":
+      return themedStyles.redWeatherBadgeText;
+
+    default:
+      return themedStyles.clearWeatherBadgeText;
+  }
+}
 
 // ============================================================
 // TEMPERATURE BADGE STYLE
@@ -3756,6 +3818,13 @@ const getStyles = (colors: AppColors) =>
     fontSize: 12,
     textAlign: "center",
     textTransform: "capitalize",
+  },
+
+  weatherForecastSubtext: {
+    color: colors.textSecondary,
+    fontSize: 10,
+    textAlign: "center",
+    opacity: 0.8,
   },
 
   weatherForecastPill: {

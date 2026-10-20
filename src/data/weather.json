@@ -171,6 +171,13 @@
       "month": "short",
       "day": "numeric"
     },
+    "summary": {
+      "rainyDayCount": 2,
+      "rainyDays": "{count} rainy days ahead — keep the battery topped up.",
+      "bestSun": "Best sun: {day} — good day to charge fully.",
+      "coolest": "Coolest {day}.",
+      "mixed": "Mixed skies — charge whenever the sun is out."
+    },
     "bestSunSummary": {
       "good": "Best sun: {day} — good day to charge fully.",
       "poor": "Low sun all week — conserve battery."

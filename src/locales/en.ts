@@ -349,21 +349,20 @@ const en = {
     },
     about: {
       title: "About Us",
-      subtitle: "Learn more about AdlaWatt and its purpose.",
-      tagline:
-        "An IoT-Based Off-Grid Solar Backup Power System with Real-Time Energy Monitoring and Appliance Recommendation",
-      overview:
-        "AdlaWatt is a transportable, off-grid solar backup power system designed to provide households with an affordable and reliable source of electricity during power interruptions. The system collects solar energy using a solar panel, stores it in a battery inside a secure lockable enclosure, and supplies backup power to everyday appliances through a built-in AC outlet. Through real-time sensors and a simple mobile application, users can view live battery levels, incoming solar power, energy consumption, and safety temperatures, while receiving smart appliance recommendations based on their remaining battery capacity. By bringing real-time monitoring and energy guidance together, AdlaWatt empowers families to easily control their energy usage, keep essential devices running safely, and maintain power during blackouts.",
+      subtitle: "Meet the team behind AdlaWatt.",
+      teamName: "Team AdlaWatt",
+      teamBio:
+        "Team AdlaWatt is a group of student researchers from Northern Bukidnon State College behind the AdlaWatt off-grid solar backup power system. The team set out to give households a practical way to keep power and stay informed during outages, and has worked together from concept and hardware build-through to the design, development, and testing of the AdlaWatt mobile application. Their goal is simple: make backup energy easier to understand, safer to use, and within reach for everyday families.",
       developers: "Developers",
       roleProgrammer: "Programmer",
       roleDocumenter: "Documenter",
       roleDataAnalyst: "Data Analyst",
       dev1Bio:
-        "Develops and maintains software and system firmware, integrating real-time sensor data, including battery levels, solar input, and temperature, into the mobile app and programming recommendation algorithms.",
+        "Builds and maintains the AdlaWatt mobile application, connecting live battery, solar, and temperature data from the system's sensors into a clear, real-time experience, and developing the recommendation logic that tells users which appliances their available power can safely run.",
       dev2Bio:
-        "Authors user manuals, system setup guides, technical documentation, and safety instructions for operating the AdlaWatt hardware and mobile application.",
+        "Documents the entire AdlaWatt system, from hardware setup and safety guidance to the in-app user manual, so users and future researchers can operate, understand, and build on the project with confidence.",
       dev3Bio:
-        "Analyzes incoming sensor telemetry, including solar generation patterns, appliance power consumption, and battery performance, to optimize system efficiency and refine smart appliance recommendations.",
+        "Studies the system's incoming sensor data, from solar generation and appliance power draw to battery performance, turning those readings into insights that improve system efficiency and keep the appliance recommendations accurate.",
       contactDetails: "Contact Details",
     },
     manual: {

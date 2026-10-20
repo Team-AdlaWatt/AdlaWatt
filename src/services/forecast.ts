@@ -1,12 +1,13 @@
 import weatherJson from "@/data/weather.json";
 import {
+  classifyTodayById,
   formatApiError,
   formatForecastDay,
   formatNetworkError,
   formatTimeoutError,
-  peakOfDay,
   resolveCondition,
   scoreSolarDay,
+  severityRankById,
   type SolarOutlook,
   type WeatherSeverity,
 } from "@/services/weatherConfig";
@@ -40,6 +41,11 @@ export interface DailyForecast {
   peakDescription: string;
   peakIcon: string;
   peakSeverity: WeatherSeverity;
+  // Honesty note when the peak's condition softened (e.g.
+  // "Not confirmed nearby"). Absent otherwise.
+  peakSubtext?: string;
+  // All-day maximum OWM `pop` (probability of precipitation,
+  // 0-1) across every slot of the day, including night slots.
   popMax: number;
   solarOutlook: SolarOutlook;
   tempFlag: TempFlag;
@@ -65,6 +71,11 @@ interface ForecastSlot {
   conditionId?: number;
   clouds: number;
   pop: number;
+  // Measured rain (mm) for this 3-hour slot from
+  // rain["3h"] ?? rain["1h"]. Null when absent — never 0.
+  // Feeds the id classifier's confirm rule so a forecast day
+  // matches the Today card's rain handling.
+  rainMm: number | null;
 }
 
 interface ForecastApiEntry {
@@ -86,6 +97,10 @@ interface ForecastApiEntry {
     all?: unknown;
   };
   pop?: unknown;
+  rain?: {
+    "1h"?: unknown;
+    "3h"?: unknown;
+  };
 }
 
 interface ForecastApiResponse {
@@ -185,6 +200,27 @@ function toNumber(value: unknown): number | null {
     Number.isFinite(value)
     ? value
     : null;
+}
+
+// Measured rain (mm) for a slot: rain["3h"] ?? rain["1h"].
+// Returns null (never 0) when the slot carries no amount, so
+// the classifier can tell "no rain recorded" apart from
+// "0 mm recorded".
+function toRainMm(
+  rain: ForecastApiEntry["rain"],
+): number | null {
+  const threeH = toNumber(rain?.["3h"]);
+  const oneH = toNumber(rain?.["1h"]);
+
+  if (threeH !== null && threeH >= 0) {
+    return threeH;
+  }
+
+  if (oneH !== null && oneH >= 0) {
+    return oneH;
+  }
+
+  return null;
 }
 
 // Local calibration offset (°C) shared with current weather.
@@ -291,6 +327,7 @@ function parseSlot(
       : {}),
     clouds: toNumber(entry.clouds?.all) ?? 0,
     pop: toNumber(entry.pop) ?? 0,
+    rainMm: toRainMm(entry.rain),
   };
 }
 
@@ -314,6 +351,46 @@ function isPrecipitation(slot: {
   );
 }
 
+// Most extreme slot wins, using the SAME id taxonomy as the
+// Today card (severityRankById). Ties resolve to the slot
+// nearest midday. Mirrors peakOfDay's intent without touching
+// that (Today-owned) helper.
+function pickPeakSlot(
+  slots: ForecastSlot[],
+): ForecastSlot | null {
+  if (slots.length === 0) {
+    return null;
+  }
+
+  const rankOf = (slot: ForecastSlot): number =>
+    severityRankById({
+      id: slot.conditionId,
+      description: slot.description,
+      main: slot.mainGroup,
+    });
+
+  let best = slots[0];
+  let bestRank = rankOf(best);
+  let bestDistance = Math.abs(best.hour - 12);
+
+  for (let index = 1; index < slots.length; index += 1) {
+    const slot = slots[index];
+    const rank = rankOf(slot);
+    const distance = Math.abs(slot.hour - 12);
+
+    if (
+      rank > bestRank ||
+      (rank === bestRank && distance < bestDistance)
+    ) {
+      best = slot;
+      bestRank = rank;
+      bestDistance = distance;
+    }
+  }
+
+  return best;
+}
+
 function summarizeDay(
   date: string,
   slots: ForecastSlot[]
@@ -330,15 +407,44 @@ function summarizeDay(
     daytime.length > 0 ? daytime : slots;
 
   const peak =
-    peakOfDay(pool, (slot) => slot.hour) ??
-    slots[0];
+    pickPeakSlot(pool) ?? slots[0];
 
-  // Stable OWM main group first (Clear/Clouds/Rain/...),
-  // description keywords as fallback — same rule as Today.
-  const peakResolved = resolveCondition(
-    peak.description,
-    peak.mainGroup,
-  );
+  // Peak condition label + icon come from the SAME
+  // id-based classifier the Today card uses, so a forecast
+  // day reads exactly like Today (day/night label, matching
+  // icon, and the rain-confirm rule). Slots without an id
+  // fall back to the description-keyword path.
+  let peakDescription: string;
+  let peakIcon: string;
+  let peakSeverity: WeatherSeverity;
+  let peakSubtext: string | undefined;
+
+  if (
+    typeof peak.conditionId === "number" &&
+    Number.isInteger(peak.conditionId) &&
+    typeof peak.iconCode === "string" &&
+    peak.iconCode.trim().length > 0
+  ) {
+    const classified = classifyTodayById({
+      id: peak.conditionId,
+      iconCode: peak.iconCode,
+      rainMm: peak.rainMm,
+    });
+
+    peakDescription = classified.label;
+    peakIcon = classified.icon;
+    peakSeverity = classified.severity;
+    peakSubtext = classified.subtext;
+  } else {
+    const peakResolved = resolveCondition(
+      peak.description,
+      peak.mainGroup,
+    );
+
+    peakDescription = peak.description;
+    peakIcon = peakResolved.icon;
+    peakSeverity = peakResolved.severity;
+  }
 
   const clearSlots = slots.filter(
     (slot) =>
@@ -387,9 +493,12 @@ function summarizeDay(
     dateLabel: labels.date,
     tempMin: Math.round(tempMin),
     tempMax: Math.round(tempMax),
-    peakDescription: peak.description,
-    peakIcon: peakResolved.icon,
-    peakSeverity: peakResolved.severity,
+    peakDescription,
+    peakIcon,
+    peakSeverity,
+    ...(peakSubtext ? { peakSubtext } : {}),
+    // All-day max pop (every slot, including night) — the
+    // day's highest 3-hour precipitation probability.
     popMax: Math.max(
       ...slots.map((slot) => slot.pop)
     ),

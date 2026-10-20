@@ -367,21 +367,20 @@ const ceb = {
     },
     about: {
       title: "About Us",
-      subtitle: "Pagkat-on bahin sa AdlaWatt ug sa katuyoan niini.",
-      tagline:
-        "Usa ka IoT-Based Off-Grid Solar Backup Power System nga adunay Real-Time Energy Monitoring ug Appliance Recommendation",
-      overview:
-        "Ang AdlaWatt usa ka madalang off-grid solar backup power system nga gidisenyo aron hatagan ang mga panimalay ug barato ug kasaligan nga kuryente panahon sa brownout. Gikolekta sa system ang solar energy gamit ang solar panel, gitipigan kini sa baterya sulod sa secure nga lockable enclosure, ug naghatag ug backup power sa adlaw-adlaw nga mga appliance pinaagi sa built-in AC outlet. Pinaagi sa real-time sensors ug yano nga mobile application, makita sa mga user ang live nga battery levels, mosulod nga solar power, konsumo sa enerhiya, ug mga safety temperature, samtang makadawat ug maalamon nga appliance recommendation base sa nahabilin nga battery capacity. Sa paghiusa sa real-time monitoring ug giya sa enerhiya, gihatagan sa AdlaWatt ang mga pamilya ug katakus nga kontrolon ang ilang paggamit sa enerhiya, magpabiling luwas ang importanteng mga device, ug magpabilin ang kuryente panahon sa blackout.",
+      subtitle: "Ilaila ang team sa likod sa AdlaWatt.",
+      teamName: "Team AdlaWatt",
+      teamBio:
+        "Ang Team AdlaWatt usa ka grupo sa mga student researchers gikan sa Northern Bukidnon State College nga naa sa likod sa AdlaWatt off-grid solar backup power system. Ang tumong sa team mao ang paghatag sa mga panimalay ug praktikal nga paagi aron mapadayon ang kuryente ug makapabiling may kahibalo panahon sa outage, ug nagtrabaho nga nagkahiusa gikan sa konsepto ug paghimo sa hardware hangtod sa disenyo, pag-develop, ug pag-test sa AdlaWatt mobile application. Simple lang ang ilang tumong: himuon ang backup energy nga mas sayon sabton, mas luwas gamiton, ug maabot sa matag pamilya.",
       developers: "Mga Developer",
       roleProgrammer: "Programmer",
       roleDocumenter: "Documenter",
       roleDataAnalyst: "Data Analyst",
       dev1Bio:
-        "Nag-develop ug nag-maintain sa software ug system firmware, gihiusa ang real-time sensor data, lakip ang battery levels, solar input, ug temperature, sa mobile app ug nag-program sa recommendation algorithms.",
+        "Naghimo ug nag-maintain sa AdlaWatt mobile application, gihiusa ang live nga battery, solar, ug temperature data gikan sa mga sensor sa system ngadto sa klaro ug real-time nga kasinatian, ug nag-develop sa recommendation logic nga nagsulti sa mga user kung unsang appliance ang luwas nga mapadagan sa ilang kasamtangang kuryente.",
       dev2Bio:
-        "Nagsulat ug user manuals, system setup guides, technical documentation, ug safety instructions para sa pagpadagan sa AdlaWatt hardware ug mobile application.",
+        "Nagdokumento sa tibuok AdlaWatt system, gikan sa hardware setup ug safety guidance hangtod sa in-app user manual, aron magamit, masabtan, ug mapadayon sa mga user ug sunod nga researchers ang proyekto nga may kasiguruhan.",
       dev3Bio:
-        "Nag-analisar sa mosulod nga sensor telemetry, lakip ang solar generation patterns, konsumo sa kuryente sa mga appliance, ug performance sa baterya, aron ma-optimize ang efficiency sa system ug mapalambo ang smart appliance recommendations.",
+        "Nagtuon sa mosulod nga sensor data sa system, gikan sa solar generation ug appliance power draw hangtod sa performance sa baterya, ug gihimong insights kini aron mapalambo ang efficiency sa system ug mapabiling tukma ang appliance recommendations.",
       contactDetails: "Contact Details",
     },
     manual: {

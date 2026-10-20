@@ -956,7 +956,7 @@ export default function UserManualScreen() {
               problems to the team so they
               become thesis data. The
               About Us screen lists
-              mission, developers, and
+              the developers and
               contact details.
             </ManualCallout>
           </ManualSectionCard>

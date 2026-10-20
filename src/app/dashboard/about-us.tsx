@@ -62,27 +62,20 @@ export default function AboutUsScreen() {
           </AppText>
         </View>
 
-        {/* AdlaWatt Introduction */}
-        <View style={styles.introduction}>
+        {/* Team AdlaWatt */}
+        <View style={styles.teamCard}>
           <AppText
             variant="heading"
-            style={styles.adlawattTitle}
+            style={styles.teamName}
           >
-            AdlaWatt
+            {t("dashboard.about.teamName")}
           </AppText>
 
           <AppText
             variant="caption"
-            style={styles.adlawattSubtitle}
+            style={styles.teamBio}
           >
-            {t("dashboard.about.tagline")}
-          </AppText>
-
-          <AppText
-            variant="caption"
-            style={styles.overview}
-          >
-            {t("dashboard.about.overview")}
+            {t("dashboard.about.teamBio")}
           </AppText>
         </View>
 
@@ -99,7 +92,6 @@ export default function AboutUsScreen() {
           image={require("@/assets/images/developers/d1.jpg")}
           name="Francis Adrian Idul"
           role={t("dashboard.about.roleProgrammer")}
-          roleColor= {colors.primary}
           description={t("dashboard.about.dev1Bio")}
         />
 
@@ -108,7 +100,6 @@ export default function AboutUsScreen() {
           image={require("@/assets/images/developers/d2.jpg")}
           name="Rhics T. Geonzon"
           role={t("dashboard.about.roleDocumenter")}
-          roleColor={colors.areas.study}
           description={t("dashboard.about.dev2Bio")}
         />
 
@@ -117,7 +108,6 @@ export default function AboutUsScreen() {
           image={require("@/assets/images/developers/d3.jpg")}
           name="Troy M. Rojo"
           role={t("dashboard.about.roleDataAnalyst")}
-          roleColor={colors.secondary}
           description={t("dashboard.about.dev3Bio")}
         />
 
@@ -187,7 +177,6 @@ interface DeveloperProfileProps {
   image: any;
   name: string;
   role: string;
-  roleColor: string;
   description: string;
 }
 
@@ -195,7 +184,6 @@ function DeveloperProfile({
   image,
   name,
   role,
-  roleColor,
   description,
 }: DeveloperProfileProps) {
   const colors = useAppColors();
@@ -221,7 +209,7 @@ function DeveloperProfile({
           style={[
             styles.roleBadge,
             {
-              backgroundColor: roleColor,
+              backgroundColor: colors.primary,
             },
           ]}
         >
@@ -230,10 +218,7 @@ function DeveloperProfile({
             style={[
               styles.roleText,
               {
-                color:
-                  roleColor === colors.primary
-                    ? colors.onPrimary
-                    : colors.text,
+                color: colors.onPrimary,
               },
             ]}
           >
@@ -345,43 +330,43 @@ const getStyles = (colors: AppColors) =>
   },
 
   /* -------------------------------------------------------
-     AdlaWatt Introduction
+     Team AdlaWatt
      ------------------------------------------------------- */
 
-  introduction: {
+  teamCard: {
     width: "100%",
+
+    backgroundColor: colors.glass.white,
+
+    borderWidth:
+      aboutDimensions.glassBorderWidth,
+
+    borderColor: colors.cardBorder,
+
+    borderRadius:
+      aboutDimensions.glassRadius,
+
+    padding: 18,
 
     marginBottom: 22,
   },
 
-  adlawattTitle: {
+  teamName: {
     color: colors.text,
 
     fontWeight: "700",
 
-    fontSize: 24,
+    fontSize: 20,
   },
 
-  adlawattSubtitle: {
+  teamBio: {
     color: colors.textSecondary,
 
-    marginTop: 5,
-
-    lineHeight: 20,
-
-    fontWeight: "500",
-  },
-
-  overview: {
-    color: colors.text,
-
-    marginTop: 14,
+    marginTop: 10,
 
     lineHeight: 22,
 
     fontWeight: "400",
-
-    textAlign: "left",
   },
 
   /* -------------------------------------------------------
@@ -467,7 +452,7 @@ const getStyles = (colors: AppColors) =>
     borderWidth:
       aboutDimensions.glassBorderWidth,
 
-    borderColor: colors.secondary,
+    borderColor: colors.cardBorder,
 
     borderRadius:
       aboutDimensions.glassRadius,
