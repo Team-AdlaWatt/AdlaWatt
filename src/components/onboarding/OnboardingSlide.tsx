@@ -92,7 +92,7 @@ export default function OnboardingSlide({
           ) : (
             <Ionicons
               name={slide.icon ?? "sunny"}
-              size={64}
+              size={56}
               color={colors.primary}
             />
           )}
@@ -120,7 +120,7 @@ export default function OnboardingSlide({
               >
                 <Ionicons
                   name={bullet.icon}
-                  size={20}
+                  size={18}
                   color={colors.primary}
                 />
                 <AppText style={styles.bulletText}>
@@ -152,32 +152,36 @@ const getStyles = () =>
       flex: 1,
       paddingHorizontal: 24,
       justifyContent: "center",
+      alignItems: "stretch",
     },
 
     content: {
+      flex: 1,
+      justifyContent: "center",
       alignItems: "center",
+      alignSelf: "stretch",
     },
 
     illustration: {
-      height: 220,
-      width: 220,
+      height: 148,
+      width: 148,
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: 32,
+      marginBottom: 24,
     },
 
     medallion: {
-      borderRadius: 110,
+      borderRadius: 74,
     },
 
     logo: {
-      width: 240,
-      height: 160,
+      width: 196,
+      height: 120,
     },
 
     title: {
-      fontSize: 28,
-      lineHeight: 36,
+      fontSize: 26,
+      lineHeight: 34,
       fontWeight: "700",
       textAlign: "center",
     },
@@ -191,8 +195,8 @@ const getStyles = () =>
 
     bullets: {
       alignSelf: "stretch",
-      marginTop: 24,
-      gap: 14,
+      marginTop: 20,
+      gap: 12,
     },
 
     bulletRow: {
@@ -208,7 +212,7 @@ const getStyles = () =>
     },
 
     hint: {
-      marginTop: 28,
+      marginTop: 20,
       fontSize: 14,
       fontWeight: "600",
       textAlign: "center",

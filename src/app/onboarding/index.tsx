@@ -135,40 +135,43 @@ export default function OnboardingScreen() {
         </View>
 
         {width > 0 && (
-          <Animated.FlatList
-            data={slides}
-            keyExtractor={(slide) => slide.key}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            bounces={false}
-            onScroll={Animated.event(
-              [
-                {
-                  nativeEvent: {
-                    contentOffset: { x: scrollX },
+          <View style={styles.pager}>
+            <Animated.FlatList
+              data={slides}
+              keyExtractor={(slide) => slide.key}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              bounces={false}
+              onScroll={Animated.event(
+                [
+                  {
+                    nativeEvent: {
+                      contentOffset: { x: scrollX },
+                    },
                   },
-                },
-              ],
-              { useNativeDriver: true },
-            )}
-            scrollEventThrottle={16}
-            onMomentumScrollEnd={handleMomentumEnd}
-            getItemLayout={(_, i) => ({
-              length: width,
-              offset: width * i,
-              index: i,
-            })}
-            renderItem={({ item, index: i }) => (
-              <OnboardingSlide
-                slide={item}
-                width={width}
-                index={i}
-                progressX={scrollX}
-              />
-            )}
-            style={styles.pager}
-          />
+                ],
+                { useNativeDriver: true },
+              )}
+              scrollEventThrottle={16}
+              onMomentumScrollEnd={handleMomentumEnd}
+              getItemLayout={(_, i) => ({
+                length: width,
+                offset: width * i,
+                index: i,
+              })}
+              renderItem={({ item, index: i }) => (
+                <OnboardingSlide
+                  slide={item}
+                  width={width}
+                  index={i}
+                  progressX={scrollX}
+                />
+              )}
+              style={styles.list}
+              contentContainerStyle={styles.listContent}
+            />
+          </View>
         )}
 
         <View style={styles.bottom}>
@@ -232,6 +235,14 @@ const styles = StyleSheet.create({
 
   pager: {
     flex: 1,
+  },
+
+  list: {
+    flex: 1,
+  },
+
+  listContent: {
+    flexGrow: 1,
   },
 
   bottom: {
