@@ -75,19 +75,14 @@ const componentImages: Record<string, any> = {
     "@/assets/images/components/INA228.png",
   ),
 
-  // INA219 replaced the old Voltage Sensor. Both names map
-  // to the INA219 picture so rows keep a real image before
-  // and after the rename migration.
+  // The old Voltage Sensor is gone: the INA219 replaced it
+  // and the rename migration rewrites the rows.
   INA219: require(
     "@/assets/images/components/INA219.png",
   ),
 
   "Relay Module 5V 1 Channel": require(
     "@/assets/images/components/Relay.png",
-  ),
-
-  "Voltage Sensor": require(
-    "@/assets/images/components/INA219.png",
   ),
 
   DHT22: require(

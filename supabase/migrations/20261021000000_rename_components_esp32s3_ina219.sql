@@ -13,6 +13,13 @@
 -- covers every user's rows in one pass. The app's RLS policy
 -- (user_id = auth.uid()) is unaffected by a rename.
 --
+-- Required before the app shows the new names: the app only
+-- knows "INA219" (the old "Voltage Sensor" key was removed),
+-- so a row that still carries the old name would fall back to
+-- the generic placeholder picture. The board is matched by
+-- both "ESP32" and "ESP32-S3" in the app, so only the image
+-- label depends on this running.
+--
 -- Not touched: component_id, status, created_at, and any
 -- monitoring rows that reference the hardware by id.
 
