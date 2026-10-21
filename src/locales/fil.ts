@@ -229,6 +229,13 @@ const fil = {
       footerAction: "Bumalik sa Sign In",
     },
 
+    session: {
+      notFoundTitle: "Wala Na Ang Account",
+      notFoundBody:
+        "Hindi na umiiral ang account mo. Mangyaring mag-sign in muli.",
+      backToSignIn: "Bumalik sa Sign In",
+    },
+
     callback: {
       title: "Kumpirmasyon ng Email",
       subtitle:

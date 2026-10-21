@@ -229,6 +229,13 @@ const ceb = {
       footerAction: "Balik sa Sign In",
     },
 
+    session: {
+      notFoundTitle: "Wala Na Ang Account",
+      notFoundBody:
+        "Dili na existent ang account nimo. Palihok nga log-in usab.",
+      backToSignIn: "Balik sa Sign In",
+    },
+
     callback: {
       title: "Kumpirmasyon sa Email",
       subtitle:

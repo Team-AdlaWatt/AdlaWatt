@@ -6,6 +6,8 @@ import * as Sentry from "@sentry/react-native";
 
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 
+import AccountSessionGuard from "@/components/auth/AccountSessionGuard";
+
 import {
   initSentry,
   setSentryUser,
@@ -132,6 +134,13 @@ function RootLayout() {
 
         <Sentry.ErrorBoundary fallback={<CrashFallback />}>
           <Slot />
+
+          {/* Cross-cutting session watcher: an account deleted
+              while the app is open keeps a valid JWT until it
+              expires, so the dashboard would keep rendering.
+              Mounted here (above every route) so the takeover
+              covers dashboard, admin, and auth. */}
+          <AccountSessionGuard />
         </Sentry.ErrorBoundary>
       </AuthProvider>
     </SafeAreaProvider>

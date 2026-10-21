@@ -204,6 +204,14 @@ by hand.
 | `auth.callback.footerPrompt` | Need a new account? | Kailangan ng bagong account? | Kinahanglan ug bag-ong account? |  |
 | `auth.callback.footerAction` | Create Account | Lumikha ng Account | Pagbuhat ug Account |  |
 
+## Auth — Session (3 keys)
+
+| Key | English | Filipino | Cebuano | Notes |
+|---|---|---|---|---|
+| `auth.session.notFoundTitle` | Account Not Existing | Wala Na Ang Account | Wala Na Ang Account | Full-screen takeover shown when the signed-in account was deleted. |
+| `auth.session.notFoundBody` | This account no longer exists. Please sign in again. | Hindi na umiiral ang account mo. Mangyaring mag-sign in muli. | Dili na existent ang account nimo. Palihok nga log-in usab. |  |
+| `auth.session.backToSignIn` | Back to Sign In | Bumalik sa Sign In | Balik sa Sign In | Leaves the takeover for the login screen. |
+
 ## Menu — Language Picker (3 keys)
 
 | Key | English | Filipino | Cebuano | Notes |

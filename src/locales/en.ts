@@ -210,6 +210,13 @@ const en = {
       footerAction: "Back to Sign In",
     },
 
+    session: {
+      notFoundTitle: "Account Not Existing",
+      notFoundBody:
+        "This account no longer exists. Please sign in again.",
+      backToSignIn: "Back to Sign In",
+    },
+
     callback: {
       title: "Email Confirmation",
       subtitle: "Confirming your AdlaWatt account email.",
