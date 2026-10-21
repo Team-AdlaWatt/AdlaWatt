@@ -526,6 +526,45 @@ const ceb = {
     newTypeA11y: "Bag-o, Matang: {{label}}",
     typeA11y: "Matang: {{label}}",
   },
+
+  onboarding: {
+    skip: "Pasagdan",
+    proceed: "Adto sa Dashboard",
+    swipeHint: "I-swipe para mosunod",
+    page: "Panid {{current}} sa {{total}}",
+    welcome: {
+      title: "Maayong pag-abot sa AdlaWatt",
+      subtitle:
+        "Bantayi ang imong solar power, bisan kanus-a.",
+    },
+    about: {
+      title: "Unsa ang AdlaWatt?",
+      subtitle:
+        "Ang AdlaWatt usa ka off-grid solar backup power monitor. Gisubayan niya ang imong solar, baterya, temperatura, ug output nga adunay real-time data gikan sa imong device.",
+    },
+    features: {
+      title: "Pangunang Bahin",
+      bulletDashboard: "Live dashboard nga adunay gauges",
+      bulletAlerts: "Smart alerts alang sa delikadong lebel",
+      bulletPlanner: "Appliance planner ug mga rekomendasyon",
+      bulletLog: "Activity log ug kasaysayan",
+    },
+    goals: {
+      title: "Among mga Katuyoan",
+      bulletReliable:
+        "Panatilihang kasaligan ang imong backup power",
+      bulletBattery:
+        "Panalipdan ang baterya gikan sa kadaot",
+      bulletWise:
+        "Tabang nga gamiton nga maayo ang kuryente",
+      bulletLanguages:
+        "Sayon para sa tanan — Iningles, Cebuano, Tagalog",
+    },
+    finish: {
+      title: "Andam Na Tanan",
+      subtitle: "Ang imong kuryente, sa imong mga kamot.",
+    },
+  },
 } as const;
 
 export default ceb;

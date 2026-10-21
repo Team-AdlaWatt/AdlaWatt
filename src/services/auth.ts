@@ -94,6 +94,25 @@ export function resolvePostLoginRoute(
         : Routes.DASHBOARD;
 }
 
+// Onboarding-aware sibling of resolvePostLoginRoute.
+// Admin never onboards; household lands on /onboarding
+// until users.onboarding_completed reads true. The flag is
+// typed boolean | undefined by the profile union, so only an
+// explicit true skips the panel (call sites pass true when
+// the profile read itself failed — never strand on error).
+export function resolveOnboardingAwareRoute(
+    role: unknown,
+    onboardingCompleted: boolean | undefined,
+): string {
+    if (role === "admin") {
+        return Routes.ADMIN;
+    }
+
+    return onboardingCompleted === true
+        ? Routes.DASHBOARD
+        : Routes.ONBOARDING;
+}
+
 // ============================================================
 // AUTH REDIRECT
 // ============================================================
@@ -521,7 +540,7 @@ export async function getCurrentUserProfile() {
             await supabase
                 .from("users")
                 .select(
-                    "id, username, email, terms_agreed, created_at, email_notifications, role",
+                    "id, username, email, terms_agreed, created_at, email_notifications, role, onboarding_completed",
                 )
                 .eq("id", user.id)
                 .single();
@@ -558,6 +577,12 @@ export async function getCurrentUserProfile() {
             )?.role === "admin"
                 ? ("admin" as const)
                 : ("household" as const),
+            // First-run onboarding gate. New signups start
+            // false (DB default); legacy rows are backfilled
+            // to true by migration so they never re-see the
+            // panel. Only an explicit true skips onboarding.
+            onboardingCompleted:
+                profile?.onboarding_completed === true,
         };
     } catch (error) {
         if (isAuthSessionMissingError(error)) {
@@ -577,6 +602,49 @@ export async function getCurrentUserProfile() {
             error:
                 i18n.t("common.accountLoadFailed"),
         };
+    }
+}
+
+// Flips users.onboarding_completed for the signed-in user.
+// Failures return false but never block navigation — the
+// panel skips itself on the next cold start either way.
+export async function completeOnboarding(): Promise<boolean> {
+    try {
+        const user = await getAuthenticatedUserSafe();
+
+        if (!user) {
+            return false;
+        }
+
+        const { error } = await supabase
+            .from("users")
+            .update({ onboarding_completed: true })
+            .eq("id", user.id);
+
+        if (error) {
+            console.error(
+                "Complete onboarding error:",
+                error.message,
+            );
+
+            return false;
+        }
+
+        logActivity({
+            title: "Onboarding Completed",
+            description:
+                "The first-run onboarding panel was finished.",
+            type: "info",
+        });
+
+        return true;
+    } catch (error) {
+        console.error(
+            "Complete onboarding error:",
+            error,
+        );
+
+        return false;
     }
 }
 

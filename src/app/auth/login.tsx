@@ -33,7 +33,7 @@ import {
   getCurrentUserProfile,
   loginUser,
   resendConfirmation,
-  resolvePostLoginRoute,
+  resolveOnboardingAwareRoute,
   signInWithGoogle,
 } from "@/services/auth";
 import { useTranslation } from "react-i18next";
@@ -188,16 +188,20 @@ export default function LoginScreen() {
     setConfirmationResent("");
 
     // Hidden admin routing: test admin (users.role admin)
-    // lands on /admin, everyone else on /dashboard. Profile
+    // lands on /admin, first-time household users on
+    // /onboarding, everyone else on /dashboard. Profile
     // failures fall back to household (never fail open).
     try {
       const profile = await getCurrentUserProfile();
 
       router.replace(
-        resolvePostLoginRoute(
+        resolveOnboardingAwareRoute(
           profile.success
             ? (profile as { role?: unknown }).role
             : null,
+          profile.success
+            ? profile.onboardingCompleted
+            : true,
         ) as never,
       );
     } catch {
@@ -244,10 +248,13 @@ export default function LoginScreen() {
             const profile = await getCurrentUserProfile();
 
             router.replace(
-              resolvePostLoginRoute(
+              resolveOnboardingAwareRoute(
                 profile.success
                   ? (profile as { role?: unknown }).role
                   : null,
+                profile.success
+                  ? profile.onboardingCompleted
+                  : true,
               ) as never,
             );
           } catch {

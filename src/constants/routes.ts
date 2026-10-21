@@ -5,6 +5,9 @@ export const Routes = {
   FORGOT_PASSWORD: "/auth/forgot-password",
   AUTH_CALLBACK: "/auth/callback",
 
+  // Onboarding (first-time household users)
+  ONBOARDING: "/onboarding",
+
   // Dashboard
   DASHBOARD: "/dashboard",
 

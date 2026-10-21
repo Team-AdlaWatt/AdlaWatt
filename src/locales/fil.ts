@@ -526,6 +526,47 @@ const fil = {
     newTypeA11y: "Bago, Uri: {{label}}",
     typeA11y: "Uri: {{label}}",
   },
+
+  onboarding: {
+    skip: "Laktawan",
+    proceed: "Pumunta sa Dashboard",
+    swipeHint: "I-swipe para magpatuloy",
+    page: "Pahina {{current}} ng {{total}}",
+    welcome: {
+      title: "Maligayang pagdating sa AdlaWatt",
+      subtitle:
+        "Kilalanin ang iyong solar power, anumang oras.",
+    },
+    about: {
+      title: "Ano ang AdlaWatt?",
+      subtitle:
+        "Ang AdlaWatt ay isang off-grid solar backup power monitor. Sinusubaybayan nito ang iyong solar, baterya, temperatura, at output nang may real-time na datos mula sa iyong device.",
+    },
+    features: {
+      title: "Mga Pangunahing Tampok",
+      bulletDashboard: "Live dashboard na may mga gauge",
+      bulletAlerts:
+        "Matalinong alerto para sa mapanganib na antas",
+      bulletPlanner:
+        "Appliance planner at mga rekomendasyon",
+      bulletLog: "Activity log at kasaysayan",
+    },
+    goals: {
+      title: "Ang Aming Mga Layunin",
+      bulletReliable:
+        "Panatilihing maaasahan ang iyong backup power",
+      bulletBattery:
+        "Protektahan ang baterya laban sa pinsala",
+      bulletWise:
+        "Matulungan kang gamitin nang wasto ang enerhiya",
+      bulletLanguages:
+        "Madali para sa lahat — English, Cebuano, Tagalog",
+    },
+    finish: {
+      title: "Handa Ka Na",
+      subtitle: "Ang iyong power, nasa iyong mga kamay.",
+    },
+  },
 } as const;
 
 export default fil;

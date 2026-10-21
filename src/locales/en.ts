@@ -517,6 +517,41 @@ const en = {
     newTypeA11y: "New, Type {{label}}",
     typeA11y: "Type {{label}}",
   },
+
+  onboarding: {
+    skip: "Skip",
+    proceed: "Proceed to Dashboard",
+    swipeHint: "Swipe to continue",
+    page: "Page {{current}} of {{total}}",
+    welcome: {
+      title: "Welcome to AdlaWatt",
+      subtitle: "Know your solar power, anytime.",
+    },
+    about: {
+      title: "What is AdlaWatt?",
+      subtitle:
+        "AdlaWatt is an off-grid solar backup power monitor. It tracks your solar, battery, temperature, and output with real-time data from your device.",
+    },
+    features: {
+      title: "Key Features",
+      bulletDashboard: "Live dashboard with gauges",
+      bulletAlerts: "Smart alerts for unsafe levels",
+      bulletPlanner: "Appliance planner and recommendations",
+      bulletLog: "Activity log and history",
+    },
+    goals: {
+      title: "Our Goals",
+      bulletReliable: "Keep your backup power reliable",
+      bulletBattery: "Protect the battery from damage",
+      bulletWise: "Help you use energy wisely",
+      bulletLanguages:
+        "Easy for everyone — English, Cebuano, Tagalog",
+    },
+    finish: {
+      title: "You're All Set",
+      subtitle: "Your power, in your hands.",
+    },
+  },
 } as const;
 
 export default en;
