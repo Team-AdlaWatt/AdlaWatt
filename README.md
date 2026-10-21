@@ -123,11 +123,11 @@ AdlaWatt/
 
 | Component | Purpose |
 |---|---|
-| ESP32 | Main controller and Wi-Fi communication |
+| ESP32-S3 | Main controller and Wi-Fi communication |
 | INA228 (Input / Output) | Monitors solar and load voltage/current |
 | DS18B20 (Battery / Solar) | Monitors temperatures |
 | DHT22 | Monitors interior temperature and humidity |
-| Voltage Sensor | Measures system voltage |
+| INA219 | Measures system voltage |
 | Relay Module | Controls load and cooling fan |
 | SPI TFT Display | Shows local real-time info |
 | 5V DC Fan | Cooling |

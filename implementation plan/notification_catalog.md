@@ -110,7 +110,7 @@ Alert: Battery Normal-Use Cutoff Reached (≤ 20%), Battery Critically Low (< 20
 | Load Activity Detected | `normal` | 50 W upward milestones, follows down on decrease | Exists (generic) |
 | High Current Load | `alert` | Upward crossing of the fixed `HIGH_LOAD_WATTS` (800 W engineering constant) | Implemented (`checkHighCurrentLoad`) |
 | Component Went Inactive (per component) | `alert` | `components.status` Active → Inactive, via the service's `components` watcher | Implemented (`checkComponentStatusTransition`) |
-| Critical Component Inactive | `alert` + `critical` mirror | Relay / INA228 / Voltage Sensor inactive | Implemented — severity by component role |
+| Critical Component Inactive | `alert` + `critical` mirror | Relay / INA228 / INA219 inactive | Implemented — severity by component role |
 | Component Back Online | `normal` + `info` mirror | `components.status` Inactive → Active | Implemented |
 
 ## Electronics Recommendation Rules
