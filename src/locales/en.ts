@@ -337,14 +337,14 @@ const en = {
     home: {
       title: "Dashboard",
       subtitle: "Monitor your AdlaWatt system in real time.",
-      applianceRecommendation: "Appliance Recommendation",
+      applianceRecommendation: "Electronics Recommendation",
       realtimeMonitoring: "Real-Time Monitoring",
       offlineBanner:
         "You're offline — showing last readings.",
       lastUpdated:
         "Last updated {{time}}.",
       goToApplianceRecommendation:
-        "Go to Appliance Recommendation",
+        "Go to Electronics Recommendation",
       forecastFailed: "Could not load the forecast.",
     },
     about: {
@@ -358,20 +358,20 @@ const en = {
       roleDocumenter: "Documenter",
       roleDataAnalyst: "Data Analyst",
       dev1Bio:
-        "Builds and maintains the AdlaWatt mobile application, connecting live battery, solar, and temperature data from the system's sensors into a clear, real-time experience, and developing the recommendation logic that tells users which appliances their available power can safely run.",
+        "Builds and maintains the AdlaWatt mobile application, connecting live battery, solar, and temperature data from the system's sensors into a clear, real-time experience, and developing the recommendation logic that tells users which electronics their available power can safely run.",
       dev2Bio:
         "Documents the entire AdlaWatt system, from hardware setup and safety guidance to the in-app user manual, so users and future researchers can operate, understand, and build on the project with confidence.",
       dev3Bio:
-        "Studies the system's incoming sensor data, from solar generation and appliance power draw to battery performance, turning those readings into insights that improve system efficiency and keep the appliance recommendations accurate.",
+        "Studies the system's incoming sensor data, from solar generation and electronics power draw to battery performance, turning those readings into insights that improve system efficiency and keep the electronics recommendations accurate.",
       contactDetails: "Contact Details",
     },
     manual: {
       title: "User Manual",
       subtitle: "Guides for operating your AdlaWatt system.",
     },
-    appliances: {
-      title: "Appliances",
-      subtitle: "Manage and monitor supported appliances.",
+    electronics: {
+      title: "Electronics",
+      subtitle: "Manage and monitor supported electronics.",
     },
     components: {
       title: "Components",
@@ -380,7 +380,7 @@ const en = {
     analytics: {
       title: "Analytics & Trends",
       subtitle:
-        "Analyze system performance, energy usage, temperature, and appliance data over time.",
+        "Analyze system performance, energy usage, temperature, and electronics data over time.",
       sectionBattery: "Battery",
       sectionSolar: "Solar",
       sectionEnergy: "Energy",
@@ -397,7 +397,7 @@ const en = {
     logs: {
       title: "Activity Logs",
       subtitle:
-        "System activity and appliance events will appear here.",
+        "System activity and electronics events will appear here.",
       total: "Total Activity Logs:",
       loadFailed:
         "We couldn't load your activity logs. Check your connection and try again.",
@@ -485,21 +485,21 @@ const en = {
   },
 
   applianceBox: {
-    editAppliance: "Edit appliance",
-    archiveAppliance: "Archive appliance",
-    unarchiveAppliance: "Unarchive appliance",
-    deleteAppliance: "Delete appliance",
-    showOptions: "Show appliance options",
-    hideOptions: "Hide appliance options",
+    editAppliance: "Edit electronics item",
+    archiveAppliance: "Archive electronics item",
+    unarchiveAppliance: "Unarchive electronics item",
+    deleteAppliance: "Delete electronics item",
+    showOptions: "Show electronics options",
+    hideOptions: "Hide electronics options",
     deleteQuestion: "You want to delete this?",
-    doNotDelete: "Do not delete appliance",
-    confirmDelete: "Confirm delete appliance",
-    archiveQuestion: "Archive this appliance?",
-    unarchiveQuestion: "Unarchive this appliance?",
-    doNotArchive: "Do not archive appliance",
-    doNotUnarchive: "Do not unarchive appliance",
-    confirmArchive: "Confirm archive appliance",
-    confirmUnarchive: "Confirm unarchive appliance",
+    doNotDelete: "Do not delete electronics item",
+    confirmDelete: "Confirm delete electronics item",
+    archiveQuestion: "Archive this electronics item?",
+    unarchiveQuestion: "Unarchive this electronics item?",
+    doNotArchive: "Do not archive electronics item",
+    doNotUnarchive: "Do not unarchive electronics item",
+    confirmArchive: "Confirm archive electronics item",
+    confirmUnarchive: "Confirm unarchive electronics item",
   },
 
   activityCard: {
@@ -536,7 +536,7 @@ const en = {
       title: "Key Features",
       bulletDashboard: "Live dashboard with gauges",
       bulletAlerts: "Smart alerts for unsafe levels",
-      bulletPlanner: "Appliance planner and recommendations",
+      bulletPlanner: "Electronics planner and recommendations",
       bulletLog: "Activity log and history",
     },
     goals: {

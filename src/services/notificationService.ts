@@ -1794,7 +1794,7 @@ const checkAppliancesBecameAdvisable = async (
 
     if (error) {
       console.error(
-        "Appliances-became-advisable check error:",
+        "Electronics-became-advisable check error:",
         error.message,
       );
 
@@ -1809,9 +1809,9 @@ const checkAppliancesBecameAdvisable = async (
   await createNotification(
     userId,
     {
-      title: "Appliances Became Advisable",
+      title: "Electronics Became Advisable",
       description:
-        "The battery recovered to a safe level. Selected appliances are advisable again.",
+        "The battery recovered to a safe level. Selected electronics are advisable again.",
       type: "normal",
     },
   );
@@ -1905,7 +1905,7 @@ const checkHighLoadWhileBatteryLow = async (
     {
       title: "High Load While Battery Low",
       description:
-        `Selected appliances draw about ${combinedMidWatts}W against a ${safeCap}W safe cap at ${level}% battery.`,
+        `Selected electronics draw about ${combinedMidWatts}W against a ${safeCap}W safe cap at ${level}% battery.`,
       type: "alert",
     },
   );

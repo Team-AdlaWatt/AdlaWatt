@@ -48,9 +48,9 @@ Related docs: `monitoring_history.md` (snapshot source), `activity_logging.md`, 
 | Chart | Type | Data | What it tells you |
 |---|---|---|---|
 | Average vs peak load | Line, 2 lines | `current_load_avg`, `current_load_max` | Typical and worst-case demand |
-| Power use by hour | Bar | hourly `energy_output_wh`, averaged by hour of day | When to avoid heavy appliances |
-| Energy by appliance | Pie | `total_energy_wh` (top 5 plus "Other") | What uses the most power |
-| Appliance run time | Horizontal bar | `total_duration_seconds` | What runs the longest |
+| Power use by hour | Bar | hourly `energy_output_wh`, averaged by hour of day | When to avoid high-draw electronics |
+| Energy by electronics item | Pie | `total_energy_wh` (top 5 plus "Other") | What uses the most power |
+| Electronics run time | Horizontal bar | `total_duration_seconds` | What runs the longest |
 
 ## Health
 
@@ -77,8 +77,8 @@ Related docs: `monitoring_history.md` (snapshot source), `activity_logging.md`, 
 - Periods with no data return `NULL` averages. Skip them in line charts. Bars with zero energy are fine.
 - Averages count only Online snapshots. Energy totals count all snapshots.
 - `solar_status` (Low, Moderate, High) and `time_remaining` are not in the report. A "solar condition" pie would need a small SQL addition.
-- Appliance charts stay empty until the app calls `record_appliance_usage`.
-- Also, `appliance_usage_history.app_id` is `bigint` but your new appliance rows use `uuid`. Store `catalog_key` in the usage table before building these charts.
+- Electronics charts stay empty until the app calls `record_appliance_usage`.
+- Also, `appliance_usage_history.app_id` is `bigint` but your new electronics rows use `uuid`. Store `catalog_key` in the usage table before building these charts.
 - Keep pies to 3 to 5 slices.
 
 ---

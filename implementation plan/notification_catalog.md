@@ -20,7 +20,7 @@ It produces one `notifications` row:
 
 Delivery is cooldown-gated two ways: an in-memory `Map<user:type:title>` plus a DB last-`created_at` check (`NOTIFICATION_COOLDOWN_MS` 10 min default; `UPDATE_NOTIFICATION_COOLDOWN_MS` 5 min for high-frequency fields passed explicitly to `createNotificationWithCooldown`). Notifications never write to `activity_logs` — the lists stay fully separate (see `activity_logging.md`); routine transitions never touch that table.
 
-Scope boundary with activity logs: **notifications record what the hardware did; activity logs record what the user did (auth, appliances, settings).** A low battery fires a notification; the user unplugging an appliance over it writes an activity entry. No notification rule mirrors — even safety consequences stay notifications-only unless re-added as explicit distinct-title activity calls.
+Scope boundary with activity logs: **notifications record what the hardware did; activity logs record what the user did (auth, electronics, settings).** A low battery fires a notification; the user unplugging an electronics item over it writes an activity entry. No notification rule mirrors — even safety consequences stay notifications-only unless re-added as explicit distinct-title activity calls.
 
 ---
 
@@ -113,14 +113,14 @@ Alert: Battery Normal-Use Cutoff Reached (≤ 20%), Battery Critically Low (< 20
 | Critical Component Inactive | `alert` + `critical` mirror | Relay / INA228 / Voltage Sensor inactive | Implemented — severity by component role |
 | Component Back Online | `normal` + `info` mirror | `components.status` Inactive → Active | Implemented |
 
-## Appliance Recommendation Rules
+## Electronics Recommendation Rules
 
-Two rules read the appliance catalog plus the shared recommendation engine (tier, watt cap, wattage parsing — the same functions the UI verdicts use, so rules and UI can never disagree):
+Two rules read the electronics catalog plus the shared recommendation engine (tier, watt cap, wattage parsing — the same functions the UI verdicts use, so rules and UI can never disagree):
 
 | Title | Type | Trigger |
 |---|---|---|
-| Appliances Became Advisable | `normal` + `info` mirror | Battery tier returns to Safe with selected appliances waiting |
-| High Load While Battery Low | `alert` + `critical` mirror | Combined selected-appliance mid-wattage exceeds the charge-scaled cap at ≤ 20% SoC (10-min cooldown while the condition persists) |
+| Electronics Became Advisable | `normal` + `info` mirror | Battery tier returns to Safe with selected electronics waiting |
+| High Load While Battery Low | `alert` + `critical` mirror | Combined selected-electronics mid-wattage exceeds the charge-scaled cap at ≤ 20% SoC (10-min cooldown while the condition persists) |
 
 Not yet implemented: *Forecast Suggests Conserving* — needs stored location plus a slow forecast poller independent of the monitoring cadence (see Errors to Avoid).
 

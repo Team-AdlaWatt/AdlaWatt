@@ -25,7 +25,7 @@ V_terminal = V_OCV - (I × R_internal)
 | I          | Current entering or leaving the battery                         |
 | R_internal | Battery internal resistance                                     |
 
-- When an inverter or appliance turns on, current rises and voltage temporarily drops — this is **voltage sag**.
+- When an inverter or electronics item turns on, current rises and voltage temporarily drops — this is **voltage sag**.
 - When the load stops, terminal voltage **rebounds**.
 - During charging, terminal voltage rises above its rested value.
 
@@ -194,7 +194,7 @@ Apply only a small correction toward the voltage-table estimate when **all** con
 
 - Battery current magnitude is very low.
 - No meaningful solar charging is active.
-- No meaningful appliance/inverter load is active.
+- No meaningful electronics/inverter load is active.
 - Voltage has been stable for roughly **10 – 30 minutes**.
 - Battery temperature is Normal or Moderate.
 

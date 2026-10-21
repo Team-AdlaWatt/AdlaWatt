@@ -1592,7 +1592,7 @@ export default function AnalyticsScreen() {
 
         <LazyCard
           title="Power Use by Hour"
-          subtitle="When to avoid heavy appliances."
+          subtitle="When to avoid high-draw electronics."
           icon="bulb-outline"
         >
           <PowerByHourChart

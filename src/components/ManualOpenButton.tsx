@@ -36,7 +36,7 @@ const MANUAL_FIGURE_COLORS =
   Colors.light.manualFigure;
 
 interface ManualOpenButtonProps {
-  /** Screen name shown on the button, e.g. "Appliances". */
+  /** Screen name shown on the button, e.g. "Electronics". */
   label: string;
   /** Target dashboard route (typed routes are enforced). */
   route: Href;

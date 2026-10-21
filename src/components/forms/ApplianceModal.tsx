@@ -349,7 +349,7 @@ export default function ApplianceModal({
   // Custom section follows the themed brand primary so it
   // stays correct in both light and dark mode.
   const areaColor = (area: string) =>
-    area === "Custom Appliances"
+    area === CUSTOM_AREA
       ? colors.primary
       : getAreaColor(area, colors.border);
 
@@ -564,7 +564,7 @@ export default function ApplianceModal({
         error.message,
       );
       setCustomError(
-        "Unable to load archived appliances. Please try again.",
+        "Unable to load archived electronics. Please try again.",
       );
       setIsLoadingCustoms(false);
       return;
@@ -687,7 +687,7 @@ export default function ApplianceModal({
       );
 
       setCustomError(
-        "Unable to reset appliance selection.",
+        "Unable to reset electronics selection.",
       );
 
       return;
@@ -717,7 +717,7 @@ export default function ApplianceModal({
   const handleSave = async () => {
     if (isLoadingCustoms) {
       setCustomError(
-        "Still loading your custom appliances. Please wait a moment and try again.",
+        "Still loading your custom electronics items. Please wait a moment and try again.",
       );
       return;
     }
@@ -783,7 +783,7 @@ export default function ApplianceModal({
       );
 
       setCustomError(
-        "Unable to save appliance selection.",
+        "Unable to save electronics selection.",
       );
 
       return;
@@ -853,7 +853,7 @@ export default function ApplianceModal({
       )
     ) {
       setCustomError(
-        "Appliance name must be valid and readable.",
+        "Electronics item name must be valid and readable.",
       );
       return;
     }
@@ -878,7 +878,7 @@ export default function ApplianceModal({
 
     if (!user) {
       setCustomError(
-        "You must be signed in to add an appliance.",
+        "You must be signed in to add an electronics item.",
       );
       return;
     }
@@ -901,7 +901,7 @@ export default function ApplianceModal({
       );
 
       setCustomError(
-        "Unable to check appliance name.",
+        "Unable to check electronics item name.",
       );
 
       return;
@@ -909,7 +909,7 @@ export default function ApplianceModal({
 
     if (duplicate) {
       setCustomError(
-        "This appliance already exists.",
+        "This electronics item already exists.",
       );
       return;
     }
@@ -970,7 +970,7 @@ export default function ApplianceModal({
       );
 
       setCustomError(
-        "Unable to add appliance. Please try again.",
+        "Unable to add electronics item. Please try again.",
       );
 
       return;
@@ -1036,7 +1036,7 @@ export default function ApplianceModal({
       )
     ) {
       setCustomError(
-        "Enter a valid appliance name.",
+        "Enter a valid electronics item name.",
       );
       return;
     }
@@ -1061,7 +1061,7 @@ export default function ApplianceModal({
 
     if (!user) {
       setCustomError(
-        "You must be signed in to update an appliance.",
+        "You must be signed in to update an electronics item.",
       );
       return;
     }
@@ -1085,7 +1085,7 @@ export default function ApplianceModal({
       );
 
       setCustomError(
-        "Unable to check appliance name.",
+        "Unable to check electronics item name.",
       );
 
       return;
@@ -1093,7 +1093,7 @@ export default function ApplianceModal({
 
     if (duplicate) {
       setCustomError(
-        "This appliance already exists.",
+        "This electronics item already exists.",
       );
       return;
     }
@@ -1153,7 +1153,7 @@ export default function ApplianceModal({
       );
 
       setCustomError(
-        "Unable to update appliance. Please try again.",
+        "Unable to update electronics item. Please try again.",
       );
 
       return;
@@ -1235,7 +1235,7 @@ export default function ApplianceModal({
 
     if (!user) {
       setCustomError(
-        "You must be signed in to delete an appliance.",
+        "You must be signed in to delete an electronics item.",
       );
       return;
     }
@@ -1254,7 +1254,7 @@ export default function ApplianceModal({
       );
 
       setCustomError(
-        "Unable to delete appliance. Please try again.",
+        "Unable to delete electronics item. Please try again.",
       );
 
       return;
@@ -1303,7 +1303,7 @@ export default function ApplianceModal({
     );
 
     logAppliance.removed(
-      removed?.name ?? "Custom appliance",
+      removed?.name ?? "Custom electronics item",
     );
 
     onCustomDelete?.(id);
@@ -1326,7 +1326,7 @@ export default function ApplianceModal({
 
     if (!user) {
       setCustomError(
-        "You must be signed in to archive an appliance.",
+        "You must be signed in to archive an electronics item.",
       );
       return;
     }
@@ -1360,7 +1360,7 @@ export default function ApplianceModal({
         error.message.includes("Appliance not found")
       ) {
         setCustomError(
-          "Appliance not found. It may have been deleted.",
+          "Electronics item not found. It may have been deleted.",
         );
       } else if (
         error.message.includes("archive_appliance")
@@ -1370,7 +1370,7 @@ export default function ApplianceModal({
         );
       } else {
         setCustomError(
-          "Unable to archive appliance. Please try again.",
+          "Unable to archive electronics item. Please try again.",
         );
       }
 
@@ -1378,7 +1378,7 @@ export default function ApplianceModal({
     }
 
     const name =
-      target?.name ?? "Custom appliance";
+      target?.name ?? "Custom electronics item";
 
     const moved: Appliance | null = target ?? null;
 
@@ -1438,7 +1438,7 @@ export default function ApplianceModal({
 
     if (!user) {
       setCustomError(
-        "You must be signed in to unarchive an appliance.",
+        "You must be signed in to unarchive an electronics item.",
       );
       return;
     }
@@ -1464,7 +1464,7 @@ export default function ApplianceModal({
         error.message.includes("Appliance not found")
       ) {
         setCustomError(
-          "Appliance not found. It may have been deleted.",
+          "Electronics item not found. It may have been deleted.",
         );
       } else if (
         error.message.includes("unarchive_appliance")
@@ -1474,7 +1474,7 @@ export default function ApplianceModal({
         );
       } else {
         setCustomError(
-          "Unable to unarchive appliance. Please try again.",
+          "Unable to unarchive electronics item. Please try again.",
         );
       }
 
@@ -1482,7 +1482,7 @@ export default function ApplianceModal({
     }
 
     const name =
-      target?.name ?? "Custom appliance";
+      target?.name ?? "Custom electronics item";
 
     setArchivedAppliances((current) =>
       current.filter((item) => item.id !== id),
@@ -1725,7 +1725,7 @@ export default function ApplianceModal({
           pressed && styles.pressed,
         ]}
         accessibilityRole="button"
-        accessibilityLabel="Add custom appliance"
+        accessibilityLabel="Add custom electronics item"
       >
         <Ionicons
           name="add-circle-outline"
@@ -1750,7 +1750,7 @@ export default function ApplianceModal({
           pressed && styles.pressed,
         ]}
         accessibilityRole="button"
-        accessibilityLabel={`Archived appliances, ${archivedCount} archived`}
+        accessibilityLabel={`Archived electronics, ${archivedCount} archived`}
       >
         <Ionicons
           name="archive-outline"
@@ -1815,8 +1815,8 @@ export default function ApplianceModal({
               style={styles.title}
             >
               {layer === 2
-                ? "Archived Appliances"
-                : "Select Appliances"}
+                ? "Archived Electronics"
+                : "Select Electronics"}
             </AppText>
 
             <Pressable
@@ -1825,8 +1825,8 @@ export default function ApplianceModal({
               accessibilityRole="button"
               accessibilityLabel={
                 layer === 2
-                  ? "Close Archived Appliances"
-                  : "Close Select Appliances"
+                  ? "Close Archived Electronics"
+                  : "Close Select Electronics"
               }
             >
               <Ionicons
@@ -1910,10 +1910,10 @@ export default function ApplianceModal({
                   <SearchBox
                     value={searchText}
                     onChangeText={setSearchText}
-                    placeholder="Search appliances..."
+                    placeholder="Search electronics..."
                     autoCapitalize="none"
                     autoCorrect={false}
-                    accessibilityLabel="Search appliances"
+                    accessibilityLabel="Search electronics"
                   />
                 </View>
               </View>
@@ -1923,7 +1923,7 @@ export default function ApplianceModal({
                 below its own search box. */}
             {layer === 1 ? renderActionRow() : null}
 
-            {/* Custom Appliances Layer 1 only (header always shows) */}
+            {/* Custom Electronics Layer 1 only (header always shows) */}
             {layer === 1 &&
               (showCustomStates ||
                 customAppliances.length > 0) && (
@@ -1933,7 +1933,7 @@ export default function ApplianceModal({
                       variant="body"
                       style={styles.sectionTitle}
                     >
-                      Custom Appliances
+                      Custom Electronics
                     </AppText>
 
                     <View
@@ -1950,8 +1950,8 @@ export default function ApplianceModal({
                   {isLoadingCustoms &&
                   showCustomStates ? (
                     <EmptyState
-                      title="Loading Custom Appliances"
-                      description="Fetching your custom appliances…"
+                      title="Loading Custom Electronics"
+                      description="Fetching your custom electronics…"
                       icon="sync-outline"
                       style={styles.customState}
                     />
@@ -2017,8 +2017,8 @@ export default function ApplianceModal({
                     </View>
                   ) : showCustomStates ? (
                     <EmptyState
-                      title="No Custom Appliances"
-                      description="You haven't added any yet. Tap Add Custom Appliance above to create one."
+                      title="No Custom Electronics"
+                      description="You haven't added any yet. Tap Add Custom above to create one."
                       icon="cube-outline"
                       style={styles.customState}
                     />
@@ -2114,7 +2114,7 @@ export default function ApplianceModal({
                     variant="caption"
                     style={styles.noResultsText}
                   >
-                    {`No appliances found for "${searchText.trim()}"`}
+                    {`No electronics found for "${searchText.trim()}"`}
                   </AppText>
                 </View>
               )}
@@ -2164,7 +2164,7 @@ export default function ApplianceModal({
                       placeholder="Search archived..."
                       autoCapitalize="none"
                       autoCorrect={false}
-                      accessibilityLabel="Search archived appliances"
+                      accessibilityLabel="Search archived electronics"
                     />
                   </View>
                 </View>
@@ -2193,8 +2193,8 @@ export default function ApplianceModal({
                   {isLoadingCustoms &&
                   showArchivedStates ? (
                     <EmptyState
-                      title="Loading Archived Appliances"
-                      description="Fetching your archived appliances…"
+                      title="Loading Archived Electronics"
+                      description="Fetching your archived electronics…"
                       icon="sync-outline"
                       style={styles.customState}
                     />
@@ -2248,7 +2248,7 @@ export default function ApplianceModal({
                     </View>
                   ) : showArchivedStates ? (
                     <EmptyState
-                      title="No Archived Appliances"
+                      title="No Archived Electronics"
                       description="Nothing archived yet. Archived customs will appear here."
                       icon="archive-outline"
                       style={styles.customState}
@@ -2273,7 +2273,7 @@ export default function ApplianceModal({
                         variant="caption"
                         style={styles.noResultsText}
                       >
-                        {`No archived appliances found for "${archiveSearchText.trim()}"`}
+                        {`No archived electronics found for "${archiveSearchText.trim()}"`}
                       </AppText>
                     </View>
                   )}
@@ -2288,7 +2288,7 @@ export default function ApplianceModal({
                 <View
                   style={styles.selectedGroup}
                   accessibilityRole="text"
-                  accessibilityLabel={`${archivedCount} appliances archived`}
+                  accessibilityLabel={`${archivedCount} electronics archived`}
                 >
                   <Ionicons
                     name="archive-outline"
@@ -2315,7 +2315,7 @@ export default function ApplianceModal({
                     pressed && styles.buttonPressed,
                   ]}
                   accessibilityRole="button"
-                  accessibilityLabel="Back to appliances"
+                  accessibilityLabel="Back to electronics"
                 >
                   <AppText
                     variant="caption"
@@ -2353,7 +2353,7 @@ export default function ApplianceModal({
               <View
                 style={styles.selectedGroup}
                 accessibilityRole="text"
-                accessibilityLabel={`${archivedCount} appliances archived`}
+                accessibilityLabel={`${archivedCount} electronics archived`}
               >
                 <Ionicons
                   name="archive-outline"
@@ -2380,7 +2380,7 @@ export default function ApplianceModal({
                   pressed && styles.buttonPressed,
                 ]}
                 accessibilityRole="button"
-                accessibilityLabel="Select all appliances"
+                accessibilityLabel="Select all electronics"
               >
                 <AppText
                   variant="caption"
@@ -2417,10 +2417,10 @@ export default function ApplianceModal({
                 accessibilityRole="button"
                 accessibilityLabel={
                   isSaving
-                    ? "Saving appliance selection"
+                    ? "Saving electronics selection"
                     : isLoadingCustoms
-                      ? "Loading custom appliances"
-                      : "Save appliance selection"
+                      ? "Loading custom electronics"
+                      : "Save electronics selection"
                 }
               >
                 <AppText

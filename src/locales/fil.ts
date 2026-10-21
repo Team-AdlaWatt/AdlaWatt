@@ -356,9 +356,9 @@ const fil = {
     home: {
       title: "Dashboard",
       subtitle: "I-monitor ang iyong AdlaWatt system nang real time.",
-      applianceRecommendation: "Appliance Recommendation",
+      applianceRecommendation: "Electronics Recommendation",
       realtimeMonitoring: "Real-Time Monitoring",
-      goToApplianceRecommendation: "Pumunta sa Appliance Recommendation",
+      goToApplianceRecommendation: "Pumunta sa Electronics Recommendation",
       offlineBanner:
         "Wala kang koneksyon — huling readings ang ipinapakita.",
       lastUpdated:
@@ -376,20 +376,20 @@ const fil = {
       roleDocumenter: "Documenter",
       roleDataAnalyst: "Data Analyst",
       dev1Bio:
-        "Bumubuo at nagme-maintain ng AdlaWatt mobile application, isinasama ang live na battery, solar, at temperature data mula sa mga sensor ng system tungo sa malinaw at real-time na karanasan, at nagde-develop ng recommendation logic na nagsasabi sa mga user kung aling appliance ang kayang patakbuhin nang ligtas ng kanilang kasalukuyang kuryente.",
+        "Bumubuo at nagme-maintain ng AdlaWatt mobile application, isinasama ang live na battery, solar, at temperature data mula sa mga sensor ng system tungo sa malinaw at real-time na karanasan, at nagde-develop ng recommendation logic na nagsasabi sa mga user kung aling electronics ang kayang patakbuhin nang ligtas ng kanilang kasalukuyang kuryente.",
       dev2Bio:
         "Nagdodokumento ng buong AdlaWatt system, mula sa hardware setup at safety guidance hanggang sa in-app user manual, upang magamit, maintindihan, at mapagpatuloy ng mga user at susunod na researchers ang proyekto nang may kumpiyansa.",
       dev3Bio:
-        "Pinag-aaralan ang pumapasok na sensor data ng system, mula sa solar generation at appliance power draw hanggang sa performance ng baterya, at ginagawang insights ang mga ito upang mapabuti ang efficiency ng system at mapanatiling tumpak ang appliance recommendations.",
+        "Pinag-aaralan ang pumapasok na sensor data ng system, mula sa solar generation at electronics power draw hanggang sa performance ng baterya, at ginagawang insights ang mga ito upang mapabuti ang efficiency ng system at mapanatiling tumpak ang electronics recommendations.",
       contactDetails: "Contact Details",
     },
     manual: {
       title: "User Manual",
       subtitle: "Mga gabay sa pagpapatakbo ng iyong AdlaWatt system.",
     },
-    appliances: {
-      title: "Mga Appliance",
-      subtitle: "Pamahalaan at i-monitor ang mga sinusuportahang appliance.",
+    electronics: {
+      title: "Mga Electronics",
+      subtitle: "Pamahalaan at i-monitor ang mga sinusuportahang electronics.",
     },
     components: {
       title: "Mga Komponente",
@@ -398,7 +398,7 @@ const fil = {
     analytics: {
       title: "Analytics at Trends",
       subtitle:
-        "Suriin ang performance ng system, paggamit ng enerhiya, temperatura, at datos ng appliance sa paglipas ng panahon.",
+        "Suriin ang performance ng system, paggamit ng enerhiya, temperatura, at datos ng electronics sa paglipas ng panahon.",
       sectionBattery: "Baterya",
       sectionSolar: "Solar",
       sectionEnergy: "Enerhiya",
@@ -414,7 +414,7 @@ const fil = {
     },
     logs: {
       title: "Activity Logs",
-      subtitle: "Dito lilitaw ang aktibidad ng system at mga event ng appliance.",
+      subtitle: "Dito lilitaw ang aktibidad ng system at mga event ng electronics.",
       total: "Kabuuang Activity Logs:",
       loadFailed:
         "Hindi ma-load ang iyong activity logs. Suriin ang iyong koneksyon at subukang muli.",
@@ -494,21 +494,21 @@ const fil = {
   },
 
   applianceBox: {
-    editAppliance: "I-edit ang appliance",
-    archiveAppliance: "I-archive ang appliance",
-    unarchiveAppliance: "I-unarchive ang appliance",
-    deleteAppliance: "Burahin ang appliance",
-    showOptions: "Ipakita ang mga opsyon ng appliance",
-    hideOptions: "Itago ang mga opsyon ng appliance",
+    editAppliance: "I-edit ang electronics item",
+    archiveAppliance: "I-archive ang electronics item",
+    unarchiveAppliance: "I-unarchive ang electronics item",
+    deleteAppliance: "Burahin ang electronics item",
+    showOptions: "Ipakita ang mga opsyon ng electronics",
+    hideOptions: "Itago ang mga opsyon ng electronics",
     deleteQuestion: "Gusto mo ba itong burahin?",
-    doNotDelete: "Huwag burahin ang appliance",
-    confirmDelete: "Kumpirmahin ang pagbura ng appliance",
-    archiveQuestion: "I-archive ang appliance na ito?",
-    unarchiveQuestion: "I-unarchive ang appliance na ito?",
-    doNotArchive: "Huwag i-archive ang appliance",
-    doNotUnarchive: "Huwag i-unarchive ang appliance",
-    confirmArchive: "Kumpirmahin ang pag-archive ng appliance",
-    confirmUnarchive: "Kumpirmahin ang pag-unarchive ng appliance",
+    doNotDelete: "Huwag burahin ang electronics item",
+    confirmDelete: "Kumpirmahin ang pagbura ng electronics item",
+    archiveQuestion: "I-archive ang electronics item na ito?",
+    unarchiveQuestion: "I-unarchive ang electronics item na ito?",
+    doNotArchive: "Huwag i-archive ang electronics item",
+    doNotUnarchive: "Huwag i-unarchive ang electronics item",
+    confirmArchive: "Kumpirmahin ang pag-archive ng electronics item",
+    confirmUnarchive: "Kumpirmahin ang pag-unarchive ng electronics item",
   },
 
   activityCard: {
@@ -548,7 +548,7 @@ const fil = {
       bulletAlerts:
         "Matalinong alerto para sa mapanganib na antas",
       bulletPlanner:
-        "Appliance planner at mga rekomendasyon",
+        "Electronics planner at mga rekomendasyon",
       bulletLog: "Activity log at kasaysayan",
     },
     goals: {

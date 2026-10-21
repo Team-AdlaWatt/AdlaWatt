@@ -148,14 +148,14 @@ web fix only.
 
 ---
 
-### 4. The keyboard covered the fields when adding an appliance
+### 4. The keyboard covered the fields when adding an electronics item
 
 **Summary**
-In the "add custom appliance" form, the keyboard sat on top of the name and
+In the "add custom electronics" form, the keyboard sat on top of the name and
 wattage fields. You couldn't see what you were typing.
 
 **Steps to Reproduce**
-1. Open the add/edit custom appliance form.
+1. Open the add/edit custom electronics form.
 2. Tap the name field, or the min/max wattage fields.
 3. Start typing.
 
@@ -225,7 +225,7 @@ An empty, labeled box. Nothing to see, nothing to tap.
 - **Device:** Android, iPhone, and web browser
 - **App Version:** v1.0.0
 
-**Fixed:** Each figure is now a green "Open Dashboard" / "Open Appliances" / "Open
+**Fixed:** Each figure is now a green "Open Dashboard" / "Open Electronics" / "Open
 Analytics" button that opens the real screen with live data. Generate Report,
 Notifications, Components, and Menu got one too, and Activity Logs — which had
 nothing — now has one as well.
@@ -356,12 +356,12 @@ all.
 
 **Summary**
 The battery bank is rated 756 Wh (12.6 V × 60 Ah), but the app still described a
-720 Wh pack with a 144 Wh reserve and 576 Wh usable. Because the appliance
+720 Wh pack with a 144 Wh reserve and 576 Wh usable. Because the electronics
 recommendation engine reads the battery's energy, every label, limit, and
 recommendation was built on the older 720 Wh figure.
 
 **Steps to Reproduce**
-1. Open the Appliances screen and add an appliance, or open Menu, then User Manual.
+1. Open the Electronics screen and add an electronics item, or open Menu, then User Manual.
 2. Look at the battery capacity and reserve figures shown.
 3. Compare them with the battery datasheet (756 Wh, 20% reserve = 151.2 Wh).
 
@@ -370,7 +370,7 @@ The app shows 756 Wh total, a 151.2 Wh reserve, and 604.8 Wh usable, and the
 recommendations and wattage limits follow those numbers.
 
 **Actual Behavior**
-The app used 720 Wh / 144 Wh / 576 Wh and capped appliance wattage at 720 W.
+The app used 720 Wh / 144 Wh / 576 Wh and capped electronics wattage at 720 W.
 
 **Environment**
 - **Device:** Android, iPhone, and web browser
@@ -378,11 +378,11 @@ The app used 720 Wh / 144 Wh / 576 Wh and capped appliance wattage at 720 W.
 
 **Fixed:** Updated the recommendation engine (`BATTERY_NOMINAL_WH` 756, `RESERVE_WH`
 151.2), the battery gauge ceiling (756 Wh) and low threshold (151.2 Wh), the
-appliance wattage cap (756 W), the in-app advisory and User Manual, and the
+electronics wattage cap (756 W), the in-app advisory and User Manual, and the
 README / implementation-plan docs, including the 1% SoC table recomputed as
 756 × SoC ÷ 100. The capacity, reserve, and usable figures now come from a
 single source of truth (`src/constants/battery.ts`) shared by the engine, the
-battery gauge, and the appliance modals — 756 is the basis, the old 720 value is
+battery gauge, and the electronics modals — 756 is the basis, the old 720 value is
 gone.
 **Note:** The ESP32 firmware must also report `watt_hours` on the 756 Wh scale
 before recommendations reflect the new capacity — still to do on the hardware side.

@@ -13,7 +13,7 @@ It produces one Supabase row:
 | Column        | Source                                     |
 |---------------|--------------------------------------------|
 | `user_id`     | Resolved inside the service via `getUser()` |
-| `title`       | Short event label (e.g. `"Appliance Added"`) |
+| `title`       | Short event label (e.g. `"Electronics Added"`) |
 | `description` | Human detail (e.g. `"Stand Fan (75W) added"`) |
 | `type`        | `info`, `warning`, `error`, or `critical`  |
 | `act_id` / `created_at` | Server-generated                     |
@@ -43,7 +43,7 @@ Supabase blocks automatic capture of session-layer events (login, logout, token 
 Rules:
 
 - **Failures that threaten the account or hardware escalate.** Wrong passwords stay `warning`; inverter overload is `critical`.
-- **Destructive user actions are `warning`, not `info`.** Deleting an appliance is not routine.
+- **Destructive user actions are `warning`, not `info`.** Deleting an electronics item is not routine.
 - **Sensitive account changes are `warning`.** Password changes and pending email confirmations get visibility.
 - **Recoveries are `info`.** Device back online, sensor reconnected — the all-clear is routine.
 
@@ -76,13 +76,13 @@ Rules:
 
 - Pure validation with no changes (`"No changes made"`) logs nothing.
 
-### Appliances (`ApplianceModal.tsx`)
+### Electronics (`ApplianceModal.tsx`)
 
 | Event | Type | Call site |
 |---|---|---|
-| Appliance Added | `info` | `handleCustomAdd()` success |
-| Appliance Updated | `info` | `handleCustomUpdate()` success |
-| Appliance Removed | `warning` | `handleCustomDelete()` success |
+| Electronics Added | `info` | `handleCustomAdd()` success |
+| Electronics Updated | `info` | `handleCustomUpdate()` success |
+| Electronics Removed | `warning` | `handleCustomDelete()` success |
 | Selection Saved | `info` | `handleSave()` (count/names, not per toggle) |
 | Selection Reset | `info` | `handleReset()` |
 
@@ -189,4 +189,4 @@ Shared rules:
 3. `src/components/ActivityLogCard.tsx` — display types and four-state rendering.
 4. `src/services/notificationService.ts` — fully separate; never writes here.
 5. `src/services/auth.ts` — auth call sites (`registerUser`, `loginUser`, `updateAccount`).
-6. `src/components/forms/ApplianceModal.tsx` — appliance mutation call sites.
+6. `src/components/forms/ApplianceModal.tsx` — electronics mutation call sites.

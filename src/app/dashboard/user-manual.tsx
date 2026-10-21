@@ -54,7 +54,7 @@ const CHIPS: {
   { label: "Quick Start", target: "s2" },
   { label: "Account", target: "s3" },
   { label: "Dashboard", target: "s6" },
-  { label: "Appliances", target: "s7" },
+  { label: "Electronics", target: "s7" },
   { label: "Reports", target: "s8" },
   { label: "Notifications", target: "s9" },
   { label: "Settings", target: "s12" },
@@ -244,7 +244,7 @@ export default function UserManualScreen() {
               5-day solar outlook
             </Bullet>
             <Bullet>
-              Appliance load and
+              Electronics load and
               depth-of-discharge safety
             </Bullet>
             <Bullet>
@@ -252,7 +252,7 @@ export default function UserManualScreen() {
               temperatures
             </Bullet>
             <Bullet>
-              Smart appliance
+              Smart electronics
               recommendations, alerts,
               and energy reports
             </Bullet>
@@ -286,7 +286,7 @@ export default function UserManualScreen() {
             <Step n="2" text="Confirm your email via the link in your inbox — sign-in stays locked until then." />
             <Step n="3" text="Sign in with your username or email and password." />
             <Step n="4" text="Read your battery gauge: percentage plus Charging, Discharging, or Idle." />
-            <Step n="5" text="Check one appliance badge: OK to use means safe, Not advisable means wait for charge." />
+            <Step n="5" text="Check one electronics badge: OK to use means safe, Not advisable means wait for charge." />
 
             <ManualCallout kind="tip">
               You can also register or sign
@@ -460,7 +460,7 @@ export default function UserManualScreen() {
               Quick-navigation buttons
               scroll to each section; new
               users get a welcome greeting
-              with an Add Appliances
+              with an Add Electronics
               button in the recommendation
               card. The bell icon carries
               the unread badge.
@@ -468,13 +468,13 @@ export default function UserManualScreen() {
           </ManualSectionCard>
         </View>
 
-        {/* 7 · Appliances */}
+        {/* 7 · Electronics */}
         <View
           onLayout={rememberTop("s7")}
         >
           <ManualSectionCard
             number="7"
-            title="Appliances: What Can I Safely Use?"
+            title="Electronics: What Can I Safely Use?"
             icon="bulb"
             subtitle="Badges, picking, customs, archives."
           >
@@ -496,7 +496,7 @@ export default function UserManualScreen() {
                 toggleRow("s7.1")
               }
             >
-              <Step n="1" text="Dashboard: tap Appliance Recommendation, then Add Appliances — or open Appliances and tap Select Appliances." />
+              <Step n="1" text="Dashboard: tap Electronics Recommendation, then Add Electronics — or open Electronics and tap Select Electronics." />
               <Step n="2" text="Scroll the catalog, or use the search box." />
               <Step n="3" text="Tap boxes to select (tap again to deselect)." />
               <Step n="4" text="Tap Add — picks come back rated advisable or not." />
@@ -511,7 +511,7 @@ export default function UserManualScreen() {
             </ManualSubRow>
 
             <ManualSubRow
-              label="7.2 Adding a custom appliance"
+              label="7.2 Adding a custom electronics item"
               expanded={openRow === "s7.2"}
               onToggle={() =>
                 toggleRow("s7.2")
@@ -594,13 +594,13 @@ export default function UserManualScreen() {
                 level and area, alongside
                 advisability segments that
                 only show segments holding
-                appliances.
+                electronics.
               </Para>
             </ManualSubRow>
 
             <ManualOpenButton
-              label="Appliances"
-              route="/dashboard/appliances"
+              label="Electronics"
+              route="/dashboard/electronics"
               icon="grid"
             />
           </ManualSectionCard>
@@ -721,7 +721,7 @@ export default function UserManualScreen() {
             subtitle="What you did — not the hardware."
           >
             <Para>
-              Sign-ins, appliance changes,
+              Sign-ins, electronics changes,
               and settings updates live
               here, typed Info, Warning,
               Error, Critical. Hardware
@@ -848,8 +848,8 @@ export default function UserManualScreen() {
             />
             <Faq
               id="q2"
-              q="Appliance says Not advisable but I need it?"
-              a="The battery cannot safely cover it now. Recharge via solar, pick a lighter appliance, or run it briefly while watching the gauge. Do not repeatedly override below 20%."
+              q="An electronics item says Not advisable but I need it?"
+              a="The battery cannot safely cover it now. Recharge via solar, pick a lighter electronics item, or run it briefly while watching the gauge. Do not repeatedly override below 20%."
               openRow={openRow}
               onToggle={toggleRow}
             />

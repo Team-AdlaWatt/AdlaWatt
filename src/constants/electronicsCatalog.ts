@@ -73,7 +73,7 @@ export const CATALOG_BY_NAME = new Map(
   ]),
 );
 
-export const CUSTOM_AREA = "Custom Appliances";
+export const CUSTOM_AREA = "Custom Electronics";
 
 export type ApplianceLevel = "low" | "moderate" | "high";
 

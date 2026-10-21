@@ -150,8 +150,8 @@ export default function CustomApplianceModal({
 
   const isEdit = mode === "edit";
   const title = isEdit
-    ? "Edit Custom Appliance"
-    : "Add Custom Appliance";
+    ? "Edit Custom Electronics"
+    : "Add Custom Electronics";
   const confirmLabel = isEdit ? "Save" : "Add";
   const handleConfirm = isEdit
     ? (onSave ?? onAdd)
@@ -189,7 +189,7 @@ export default function CustomApplianceModal({
         variant="caption"
         style={styles.infoNote}
       >
-        Check the appliance wattage first, for
+        Check the electronics wattage first, for
         example, soldering wire may use 15-25W.
       </AppText>
 
@@ -206,8 +206,8 @@ export default function CustomApplianceModal({
           resizeMode="contain"
           accessibilityLabel={
             photoPreview
-              ? "Custom appliance photo"
-              : "Default appliance icon"
+              ? "Custom electronics photo"
+              : "Default electronics icon"
           }
         />
       </View>
@@ -223,8 +223,8 @@ export default function CustomApplianceModal({
         accessibilityRole="button"
         accessibilityLabel={
           photoPreview
-            ? "Change appliance photo"
-            : "Add appliance photo"
+            ? "Change electronics photo"
+            : "Add electronics photo"
         }
         accessibilityHint="Opens the photo picker"
       >
@@ -247,7 +247,7 @@ export default function CustomApplianceModal({
       <TextInput
         value={name}
         onChangeText={onNameChange}
-        placeholder="Enter valid appliance name"
+        placeholder="Enter valid electronics name"
         placeholderTextColor={
           colors.textSecondary
         }
@@ -255,8 +255,8 @@ export default function CustomApplianceModal({
         style={[styles.input, inputFontStyle]}
         accessibilityLabel={
           isEdit
-            ? "Edit custom appliance name"
-            : "Add custom appliance name"
+            ? "Edit custom electronics name"
+            : "Add custom electronics name"
         }
       />
 
@@ -329,8 +329,8 @@ export default function CustomApplianceModal({
           accessibilityRole="button"
           accessibilityLabel={
             isEdit
-              ? "Cancel edit custom appliance"
-              : "Cancel add custom appliance"
+              ? "Cancel edit custom electronics"
+              : "Cancel add custom electronics"
           }
         >
           <AppText
@@ -355,8 +355,8 @@ export default function CustomApplianceModal({
           accessibilityRole="button"
           accessibilityLabel={
             isEdit
-              ? "Save custom appliance"
-              : "Add custom appliance"
+              ? "Save custom electronics"
+              : "Add custom electronics"
           }
         >
           <AppText

@@ -12,7 +12,7 @@ export const Routes = {
   DASHBOARD: "/dashboard",
 
   // Dashboard Pages
-  APPLIANCES: "/dashboard/appliances",
+  ELECTRONICS: "/dashboard/electronics",
   COMPONENTS: "/dashboard/components",
   ACTIVITY_LOGS: "/dashboard/activity-logs",
   ANALYTICS: "/dashboard/analytics",

@@ -194,7 +194,7 @@ Only if phone/BLE pushes it: `city + now°C + outlook + bestSunDay`. Never block
 
 ### Skip on TFT (phone app owns these)
 
-Supabase history, 17 analytics charts, 5-day forecast strip, appliance carousel, activity logs, notifications list, email, auth, settings.
+Supabase history, 17 analytics charts, 5-day forecast strip, electronics carousel, activity logs, notifications list, email, auth, settings.
 
 ## 4. ESP32 live mapping (no Supabase)
 

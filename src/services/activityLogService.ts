@@ -158,7 +158,7 @@ export const logProfile = {
 export const logAppliance = {
   added(name: string, watts: string): void {
     logActivity({
-      title: "Appliance Added",
+      title: "Electronics Added",
       description: `${name} (${watts}) added.`,
       type: "info",
     });
@@ -166,7 +166,7 @@ export const logAppliance = {
 
   updated(name: string): void {
     logActivity({
-      title: "Appliance Updated",
+      title: "Electronics Updated",
       description: `${name} updated.`,
       type: "info",
     });
@@ -174,7 +174,7 @@ export const logAppliance = {
 
   removed(name: string): void {
     logActivity({
-      title: "Appliance Removed",
+      title: "Electronics Removed",
       description: `${name} removed.`,
       type: "warning",
     });
@@ -182,7 +182,7 @@ export const logAppliance = {
 
   archived(name: string): void {
     logActivity({
-      title: "Appliance Archived",
+      title: "Electronics Archived",
       description: `${name} archived.`,
       type: "info",
     });
@@ -190,7 +190,7 @@ export const logAppliance = {
 
   unarchived(name: string): void {
     logActivity({
-      title: "Appliance Unarchived",
+      title: "Electronics Unarchived",
       description: `${name} restored.`,
       type: "info",
     });
@@ -199,7 +199,7 @@ export const logAppliance = {
   selectionSaved(count: number): void {
     logActivity({
       title: "Selection Saved",
-      description: `${count} appliance${
+      description: `${count} electronics item${
         count === 1 ? "" : "s"
       } selected.`,
       type: "info",
@@ -209,7 +209,7 @@ export const logAppliance = {
   selectionReset(): void {
     logActivity({
       title: "Selection Reset",
-      description: "Appliance selection cleared.",
+      description: "Electronics selection cleared.",
       type: "info",
     });
   },

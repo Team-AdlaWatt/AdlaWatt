@@ -99,19 +99,19 @@ const EMPTY_STATE_META: Record<
   { title: string; description: string }
 > = {
   advisable: {
-    title: "No Advisable Appliances",
+    title: "No Advisable Electronics",
     description:
-      "No selected appliances are currently advisable to use.",
+      "No selected electronics are currently advisable to use.",
   },
   care: {
-    title: "No Appliances to Use With Care",
+    title: "No Electronics to Use With Care",
     description:
-      "No selected appliances currently need caution.",
+      "No selected electronics currently need caution.",
   },
   notAdvisable: {
-    title: "No Not Advisable Appliances",
+    title: "No Not Advisable Electronics",
     description:
-      "No selected appliances are currently not advisable to use.",
+      "No selected electronics are currently not advisable to use.",
   },
 };
 
@@ -128,21 +128,21 @@ const TOGGLE_META: {
     // active segment tracks dark mode.
     color: "themed-primary",
     accessibilityLabel:
-      "Show advisable appliances",
+      "Show advisable electronics",
   },
   {
     mode: "care",
     label: "Caution",
     color: "themed-warning",
     accessibilityLabel:
-      "Show appliances to use with care",
+      "Show electronics to use with care",
   },
   {
     mode: "notAdvisable",
     label: "Not Advisable",
     color: "themed-error",
     accessibilityLabel:
-      "Show not advisable appliances",
+      "Show not advisable electronics",
   },
 ];
 
@@ -259,10 +259,10 @@ export default function AppRecCard({
   // ============================================
   // CONTENT-AWARE STATUS SEGMENTS
   //
-  // Only segments holding appliances render; the mode
+  // Only segments holding electronics render; the mode
   // follows the first non-empty status in
   // Caution → Advisable → Not Advisable order — the same
-  // contract as the Appliances screen, which reads the
+  // contract as the Electronics screen, which reads the
   // same selection through the same engine (parent/child
   // stay consistent by construction).
   // ============================================
@@ -565,7 +565,7 @@ export default function AppRecCard({
                   animateButton(1)
                 }
                 accessibilityRole="button"
-                accessibilityLabel="Add Appliances"
+                accessibilityLabel="Add Electronics"
               >
                 <Animated.View
                   style={[
@@ -591,7 +591,7 @@ export default function AppRecCard({
                       styles.addAppliancesButtonText
                     }
                   >
-                    Add Appliances
+                    Add Electronics
                   </AppText>
                 </Animated.View>
               </Pressable>
@@ -651,7 +651,7 @@ export default function AppRecCard({
             )}
           />
 
-          {/* Appliances / Empty Text */}
+          {/* Electronics / Empty Text */}
           {filteredAppliances.length > 0 ? (
           <View
             style={[
@@ -877,7 +877,7 @@ function RecHeader({
           variant="heading"
           style={styles.recHeaderTitle}
         >
-          Appliance Recommendation
+          Electronics Recommendation
         </AppText>
       </View>
     </View>

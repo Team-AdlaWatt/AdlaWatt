@@ -29,6 +29,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import { Colors } from "@/constants/colors";
 import {
   CATALOG_IMAGES,
+  CUSTOM_AREA,
 } from "@/constants/electronicsCatalog";
 import {
   useAppColors,
@@ -105,21 +106,21 @@ const TOGGLE_META_BASE: {
     label: "Advisable",
     tone: "primary",
     accessibilityLabel:
-      "Show advisable appliances",
+      "Show advisable electronics",
   },
   {
     filter: "Caution",
     label: "Caution",
     tone: "warning",
     accessibilityLabel:
-      "Show appliances to use with care",
+      "Show electronics to use with care",
   },
   {
     filter: "notAdvisable",
     label: "Not Advisable",
     tone: "error",
     accessibilityLabel:
-      "Show not advisable appliances",
+      "Show not advisable electronics",
   },
 ];
 
@@ -165,7 +166,7 @@ const statusMeta = (
 
 /*
  * UI area names (resolved areas already use these names —
- * catalog uiArea values and "Custom Appliances").
+ * catalog uiArea values and CUSTOM_AREA).
  */
 const areaMap: Record<
   Exclude<Area, "All Areas">,
@@ -177,10 +178,10 @@ const areaMap: Record<
   "Kitchen Area": "Kitchen Area",
   "Work/Study Area": "Work/Study Area",
   "Bathroom Area": "Bathroom Area",
-  Custom: "Custom Appliances",
+  Custom: CUSTOM_AREA,
 };
 
-export default function AppliancesScreen() {
+export default function ElectronicsScreen() {
   const { t } = useTranslation();
   const [statusFilter, setStatusFilter] =
     useState<StatusFilter>("Advisable");
@@ -265,7 +266,7 @@ export default function AppliancesScreen() {
 
     if (error) {
       console.error(
-        "Failed to load selected appliances:",
+        "Failed to load selected electronics:",
         error.message,
       );
       return;
@@ -315,7 +316,7 @@ export default function AppliancesScreen() {
             id: String(item.app_id),
             name: String(item.appliance_name),
             watts,
-            area: "Custom Appliances",
+            area: CUSTOM_AREA,
             imageUrl:
               typeof item.image_url === "string"
                 ? item.image_url
@@ -569,19 +570,19 @@ export default function AppliancesScreen() {
             variant="heading"
             style={styles.title}
           >
-            {t("dashboard.appliances.title")}
+            {t("dashboard.electronics.title")}
           </AppText>
 
           <AppText
             variant="caption"
             style={styles.subtitle}
           >
-            {t("dashboard.appliances.subtitle")}
+            {t("dashboard.electronics.subtitle")}
           </AppText>
         </View>
 
         {/* Controls */}
-        {/* Select Appliances (full spread, above the filters) */}
+        {/* Select Electronics (full spread, above the filters) */}
         <Pressable
           onPress={() =>
             setApplianceModalVisible(true)
@@ -591,7 +592,7 @@ export default function AppliancesScreen() {
             pressed && styles.pressed,
           ]}
           accessibilityRole="button"
-          accessibilityLabel="Select appliances"
+          accessibilityLabel="Select electronics"
         >
           <Ionicons
             name="add-outline"
@@ -603,7 +604,7 @@ export default function AppliancesScreen() {
             variant="caption"
             style={styles.addButtonText}
           >
-            Select Appliances
+            Select Electronics
           </AppText>
         </Pressable>
 
@@ -702,25 +703,25 @@ export default function AppliancesScreen() {
           )}
         />
 
-        {/* Appliances */}
+        {/* Electronics */}
         <View style={[applianceCardGrid, { marginTop: 20 }]}>
           {filteredAppliances.length === 0 ? (
             <EmptyState
               title={
                 selectedAppliances.length === 0
-                  ? "No Appliances"
+                  ? "No Electronics"
                   : effectiveStatusFilter ===
                       "Advisable"
-                    ? "No Advisable Appliances"
+                    ? "No Advisable Electronics"
                     : effectiveStatusFilter ===
                         "Caution"
-                      ? "No Appliances to Use With Care"
-                      : "No Not Advisable Appliances"
+                      ? "No Electronics to Use With Care"
+                      : "No Not Advisable Electronics"
               }
               description={
                 selectedAppliances.length === 0
-                  ? "No appliances have been selected yet."
-                  : "No appliances match the selected filters."
+                  ? "No electronics have been selected yet."
+                  : "No electronics match the selected filters."
               }
               icon={
                 selectedAppliances.length === 0

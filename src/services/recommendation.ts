@@ -885,7 +885,7 @@ export const recommendAppliance = (
 
     reason =
       classification.tier === "Unsafe"
-        ? "Battery is unsafe — recharge before using appliances."
+        ? "Battery is unsafe — recharge before using electronics."
         : "Reserve only — no load recommended.";
   } else if (
     !wattRange
