@@ -14,7 +14,7 @@ import {
 import ComponentStatusBox from "@/components/forms/ComponentStatusBox";
 import {
   electronicsCardGrid,
-} from "@/components/forms/applianceCard";
+} from "@/components/forms/electronicsCard";
 import Copyright from "@/components/ui/Copyright";
 
 import NavBar from "@/components/layout/Navbar";

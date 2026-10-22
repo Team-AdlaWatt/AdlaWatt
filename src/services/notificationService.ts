@@ -1778,7 +1778,7 @@ const checkElectronicsBecameAdvisable = async (
 
   try {
     const { fetchSelectedElectronics } = await import(
-      "@/services/appliancesService"
+      "@/services/electronicsService"
     );
     const resolved = await fetchSelectedElectronics();
 
@@ -1843,7 +1843,7 @@ const checkHighLoadWhileBatteryLow = async (
 
   try {
     const { fetchSelectedElectronics } = await import(
-      "@/services/appliancesService"
+      "@/services/electronicsService"
     );
     const resolved = await fetchSelectedElectronics();
 

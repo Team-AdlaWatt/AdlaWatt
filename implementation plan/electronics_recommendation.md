@@ -381,5 +381,5 @@ Shared rules:
 2. `src/components/AppRecCard.tsx` — dashboard recommendation carousel consuming `recommendElectronics`.
 3. `src/app/dashboard/electronics.tsx` — electronics screen consuming `recommendElectronics` with power/area/status filters.
 4. `src/services/monitoringService.ts` — live battery fields (`battery_level`, `voltage`, `watt_hours`, `dod_status`) feeding the engine.
-5. `src/components/forms/applianceCard.ts` — shared compact card sizing for the recommendation and electronics grids.
+5. `src/components/forms/electronicsCard.ts` — shared compact card sizing for the recommendation and electronics grids.
 6. `implementation plan/zenova_battery.md` — the battery bank reference the recommendation constants mirror.

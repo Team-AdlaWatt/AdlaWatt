@@ -21,7 +21,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 import {
   useElectronicsCardStyles,
-} from "@/components/forms/applianceCard";
+} from "@/components/forms/electronicsCard";
 import AppText from "@/components/ui/AppText";
 import {
   useAppColors,

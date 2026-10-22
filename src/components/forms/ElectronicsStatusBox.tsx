@@ -11,7 +11,7 @@ import {
 
 import {
   useElectronicsCardStyles,
-} from "@/components/forms/applianceCard";
+} from "@/components/forms/electronicsCard";
 import AppText from "@/components/ui/AppText";
 import { useAppColors } from "@/hooks/useAppColors";
 

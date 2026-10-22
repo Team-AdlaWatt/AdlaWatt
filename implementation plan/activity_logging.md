@@ -76,7 +76,7 @@ Rules:
 
 - Pure validation with no changes (`"No changes made"`) logs nothing.
 
-### Electronics (`ApplianceModal.tsx`)
+### Electronics (`ElectronicsModal.tsx`)
 
 | Event | Type | Call site |
 |---|---|---|
@@ -189,4 +189,4 @@ Shared rules:
 3. `src/components/ActivityLogCard.tsx` — display types and four-state rendering.
 4. `src/services/notificationService.ts` — fully separate; never writes here.
 5. `src/services/auth.ts` — auth call sites (`registerUser`, `loginUser`, `updateAccount`).
-6. `src/components/forms/ApplianceModal.tsx` — electronics mutation call sites.
+6. `src/components/forms/ElectronicsModal.tsx` — electronics mutation call sites.

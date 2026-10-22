@@ -12,11 +12,11 @@ import {
   View,
 } from "react-native";
 
-import ElectronicsModal from "@/components/forms/ApplianceModal";
-import ElectronicsStatusBox from "@/components/forms/ApplianceStatusBox";
+import ElectronicsModal from "@/components/forms/ElectronicsModal";
+import ElectronicsStatusBox from "@/components/forms/ElectronicsStatusBox";
 import {
   electronicsCardGrid,
-} from "@/components/forms/applianceCard";
+} from "@/components/forms/electronicsCard";
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
 import PullRefreshScroll from "@/components/PullRefreshScroll";
@@ -230,7 +230,7 @@ export default function ElectronicsScreen() {
   const loadSelectedElectronics = useCallback(async () => {
     try {
       const { fetchSelectedElectronics } = await import(
-        "@/services/appliancesService"
+        "@/services/electronicsService"
       );
       const resolved = await fetchSelectedElectronics();
 
@@ -273,7 +273,7 @@ export default function ElectronicsScreen() {
     }
 
     const { CATALOG_BY_KEY } = await import(
-      "@/constants/applianceCatalog"
+      "@/constants/electronicsCatalog"
     );
 
     setSelectedElectronics(

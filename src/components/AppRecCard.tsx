@@ -15,10 +15,10 @@ import {
   View,
 } from "react-native";
 
-import ElectronicsModal from "@/components/forms/ApplianceModal";
+import ElectronicsModal from "@/components/forms/ElectronicsModal";
 import {
   useElectronicsCardStyles,
-} from "@/components/forms/applianceCard";
+} from "@/components/forms/electronicsCard";
 import AppText from "@/components/ui/AppText";
 
 import { Colors } from "@/constants/colors";
@@ -377,7 +377,7 @@ export default function AppRecCard({
   const loadElectronics = async () => {
     try {
       const { fetchSelectedElectronics } = await import(
-        "@/services/appliancesService"
+        "@/services/electronicsService"
       );
       const resolved = await fetchSelectedElectronics();
 

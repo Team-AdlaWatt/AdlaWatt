@@ -18,18 +18,18 @@ import {
   Image as ExpoImage,
 } from "expo-image";
 
-import ElectronicsBox from "@/components/forms/ApplianceBox";
+import ElectronicsBox from "@/components/forms/ElectronicsBox";
 import {
   electronicsCardGrid,
-} from "@/components/forms/applianceCard";
-import CustomElectronicsModal from "@/components/forms/CustomApplianceModal";
+} from "@/components/forms/electronicsCard";
+import CustomElectronicsModal from "@/components/forms/CustomElectronicsModal";
 import MediaPickerModal, {
   type PickedPhoto,
 } from "@/components/forms/MediaPickerModal";
 import {
   deleteElectronicsPhotoByUrl,
   uploadElectronicsPhoto,
-} from "@/services/appliancePhotoService";
+} from "@/services/electronicsPhotoService";
 import AppText from "@/components/ui/AppText";
 import EmptyState from "@/components/ui/EmptyState";
 import SearchBox from "@/components/ui/SearchBox";
