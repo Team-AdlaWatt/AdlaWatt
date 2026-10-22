@@ -4,21 +4,21 @@ import {
   GIVEN_CATALOG,
   resolveRow,
   levelFromWatts,
-  type ApplianceRow,
-  type ResolvedAppliance,
+  type ElectronicsRow,
+  type ResolvedElectronics,
 } from "@/constants/electronicsCatalog";
 
 // v5 schema select: user picks only. Catalog wattage/area
 // come from GIVEN_CATALOG in code, never from these columns.
 // Both givens and customs carry wattage_min/max (numeric).
 const COLUMNS =
-  "app_id, appliance_name, type, catalog_key, wattage_min, wattage_max, selection, archive, user_id, image_url";
+  "app_id, electronics_name, type, catalog_key, wattage_min, wattage_max, selection, archive, user_id, image_url";
 
 type DbRow = Record<string, unknown>;
 
-const toApplianceRow = (row: DbRow): ApplianceRow => ({
+const toElectronicsRow = (row: DbRow): ElectronicsRow => ({
   app_id: String(row.app_id ?? ""),
-  appliance_name: String(row.appliance_name ?? ""),
+  electronics_name: String(row.electronics_name ?? ""),
   type:
     typeof row.type === "string" ? row.type : null,
   catalog_key:
@@ -53,9 +53,9 @@ const toApplianceRow = (row: DbRow): ApplianceRow => ({
 
 // Whole list for the modal: full catalog + user's customs.
 // Catalog selected state comes from DB picks by catalog_key.
-export function buildDisplayAppliances(
-  rows: ApplianceRow[],
-): ResolvedAppliance[] {
+export function buildDisplayElectronics(
+  rows: ElectronicsRow[],
+): ResolvedElectronics[] {
   const pickedKeys = new Set(
     rows
       .filter((row) => row.catalog_key)
@@ -63,11 +63,11 @@ export function buildDisplayAppliances(
   );
   const pickedNames = new Set(
     rows.map((row) =>
-      row.appliance_name.trim().toLowerCase(),
+      row.electronics_name.trim().toLowerCase(),
     ),
   );
 
-  const catalog: ResolvedAppliance[] = GIVEN_CATALOG.map(
+  const catalog: ResolvedElectronics[] = GIVEN_CATALOG.map(
     (item) => {
       const picked =
         pickedKeys.has(item.key) ||
@@ -77,7 +77,7 @@ export function buildDisplayAppliances(
       const match = rows.find(
         (row) =>
           row.catalog_key === item.key ||
-          row.appliance_name.trim().toLowerCase() ===
+          row.electronics_name.trim().toLowerCase() ===
             item.name.trim().toLowerCase(),
       );
 
@@ -105,7 +105,7 @@ export function buildDisplayAppliances(
       // Defensive: rows without catalog_key that are not
       // givens and whose name is not in the catalog.
       if (!row.catalog_key && row.type !== "given") {
-        const name = row.appliance_name
+        const name = row.electronics_name
           .trim()
           .toLowerCase();
         return !GIVEN_CATALOG.some(
@@ -118,13 +118,13 @@ export function buildDisplayAppliances(
     })
     .map(resolveRow)
     .filter(
-      (item): item is ResolvedAppliance => item !== null,
+      (item): item is ResolvedElectronics => item !== null,
     );
 
   return [...catalog, ...customs];
 }
 
-const fetchRows = async (): Promise<ApplianceRow[]> => {
+const fetchRows = async (): Promise<ElectronicsRow[]> => {
   const user = await getAuthenticatedUserSafe();
 
   if (!user) {
@@ -132,7 +132,7 @@ const fetchRows = async (): Promise<ApplianceRow[]> => {
   }
 
   const { data, error } = await supabase
-    .from("appliances")
+    .from("electronics")
     .select(COLUMNS)
     .eq("user_id", user.id);
 
@@ -140,20 +140,20 @@ const fetchRows = async (): Promise<ApplianceRow[]> => {
     throw error;
   }
 
-  return ((data ?? []) as DbRow[]).map(toApplianceRow);
+  return ((data ?? []) as DbRow[]).map(toElectronicsRow);
 };
 
 // Modal list: catalog + customs with selection state.
-export async function loadAppliances(): Promise<
-  ResolvedAppliance[]
+export async function loadElectronics(): Promise<
+  ResolvedElectronics[]
 > {
-  return buildDisplayAppliances(await fetchRows());
+  return buildDisplayElectronics(await fetchRows());
 }
 
 // Readers: only currently selected (catalog picks +
 // selected customs).
-export async function fetchSelectedAppliances(): Promise<
-  ResolvedAppliance[]
+export async function fetchSelectedElectronics(): Promise<
+  ResolvedElectronics[]
 > {
   const rows = await fetchRows();
 
@@ -173,7 +173,7 @@ export async function fetchSelectedAppliances(): Promise<
     })
     .map(resolveRow)
     .filter(
-      (item): item is ResolvedAppliance => item !== null,
+      (item): item is ResolvedElectronics => item !== null,
     )
     .filter((item) => {
       if (item.source === "catalog") {

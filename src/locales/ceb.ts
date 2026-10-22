@@ -363,9 +363,9 @@ const ceb = {
     home: {
       title: "Dashboard",
       subtitle: "I-monitor ang imong AdlaWatt system nga real time.",
-      applianceRecommendation: "Electronics Recommendation",
+      electronicsRecommendation: "Electronics Recommendation",
       realtimeMonitoring: "Real-Time Monitoring",
-      goToApplianceRecommendation: "Adto sa Electronics Recommendation",
+      goToElectronicsRecommendation: "Adto sa Electronics Recommendation",
       offlineBanner:
         "Wala kay koneksyon — katapusang readings ang gipakita.",
       lastUpdated:
@@ -500,11 +500,11 @@ const ceb = {
     libraryFailed: "Dili maablihan ang imong photo library. Sulayi pag-usab.",
   },
 
-  applianceBox: {
-    editAppliance: "I-edit ang electronics item",
-    archiveAppliance: "I-archive ang electronics item",
-    unarchiveAppliance: "I-unarchive ang electronics item",
-    deleteAppliance: "Papason ang electronics item",
+  electronicsBox: {
+    editElectronics: "I-edit ang electronics item",
+    archiveElectronics: "I-archive ang electronics item",
+    unarchiveElectronics: "I-unarchive ang electronics item",
+    deleteElectronics: "Papason ang electronics item",
     showOptions: "Ipakita ang mga opsyon sa electronics",
     hideOptions: "Tagoa ang mga opsyon sa electronics",
     deleteQuestion: "Gusto ba nimong papason kini?",

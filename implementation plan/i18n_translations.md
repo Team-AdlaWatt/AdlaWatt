@@ -310,9 +310,9 @@ by hand.
 |---|---|---|---|---|
 | `dashboard.home.title` | Dashboard | Dashboard | Dashboard |  |
 | `dashboard.home.subtitle` | Monitor your AdlaWatt system in real time. | I-monitor ang iyong AdlaWatt system nang real time. | I-monitor ang imong AdlaWatt system nga real time. |  |
-| `dashboard.home.applianceRecommendation` | Electronics Recommendation | Electronics Recommendation | Electronics Recommendation |  |
+| `dashboard.home.electronicsRecommendation` | Electronics Recommendation | Electronics Recommendation | Electronics Recommendation |  |
 | `dashboard.home.realtimeMonitoring` | Real-Time Monitoring | Real-Time Monitoring | Real-Time Monitoring |  |
-| `dashboard.home.goToApplianceRecommendation` | Go to Electronics Recommendation | Pumunta sa Electronics Recommendation | Adto sa Electronics Recommendation | a11y |
+| `dashboard.home.goToElectronicsRecommendation` | Go to Electronics Recommendation | Pumunta sa Electronics Recommendation | Adto sa Electronics Recommendation | a11y |
 | `dashboard.home.forecastFailed` | Could not load the forecast. | Hindi ma-load ang forecast. | Dili ma-load ang forecast. | error fallback |
 | `dashboard.home.offlineBanner` | You're offline — showing last readings. | Wala kang koneksyon — huling readings ang ipinapakita. | Wala kay koneksyon — katapusang readings ang gipakita. | offline banner |
 | `dashboard.home.lastUpdated` | Last updated {{time}}. | Huling na-update {{time}}. | Katapusang na-update {{time}}. | offline banner |
@@ -358,21 +358,21 @@ by hand.
 
 | Key | English | Filipino | Cebuano | Notes |
 |---|---|---|---|---|
-| `applianceBox.editAppliance` | Edit electronics item | I-edit ang electronics item | I-edit ang electronics item | a11y |
-| `applianceBox.archiveAppliance` | Archive electronics item | I-archive ang electronics item | I-archive ang electronics item | a11y |
-| `applianceBox.unarchiveAppliance` | Unarchive electronics item | I-unarchive ang electronics item | I-unarchive ang electronics item | a11y |
-| `applianceBox.deleteAppliance` | Delete electronics item | Burahin ang electronics item | Papason ang electronics item | a11y |
-| `applianceBox.showOptions` | Show electronics options | Ipakita ang mga opsyon ng electronics | Ipakita ang mga opsyon sa electronics | a11y |
-| `applianceBox.hideOptions` | Hide electronics options | Itago ang mga opsyon ng electronics | Tagoa ang mga opsyon sa electronics | a11y |
-| `applianceBox.deleteQuestion` | You want to delete this? | Gusto mo ba itong burahin? | Gusto ba nimong papason kini? |  |
-| `applianceBox.doNotDelete` | Do not delete electronics item | Huwag burahin ang electronics item | Ayaw papasa ang electronics item | a11y |
-| `applianceBox.confirmDelete` | Confirm delete electronics item | Kumpirmahin ang pagbura ng electronics item | Kumpirmahi ang pagpapasa sa electronics item | a11y |
-| `applianceBox.archiveQuestion` | Archive this electronics item? | I-archive ang electronics item na ito? | I-archive kini nga electronics item? |  |
-| `applianceBox.unarchiveQuestion` | Unarchive this electronics item? | I-unarchive ang electronics item na ito? | I-unarchive kini nga electronics item? |  |
-| `applianceBox.doNotArchive` | Do not archive electronics item | Huwag i-archive ang electronics item | Ayaw i-archive ang electronics item | a11y |
-| `applianceBox.doNotUnarchive` | Do not unarchive electronics item | Huwag i-unarchive ang electronics item | Ayaw i-unarchive ang electronics item | a11y |
-| `applianceBox.confirmArchive` | Confirm archive electronics item | Kumpirmahin ang pag-archive ng electronics item | Kumpirmahi ang pag-archive sa electronics item | a11y |
-| `applianceBox.confirmUnarchive` | Confirm unarchive electronics item | Kumpirmahin ang pag-unarchive ng electronics item | Kumpirmahi ang pag-unarchive sa electronics item | a11y |
+| `electronicsBox.editElectronics` | Edit electronics item | I-edit ang electronics item | I-edit ang electronics item | a11y |
+| `electronicsBox.archiveElectronics` | Archive electronics item | I-archive ang electronics item | I-archive ang electronics item | a11y |
+| `electronicsBox.unarchiveElectronics` | Unarchive electronics item | I-unarchive ang electronics item | I-unarchive ang electronics item | a11y |
+| `electronicsBox.deleteElectronics` | Delete electronics item | Burahin ang electronics item | Papason ang electronics item | a11y |
+| `electronicsBox.showOptions` | Show electronics options | Ipakita ang mga opsyon ng electronics | Ipakita ang mga opsyon sa electronics | a11y |
+| `electronicsBox.hideOptions` | Hide electronics options | Itago ang mga opsyon ng electronics | Tagoa ang mga opsyon sa electronics | a11y |
+| `electronicsBox.deleteQuestion` | You want to delete this? | Gusto mo ba itong burahin? | Gusto ba nimong papason kini? |  |
+| `electronicsBox.doNotDelete` | Do not delete electronics item | Huwag burahin ang electronics item | Ayaw papasa ang electronics item | a11y |
+| `electronicsBox.confirmDelete` | Confirm delete electronics item | Kumpirmahin ang pagbura ng electronics item | Kumpirmahi ang pagpapasa sa electronics item | a11y |
+| `electronicsBox.archiveQuestion` | Archive this electronics item? | I-archive ang electronics item na ito? | I-archive kini nga electronics item? |  |
+| `electronicsBox.unarchiveQuestion` | Unarchive this electronics item? | I-unarchive ang electronics item na ito? | I-unarchive kini nga electronics item? |  |
+| `electronicsBox.doNotArchive` | Do not archive electronics item | Huwag i-archive ang electronics item | Ayaw i-archive ang electronics item | a11y |
+| `electronicsBox.doNotUnarchive` | Do not unarchive electronics item | Huwag i-unarchive ang electronics item | Ayaw i-unarchive ang electronics item | a11y |
+| `electronicsBox.confirmArchive` | Confirm archive electronics item | Kumpirmahin ang pag-archive ng electronics item | Kumpirmahi ang pag-archive sa electronics item | a11y |
+| `electronicsBox.confirmUnarchive` | Confirm unarchive electronics item | Kumpirmahin ang pag-unarchive ng electronics item | Kumpirmahi ang pag-unarchive sa electronics item | a11y |
 
 ## Activity Card (6 keys, Phase 2)
 

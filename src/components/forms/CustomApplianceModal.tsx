@@ -20,7 +20,7 @@ import {
   type AppColors,
 } from "@/hooks/useAppColors";
 import {
-  BATTERY_MAX_APPLIANCE_W,
+  BATTERY_MAX_ELECTRONICS_W,
 } from "@/constants/battery";
 import {
   Radius,
@@ -29,16 +29,16 @@ import { Control, Field } from "@/constants/sizing";
 import { useTypography } from "@/hooks/useTypography";
 
 // ============================================================
-// CUSTOM APPLIANCE MODAL (ADD + EDIT)
+// CUSTOM ELECTRONICS MODAL (ADD + EDIT)
 //
 // Shared DropdownModal shell (same overlay, centered card,
 // and header as CalendarModal) for both flows. Add flow is
-// driven by ApplianceModal; edit flow reuses this exact
-// layout prefilled with the custom appliance values, so
+// driven by ElectronicsModal; edit flow reuses this exact
+// layout prefilled with the custom electronics values, so
 // both dialogs look identical apart from title + confirm.
 // ============================================================
 
-type CustomApplianceModalProps = {
+type CustomElectronicsModalProps = {
 
   visible: boolean;
   mode?: "add" | "edit";
@@ -56,7 +56,7 @@ type CustomApplianceModalProps = {
   wattsValid: boolean;
   // Photo preview to display: a freshly picked local uri or
   // the stored uploaded url. Null renders the bundled
-  // adlawatt icon — the default for every custom appliance.
+  // adlawatt icon — the default for every custom electronics.
   photoPreview: string | null;
   // True while a photo upload is in flight: the confirm
   // button dims into a Saving state.
@@ -73,7 +73,7 @@ const defaultPhoto = require(
 // validation, prefill, and resets work unchanged.
 // Strict per-side rule: digits, one dot, max 2 decimals,
 // max 3 integer digits, integer value at most
-// BATTERY_MAX_APPLIANCE_W. Empty
+// BATTERY_MAX_ELECTRONICS_W. Empty
 // is always fine (deletion never blocked). Rejected
 // keystrokes keep the previous text with no error flash.
 const splitWatts = (watts: string): [string, string] => {
@@ -101,7 +101,7 @@ const sanitizeWattSide = (
 
   const intPart = clean.split(".")[0] ?? "";
 
-  if (intPart !== "" && Number(intPart) > BATTERY_MAX_APPLIANCE_W) {
+  if (intPart !== "" && Number(intPart) > BATTERY_MAX_ELECTRONICS_W) {
     return null;
   }
 
@@ -116,7 +116,7 @@ const joinWatts = (min: string, max: string): string => {
   return `${min}-${max}`;
 };
 
-export default function CustomApplianceModal({
+export default function CustomElectronicsModal({
   visible,
   mode = "add",
   name,
@@ -131,7 +131,7 @@ export default function CustomApplianceModal({
   photoPreview,
   photoBusy,
   onPhotoPress,
-}: CustomApplianceModalProps) {
+}: CustomElectronicsModalProps) {
   const colors = useAppColors();
 
   const styles = useMemo(

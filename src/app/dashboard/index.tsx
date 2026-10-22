@@ -105,7 +105,7 @@ export default function DashboardScreen() {
   const monitoringRef =
     useRef<View>(null);
 
-  const applianceRef =
+  const electronicsRef =
     useRef<View>(null);
 
   const scrollYRef =
@@ -676,12 +676,12 @@ export default function DashboardScreen() {
           <Pressable
             onPress={() =>
               scrollToSection(
-                applianceRef,
+                electronicsRef,
               )
             }
             accessibilityRole="button"
             accessibilityLabel={t(
-              "dashboard.home.goToApplianceRecommendation",
+              "dashboard.home.goToElectronicsRecommendation",
             )}
             style={({ pressed }) => [
               styles.quickNavButton,
@@ -693,7 +693,7 @@ export default function DashboardScreen() {
               variant="caption"
               style={styles.quickNavButtonText}
             >
-              {t("dashboard.home.applianceRecommendation")}
+              {t("dashboard.home.electronicsRecommendation")}
             </AppText>
 
             <Ionicons
@@ -870,14 +870,14 @@ export default function DashboardScreen() {
             ================================================== */}
 
         <View
-          ref={applianceRef}
+          ref={electronicsRef}
           style={styles.section}
         >
           <AppText
             variant="body"
             style={styles.sectionTitle}
           >
-            {t("dashboard.home.applianceRecommendation")}
+            {t("dashboard.home.electronicsRecommendation")}
           </AppText>
 
           <AppRecCard

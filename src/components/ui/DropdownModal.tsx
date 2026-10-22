@@ -120,7 +120,7 @@ export function DropdownModal({
 
             {/*
               Scrollable body so modals with text fields (e.g.
-              the custom appliance form) can keep the focused
+              the custom electronics form) can keep the focused
               input above the keyboard instead of hidden behind
               it. keyboardShouldPersistTaps lets the confirm
               button fire on the first tap while the keyboard is

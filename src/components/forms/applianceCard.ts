@@ -12,28 +12,28 @@ import {
 import { Radius } from "@/constants/theme";
 
 /*
- * Compact appliance card shared by:
+ * Compact electronics card shared by:
  * - AppRecCard (dashboard recommendation carousel)
- * - ApplianceStatusBox (appliances screen)
- * - ApplianceBox (ApplianceModal selection)
+ * - ElectronicsStatusBox (electronics screen)
+ * - ElectronicsBox (ElectronicsModal selection)
  * - ComponentStatusBox (components screen)
  *
  * Keeping the sizing in one module stops the four boxes from drifting
- * apart over time. Colors resolve per theme via useApplianceCardStyles
+ * apart over time. Colors resolve per theme via useElectronicsCardStyles
  * so dark mode follows without duplicating the layout.
  */
 /*
  * Shared card shell. `box` reserves room for the status badge used by
- * AppRecCard and ApplianceStatusBox; `boxTight` is the pill-less twin
+ * AppRecCard and ElectronicsStatusBox; `boxTight` is the pill-less twin
  * (202, exact content sum) for not-advisable boxes whose badge was
  * removed; `boxCompact` is the modal version
- * used inside ApplianceModal for catalog and custom boxes alike (one
+ * used inside ElectronicsModal for catalog and custom boxes alike (one
  * height keeps grid rows level; customs hold the 3-dot row in their
  * extra space, catalogs carry it as breathing room);
  * `boxSlim` fits just the image and name for ComponentStatusBox
  * (110 image + 8 + 40 name + 24 padding = 182, no slack).
  */
-const applianceCardBox: ViewStyle = {
+const electronicsCardBox: ViewStyle = {
   width: "46%",
   maxWidth: 150,
   // Filled per theme by each variant below.
@@ -46,27 +46,27 @@ const applianceCardBox: ViewStyle = {
   overflow: "hidden",
 };
 
-export function useApplianceCardStyles() {
+export function useElectronicsCardStyles() {
   const colors = useAppColors();
 
   return useMemo(
-    () => getApplianceCardStyles(colors),
+    () => getElectronicsCardStyles(colors),
     [colors],
   );
 }
 
-export const getApplianceCardStyles = (
+export const getElectronicsCardStyles = (
   colors: AppColors,
 ) =>
   StyleSheet.create({
     box: {
-      ...applianceCardBox,
+      ...electronicsCardBox,
       height: 240,
       backgroundColor: colors.surface,
     },
 
     boxTight: {
-      ...applianceCardBox,
+      ...electronicsCardBox,
       // 24 padding + 110 image + 8 + 40 name + 2 + 18 watts
       // = 202, no slack. For not-advisable boxes whose
       // status pill was removed (both render sites filter
@@ -76,7 +76,7 @@ export const getApplianceCardStyles = (
     },
 
     boxCompact: {
-      ...applianceCardBox,
+      ...electronicsCardBox,
       // 202 base content + 4 gap + 28 dots row (customs render
       // the row; catalogs keep the space empty).
       height: 234,
@@ -84,7 +84,7 @@ export const getApplianceCardStyles = (
     },
 
     boxSlim: {
-      ...applianceCardBox,
+      ...electronicsCardBox,
       height: 182,
       backgroundColor: colors.surface,
     },
@@ -149,10 +149,10 @@ export const getApplianceCardStyles = (
   });
 
 /*
- * Centered wrap grid used by the appliances screen and the modal so the
+ * Centered wrap grid used by the electronics screen and the modal so the
  * compact cards stay grouped the same way AppRecCard centers its row.
  */
-export const applianceCardGrid: ViewStyle = {
+export const electronicsCardGrid: ViewStyle = {
   flexDirection: "row",
   flexWrap: "wrap",
   justifyContent: "center",

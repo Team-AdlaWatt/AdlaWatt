@@ -1,10 +1,10 @@
 import { supabase } from "@/lib/supabase";
 
 // ============================================================
-// APPLIANCE PHOTO SERVICE
+// ELECTRONICS PHOTO SERVICE
 // ============================================================
 //
-// Custom appliance photos live in the public
+// Custom electronics photos live in the public
 // `appliance-images` bucket under <user_id>/ filenames, so
 // box/list images load via plain public URLs. Filenames are
 // client-generated (uuid-style), so an upload never depends
@@ -62,7 +62,7 @@ const pathForPublicUrl = (url: string): string | null => {
   return path || null;
 };
 
-export async function uploadAppliancePhoto(
+export async function uploadElectronicsPhoto(
   userId: string,
   localUri: string,
   mimeType?: string,
@@ -124,7 +124,7 @@ export async function uploadAppliancePhoto(
   }
 }
 
-export async function deleteAppliancePhotoByUrl(
+export async function deleteElectronicsPhotoByUrl(
   url: string,
 ) {
   try {

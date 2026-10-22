@@ -86,7 +86,7 @@ Rules:
 | Selection Saved | `info` | `handleSave()` (count/names, not per toggle) |
 | Selection Reset | `info` | `handleReset()` |
 
-- Staging actions (`toggleAppliance()`, search, modal open/close) log nothing; only the commit.
+- Staging actions (`toggleElectronics()`, search, modal open/close) log nothing; only the commit.
 
 ### Solar / Battery (explicit calls only — never notification mirrors)
 
@@ -138,7 +138,7 @@ logActivity({ title, description, type })  ->  void (never throws)
 logAuth.accountCreated(username)          ->  void
 logAuth.loggedIn()                        ->  void (generic "Signed in.")
 logAuth.loggedOut()                       ->  void
-logAppliance.added(name, watts)           ->  void
+logElectronics.added(name, watts)           ->  void
 logPower.low(percent) / .full()           ->  void
 logDevice.offline() / .online()           ->  void
 logSettings.preferencesSaved(summary)     ->  void

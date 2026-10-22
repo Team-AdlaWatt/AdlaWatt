@@ -13,7 +13,7 @@ import {
 
 import ComponentStatusBox from "@/components/forms/ComponentStatusBox";
 import {
-  applianceCardGrid,
+  electronicsCardGrid,
 } from "@/components/forms/applianceCard";
 import Copyright from "@/components/ui/Copyright";
 
@@ -516,7 +516,7 @@ export default function ComponentsScreen() {
         {/* COMPONENT GRID */}
 
         <View
-          style={[applianceCardGrid, { marginTop: 20 }]}
+          style={[electronicsCardGrid, { marginTop: 20 }]}
         >
           {(() => {
             const filteredComponents =

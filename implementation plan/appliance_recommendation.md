@@ -255,7 +255,7 @@ Each electronics item gets one verdict driven by the battery tier, its per-hour 
 
 ## Recommendation Output
 
-`recommendAppliance` returns one flat object per electronics item:
+`recommendElectronics` returns one flat object per electronics item:
 
 | Field             | Meaning                                            |
 |-------------------|----------------------------------------------------|
@@ -299,7 +299,7 @@ otherwise                     →  "OK to use"       (green)
 
 ## Batch Recommendation
 
-`recommendAppliances` evaluates every electronics item against the same live battery reading and sorts the results so the most usable electronics come first:
+`recommendElectronicsBatch` evaluates every electronics item against the same live battery reading and sorts the results so the most usable electronics come first:
 
 ```
 sort key 1: verdict rank   recommended (0) → care (1) → notRecommended (2)
@@ -378,8 +378,8 @@ Shared rules:
 ## References
 
 1. `src/services/recommendation.ts` — engine source (types, constants, classification, runtime, verdict, batch, load stack).
-2. `src/components/AppRecCard.tsx` — dashboard recommendation carousel consuming `recommendAppliance`.
-3. `src/app/dashboard/electronics.tsx` — electronics screen consuming `recommendAppliance` with power/area/status filters.
+2. `src/components/AppRecCard.tsx` — dashboard recommendation carousel consuming `recommendElectronics`.
+3. `src/app/dashboard/electronics.tsx` — electronics screen consuming `recommendElectronics` with power/area/status filters.
 4. `src/services/monitoringService.ts` — live battery fields (`battery_level`, `voltage`, `watt_hours`, `dod_status`) feeding the engine.
 5. `src/components/forms/applianceCard.ts` — shared compact card sizing for the recommendation and electronics grids.
 6. `implementation plan/zenova_battery.md` — the battery bank reference the recommendation constants mirror.

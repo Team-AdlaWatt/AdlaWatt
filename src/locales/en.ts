@@ -344,13 +344,13 @@ const en = {
     home: {
       title: "Dashboard",
       subtitle: "Monitor your AdlaWatt system in real time.",
-      applianceRecommendation: "Electronics Recommendation",
+      electronicsRecommendation: "Electronics Recommendation",
       realtimeMonitoring: "Real-Time Monitoring",
       offlineBanner:
         "You're offline — showing last readings.",
       lastUpdated:
         "Last updated {{time}}.",
-      goToApplianceRecommendation:
+      goToElectronicsRecommendation:
         "Go to Electronics Recommendation",
       forecastFailed: "Could not load the forecast.",
     },
@@ -491,11 +491,11 @@ const en = {
       "Could not open your photo library. Try again.",
   },
 
-  applianceBox: {
-    editAppliance: "Edit electronics item",
-    archiveAppliance: "Archive electronics item",
-    unarchiveAppliance: "Unarchive electronics item",
-    deleteAppliance: "Delete electronics item",
+  electronicsBox: {
+    editElectronics: "Edit electronics item",
+    archiveElectronics: "Archive electronics item",
+    unarchiveElectronics: "Unarchive electronics item",
+    deleteElectronics: "Delete electronics item",
     showOptions: "Show electronics options",
     hideOptions: "Hide electronics options",
     deleteQuestion: "You want to delete this?",

@@ -6,7 +6,7 @@ import {
 } from "react-native";
 
 import {
-  useApplianceCardStyles,
+  useElectronicsCardStyles,
 } from "@/components/forms/applianceCard";
 import AppText from "@/components/ui/AppText";
 import { useAppColors } from "@/hooks/useAppColors";
@@ -38,13 +38,13 @@ export default function ComponentStatusBox({
     ? colors.primary
     : colors.error;
 
-  const applianceCardStyles =
-    useApplianceCardStyles();
+  const electronicsCardStyles =
+    useElectronicsCardStyles();
 
   return (
     <View
       style={[
-        applianceCardStyles.boxSlim,
+        electronicsCardStyles.boxSlim,
         {
           borderColor: statusColor,
         },
@@ -53,7 +53,7 @@ export default function ComponentStatusBox({
       {/* Component Image */}
       <View
         style={[
-          applianceCardStyles.imageContainer,
+          electronicsCardStyles.imageContainer,
           {
             borderColor: statusColor,
           },
@@ -61,7 +61,7 @@ export default function ComponentStatusBox({
       >
         <Image
           source={imageSource}
-          style={applianceCardStyles.image}
+          style={electronicsCardStyles.image}
           resizeMode="cover"
         />
       </View>
@@ -69,7 +69,7 @@ export default function ComponentStatusBox({
       {/* Component Name */}
       <AppText
         variant="caption"
-        style={applianceCardStyles.name}
+        style={electronicsCardStyles.name}
         numberOfLines={2}
       >
         {name}

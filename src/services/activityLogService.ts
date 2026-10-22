@@ -155,7 +155,7 @@ export const logProfile = {
   },
 };
 
-export const logAppliance = {
+export const logElectronics = {
   added(name: string, watts: string): void {
     logActivity({
       title: "Electronics Added",

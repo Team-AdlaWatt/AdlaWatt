@@ -3,7 +3,7 @@
 // ============================================================
 //
 // Single source for predefined electronics. Readers
-// (ApplianceModal, appliances screen, recommendations,
+// (ElectronicsModal, electronics screen, recommendations,
 // notifications) import from here — never from a component
 // file. Display stays "min-maxW" to keep parseWattageRange +
 // validators working. Keys are namespaced catalog: and must
@@ -75,16 +75,16 @@ export const CATALOG_BY_NAME = new Map(
 
 export const CUSTOM_AREA = "Custom Electronics";
 
-export type ApplianceLevel = "low" | "moderate" | "high";
+export type ElectronicsLevel = "low" | "moderate" | "high";
 
 export const levelFromWatts = (
   watts: number,
-): ApplianceLevel =>
+): ElectronicsLevel =>
   watts <= 240 ? "low" : watts <= 480 ? "moderate" : "high";
 
-export type ApplianceRow = {
+export type ElectronicsRow = {
   app_id: string;
-  appliance_name: string;
+  electronics_name: string;
   type?: string | null;
   catalog_key?: string | null;
   wattage_min?: number | string | null;
@@ -95,7 +95,7 @@ export type ApplianceRow = {
   image_url?: string | null;
 };
 
-export type ResolvedAppliance = {
+export type ResolvedElectronics = {
   id: string;
   name: string;
   source: "catalog" | "custom";
@@ -103,15 +103,15 @@ export type ResolvedAppliance = {
   wattMax: number;
   display: string;
   area: string;
-  level: ApplianceLevel;
+  level: ElectronicsLevel;
   selected: boolean;
   appId?: string | null;
   imageUrl?: string | null;
 };
 
 export function resolveRow(
-  row: ApplianceRow,
-): ResolvedAppliance | null {
+  row: ElectronicsRow,
+): ResolvedElectronics | null {
   const catalogKey =
     row.catalog_key?.trim() || null;
 
@@ -120,7 +120,7 @@ export function resolveRow(
       ? CATALOG_BY_KEY.get(catalogKey)
       : undefined;
     const byName = CATALOG_BY_NAME.get(
-      row.appliance_name.trim().toLowerCase(),
+      row.electronics_name.trim().toLowerCase(),
     );
     const item = byKey ?? byName;
 
@@ -163,7 +163,7 @@ export function resolveRow(
 
   return {
     id: String(row.app_id),
-    name: row.appliance_name,
+    name: row.electronics_name,
     source: "custom",
     wattMin: colMin,
     wattMax: colMax,

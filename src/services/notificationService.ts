@@ -1742,16 +1742,16 @@ const checkDepthOfDischarge =
 
 
 // ------------------------------------------------------------
-// APPLIANCES BECAME ADVISABLE
+// ELECTRONICS BECAME ADVISABLE
 // ------------------------------------------------------------
 //
 // Fires when the battery tier recovers to Safe while the
-// user still has selected appliances waiting. Tier comes
+// user still has selected electronics waiting. Tier comes
 // from the shared recommendation engine so the rule and
 // the UI verdicts can never disagree.
 // ------------------------------------------------------------
 
-const checkAppliancesBecameAdvisable = async (
+const checkElectronicsBecameAdvisable = async (
   userId: string,
   current: MonitoringData,
   previous: MonitoringData | null,
@@ -1777,17 +1777,17 @@ const checkAppliancesBecameAdvisable = async (
   }
 
   try {
-    const { fetchSelectedAppliances } = await import(
+    const { fetchSelectedElectronics } = await import(
       "@/services/appliancesService"
     );
-    const resolved = await fetchSelectedAppliances();
+    const resolved = await fetchSelectedElectronics();
 
     if (resolved.length <= 0) {
       return;
     }
   } catch {
     const { count, error } = await supabase
-      .from("appliances")
+      .from("electronics")
       .select("app_id", { count: "exact", head: true })
       .eq("user_id", userId)
       .eq("selection", true);
@@ -1822,7 +1822,7 @@ const checkAppliancesBecameAdvisable = async (
 // HIGH LOAD WHILE BATTERY LOW
 // ------------------------------------------------------------
 //
-// Compares the combined mid-wattage of selected appliances
+// Compares the combined mid-wattage of selected electronics
 // against the charge-scaled safe cap while SoC is at or
 // below the 20% cutoff. The 10-minute notification cooldown
 // protects against refires while the condition persists.
@@ -1842,10 +1842,10 @@ const checkHighLoadWhileBatteryLow = async (
   let combinedMidWatts = 0;
 
   try {
-    const { fetchSelectedAppliances } = await import(
+    const { fetchSelectedElectronics } = await import(
       "@/services/appliancesService"
     );
-    const resolved = await fetchSelectedAppliances();
+    const resolved = await fetchSelectedElectronics();
 
     combinedMidWatts = resolved.reduce(
       (total, item) => total + (item.wattMin + item.wattMax) / 2,
@@ -1853,7 +1853,7 @@ const checkHighLoadWhileBatteryLow = async (
     );
   } catch {
     const { data, error } = await supabase
-      .from("appliances")
+      .from("electronics")
       .select("wattage_min, wattage_max")
       .eq("user_id", userId)
       .eq("selection", true);
@@ -2958,7 +2958,7 @@ const processMonitoringNotifications =
         previous,
       );
 
-      await checkAppliancesBecameAdvisable(
+      await checkElectronicsBecameAdvisable(
         userId,
         current,
         previous,

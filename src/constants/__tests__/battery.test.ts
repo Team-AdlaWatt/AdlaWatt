@@ -1,13 +1,13 @@
 // Battery reference constant unit tests.
 //
 // The recommendation engine, the battery gauge, and the
-// appliance wattage caps all read these values, so they are
+// electronics wattage caps all read these values, so they are
 // pinned here to catch accidental drift. The capacity was
 // raised from 720 Wh to 756 Wh; 756 is now the basis.
 
 import {
   BATTERY_CAPACITY_WH,
-  BATTERY_MAX_APPLIANCE_W,
+  BATTERY_MAX_ELECTRONICS_W,
   BATTERY_RESERVE_WH,
   BATTERY_USABLE_WH,
 } from "@/constants/battery";
@@ -35,8 +35,8 @@ describe("battery reference constants", () => {
     ).toBeCloseTo(BATTERY_CAPACITY_WH, 6);
   });
 
-  test("appliance cap equals the capacity", () => {
-    expect(BATTERY_MAX_APPLIANCE_W).toBe(
+  test("electronics cap equals the capacity", () => {
+    expect(BATTERY_MAX_ELECTRONICS_W).toBe(
       BATTERY_CAPACITY_WH,
     );
   });

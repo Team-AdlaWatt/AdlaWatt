@@ -2,7 +2,7 @@
 //
 // Locks the battery safety contract: 20% SoC cutoff, 151.2 Wh
 // reserve floor, voltage guards, and the budget verdict bands
-// the Appliances UI and notification rules both depend on.
+// the Electronics UI and notification rules both depend on.
 
 import {
   BATTERY_NOMINAL_WH,
@@ -21,8 +21,8 @@ import {
   estimateVoltageDrop,
   formatRuntimeLabel,
   parseWattageRange,
-  recommendAppliance,
-  recommendAppliances,
+  recommendElectronics,
+  recommendElectronicsBatch,
   verdictToBadge,
   type BatteryStateInput,
 } from "@/services/recommendation";
@@ -310,9 +310,9 @@ describe("budget, cap, and voltage", () => {
   });
 });
 
-describe("recommendAppliance", () => {
-  test("light appliance on healthy battery is recommended", () => {
-    const result = recommendAppliance(
+describe("recommendElectronics", () => {
+  test("light electronics on healthy battery is recommended", () => {
+    const result = recommendElectronics(
       healthyBattery,
       {
         id: "bulb",
@@ -334,7 +334,7 @@ describe("recommendAppliance", () => {
 
   test("moderate draw lands in care band", () => {
     // usableWh 448.8; mid 60W -> ratio ~0.13 (10-25% band).
-    const result = recommendAppliance(
+    const result = recommendElectronics(
       healthyBattery,
       {
         id: "fan",
@@ -356,7 +356,7 @@ describe("recommendAppliance", () => {
   });
 
   test("heavy draw over 25%/hr is not recommended", () => {
-    const result = recommendAppliance(
+    const result = recommendElectronics(
       healthyBattery,
       {
         id: "cooker",
@@ -374,7 +374,7 @@ describe("recommendAppliance", () => {
   });
 
   test("unsafe battery blocks everything", () => {
-    const result = recommendAppliance(
+    const result = recommendElectronics(
       {
         soc: 10,
         voltage: 11.0,
@@ -396,7 +396,7 @@ describe("recommendAppliance", () => {
   });
 
   test("caution battery downgrades to care", () => {
-    const result = recommendAppliance(
+    const result = recommendElectronics(
       {
         soc: 20,
         voltage: 12.0,
@@ -419,7 +419,7 @@ describe("recommendAppliance", () => {
     // SoC 20% -> 200W cap (Caution tier but not blocked);
     // 250W peak exceeds it, and the cap check runs before
     // the drain-ratio and caution checks.
-    const result = recommendAppliance(
+    const result = recommendElectronics(
       {
         soc: 20,
         voltage: 12.4,
@@ -441,7 +441,7 @@ describe("recommendAppliance", () => {
   });
 
   test("invalid wattage is not recommended", () => {
-    const result = recommendAppliance(
+    const result = recommendElectronics(
       healthyBattery,
       {
         id: "mystery",
@@ -457,7 +457,7 @@ describe("recommendAppliance", () => {
   });
 
   test("runtime display spans min-max wattage", () => {
-    const result = recommendAppliance(
+    const result = recommendElectronics(
       healthyBattery,
       {
         id: "tv",
@@ -480,8 +480,8 @@ describe("recommendAppliance", () => {
   });
 });
 
-describe("recommendAppliances + computeLoadStack", () => {
-  const appliances = [
+describe("recommendElectronicsBatch + computeLoadStack", () => {
+  const electronics = [
     {
       id: "a",
       name: "Bulb",
@@ -495,9 +495,9 @@ describe("recommendAppliances + computeLoadStack", () => {
   ];
 
   test("batch sorts recommended before blocked", () => {
-    const batch = recommendAppliances(
+    const batch = recommendElectronicsBatch(
       healthyBattery,
-      appliances,
+      electronics,
     );
 
     expect(batch.tier).toBe("Safe");
@@ -514,7 +514,7 @@ describe("recommendAppliances + computeLoadStack", () => {
   test("load stack sums mid wattages and flags inverter limit", () => {
     const stack = computeLoadStack(
       healthyBattery,
-      appliances,
+      electronics,
     );
 
     // mids: 11 + 400 = 411.

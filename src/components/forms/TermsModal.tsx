@@ -124,9 +124,9 @@ If you do not agree with these Terms and Conditions, you should not create an ac
 
             <Section
               title="2. Purpose of AdlaWatt"
-              text={`AdlaWatt is designed to provide households with an alternative backup power source during electricity interruptions. The system stores energy collected from solar panels in a battery and provides power through a built-in AC outlet for compatible household appliances.
+              text={`AdlaWatt is designed to provide households with an alternative backup power source during electricity interruptions. The system stores energy collected from solar panels in a battery and provides power through a built-in AC outlet for compatible household electronics.
 
-The mobile application provides monitoring information including battery level, incoming solar energy, energy consumption, energy history, temperature information, system status, appliance recommendations, weather information with a five-day solar forecast, analytics with CSV and PDF report export, activity logs, notifications, and multi-language support.
+The mobile application provides monitoring information including battery level, incoming solar energy, energy consumption, energy history, temperature information, system status, electronics recommendations, weather information with a five-day solar forecast, analytics with CSV and PDF report export, activity logs, notifications, and multi-language support.
 
 AdlaWatt is an alternative backup power source and is not intended to replace the electrical grid.`}
             />
@@ -160,7 +160,7 @@ Electronics recommendations provided by the application are intended as guidance
               title="6. Electrical and Physical Safety"
               text={`Users must operate the physical AdlaWatt system responsibly.
 
-Users should keep electrical connections dry and protected, avoid damaging the enclosure and components, avoid unauthorized modifications, follow instructions provided by authorized personnel, and disconnect appliances when necessary to prevent excessive power consumption.
+Users should keep electrical connections dry and protected, avoid damaging the enclosure and components, avoid unauthorized modifications, follow instructions provided by authorized personnel, and disconnect electronics when necessary to prevent excessive power consumption.
 
 Monitoring features do not eliminate all electrical, battery, fire, or equipment-related risks.`}
             />

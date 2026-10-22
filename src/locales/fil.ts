@@ -363,9 +363,9 @@ const fil = {
     home: {
       title: "Dashboard",
       subtitle: "I-monitor ang iyong AdlaWatt system nang real time.",
-      applianceRecommendation: "Electronics Recommendation",
+      electronicsRecommendation: "Electronics Recommendation",
       realtimeMonitoring: "Real-Time Monitoring",
-      goToApplianceRecommendation: "Pumunta sa Electronics Recommendation",
+      goToElectronicsRecommendation: "Pumunta sa Electronics Recommendation",
       offlineBanner:
         "Wala kang koneksyon — huling readings ang ipinapakita.",
       lastUpdated:
@@ -500,11 +500,11 @@ const fil = {
     libraryFailed: "Hindi mabuksan ang iyong photo library. Subukang muli.",
   },
 
-  applianceBox: {
-    editAppliance: "I-edit ang electronics item",
-    archiveAppliance: "I-archive ang electronics item",
-    unarchiveAppliance: "I-unarchive ang electronics item",
-    deleteAppliance: "Burahin ang electronics item",
+  electronicsBox: {
+    editElectronics: "I-edit ang electronics item",
+    archiveElectronics: "I-archive ang electronics item",
+    unarchiveElectronics: "I-unarchive ang electronics item",
+    deleteElectronics: "Burahin ang electronics item",
     showOptions: "Ipakita ang mga opsyon ng electronics",
     hideOptions: "Itago ang mga opsyon ng electronics",
     deleteQuestion: "Gusto mo ba itong burahin?",

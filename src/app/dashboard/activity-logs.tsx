@@ -66,7 +66,7 @@ type ActivityLog = {
 // ============================================================
 
 // Same glide as the dashboard home quick-nav button
-// (Appliance Recommendation): fixed 1.5s cubic in-out
+// (Electronics Recommendation): fixed 1.5s cubic in-out
 // drive to the very top whenever Prev/Next turns the page.
 const PAGE_TURN_SCROLL_MS = 1500;
 

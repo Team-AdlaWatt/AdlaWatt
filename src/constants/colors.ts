@@ -139,7 +139,7 @@ export const Colors = {
     headerContent: "#FFFFFF",
     // Card shells: green borders in light, navbar-icon white
     // (#E3E3E3, same value as bar.text) in dark. Controls,
-    // inputs, toggles, and appliance/component boxes keep
+    // inputs, toggles, and electronics/component boxes keep
     // their green; only card containers use this.
     cardBorder: "#00805A",
 
