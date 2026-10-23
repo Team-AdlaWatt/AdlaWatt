@@ -18,6 +18,7 @@ import {
   detectLocationChange,
   getWeather,
   haversineDistanceKm,
+  resolveWeatherLocation,
 } from "@/services/weatherForecast";
 
 // expo-location ships native code that does not exist under
@@ -245,11 +246,68 @@ describe("local location registry", () => {
 });
 
 // ============================================================
+// WEATHER LOCATION RESOLUTION
+// ============================================================
+
+describe("resolveWeatherLocation", () => {
+  for (const place of getLocalPlaces()) {
+    test(`resolves ${place.id} to its exact sample`, () => {
+      const result = resolveWeatherLocation({
+        lat: place.lat,
+        lon: place.lon,
+      });
+
+      expect(result.place?.id).toBe(place.id);
+      expect(result.coordinates).toEqual({
+        lat: place.lat,
+        lon: place.lon,
+      });
+      expect(result.label).toBe(
+        formatLocalPlaceLabel(place),
+      );
+      expect(result.outsideScope).toBe(false);
+    });
+  }
+
+  test("snaps a nearby fix to Tankulan's exact coordinates", () => {
+    const result = resolveWeatherLocation({
+      lat: 8.3679,
+      lon: 124.8732,
+    });
+
+    expect(result.place?.id).toBe("tankulan");
+    expect(result.coordinates).toEqual({
+      lat: 8.37,
+      lon: 124.86,
+    });
+    expect(result.label).toBe(
+      "Manolo Fortich, Bukidnon",
+    );
+  });
+
+  test("keeps raw coordinates outside coverage", () => {
+    const result = resolveWeatherLocation({
+      lat: 8.5,
+      lon: 125.5,
+    });
+
+    expect(result.place).toBeNull();
+    expect(result.coordinates).toEqual({
+      lat: 8.5,
+      lon: 125.5,
+    });
+    expect(result.label).toBeNull();
+    expect(result.outsideScope).toBe(true);
+    expect(result.distanceKm).toBeGreaterThan(10);
+  });
+});
+
+// ============================================================
 // COORDINATES: LIVE FIX, ROUNDING, HARD ERRORS
 // ============================================================
 
 describe("getWeather coordinates", () => {
-  test("uses a fresh high-accuracy fix, rounded", async () => {
+  test("uses a fresh fix and snaps to the nearest sample", async () => {
     grantLocation(8.36789, 124.87321);
 
     mockFetch.mockResolvedValue({
@@ -257,7 +315,7 @@ describe("getWeather coordinates", () => {
       json: async () => owmOk(),
     });
 
-    await getWeather();
+    const data = await getWeather();
 
     expect(
       mockLocation.getLastKnownPositionAsync,
@@ -275,8 +333,34 @@ describe("getWeather coordinates", () => {
       mockFetch.mock.calls[0]?.[0] ?? "",
     );
 
-    expect(url).toContain("lat=8.3679");
-    expect(url).toContain("lon=124.8732");
+    expect(url).toContain("lat=8.37");
+    expect(url).toContain("lon=124.86");
+    expect(data.city).toBe(
+      "Manolo Fortich, Bukidnon",
+    );
+    expect(data.localPlaceId).toBe("tankulan");
+    expect(data.outsideScope).toBe(false);
+  });
+
+  test("rounds raw coordinates outside coverage", async () => {
+    grantLocation(8.12344, 125.12344);
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => owmOk(),
+    });
+
+    const data = await getWeather();
+
+    const url = String(
+      mockFetch.mock.calls[0]?.[0] ?? "",
+    );
+
+    expect(url).toContain("lat=8.1234");
+    expect(url).toContain("lon=125.1234");
+    expect(data.city).toBe("Malaybalay");
+    expect(data.localPlaceId).toBeUndefined();
+    expect(data.outsideScope).toBe(true);
   });
 
   test("never reuses a last-known fix", async () => {
@@ -814,7 +898,9 @@ describe("fetch retry", () => {
     const data = await getWeather();
 
     expect(mockFetch).toHaveBeenCalledTimes(3);
-    expect(data.city).toBe("Malaybalay");
+    expect(data.city).toBe(
+      "Manolo Fortich, Bukidnon",
+    );
   });
 
   test("401 fails immediately without retry", async () => {
