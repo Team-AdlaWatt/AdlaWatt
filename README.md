@@ -49,6 +49,10 @@ AdlaWatt is a backup source, not a replacement for the electrical grid.
 - **Personalization** — Dark mode, font size and family, language (English, Filipino, Cebuano), vibration, and email notifications.
 - **Offline Support** — The dashboard shows the last cached readings with an offline banner when there is no connection.
 
+### Weather Location
+
+The weather card uses the device's live GPS fix. Within 10 km of one of the 24 configured Bukidnon points (22 Manolo Fortich barangays plus Lingi-on and Balubal), the app requests OpenWeather at that sample's exact coordinates for both current weather and forecast, then displays the resolved location label. Outside coverage, it keeps the raw GPS fix and shows a non-blocking notice. The 4-day forecast shows condition, temperature, and solar outlook without rain-chance percentages.
+
 ---
 
 ## Tech Stack
@@ -219,7 +223,8 @@ Users sign up with a username, email, and password, or sign in with Google. Pass
 
 ### Latest Changes
 
-- **Live weather** — today's card is now driven by real GPS coordinates with accurate OpenWeather condition labels and icons.
+- **Bukidnon weather snapping** — live GPS snaps to the nearest configured sample within 10 km for current weather and forecast, displays the resolved location, and warns outside coverage.
+- **4-day forecast** — rain-chance percentages were removed from the daily rows.
 - **5-day solar forecast** — daily solar outlook with a "best day to charge" summary and hot/cold flags.
 - **Electronics catalog refresh** — updated to the current electronics list with corrected wattage ranges and new images.
 - **Battery figures** — standardized to 756 Wh nominal / 151.2 Wh reserve / 604.8 Wh usable.
