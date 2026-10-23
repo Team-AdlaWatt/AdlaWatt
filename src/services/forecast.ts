@@ -41,6 +41,7 @@ export interface DailyForecast {
   dateLabel: string;
   tempMin: number;
   tempMax: number;
+  feelsLikeMax: number;
   peakDescription: string;
   peakIcon: string;
   peakSeverity: WeatherSeverity;
@@ -67,6 +68,7 @@ interface ForecastSlot {
   temp: number;
   tempMin: number;
   tempMax: number;
+  feelsLike: number;
   humidity: number;
   description: string;
   mainGroup?: string;
@@ -88,6 +90,7 @@ interface ForecastApiEntry {
     temp?: unknown;
     temp_min?: unknown;
     temp_max?: unknown;
+    feels_like?: unknown;
     humidity?: unknown;
   };
   weather?: {
@@ -316,6 +319,8 @@ function parseSlot(
       toNumber(entry.main?.temp_min) ?? temp,
     tempMax:
       toNumber(entry.main?.temp_max) ?? temp,
+    feelsLike:
+      toNumber(entry.main?.feels_like) ?? temp,
     humidity:
       toNumber(entry.main?.humidity) ?? 0,
     description: description.trim(),
@@ -481,6 +486,10 @@ function summarizeDay(
     ...slots.map((slot) => slot.tempMax + offsetC)
   );
 
+  const feelsLikeMax = Math.max(
+    ...slots.map((slot) => slot.feelsLike + offsetC)
+  );
+
   const thresholds = weatherJson.thresholds;
 
   const isHot = tempMax >= thresholds.hotC;
@@ -496,6 +505,7 @@ function summarizeDay(
     dateLabel: labels.date,
     tempMin: Math.round(tempMin),
     tempMax: Math.round(tempMax),
+    feelsLikeMax: Math.round(feelsLikeMax),
     peakDescription,
     peakIcon,
     peakSeverity,

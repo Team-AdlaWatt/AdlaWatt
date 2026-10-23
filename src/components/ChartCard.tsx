@@ -2151,7 +2151,7 @@ export default function ChartCard({
                         : styles.weatherForecastRowItemRainy,
                     ]}
                     accessibilityRole="none"
-                    accessibilityLabel={`${day.weekday} ${day.dateLabel}, ${day.tempMax} degrees, low ${day.tempMin} degrees, ${day.peakDescription}${day.peakSubtext ? `, ${day.peakSubtext}` : ""}, ${day.solarOutlook} sun${day.tempFlag ? `, ${day.tempFlag}` : ""}`}
+                    accessibilityLabel={`${day.weekday} ${day.dateLabel}, ${day.tempMax} degrees Celsius, feels like ${day.feelsLikeMax} degrees Celsius, ${day.peakDescription}${day.peakSubtext ? `, ${day.peakSubtext}` : ""}, ${day.solarOutlook} sun${day.tempFlag ? `, ${day.tempFlag}` : ""}`}
                   >
 
                     <View
@@ -2195,14 +2195,14 @@ export default function ChartCard({
                           styles.weatherForecastTemp
                         }
                       >
-                        {`${day.tempMax}°`}
+                        {`${day.tempMax}°C`}
                         <AppText
                           variant="caption"
                           style={
-                            styles.weatherForecastTempMin
+                            styles.weatherForecastTempFeels
                           }
                         >
-                          {` / ${day.tempMin}°`}
+                          {` / Feels ${day.feelsLikeMax}°C`}
                         </AppText>
                       </AppText>
 
@@ -3799,7 +3799,7 @@ const getStyles = (colors: AppColors) =>
     fontVariant: ["tabular-nums"],
   },
 
-  weatherForecastTempMin: {
+  weatherForecastTempFeels: {
     color: colors.textSecondary,
     fontSize: 13,
     fontWeight: "400",
