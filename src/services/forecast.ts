@@ -11,7 +11,10 @@ import {
   type SolarOutlook,
   type WeatherSeverity,
 } from "@/services/weatherConfig";
-import { WeatherError } from "@/services/weatherForecast";
+import {
+  WeatherError,
+  resolveWeatherLocation,
+} from "@/services/weatherForecast";
 
 // ============================================================
 // 5-DAY FORECAST FETCHER
@@ -527,9 +530,14 @@ export async function getForecast(
   lat: number,
   lon: number
 ): Promise<ForecastResult> {
-  const response = await fetchForecastResponse(
+  const location = resolveWeatherLocation({
     lat,
-    lon
+    lon,
+  });
+
+  const response = await fetchForecastResponse(
+    location.coordinates.lat,
+    location.coordinates.lon
   );
 
   if (!response || !Array.isArray(response.list)) {
@@ -629,10 +637,11 @@ export async function getForecast(
   }
 
   const cityName =
-    typeof response.city?.name === "string" &&
+    location.label ??
+    (typeof response.city?.name === "string" &&
     response.city.name.trim().length > 0
       ? response.city.name.trim()
-      : "";
+      : "");
 
   return {
     upcoming,

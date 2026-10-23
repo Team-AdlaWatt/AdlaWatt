@@ -72,11 +72,42 @@ describe("getForecast upcoming days", () => {
 
     expect([...dates].sort()).toEqual(dates);
 
-    expect(result.cityName).toBe("Malaybalay");
+    expect(result.cityName).toBe(
+      "Manolo Fortich, Bukidnon",
+    );
+
+    const url = String(
+      mockFetch.mock.calls[0]?.[0] ?? "",
+    );
+
+    expect(url).toContain("lat=8.37");
+    expect(url).toContain("lon=124.86");
 
     // No calibration offset (tempOffsetC 0 in weather.json).
     expect(result.upcoming[0].tempMax).toBe(32 + 1);
     expect(result.upcoming[0].tempMin).toBe(28 + 1);
+  });
+
+  test("keeps raw coordinates outside coverage", async () => {
+    const tz = 28800;
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        list: [entry({ dt: localNoonDt(1, tz) })],
+        city: { name: "Malaybalay", timezone: tz },
+      }),
+    });
+
+    const result = await getForecast(8.5, 125.5);
+
+    const url = String(
+      mockFetch.mock.calls[0]?.[0] ?? "",
+    );
+
+    expect(url).toContain("lat=8.5");
+    expect(url).toContain("lon=125.5");
+    expect(result.cityName).toBe("Malaybalay");
   });
 
   test("peak label + icon come from the id classifier (confirmed rain)", async () => {
