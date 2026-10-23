@@ -4,8 +4,12 @@ import * as Location from "expo-location";
 import {
   canRefreshToday,
   formatDataAge,
+  formatLocalPlaceLabel,
+  getCoverageRadiusKm,
+  getLocalPlaces,
   heatIndexC,
   isStaleReading,
+  outsideScopeNotice,
   resolveCondition,
   resolveFeelsLike,
 } from "@/services/weatherConfig";
@@ -158,6 +162,85 @@ describe("resolveCondition main group", () => {
       icon: "partly-sunny-outline",
       severity: "cloudy",
     });
+  });
+});
+
+// ============================================================
+// LOCAL LOCATION REGISTRY
+// ============================================================
+
+describe("local location registry", () => {
+  const places = getLocalPlaces();
+
+  test("contains 24 unique Bukidnon places", () => {
+    expect(places).toHaveLength(24);
+
+    expect(
+      new Set(places.map((place) => place.id)).size,
+    ).toBe(24);
+
+    expect(
+      places.filter(
+        (place) =>
+          place.municipality === "Manolo Fortich",
+      ),
+    ).toHaveLength(22);
+  });
+
+  test("formats barangay, municipality, and province", () => {
+    const damilag = places.find(
+      (place) => place.id === "damilag",
+    );
+
+    expect(damilag).toBeDefined();
+    expect(
+      formatLocalPlaceLabel(damilag!),
+    ).toBe(
+      "Damilag, Manolo Fortich, Bukidnon",
+    );
+  });
+
+  test("Tankulan uses the municipality label", () => {
+    const tankulan = places.find(
+      (place) => place.id === "tankulan",
+    );
+
+    expect(tankulan).toBeDefined();
+    expect(
+      formatLocalPlaceLabel(tankulan!),
+    ).toBe("Manolo Fortich, Bukidnon");
+  });
+
+  test("a place without a municipality gets the short label", () => {
+    const balubal = places.find(
+      (place) => place.id === "balubal",
+    );
+
+    expect(balubal).toBeDefined();
+    expect(
+      formatLocalPlaceLabel(balubal!),
+    ).toBe("Balubal, Bukidnon");
+  });
+
+  test("non-Manolo places keep their municipality", () => {
+    const lingiOn = places.find(
+      (place) => place.id === "lingi-on",
+    );
+
+    expect(lingiOn).toBeDefined();
+    expect(
+      formatLocalPlaceLabel(lingiOn!),
+    ).toBe(
+      "Lingi-on, Talakag, Bukidnon",
+    );
+  });
+
+  test("coverage radius and notice are configured", () => {
+    expect(getCoverageRadiusKm()).toBe(10);
+
+    expect(outsideScopeNotice()).toContain(
+      "Outside the known Bukidnon coverage area",
+    );
   });
 });
 
