@@ -48,8 +48,8 @@
   },
   "calibration": {
     "tempOffsetC": 0,
-    "tempOffsetDayC": 0,
-    "tempOffsetNightC": 0,
+    "tempOffsetDayC": 1,
+    "tempOffsetNightC": 1,
     "feelsMode": "openweather",
     "feelsOffsetC": 0
   },
