@@ -1661,7 +1661,7 @@ export default function ChartCard({
 
     // Peak border + summary: High solar outlook => Peak,
     // anything else => rainy cell. Row content below is
-    // real OWM daily data (condition, temps, rain chance).
+    // real OWM daily data (condition, temps, solar outlook).
     // ========================================================
 
     // Real-time device date for the Today card. Recomputed
@@ -2127,10 +2127,6 @@ export default function ChartCard({
                   day.solarOutlook,
                 );
 
-                const rainPct = Math.round(
-                  day.popMax * 100,
-                );
-
                 const pillStyle =
                   day.solarOutlook === "High"
                     ? styles.weatherForecastPillHigh
@@ -2155,7 +2151,7 @@ export default function ChartCard({
                         : styles.weatherForecastRowItemRainy,
                     ]}
                     accessibilityRole="none"
-                    accessibilityLabel={`${day.weekday} ${day.dateLabel}, ${day.tempMax} degrees, low ${day.tempMin} degrees, rain ${rainPct} percent, ${day.peakDescription}${day.peakSubtext ? `, ${day.peakSubtext}` : ""}, ${day.solarOutlook} sun${day.tempFlag ? `, ${day.tempFlag}` : ""}`}
+                    accessibilityLabel={`${day.weekday} ${day.dateLabel}, ${day.tempMax} degrees, low ${day.tempMin} degrees, ${day.peakDescription}${day.peakSubtext ? `, ${day.peakSubtext}` : ""}, ${day.solarOutlook} sun${day.tempFlag ? `, ${day.tempFlag}` : ""}`}
                   >
 
                     <View
@@ -2209,26 +2205,6 @@ export default function ChartCard({
                           {` / ${day.tempMin}°`}
                         </AppText>
                       </AppText>
-
-                      <View
-                        style={
-                          styles.weatherForecastPopRow
-                        }
-                      >
-                        <Ionicons
-                          name="water-outline"
-                          size={12}
-                          color={colors.accentContent}
-                        />
-                        <AppText
-                          variant="caption"
-                          style={
-                            styles.weatherForecastPop
-                          }
-                        >
-                          {`${rainPct}%`}
-                        </AppText>
-                      </View>
 
                       <AppText
                         variant="caption"
@@ -3827,19 +3803,6 @@ const getStyles = (colors: AppColors) =>
     color: colors.textSecondary,
     fontSize: 13,
     fontWeight: "400",
-  },
-
-  weatherForecastPopRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    columnGap: 2,
-  },
-
-  weatherForecastPop: {
-    color: colors.accentContent,
-    fontSize: 12,
-    fontWeight: "600",
   },
 
   weatherForecastClass: {
