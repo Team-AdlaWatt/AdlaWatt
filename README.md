@@ -98,7 +98,7 @@ AdlaWatt/
 ├── supabase/
 │   ├── functions/send-alert-email/
 │   └── migrations/
-├── assets/images/            (logos, appliances, components, developers)
+├── assets/images/            (logos, electronics, components, developers)
 ├── android/
 ├── app.json
 ├── eas.json
@@ -145,14 +145,14 @@ Data lives in Supabase. Core tables used by the app:
 | `users` | Profiles, role, email-notification preference |
 | `monitoring` | Current live sensor readings |
 | `monitoring_history` | Historical readings for analytics |
-| `appliances` | Household appliances and their power ratings |
+| `electronics` | Household electronics and their power ratings |
 | `notifications` | In-app notification records |
 | `activity_logs` | System activity history |
 | `components` | IoT component list and status |
 
 **Edge Function:** `send-alert-email` — a server-side AgentMail proxy (the API key never ships in the app).
 
-**Storage buckets:** `email-assets` (email logo) and `appliance-images` (custom appliance photos).
+**Storage buckets:** `email-assets` (email logo) and `appliance-images` (custom electronics photos).
 
 ---
 

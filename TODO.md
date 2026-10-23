@@ -21,7 +21,7 @@
 - [x] Navbar Upper: Display username — **Resolved**
   - Username slot in `Navbar.tsx` with profile-username + auth-fallback so it never renders empty
 - [x] Electronics: Add image upload inside the Custom Electronics box with a media picker modal — **Resolved**
-  - Public `appliance-images` bucket (per-user write scope) + `appliances.image_url` column
+  - Public `appliance-images` bucket (per-user write scope) + `electronics.image_url` column
   - Library-only `MediaPickerModal` on the system `DropdownModal` shell (square crop, 5MB validation, permission-denied copy)
   - Photo preview in Add/Edit custom form (adlawatt icon stays the default for every custom); upload on save, orphan cleanup on replace/remove/delete
   - Box 3-dot camera button wired to the same picker; photos thread to modal list, dashboard list, and recommendation card
