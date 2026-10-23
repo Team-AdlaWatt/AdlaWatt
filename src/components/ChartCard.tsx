@@ -44,6 +44,7 @@ import {
   formatForecastDay,
   formatForecastSummary,
   isStaleReading,
+  outsideScopeNotice,
   resolveCondition,
   type WeatherSeverity,
 } from "@/services/weatherConfig";
@@ -75,6 +76,7 @@ type TemperatureStatus =
 
 interface WeatherData {
   city: string;
+  outsideScope?: boolean;
   temperature: number;
   feelsLike?: number;
   // Live OWM `main.humidity` (0-100). Shown beside the
@@ -1723,6 +1725,9 @@ export default function ChartCard({
 
     const todayLocationLabel = weatherData.label;
 
+    const outsideScope =
+      weather?.outsideScope === true;
+
     const canTapRefresh =
       typeof onRefreshToday === "function";
 
@@ -2341,7 +2346,7 @@ export default function ChartCard({
 
               <AppText
                 variant="caption"
-                numberOfLines={1}
+                numberOfLines={2}
                 style={
                   styles.weatherForecastLocation
                 }
@@ -2358,6 +2363,30 @@ export default function ChartCard({
                 }`}
               </AppText>
 
+            </View>
+          ) : null}
+
+          {outsideScope && !hasWeatherError ? (
+            <View
+              style={
+                styles.weatherForecastScopeNotice
+              }
+            >
+              <Ionicons
+                name="warning-outline"
+                size={13}
+                color={colors.warning}
+                style={{ marginTop: 1 }}
+              />
+
+              <AppText
+                variant="caption"
+                style={
+                  styles.weatherForecastScopeNoticeText
+                }
+              >
+                {outsideScopeNotice()}
+              </AppText>
             </View>
           ) : null}
 
@@ -3936,6 +3965,22 @@ const getStyles = (colors: AppColors) =>
     color: colors.textSecondary,
     fontSize: 12,
     flex: 1,
+    lineHeight: 16,
+  },
+
+  weatherForecastScopeNotice: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    columnGap: 4,
+    paddingLeft: 18,
+    marginTop: 2,
+  },
+
+  weatherForecastScopeNoticeText: {
+    color: colors.textSecondary,
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 16,
   },
 
   weatherForecastSummary: {
