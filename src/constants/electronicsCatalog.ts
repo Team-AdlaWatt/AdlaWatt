@@ -3,7 +3,7 @@
 // ============================================================
 //
 // Single source for predefined electronics. Readers
-// (ApplianceModal, appliances screen, recommendations,
+// (ElectronicsModal, electronics screen, recommendations,
 // notifications) import from here — never from a component
 // file. Display stays "min-maxW" to keep parseWattageRange +
 // validators working. Keys are namespaced catalog: and must
@@ -73,18 +73,18 @@ export const CATALOG_BY_NAME = new Map(
   ]),
 );
 
-export const CUSTOM_AREA = "Custom Appliances";
+export const CUSTOM_AREA = "Custom Electronics";
 
-export type ApplianceLevel = "low" | "moderate" | "high";
+export type ElectronicsLevel = "low" | "moderate" | "high";
 
 export const levelFromWatts = (
   watts: number,
-): ApplianceLevel =>
+): ElectronicsLevel =>
   watts <= 240 ? "low" : watts <= 480 ? "moderate" : "high";
 
-export type ApplianceRow = {
+export type ElectronicsRow = {
   app_id: string;
-  appliance_name: string;
+  electronics_name: string;
   type?: string | null;
   catalog_key?: string | null;
   wattage_min?: number | string | null;
@@ -95,7 +95,7 @@ export type ApplianceRow = {
   image_url?: string | null;
 };
 
-export type ResolvedAppliance = {
+export type ResolvedElectronics = {
   id: string;
   name: string;
   source: "catalog" | "custom";
@@ -103,15 +103,15 @@ export type ResolvedAppliance = {
   wattMax: number;
   display: string;
   area: string;
-  level: ApplianceLevel;
+  level: ElectronicsLevel;
   selected: boolean;
   appId?: string | null;
   imageUrl?: string | null;
 };
 
 export function resolveRow(
-  row: ApplianceRow,
-): ResolvedAppliance | null {
+  row: ElectronicsRow,
+): ResolvedElectronics | null {
   const catalogKey =
     row.catalog_key?.trim() || null;
 
@@ -120,7 +120,7 @@ export function resolveRow(
       ? CATALOG_BY_KEY.get(catalogKey)
       : undefined;
     const byName = CATALOG_BY_NAME.get(
-      row.appliance_name.trim().toLowerCase(),
+      row.electronics_name.trim().toLowerCase(),
     );
     const item = byKey ?? byName;
 
@@ -163,7 +163,7 @@ export function resolveRow(
 
   return {
     id: String(row.app_id),
-    name: row.appliance_name,
+    name: row.electronics_name,
     source: "custom",
     wattMin: colMin,
     wattMax: colMax,
@@ -180,35 +180,35 @@ export function resolveRow(
 }
 
 export const CATALOG_IMAGES: Record<string, number> = {
-  "catalog:general:led-light-bulb": require("@/assets/images/appliances/bulb.png"),
-  "catalog:general:stand-fan": require("@/assets/images/appliances/stand-fan.png"),
-  "catalog:general:exhaust-fan": require("@/assets/images/appliances/green-exhaust-fan.png"),
-  "catalog:general:wifi-router": require("@/assets/images/appliances/router.png"),
-  "catalog:general:smartphone-fast-charger": require("@/assets/images/appliances/green-charger.png"),
-  "catalog:general:rechargeable-emergency-light": require("@/assets/images/appliances/green-emergency-light.png"),
-  "catalog:living:led-smart-tv": require("@/assets/images/appliances/led-tv.png"),
-  "catalog:living:digital-tv-set-top-box": require("@/assets/images/appliances/tv-box.png"),
-  "catalog:living:portable-bluetooth-speaker": require("@/assets/images/appliances/speaker.png"),
-  "catalog:living:mini-led-projector": require("@/assets/images/appliances/mini-projector.png"),
-  "catalog:living:desk-fan": require("@/assets/images/appliances/desk-fan.png"),
-  "catalog:bedroom:clip-fan": require("@/assets/images/appliances/clip-fan.png"),
-  "catalog:bedroom:tablet-charger": require("@/assets/images/appliances/charger.png"),
-  "catalog:bedroom:led-night-light": require("@/assets/images/appliances/night-light.png"),
-  "catalog:bedroom:electric-mosquito-swatter": require("@/assets/images/appliances/swatter.png"),
-  "catalog:bedroom:rechargeable-handheld-fan": require("@/assets/images/appliances/handheld-fan.png"),
-  "catalog:kitchen:small-inverter-refrigerator": require("@/assets/images/appliances/refrigerator.png"),
-  "catalog:kitchen:small-rice-cooker": require("@/assets/images/appliances/rice-cooker.png"),
-  "catalog:kitchen:mini-electric-multi-cooker": require("@/assets/images/appliances/multi-cooker.png"),
-  "catalog:kitchen:basic-kitchen-blender": require("@/assets/images/appliances/blender.png"),
-  "catalog:kitchen:tabletop-cold-water-dispenser": require("@/assets/images/appliances/water-dispenser.png"),
-  "catalog:kitchen:rechargeable-water-dispenser-pump": require("@/assets/images/appliances/water-dispenser-pump.png"),
-  "catalog:work:laptop-charger": require("@/assets/images/appliances/laptop-charger.png"),
-  "catalog:work:led-study-desk-lamp": require("@/assets/images/appliances/desk-lamp.png"),
-  "catalog:work:basic-inkjet-printer": require("@/assets/images/appliances/printer.png"),
-  "catalog:work:power-bank-charger": require("@/assets/images/appliances/power-bank-charger.png"),
-  "catalog:work:wireless-earbuds-charging-case": require("@/assets/images/appliances/earbuds-charging-case.png"),
-  "catalog:bath:twin-tub-washing-machine": require("@/assets/images/appliances/washing-machine.png"),
-  "catalog:bath:rechargeable-hair-clipper": require("@/assets/images/appliances/hair-clipper.png"),
+  "catalog:general:led-light-bulb": require("@/assets/images/electronics/bulb.png"),
+  "catalog:general:stand-fan": require("@/assets/images/electronics/stand-fan.png"),
+  "catalog:general:exhaust-fan": require("@/assets/images/electronics/green-exhaust-fan.png"),
+  "catalog:general:wifi-router": require("@/assets/images/electronics/router.png"),
+  "catalog:general:smartphone-fast-charger": require("@/assets/images/electronics/green-charger.png"),
+  "catalog:general:rechargeable-emergency-light": require("@/assets/images/electronics/green-emergency-light.png"),
+  "catalog:living:led-smart-tv": require("@/assets/images/electronics/led-tv.png"),
+  "catalog:living:digital-tv-set-top-box": require("@/assets/images/electronics/tv-box.png"),
+  "catalog:living:portable-bluetooth-speaker": require("@/assets/images/electronics/speaker.png"),
+  "catalog:living:mini-led-projector": require("@/assets/images/electronics/mini-projector.png"),
+  "catalog:living:desk-fan": require("@/assets/images/electronics/desk-fan.png"),
+  "catalog:bedroom:clip-fan": require("@/assets/images/electronics/clip-fan.png"),
+  "catalog:bedroom:tablet-charger": require("@/assets/images/electronics/charger.png"),
+  "catalog:bedroom:led-night-light": require("@/assets/images/electronics/night-light.png"),
+  "catalog:bedroom:electric-mosquito-swatter": require("@/assets/images/electronics/swatter.png"),
+  "catalog:bedroom:rechargeable-handheld-fan": require("@/assets/images/electronics/handheld-fan.png"),
+  "catalog:kitchen:small-inverter-refrigerator": require("@/assets/images/electronics/refrigerator.png"),
+  "catalog:kitchen:small-rice-cooker": require("@/assets/images/electronics/rice-cooker.png"),
+  "catalog:kitchen:mini-electric-multi-cooker": require("@/assets/images/electronics/multi-cooker.png"),
+  "catalog:kitchen:basic-kitchen-blender": require("@/assets/images/electronics/blender.png"),
+  "catalog:kitchen:tabletop-cold-water-dispenser": require("@/assets/images/electronics/water-dispenser.png"),
+  "catalog:kitchen:rechargeable-water-dispenser-pump": require("@/assets/images/electronics/water-dispenser-pump.png"),
+  "catalog:work:laptop-charger": require("@/assets/images/electronics/laptop-charger.png"),
+  "catalog:work:led-study-desk-lamp": require("@/assets/images/electronics/desk-lamp.png"),
+  "catalog:work:basic-inkjet-printer": require("@/assets/images/electronics/printer.png"),
+  "catalog:work:power-bank-charger": require("@/assets/images/electronics/power-bank-charger.png"),
+  "catalog:work:wireless-earbuds-charging-case": require("@/assets/images/electronics/earbuds-charging-case.png"),
+  "catalog:bath:twin-tub-washing-machine": require("@/assets/images/electronics/washing-machine.png"),
+  "catalog:bath:rechargeable-hair-clipper": require("@/assets/images/electronics/hair-clipper.png"),
 };
 
 // Aliases for callers that use the new naming.

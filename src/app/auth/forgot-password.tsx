@@ -32,7 +32,7 @@ import {
   EMAIL_PATTERN,
   getCurrentUserProfile,
   requestPasswordReset,
-  resolvePostLoginRoute,
+  resolveOnboardingAwareRoute,
   updateRecoveryPassword,
 } from "@/services/auth";
 import { useTranslation } from "react-i18next";
@@ -363,10 +363,13 @@ export default function ForgotPasswordScreen() {
         const profile = await getCurrentUserProfile();
 
         router.replace(
-          resolvePostLoginRoute(
+          resolveOnboardingAwareRoute(
             profile.success
               ? (profile as { role?: unknown }).role
               : null,
+            profile.success
+              ? profile.onboardingCompleted
+              : true,
           ) as never,
         );
       } catch {
@@ -386,11 +389,27 @@ export default function ForgotPasswordScreen() {
   };
 
   // Verified user skips the password change: the recovery
-  // session is a full session, so land on the dashboard as
-  // a normal signed-in user.
-  const handleContinue = () => {
+  // session is a full session, so land where a normal
+  // signed-in user would (dashboard or first-run onboarding).
+  const handleContinue = async () => {
     clearRecoverySession();
-    router.replace(Routes.DASHBOARD);
+
+    try {
+      const profile = await getCurrentUserProfile();
+
+      router.replace(
+        resolveOnboardingAwareRoute(
+          profile.success
+            ? (profile as { role?: unknown }).role
+            : null,
+          profile.success
+            ? profile.onboardingCompleted
+            : true,
+        ) as never,
+      );
+    } catch {
+      router.replace(Routes.DASHBOARD);
+    }
   };
 
   return (

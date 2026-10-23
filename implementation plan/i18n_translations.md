@@ -9,7 +9,7 @@ Active languages: English `en` (default, source of truth),
 Filipino `fil`, Cebuano `ceb` — these three only, no coming-soon rows.
 
 Translation policy: UI chrome translates; proper nouns
-(appliance + catalog names, usernames, emails, brand,
+(electronics + catalog names, usernames, emails, brand,
 units, model terms) and email templates stay as-is. Dates
 and numbers localize in format only, never in content.
 
@@ -204,6 +204,14 @@ by hand.
 | `auth.callback.footerPrompt` | Need a new account? | Kailangan ng bagong account? | Kinahanglan ug bag-ong account? |  |
 | `auth.callback.footerAction` | Create Account | Lumikha ng Account | Pagbuhat ug Account |  |
 
+## Auth — Session (3 keys)
+
+| Key | English | Filipino | Cebuano | Notes |
+|---|---|---|---|---|
+| `auth.session.notFoundTitle` | Account Not Existing | Wala Na Ang Account | Wala Na Ang Account | Full-screen takeover shown when the signed-in account was deleted. |
+| `auth.session.notFoundBody` | This account no longer exists. Please sign in again. | Hindi na umiiral ang account mo. Mangyaring mag-sign in muli. | Dili na existent ang account nimo. Palihok nga log-in usab. |  |
+| `auth.session.backToSignIn` | Back to Sign In | Bumalik sa Sign In | Balik sa Sign In | Leaves the takeover for the login screen. |
+
 ## Menu — Language Picker (3 keys)
 
 | Key | English | Filipino | Cebuano | Notes |
@@ -302,9 +310,9 @@ by hand.
 |---|---|---|---|---|
 | `dashboard.home.title` | Dashboard | Dashboard | Dashboard |  |
 | `dashboard.home.subtitle` | Monitor your AdlaWatt system in real time. | I-monitor ang iyong AdlaWatt system nang real time. | I-monitor ang imong AdlaWatt system nga real time. |  |
-| `dashboard.home.applianceRecommendation` | Appliance Recommendation | Appliance Recommendation | Appliance Recommendation |  |
+| `dashboard.home.electronicsRecommendation` | Electronics Recommendation | Electronics Recommendation | Electronics Recommendation |  |
 | `dashboard.home.realtimeMonitoring` | Real-Time Monitoring | Real-Time Monitoring | Real-Time Monitoring |  |
-| `dashboard.home.goToApplianceRecommendation` | Go to Appliance Recommendation | Pumunta sa Appliance Recommendation | Adto sa Appliance Recommendation | a11y |
+| `dashboard.home.goToElectronicsRecommendation` | Go to Electronics Recommendation | Pumunta sa Electronics Recommendation | Adto sa Electronics Recommendation | a11y |
 | `dashboard.home.forecastFailed` | Could not load the forecast. | Hindi ma-load ang forecast. | Dili ma-load ang forecast. | error fallback |
 | `dashboard.home.offlineBanner` | You're offline — showing last readings. | Wala kang koneksyon — huling readings ang ipinapakita. | Wala kay koneksyon — katapusang readings ang gipakita. | offline banner |
 | `dashboard.home.lastUpdated` | Last updated {{time}}. | Huling na-update {{time}}. | Katapusang na-update {{time}}. | offline banner |
@@ -346,25 +354,25 @@ by hand.
 | `media.processFailed` | Could not process that photo. Try another one. | Hindi ma-process ang larawang iyon. Sumubok ng iba. | Dili ma-process kana nga hulagway. Sulayi ug lain. |  |
 | `media.libraryFailed` | Could not open your photo library. Try again. | Hindi mabuksan ang iyong photo library. Subukang muli. | Dili maablihan ang imong photo library. Sulayi pag-usab. |  |
 
-## Appliance Box (15 keys, Phase 2)
+## Electronics Box (15 keys, Phase 2)
 
 | Key | English | Filipino | Cebuano | Notes |
 |---|---|---|---|---|
-| `applianceBox.editAppliance` | Edit appliance | I-edit ang appliance | I-edit ang appliance | a11y |
-| `applianceBox.archiveAppliance` | Archive appliance | I-archive ang appliance | I-archive ang appliance | a11y |
-| `applianceBox.unarchiveAppliance` | Unarchive appliance | I-unarchive ang appliance | I-unarchive ang appliance | a11y |
-| `applianceBox.deleteAppliance` | Delete appliance | Burahin ang appliance | Papason ang appliance | a11y |
-| `applianceBox.showOptions` | Show appliance options | Ipakita ang mga opsyon ng appliance | Ipakita ang mga opsyon sa appliance | a11y |
-| `applianceBox.hideOptions` | Hide appliance options | Itago ang mga opsyon ng appliance | Tagoa ang mga opsyon sa appliance | a11y |
-| `applianceBox.deleteQuestion` | You want to delete this? | Gusto mo ba itong burahin? | Gusto ba nimong papason kini? |  |
-| `applianceBox.doNotDelete` | Do not delete appliance | Huwag burahin ang appliance | Ayaw papasa ang appliance | a11y |
-| `applianceBox.confirmDelete` | Confirm delete appliance | Kumpirmahin ang pagbura ng appliance | Kumpirmahi ang pagpapasa sa appliance | a11y |
-| `applianceBox.archiveQuestion` | Archive this appliance? | I-archive ang appliance na ito? | I-archive kini nga appliance? |  |
-| `applianceBox.unarchiveQuestion` | Unarchive this appliance? | I-unarchive ang appliance na ito? | I-unarchive kini nga appliance? |  |
-| `applianceBox.doNotArchive` | Do not archive appliance | Huwag i-archive ang appliance | Ayaw i-archive ang appliance | a11y |
-| `applianceBox.doNotUnarchive` | Do not unarchive appliance | Huwag i-unarchive ang appliance | Ayaw i-unarchive ang appliance | a11y |
-| `applianceBox.confirmArchive` | Confirm archive appliance | Kumpirmahin ang pag-archive ng appliance | Kumpirmahi ang pag-archive sa appliance | a11y |
-| `applianceBox.confirmUnarchive` | Confirm unarchive appliance | Kumpirmahin ang pag-unarchive ng appliance | Kumpirmahi ang pag-unarchive sa appliance | a11y |
+| `electronicsBox.editElectronics` | Edit electronics item | I-edit ang electronics item | I-edit ang electronics item | a11y |
+| `electronicsBox.archiveElectronics` | Archive electronics item | I-archive ang electronics item | I-archive ang electronics item | a11y |
+| `electronicsBox.unarchiveElectronics` | Unarchive electronics item | I-unarchive ang electronics item | I-unarchive ang electronics item | a11y |
+| `electronicsBox.deleteElectronics` | Delete electronics item | Burahin ang electronics item | Papason ang electronics item | a11y |
+| `electronicsBox.showOptions` | Show electronics options | Ipakita ang mga opsyon ng electronics | Ipakita ang mga opsyon sa electronics | a11y |
+| `electronicsBox.hideOptions` | Hide electronics options | Itago ang mga opsyon ng electronics | Tagoa ang mga opsyon sa electronics | a11y |
+| `electronicsBox.deleteQuestion` | You want to delete this? | Gusto mo ba itong burahin? | Gusto ba nimong papason kini? |  |
+| `electronicsBox.doNotDelete` | Do not delete electronics item | Huwag burahin ang electronics item | Ayaw papasa ang electronics item | a11y |
+| `electronicsBox.confirmDelete` | Confirm delete electronics item | Kumpirmahin ang pagbura ng electronics item | Kumpirmahi ang pagpapasa sa electronics item | a11y |
+| `electronicsBox.archiveQuestion` | Archive this electronics item? | I-archive ang electronics item na ito? | I-archive kini nga electronics item? |  |
+| `electronicsBox.unarchiveQuestion` | Unarchive this electronics item? | I-unarchive ang electronics item na ito? | I-unarchive kini nga electronics item? |  |
+| `electronicsBox.doNotArchive` | Do not archive electronics item | Huwag i-archive ang electronics item | Ayaw i-archive ang electronics item | a11y |
+| `electronicsBox.doNotUnarchive` | Do not unarchive electronics item | Huwag i-unarchive ang electronics item | Ayaw i-unarchive ang electronics item | a11y |
+| `electronicsBox.confirmArchive` | Confirm archive electronics item | Kumpirmahin ang pag-archive ng electronics item | Kumpirmahi ang pag-archive sa electronics item | a11y |
+| `electronicsBox.confirmUnarchive` | Confirm unarchive electronics item | Kumpirmahin ang pag-unarchive ng electronics item | Kumpirmahi ang pag-unarchive sa electronics item | a11y |
 
 ## Activity Card (6 keys, Phase 2)
 
@@ -394,7 +402,7 @@ Names, contact values stay as-is.
 |---|---|---|---|---|
 | `dashboard.about.title` | About Us | About Us | About Us |  |
 | `dashboard.about.subtitle` | Learn more about AdlaWatt and its purpose. | Alamin ang tungkol sa AdlaWatt at sa layunin nito. | Pagkat-on bahin sa AdlaWatt ug sa katuyoan niini. |  |
-| `dashboard.about.tagline` | An IoT-Based Off-Grid Solar Backup Power System with Real-Time Energy Monitoring and Appliance Recommendation | Isang IoT-Based Off-Grid Solar Backup Power System na may Real-Time Energy Monitoring at Appliance Recommendation | Usa ka IoT-Based Off-Grid Solar Backup Power System nga adunay Real-Time Energy Monitoring ug Appliance Recommendation |  |
+| `dashboard.about.tagline` | An IoT-Based Off-Grid Solar Backup Power System with Real-Time Energy Monitoring and Electronics Recommendation | Isang IoT-Based Off-Grid Solar Backup Power System na may Real-Time Energy Monitoring at Electronics Recommendation | Usa ka IoT-Based Off-Grid Solar Backup Power System nga adunay Real-Time Energy Monitoring ug Electronics Recommendation |  |
 | `dashboard.about.overview` | AdlaWatt is a transportable, off-grid solar backup power system … maintain power during blackouts. | Ang AdlaWatt ay isang nadadalang off-grid solar backup power system … magkaroon ng kuryente tuwing blackout. | Ang AdlaWatt usa ka madalang off-grid solar backup power system … magpabilin ang kuryente panahon sa blackout. | long paragraph; see locale modules for full text |
 | `dashboard.about.developers` | Developers | Mga Developer | Mga Developer |  |
 | `dashboard.about.roleProgrammer` | Programmer | Programmer | Programmer |  |
@@ -414,7 +422,7 @@ Codes stay backend-bound; labels map for display. Dates localize in format only 
 | Key | English | Filipino | Cebuano | Notes |
 |---|---|---|---|---|
 | `dashboard.logs.title` | Activity Logs | Activity Logs | Activity Logs |  |
-| `dashboard.logs.subtitle` | System activity and appliance events will appear here. | Dito lilitaw ang aktibidad ng system at mga event ng appliance. | Dinhi makita ang aktibidad sa system ug mga event sa appliance. |  |
+| `dashboard.logs.subtitle` | System activity and electronics events will appear here. | Dito lilitaw ang aktibidad ng system at mga event ng electronics. | Dinhi makita ang aktibidad sa system ug mga event sa electronics. |  |
 | `dashboard.logs.total` | Total Activity Logs: | Kabuuang Activity Logs: | Tibuok Activity Logs: |  |
 | `dashboard.logs.loadFailed` | We couldn't load your activity logs. Check your connection and try again. | Hindi ma-load ang iyong activity logs. Suriin ang iyong koneksyon at subukang muli. | Dili ma-load ang imong activity logs. Susiha ang imong koneksyon ug sulayi pag-usab. | thrown error |
 | `dashboard.logs.timeRange` | Time Range | Saklaw ng Oras | Sakop sa Oras |  |
@@ -464,16 +472,16 @@ Codes stay backend-bound; labels map for display. Dates localize in format only 
 | `shared.errorTitle` | Couldn't load data | Hindi ma-load ang data | Dili ma-load ang data |  |
 | `shared.retry` | Try Again | Subukang Muli | Sulayi Pag-usab |  |
 
-## Dashboard — Appliances / Components / Analytics headers
+## Dashboard — Electronics / Components / Analytics headers
 
 | Key | English | Filipino | Cebuano | Notes |
 |---|---|---|---|---|
-| `dashboard.appliances.title` | Appliances | Mga Appliance | Mga Appliance |  |
-| `dashboard.appliances.subtitle` | Manage and monitor supported appliances. | Pamahalaan at i-monitor ang mga sinusuportahang appliance. | Dumalaha ug i-monitor ang gisuportahang mga appliance. |  |
+| `dashboard.electronics.title` | Electronics | Mga Electronics | Mga Electronics |  |
+| `dashboard.electronics.subtitle` | Manage and monitor supported electronics. | Pamahalaan at i-monitor ang mga sinusuportahang electronics. | Dumalaha ug i-monitor ang gisuportahang mga electronics. |  |
 | `dashboard.components.title` | Components | Mga Komponente | Mga Komponente |  |
 | `dashboard.components.subtitle` | Monitor AdlaWatt system components. | I-monitor ang mga component ng AdlaWatt system. | I-monitor ang mga component sa AdlaWatt system. |  |
 | `dashboard.analytics.title` | Analytics & Trends | Analytics at Trends | Analytics ug Trends |  |
-| `dashboard.analytics.subtitle` | Analyze system performance, energy usage, temperature, and appliance data over time. | Suriin ang performance ng system, paggamit ng enerhiya, temperatura, at datos ng appliance sa paglipas ng panahon. | Susiha ang performance sa system, paggamit sa enerhiya, temperatura, ug datos sa appliance sa paglabay sa panahon. |  |
+| `dashboard.analytics.subtitle` | Analyze system performance, energy usage, temperature, and electronics data over time. | Suriin ang performance ng system, paggamit ng enerhiya, temperatura, at datos ng electronics sa paglipas ng panahon. | Susiha ang performance sa system, paggamit sa enerhiya, temperatura, ug datos sa electronics sa paglabay sa panahon. |  |
 | `dashboard.analytics.sectionBattery` | Battery | Baterya | Baterya | section header |
 | `dashboard.analytics.sectionSolar` | Solar | Solar | Solar | section header |
 | `dashboard.analytics.sectionEnergy` | Energy | Enerhiya | Enerhiya | section header |
@@ -484,7 +492,7 @@ Codes stay backend-bound; labels map for display. Dates localize in format only 
 
 - DB status enums: `Online`/`Offline`, `Charging`/`Discharging`/`Idle`, `Safe`/`Unsafe`, solar/temperature statuses — compared with `===` and written by ESP32/cron.
 - Log/notification types: `info`/`warning`/`error`/`critical`, stored activity-log titles, email badge `ALERT`/`NORMAL`.
-- Proper nouns: appliance/catalog names, usernames, emails, brand, units (`W`, `V`, `°C`).
+- Proper nouns: electronics/catalog names, usernames, emails, brand, units (`W`, `V`, `°C`).
 - Option codes: theme `system`/`light`/`dark`, font-size codes; only display labels translate.
 - `themeLabel()` helper output stays English (feeds activity-log rows).
 

@@ -20,7 +20,7 @@ import {
   type AppColors,
 } from "@/hooks/useAppColors";
 import {
-  BATTERY_MAX_APPLIANCE_W,
+  BATTERY_MAX_ELECTRONICS_W,
 } from "@/constants/battery";
 import {
   Radius,
@@ -29,16 +29,16 @@ import { Control, Field } from "@/constants/sizing";
 import { useTypography } from "@/hooks/useTypography";
 
 // ============================================================
-// CUSTOM APPLIANCE MODAL (ADD + EDIT)
+// CUSTOM ELECTRONICS MODAL (ADD + EDIT)
 //
 // Shared DropdownModal shell (same overlay, centered card,
 // and header as CalendarModal) for both flows. Add flow is
-// driven by ApplianceModal; edit flow reuses this exact
-// layout prefilled with the custom appliance values, so
+// driven by ElectronicsModal; edit flow reuses this exact
+// layout prefilled with the custom electronics values, so
 // both dialogs look identical apart from title + confirm.
 // ============================================================
 
-type CustomApplianceModalProps = {
+type CustomElectronicsModalProps = {
 
   visible: boolean;
   mode?: "add" | "edit";
@@ -56,7 +56,7 @@ type CustomApplianceModalProps = {
   wattsValid: boolean;
   // Photo preview to display: a freshly picked local uri or
   // the stored uploaded url. Null renders the bundled
-  // adlawatt icon — the default for every custom appliance.
+  // adlawatt icon — the default for every custom electronics.
   photoPreview: string | null;
   // True while a photo upload is in flight: the confirm
   // button dims into a Saving state.
@@ -73,7 +73,7 @@ const defaultPhoto = require(
 // validation, prefill, and resets work unchanged.
 // Strict per-side rule: digits, one dot, max 2 decimals,
 // max 3 integer digits, integer value at most
-// BATTERY_MAX_APPLIANCE_W. Empty
+// BATTERY_MAX_ELECTRONICS_W. Empty
 // is always fine (deletion never blocked). Rejected
 // keystrokes keep the previous text with no error flash.
 const splitWatts = (watts: string): [string, string] => {
@@ -101,7 +101,7 @@ const sanitizeWattSide = (
 
   const intPart = clean.split(".")[0] ?? "";
 
-  if (intPart !== "" && Number(intPart) > BATTERY_MAX_APPLIANCE_W) {
+  if (intPart !== "" && Number(intPart) > BATTERY_MAX_ELECTRONICS_W) {
     return null;
   }
 
@@ -116,7 +116,7 @@ const joinWatts = (min: string, max: string): string => {
   return `${min}-${max}`;
 };
 
-export default function CustomApplianceModal({
+export default function CustomElectronicsModal({
   visible,
   mode = "add",
   name,
@@ -131,7 +131,7 @@ export default function CustomApplianceModal({
   photoPreview,
   photoBusy,
   onPhotoPress,
-}: CustomApplianceModalProps) {
+}: CustomElectronicsModalProps) {
   const colors = useAppColors();
 
   const styles = useMemo(
@@ -150,8 +150,8 @@ export default function CustomApplianceModal({
 
   const isEdit = mode === "edit";
   const title = isEdit
-    ? "Edit Custom Appliance"
-    : "Add Custom Appliance";
+    ? "Edit Custom Electronics"
+    : "Add Custom Electronics";
   const confirmLabel = isEdit ? "Save" : "Add";
   const handleConfirm = isEdit
     ? (onSave ?? onAdd)
@@ -189,7 +189,7 @@ export default function CustomApplianceModal({
         variant="caption"
         style={styles.infoNote}
       >
-        Check the appliance wattage first, for
+        Check the electronics wattage first, for
         example, soldering wire may use 15-25W.
       </AppText>
 
@@ -206,8 +206,8 @@ export default function CustomApplianceModal({
           resizeMode="contain"
           accessibilityLabel={
             photoPreview
-              ? "Custom appliance photo"
-              : "Default appliance icon"
+              ? "Custom electronics photo"
+              : "Default electronics icon"
           }
         />
       </View>
@@ -223,8 +223,8 @@ export default function CustomApplianceModal({
         accessibilityRole="button"
         accessibilityLabel={
           photoPreview
-            ? "Change appliance photo"
-            : "Add appliance photo"
+            ? "Change electronics photo"
+            : "Add electronics photo"
         }
         accessibilityHint="Opens the photo picker"
       >
@@ -247,7 +247,7 @@ export default function CustomApplianceModal({
       <TextInput
         value={name}
         onChangeText={onNameChange}
-        placeholder="Enter valid appliance name"
+        placeholder="Enter valid electronics name"
         placeholderTextColor={
           colors.textSecondary
         }
@@ -255,8 +255,8 @@ export default function CustomApplianceModal({
         style={[styles.input, inputFontStyle]}
         accessibilityLabel={
           isEdit
-            ? "Edit custom appliance name"
-            : "Add custom appliance name"
+            ? "Edit custom electronics name"
+            : "Add custom electronics name"
         }
       />
 
@@ -329,8 +329,8 @@ export default function CustomApplianceModal({
           accessibilityRole="button"
           accessibilityLabel={
             isEdit
-              ? "Cancel edit custom appliance"
-              : "Cancel add custom appliance"
+              ? "Cancel edit custom electronics"
+              : "Cancel add custom electronics"
           }
         >
           <AppText
@@ -355,8 +355,8 @@ export default function CustomApplianceModal({
           accessibilityRole="button"
           accessibilityLabel={
             isEdit
-              ? "Save custom appliance"
-              : "Add custom appliance"
+              ? "Save custom electronics"
+              : "Add custom electronics"
           }
         >
           <AppText

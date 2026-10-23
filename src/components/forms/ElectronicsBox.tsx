@@ -20,8 +20,8 @@ import {
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 import {
-  useApplianceCardStyles,
-} from "@/components/forms/applianceCard";
+  useElectronicsCardStyles,
+} from "@/components/forms/electronicsCard";
 import AppText from "@/components/ui/AppText";
 import {
   useAppColors,
@@ -31,14 +31,14 @@ import { Radius } from "@/constants/theme";
 import { Touch } from "@/constants/sizing";
 import { useTranslation } from "react-i18next";
 
-type ApplianceBoxProps = {
+type ElectronicsBoxProps = {
   name: string;
   wattage: string;
   color: string;
   imageSource?: ImageSource | number;
   selected?: boolean;
 
-  // Main appliance selection
+  // Main electronics selection
   onPress?: () => void;
 
   // Layer 2 (archived viewer) is display-only: no selection
@@ -46,7 +46,7 @@ type ApplianceBoxProps = {
   // still works for edit / unarchive / delete.
   selectable?: boolean;
 
-  // Custom appliance controls
+  // Custom electronics controls
   isCustom?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -56,14 +56,14 @@ type ApplianceBoxProps = {
   // 3-dot menu is parent-controlled so only one box menu is
   // open at a time across every list. Optional so catalog
   // boxes (which render no dots) stay prop-free; custom
-  // boxes always receive both from ApplianceModal.
+  // boxes always receive both from ElectronicsModal.
   menuOpen?: boolean;
   onMenuToggle?: () => void;
 };
 
 const defaultImage = require("@/assets/images/adlawatt-icon.png");
 
-export default function ApplianceBox({
+export default function ElectronicsBox({
   name,
   wattage,
   color,
@@ -78,7 +78,7 @@ export default function ApplianceBox({
   archiveVariant = "archive",
   menuOpen = false,
   onMenuToggle,
-}: ApplianceBoxProps) {
+}: ElectronicsBoxProps) {
   const [deleteMode, setDeleteMode] = useState(false);
   const [archiveMode, setArchiveMode] = useState(false);
   const { t } = useTranslation();
@@ -139,8 +139,8 @@ export default function ApplianceBox({
   // one tap so opening/closing the menu never toggles selection.
   const suppressNextSelect = useRef(false);
 
-  const applianceCardStyles =
-    useApplianceCardStyles();
+  const electronicsCardStyles =
+    useElectronicsCardStyles();
 
   const colors = useAppColors();
 
@@ -244,7 +244,7 @@ export default function ApplianceBox({
           onPress={pressAndPoke(onEdit)}
           hitSlop={6}
           accessibilityRole="button"
-          accessibilityLabel={t("applianceBox.editAppliance")}
+          accessibilityLabel={t("electronicsBox.editElectronics")}
           style={({ pressed }) => [
             styles.iconButton,
             pressed && styles.actionPressed,
@@ -267,8 +267,8 @@ export default function ApplianceBox({
           accessibilityRole="button"
           accessibilityLabel={
             isUnarchive
-              ? t("applianceBox.unarchiveAppliance")
-              : t("applianceBox.archiveAppliance")
+              ? t("electronicsBox.unarchiveElectronics")
+              : t("electronicsBox.archiveElectronics")
           }
           style={({ pressed }) => [
             styles.iconButton,
@@ -294,7 +294,7 @@ export default function ApplianceBox({
           )}
           hitSlop={6}
           accessibilityRole="button"
-          accessibilityLabel={t("applianceBox.deleteAppliance")}
+          accessibilityLabel={t("electronicsBox.deleteElectronics")}
           style={({ pressed }) => [
             styles.iconButton,
             pressed && styles.actionPressed,
@@ -314,7 +314,7 @@ export default function ApplianceBox({
       {/* ================================================= */}
 
       <View style={styles.dotsRow}>
-        {renderDotsToggle(t("applianceBox.hideOptions"))}
+        {renderDotsToggle(t("electronicsBox.hideOptions"))}
       </View>
     </>
   );
@@ -331,7 +331,7 @@ export default function ApplianceBox({
         variant="caption"
         style={styles.deleteQuestion}
       >
-        {t("applianceBox.deleteQuestion")}
+        {t("electronicsBox.deleteQuestion")}
       </AppText>
 
       <View style={styles.confirmActions}>
@@ -341,7 +341,7 @@ export default function ApplianceBox({
           onPress={handleDeleteCancel}
           hitSlop={10}
           accessibilityRole="button"
-          accessibilityLabel={t("applianceBox.doNotDelete")}
+          accessibilityLabel={t("electronicsBox.doNotDelete")}
           style={({ pressed }) => [
             styles.confirmButton,
             styles.noButton,
@@ -362,7 +362,7 @@ export default function ApplianceBox({
           onPress={handleDeleteConfirm}
           hitSlop={10}
           accessibilityRole="button"
-          accessibilityLabel={t("applianceBox.confirmDelete")}
+          accessibilityLabel={t("electronicsBox.confirmDelete")}
           style={({ pressed }) => [
             styles.confirmButton,
             styles.yesButton,
@@ -397,8 +397,8 @@ export default function ApplianceBox({
         style={styles.deleteQuestion}
       >
         {isUnarchive
-          ? t("applianceBox.unarchiveQuestion")
-          : t("applianceBox.archiveQuestion")}
+          ? t("electronicsBox.unarchiveQuestion")
+          : t("electronicsBox.archiveQuestion")}
       </AppText>
 
       <View style={styles.confirmActions}>
@@ -410,8 +410,8 @@ export default function ApplianceBox({
           accessibilityRole="button"
           accessibilityLabel={
             isUnarchive
-              ? t("applianceBox.doNotUnarchive")
-              : t("applianceBox.doNotArchive")
+              ? t("electronicsBox.doNotUnarchive")
+              : t("electronicsBox.doNotArchive")
           }
           style={({ pressed }) => [
             styles.confirmButton,
@@ -435,8 +435,8 @@ export default function ApplianceBox({
           accessibilityRole="button"
           accessibilityLabel={
             isUnarchive
-              ? t("applianceBox.confirmUnarchive")
-              : t("applianceBox.confirmArchive")
+              ? t("electronicsBox.confirmUnarchive")
+              : t("electronicsBox.confirmArchive")
           }
           style={({ pressed }) => [
             styles.confirmButton,
@@ -489,7 +489,7 @@ export default function ApplianceBox({
 
       <View
         style={[
-          applianceCardStyles.imageContainer,
+          electronicsCardStyles.imageContainer,
           {
             borderColor: color,
           },
@@ -497,7 +497,7 @@ export default function ApplianceBox({
       >
         <Image
           source={imageSource}
-          style={applianceCardStyles.image}
+          style={electronicsCardStyles.image}
           contentFit="contain"
           // Memory-only cache: thumbnails decode once and
           // stay instant for the whole session, then drop
@@ -515,7 +515,7 @@ export default function ApplianceBox({
 
       <AppText
         variant="caption"
-        style={applianceCardStyles.name}
+        style={electronicsCardStyles.name}
         numberOfLines={2}
       >
         {name}
@@ -527,7 +527,7 @@ export default function ApplianceBox({
 
       <AppText
         variant="caption"
-        style={applianceCardStyles.watts}
+        style={electronicsCardStyles.watts}
       >
         {wattage}
       </AppText>
@@ -538,7 +538,7 @@ export default function ApplianceBox({
 
       {isCustom ? (
         <View style={styles.dotsRow}>
-          {renderDotsToggle(t("applianceBox.showOptions"))}
+          {renderDotsToggle(t("electronicsBox.showOptions"))}
         </View>
       ) : null}
     </>
@@ -561,7 +561,7 @@ export default function ApplianceBox({
         archiveMode
       }
       style={({ pressed }) => [
-        applianceCardStyles.boxCompact,
+        electronicsCardStyles.boxCompact,
         {
           borderColor: color,
           position: "relative",

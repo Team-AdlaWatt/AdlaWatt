@@ -24,7 +24,7 @@ import {
 } from "@/hooks/useAppColors";
 import { Radius } from "@/constants/theme";
 import { Control } from "@/constants/sizing";
-import { MAX_PHOTO_BYTES } from "@/services/appliancePhotoService";
+import { MAX_PHOTO_BYTES } from "@/services/electronicsPhotoService";
 import { useTranslation } from "react-i18next";
 
 // ============================================================

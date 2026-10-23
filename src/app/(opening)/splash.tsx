@@ -3,7 +3,7 @@ import { useAppFonts } from "@/hooks/useAppFonts";
 import { useAuth } from "@/context/AuthContext";
 import {
   getCurrentUserProfile,
-  resolvePostLoginRoute,
+  resolveOnboardingAwareRoute,
 } from "@/services/auth";
 import { Routes } from "@/constants/routes";
 import { router } from "expo-router";
@@ -50,17 +50,21 @@ export default function SplashScreen() {
           return;
         }
 
-        // Role-aware cold start: admin test account lands
-        // on /admin, everyone else on /dashboard.
+        // Cold start routing: admin test account lands on
+        // /admin, first-time household users on /onboarding,
+        // everyone else on /dashboard.
         try {
           const profile = await getCurrentUserProfile();
 
           if (!cancelled) {
             router.replace(
-              resolvePostLoginRoute(
+              resolveOnboardingAwareRoute(
                 profile.success
                   ? (profile as { role?: unknown }).role
                   : null,
+                profile.success
+                  ? profile.onboardingCompleted
+                  : true,
               ) as never,
             );
           }

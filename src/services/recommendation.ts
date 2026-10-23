@@ -1,5 +1,5 @@
 // ============================================================
-// ADLAWATT APPLIANCE RECOMMENDATION ENGINE
+// ADLAWATT ELECTRONICS RECOMMENDATION ENGINE
 //
 // Pure calculation module — no network calls and no React
 // Native imports, so it can be verified anywhere.
@@ -15,7 +15,7 @@
 //   - Charge-scaled wattage cap
 //   - Voltage headroom projection
 //   - Budget (per-hour share of usable energy)
-//   - Per-appliance runtime estimate
+//   - Per-electronics runtime estimate
 //   - Recommendation verdict
 //   - Combined load-stack checks
 //
@@ -55,8 +55,8 @@ export interface BatteryStateInput {
   remainingWh: number; // energy currently in the battery
   dod?: "Safe" | "Unsafe"; // depth-of-discharge guard
   // Measured draw right now (W). Judged jointly with the
-  // appliance watts for budget, watt cap, and voltage
-  // projection. The voltage projection uses appliance-only
+  // electronics watts for budget, watt cap, and voltage
+  // projection. The voltage projection uses electronics-only
   // watts: the measured voltage already sags under the
   // current load, so adding it again would double-count.
   currentLoadW?: number;
@@ -69,7 +69,7 @@ export interface BatteryStateInput {
   previousTier?: BatteryTier;
 }
 
-export interface ApplianceInput {
+export interface ElectronicsInput {
   id: string;
   name: string;
   wattage: string; // e.g. "35-75W", "50W", "15-20"
@@ -98,7 +98,7 @@ export interface BatteryClassification {
   reasons: string[];
 }
 
-export interface ApplianceRecommendation {
+export interface ElectronicsRecommendation {
   id: string;
   name: string;
   area?: string;
@@ -125,14 +125,14 @@ export interface LoadStackResult {
   runtimeMidHours: number;
   overLimit: boolean;
   limitWatts: number;
-  topDrain: ApplianceInput | null;
+  topDrain: ElectronicsInput | null;
 }
 
 export interface RecommendBatchResult {
   tier: BatteryTier;
   usableWh: number;
   blocked: boolean;
-  recommendations: ApplianceRecommendation[];
+  recommendations: ElectronicsRecommendation[];
 }
 
 // ============================================================
@@ -153,7 +153,7 @@ export const MAX_SAFE_LOAD_W = 1000;
 
 export const ALL_DAY_HOURS_LIMIT = 72;
 
-// Budget thresholds: the share of the usable energy an appliance
+// Budget thresholds: the share of the usable energy an electronics
 // spends per hour (mid watts / usable Wh).
 export const BUDGET_RECOMMENDED_MAX_RATIO =
   0.10; // <= 10%/hr -> recommended
@@ -212,7 +212,7 @@ export interface RecommendationConfig {
   // Motor/compressor startup peak multiplier.
   motorSurgeMultiplier: number;
   // Parser rejects any single wattage above this.
-  maxApplianceWatts: number;
+  maxElectronicsWatts: number;
   // Readings older than this (or missing) block.
   staleReadingMs: number;
   // Runtime label saturates here.
@@ -239,7 +239,7 @@ export const DEFAULT_RECOMMENDATION_CONFIG: RecommendationConfig =
       VOLTAGE_DROP_STEP_VOLTS,
     inverterEfficiency: 0.9,
     motorSurgeMultiplier: 3,
-    maxApplianceWatts: 5000,
+    maxElectronicsWatts: 5000,
     staleReadingMs: 60000,
     allDayHours: ALL_DAY_HOURS_LIMIT,
   };
@@ -461,7 +461,7 @@ export const classifyBatteryState = (
 };
 
 // ============================================================
-// 2. APPLIANCE WATTAGE RESOLUTION
+// 2. ELECTRONICS WATTAGE RESOLUTION
 //
 // Accepts decimals ("35.5W"), thousands separators
 // ("1,200W"), kilowatts ("1.2kW" -> 1200), ranges
@@ -583,7 +583,7 @@ export const parseWattageRange = (
     !(min >= 1) ||
     !(max >= 1) ||
     max < min ||
-    max > config.maxApplianceWatts
+    max > config.maxElectronicsWatts
   ) {
 
     return null;
@@ -682,7 +682,7 @@ export const formatRuntimeLabel = (
 // wattCap  = (soc / 100) * MAX_SAFE_LOAD_W  (peak draw the
 //            current charge can reasonably sustain).
 // voltage  = current_voltage - estimated_draw_drop. A punt
-//            past UNSAFE_VOLTAGE blocks the appliance.
+//            past UNSAFE_VOLTAGE blocks the electronics.
 // ============================================================
 
 export const computeDrainRatio = (
@@ -747,7 +747,7 @@ export const estimateVoltageDrop = (
 //   - "OK to use"       (recommended + care)
 //   - "Not advisable"   (not recommended)
 //
-// "Use with care" appliances are still usable, so they stay
+// "Use with care" electronics are still usable, so they stay
 // in the "OK to use" group in the simplified display.
 // ============================================================
 
@@ -766,7 +766,7 @@ export const verdictToBadge = (
 };
 
 // ============================================================
-// 5. PER-APPLIANCE RECOMMENDATION
+// 5. PER-ELECTRONICS RECOMMENDATION
 //
 //  recommended     : combined budget draw <= 10%/hr
 //  care            : 10-25%/hr draw, or battery in caution
@@ -775,18 +775,18 @@ export const verdictToBadge = (
 //                    watts, or combined draw > 25%/hr
 //
 // Combined means measured current load plus this
-// appliance. The voltage projection is the exception: the
+// electronics. The voltage projection is the exception: the
 // measured voltage already sags under the current load,
-// so only the appliance peak is subtracted (no
+// so only the electronics peak is subtracted (no
 // double-count). Runtime applies inverter efficiency to
 // the usable energy.
 // ============================================================
 
-export const recommendAppliance = (
+export const recommendElectronics = (
   battery: BatteryStateInput,
-  appliance: ApplianceInput,
+  electronics: ElectronicsInput,
   config: RecommendationConfig = DEFAULT_RECOMMENDATION_CONFIG,
-): ApplianceRecommendation => {
+): ElectronicsRecommendation => {
 
   const classification =
     classifyBatteryState(battery, config);
@@ -796,7 +796,7 @@ export const recommendAppliance = (
 
   const wattRange =
     parseWattageRange(
-      appliance.wattage,
+      electronics.wattage,
       config,
     );
 
@@ -810,7 +810,7 @@ export const recommendAppliance = (
 
   // Startup peak for motor loads; nameplate max otherwise.
   const surge =
-    appliance.motor === true
+    electronics.motor === true
       ? config.motorSurgeMultiplier
       : 1;
 
@@ -885,7 +885,7 @@ export const recommendAppliance = (
 
     reason =
       classification.tier === "Unsafe"
-        ? "Battery is unsafe — recharge before using appliances."
+        ? "Battery is unsafe — recharge before using electronics."
         : "Reserve only — no load recommended.";
   } else if (
     !wattRange
@@ -958,9 +958,9 @@ export const recommendAppliance = (
         );
 
   return {
-    id: appliance.id,
-    name: appliance.name,
-    area: appliance.area,
+    id: electronics.id,
+    name: electronics.name,
+    area: electronics.area,
     wattRange,
     verdict,
     badgeLabel:
@@ -979,7 +979,7 @@ export const recommendAppliance = (
 // ============================================================
 // 6. BATCH RECOMMENDATION
 //
-// Sorted so the most usable appliances come first:
+// Sorted so the most usable electronics come first:
 // recommended, then care, then not recommended.
 // ============================================================
 
@@ -992,19 +992,19 @@ const VERDICT_RANK: Record<
   notRecommended: 2,
 };
 
-export const recommendAppliances = (
+export const recommendElectronicsBatch = (
   battery: BatteryStateInput,
-  appliances: ApplianceInput[],
+  electronics: ElectronicsInput[],
 ): RecommendBatchResult => {
 
   const classification =
     classifyBatteryState(battery);
 
   const recommendations =
-    appliances.map((appliance) =>
-      recommendAppliance(
+    electronics.map((electronics) =>
+      recommendElectronics(
         battery,
-        appliance,
+        electronics,
       ),
     );
 
@@ -1037,11 +1037,11 @@ export const recommendAppliances = (
 };
 
 // ============================================================
-// 7. MULTI-APPLIANCE (LOAD STACK) MODE
+// 7. MULTI-ELECTRONICS (LOAD STACK) MODE
 //
 // Sums the mid wattages, gives one combined runtime estimate,
 // flags stacks that exceed the inverter limit, and reports the
-// appliance that drains the battery fastest.
+// electronics that drains the battery fastest.
 //
 // Reserved for a future catalog / "running together" screen;
 // the simplified dashboard does not surface these numbers.
@@ -1049,7 +1049,7 @@ export const recommendAppliances = (
 
 export const computeLoadStack = (
   battery: BatteryStateInput,
-  appliances: ApplianceInput[],
+  electronics: ElectronicsInput[],
 ): LoadStackResult => {
 
   const classification =
@@ -1058,16 +1058,16 @@ export const computeLoadStack = (
   let totalMinWatts = 0;
   let totalMidWatts = 0;
   let totalMaxWatts = 0;
-  let topDrain: ApplianceInput | null = null;
+  let topDrain: ElectronicsInput | null = null;
   let topMidWatts = -1;
 
   for (
-    const appliance of appliances
+    const electronicsItem of electronics
   ) {
 
     const range =
       parseWattageRange(
-        appliance.wattage,
+        electronicsItem.wattage,
       );
 
     if (
@@ -1088,7 +1088,7 @@ export const computeLoadStack = (
       topMidWatts =
         range.mid;
 
-      topDrain = appliance;
+      topDrain = electronicsItem;
     }
   }
 

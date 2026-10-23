@@ -228,7 +228,7 @@ export const ensureEveningReminder =
       return scheduleOnce(
         EVENING_REMINDER_ID,
         "AdlaWatt Evening Review",
-        "Take a minute to review today's energy and plan tomorrow's appliance use.",
+        "Take a minute to review today's energy and plan tomorrow's electronics use.",
         Routes.ANALYTICS,
         buildEveningTrigger(),
       );
@@ -293,7 +293,7 @@ export const maybeScheduleLowSunAdvisory =
         "Low Sun Ahead",
         bestDay
           ? `Low-sun stretch forecast — conserve battery. Best sun: ${bestDay}, charge fully then.`
-          : "Low-sun stretch forecast — conserve battery and postpone heavy appliances.",
+          : "Low-sun stretch forecast — conserve battery and postpone high-draw electronics.",
         Routes.DASHBOARD,
         buildLowSunTrigger(),
       );

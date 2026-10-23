@@ -210,6 +210,13 @@ const en = {
       footerAction: "Back to Sign In",
     },
 
+    session: {
+      notFoundTitle: "Account Not Existing",
+      notFoundBody:
+        "This account no longer exists. Please sign in again.",
+      backToSignIn: "Back to Sign In",
+    },
+
     callback: {
       title: "Email Confirmation",
       subtitle: "Confirming your AdlaWatt account email.",
@@ -333,18 +340,19 @@ const en = {
   dashboard: {
     common: {
       pullToRefresh: "Pull down to refresh",
+      scrollToTop: "Scroll to top",
     },
     home: {
       title: "Dashboard",
       subtitle: "Monitor your AdlaWatt system in real time.",
-      applianceRecommendation: "Appliance Recommendation",
+      electronicsRecommendation: "Electronics Recommendation",
       realtimeMonitoring: "Real-Time Monitoring",
       offlineBanner:
         "You're offline — showing last readings.",
       lastUpdated:
         "Last updated {{time}}.",
-      goToApplianceRecommendation:
-        "Go to Appliance Recommendation",
+      goToElectronicsRecommendation:
+        "Go to Electronics Recommendation",
       forecastFailed: "Could not load the forecast.",
     },
     about: {
@@ -358,20 +366,20 @@ const en = {
       roleDocumenter: "Documenter",
       roleDataAnalyst: "Data Analyst",
       dev1Bio:
-        "Builds and maintains the AdlaWatt mobile application, connecting live battery, solar, and temperature data from the system's sensors into a clear, real-time experience, and developing the recommendation logic that tells users which appliances their available power can safely run.",
+        "Builds and maintains the AdlaWatt mobile application, connecting live battery, solar, and temperature data from the system's sensors into a clear, real-time experience, and developing the recommendation logic that tells users which electronics their available power can safely run.",
       dev2Bio:
         "Documents the entire AdlaWatt system, from hardware setup and safety guidance to the in-app user manual, so users and future researchers can operate, understand, and build on the project with confidence.",
       dev3Bio:
-        "Studies the system's incoming sensor data, from solar generation and appliance power draw to battery performance, turning those readings into insights that improve system efficiency and keep the appliance recommendations accurate.",
+        "Studies the system's incoming sensor data, from solar generation and electronics power draw to battery performance, turning those readings into insights that improve system efficiency and keep the electronics recommendations accurate.",
       contactDetails: "Contact Details",
     },
     manual: {
       title: "User Manual",
       subtitle: "Guides for operating your AdlaWatt system.",
     },
-    appliances: {
-      title: "Appliances",
-      subtitle: "Manage and monitor supported appliances.",
+    electronics: {
+      title: "Electronics",
+      subtitle: "Manage and monitor supported electronics.",
     },
     components: {
       title: "Components",
@@ -380,7 +388,7 @@ const en = {
     analytics: {
       title: "Analytics & Trends",
       subtitle:
-        "Analyze system performance, energy usage, temperature, and appliance data over time.",
+        "Analyze system performance, energy usage, temperature, and electronics data over time.",
       sectionBattery: "Battery",
       sectionSolar: "Solar",
       sectionEnergy: "Energy",
@@ -397,7 +405,7 @@ const en = {
     logs: {
       title: "Activity Logs",
       subtitle:
-        "System activity and appliance events will appear here.",
+        "System activity and electronics events will appear here.",
       total: "Total Activity Logs:",
       loadFailed:
         "We couldn't load your activity logs. Check your connection and try again.",
@@ -484,22 +492,22 @@ const en = {
       "Could not open your photo library. Try again.",
   },
 
-  applianceBox: {
-    editAppliance: "Edit appliance",
-    archiveAppliance: "Archive appliance",
-    unarchiveAppliance: "Unarchive appliance",
-    deleteAppliance: "Delete appliance",
-    showOptions: "Show appliance options",
-    hideOptions: "Hide appliance options",
+  electronicsBox: {
+    editElectronics: "Edit electronics item",
+    archiveElectronics: "Archive electronics item",
+    unarchiveElectronics: "Unarchive electronics item",
+    deleteElectronics: "Delete electronics item",
+    showOptions: "Show electronics options",
+    hideOptions: "Hide electronics options",
     deleteQuestion: "You want to delete this?",
-    doNotDelete: "Do not delete appliance",
-    confirmDelete: "Confirm delete appliance",
-    archiveQuestion: "Archive this appliance?",
-    unarchiveQuestion: "Unarchive this appliance?",
-    doNotArchive: "Do not archive appliance",
-    doNotUnarchive: "Do not unarchive appliance",
-    confirmArchive: "Confirm archive appliance",
-    confirmUnarchive: "Confirm unarchive appliance",
+    doNotDelete: "Do not delete electronics item",
+    confirmDelete: "Confirm delete electronics item",
+    archiveQuestion: "Archive this electronics item?",
+    unarchiveQuestion: "Unarchive this electronics item?",
+    doNotArchive: "Do not archive electronics item",
+    doNotUnarchive: "Do not unarchive electronics item",
+    confirmArchive: "Confirm archive electronics item",
+    confirmUnarchive: "Confirm unarchive electronics item",
   },
 
   activityCard: {
@@ -516,6 +524,41 @@ const en = {
     fallbackDetails: "No notification details available.",
     newTypeA11y: "New, Type {{label}}",
     typeA11y: "Type {{label}}",
+  },
+
+  onboarding: {
+    skip: "Skip",
+    proceed: "Proceed to Dashboard",
+    swipeHint: "Swipe to continue",
+    page: "Page {{current}} of {{total}}",
+    welcome: {
+      title: "Welcome to AdlaWatt",
+      subtitle: "Know your solar power, anytime.",
+    },
+    about: {
+      title: "What is AdlaWatt?",
+      subtitle:
+        "AdlaWatt is an off-grid solar backup power monitor. It tracks your solar, battery, temperature, and output with real-time data from your device.",
+    },
+    features: {
+      title: "Key Features",
+      bulletDashboard: "Live dashboard with gauges",
+      bulletAlerts: "Smart alerts for unsafe levels",
+      bulletPlanner: "Electronics planner and recommendations",
+      bulletLog: "Activity log and history",
+    },
+    goals: {
+      title: "Our Goals",
+      bulletReliable: "Keep your backup power reliable",
+      bulletBattery: "Protect the battery from damage",
+      bulletWise: "Help you use energy wisely",
+      bulletLanguages:
+        "Easy for everyone — English, Cebuano, Tagalog",
+    },
+    finish: {
+      title: "You're All Set",
+      subtitle: "Your power, in your hands.",
+    },
   },
 } as const;
 

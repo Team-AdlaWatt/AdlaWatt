@@ -2,6 +2,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -13,8 +14,8 @@ import {
 
 import ComponentStatusBox from "@/components/forms/ComponentStatusBox";
 import {
-  applianceCardGrid,
-} from "@/components/forms/applianceCard";
+  electronicsCardGrid,
+} from "@/components/forms/electronicsCard";
 import Copyright from "@/components/ui/Copyright";
 
 import NavBar from "@/components/layout/Navbar";
@@ -23,6 +24,7 @@ import { useScreenPadding } from "@/constants/sizing";
 
 import AppText from "@/components/ui/AppText";
 import EmptyState from "@/components/ui/EmptyState";
+import { useScrollToTopController } from "@/hooks/useScrollToTopController";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -56,8 +58,15 @@ const componentImages: Record<string, any> = {
     "@/assets/images/components/DS18B20.png",
   ),
 
+  // The unit board is an ESP32-S3. Older rows may still be
+  // named "ESP32" until the rename migration is applied, so
+  // both names point at the same picture.
   ESP32: require(
-    "@/assets/images/components/ESP32.png",
+    "@/assets/images/components/ESP32-S3.png",
+  ),
+
+  "ESP32-S3": require(
+    "@/assets/images/components/ESP32-S3.png",
   ),
 
   "INA228 (Input)": require(
@@ -68,12 +77,14 @@ const componentImages: Record<string, any> = {
     "@/assets/images/components/INA228.png",
   ),
 
-  "Relay Module 5V 1 Channel": require(
-    "@/assets/images/components/Relay.png",
+  // The old Voltage Sensor is gone: the INA219 replaced it
+  // and the rename migration rewrites the rows.
+  INA219: require(
+    "@/assets/images/components/INA219.png",
   ),
 
-  "Voltage Sensor": require(
-    "@/assets/images/components/Voltage Sensor.png",
+  "Relay Module 5V 1 Channel": require(
+    "@/assets/images/components/Relay.png",
   ),
 
   DHT22: require(
@@ -88,6 +99,19 @@ const componentImages: Record<string, any> = {
     "@/assets/images/components/SPI TFT Display.png",
   ),
 };
+
+// ============================================
+// ESP32 NAME MATCHING
+//
+// The board is an ESP32-S3, but rows created by older
+// firmware are still named "ESP32". Both are the unit
+// microcontroller, so both follow monitoring.device_status.
+// ============================================
+
+const ESP32_NAMES = ["ESP32", "ESP32-S3"];
+
+const isESP32Name = (name: string): boolean =>
+  ESP32_NAMES.includes(name);
 
 // ============================================
 // TYPES
@@ -122,6 +146,12 @@ export default function ComponentsScreen() {
     [colors],
   );
 
+  const scrollRef =
+    useRef<ScrollView>(null);
+
+  const scrollToTop =
+    useScrollToTopController(scrollRef);
+
   const [statusFilter, setStatusFilter] =
     useState<
       "Active" | "Inactive"
@@ -145,7 +175,7 @@ export default function ComponentsScreen() {
 
   const isComponentActive = useCallback(
     (component: ComponentData): boolean => {
-      if (component.component_name === "ESP32") {
+      if (isESP32Name(component.component_name)) {
         return (
           String(deviceStatus).toLowerCase() ===
           "online"
@@ -427,15 +457,18 @@ export default function ComponentsScreen() {
   // ============================================
 
   return (
-    <ScreenContainer2>
+    <ScreenContainer2 scrollToTop={scrollToTop}>
       <NavBar />
 
       <ScrollView
+        ref={scrollRef}
         style={styles.scrollView}
         contentContainerStyle={[
           styles.content,
           { paddingHorizontal: screenPadding },
         ]}
+        onScroll={scrollToTop.reportScroll}
+        scrollEventThrottle={16}
       >
         {/* Header */}
 
@@ -494,7 +527,7 @@ export default function ComponentsScreen() {
         {/* COMPONENT GRID */}
 
         <View
-          style={[applianceCardGrid, { marginTop: 20 }]}
+          style={[electronicsCardGrid, { marginTop: 20 }]}
         >
           {(() => {
             const filteredComponents =
@@ -544,9 +577,9 @@ export default function ComponentsScreen() {
 
             return filteredComponents.map(
               (component) => {
-                const isESP32 =
-                  component.component_name ===
-                  "ESP32";
+                const isESP32 = isESP32Name(
+                  component.component_name,
+                );
 
                 // ESP32 connection status
                 // comes from monitoring table.

@@ -10,8 +10,8 @@ import {
 } from "expo-image";
 
 import {
-  useApplianceCardStyles,
-} from "@/components/forms/applianceCard";
+  useElectronicsCardStyles,
+} from "@/components/forms/electronicsCard";
 import AppText from "@/components/ui/AppText";
 import { useAppColors } from "@/hooks/useAppColors";
 
@@ -20,7 +20,7 @@ type StatusTone =
   | "care"
   | "not";
 
-type ApplianceStatusBoxProps = {
+type ElectronicsStatusBoxProps = {
   name: string;
   wattage: string;
   status: string;
@@ -30,13 +30,13 @@ type ApplianceStatusBoxProps = {
 
 const defaultImage = require("@/assets/images/adlawatt-icon.png");
 
-export default function ApplianceStatusBox({
+export default function ElectronicsStatusBox({
   name,
   wattage,
   status,
   statusTone,
   imageSource = defaultImage,
-}: ApplianceStatusBoxProps) {
+}: ElectronicsStatusBoxProps) {
   const colors = useAppColors();
   const tone: StatusTone =
     statusTone ?? (
@@ -52,8 +52,8 @@ export default function ApplianceStatusBox({
         ? colors.error
         : colors.primary;
 
-  const applianceCardStyles =
-    useApplianceCardStyles();
+  const electronicsCardStyles =
+    useElectronicsCardStyles();
 
   const iconName =
     tone === "ok"
@@ -66,24 +66,24 @@ export default function ApplianceStatusBox({
     <View
       style={[
         tone !== "not"
-          ? applianceCardStyles.box
-          : applianceCardStyles.boxTight,
+          ? electronicsCardStyles.box
+          : electronicsCardStyles.boxTight,
         { borderColor: statusColor },
       ]}
     >
       {/* Appliance Image */}
       <View
         style={[
-          applianceCardStyles.imageContainer,
+          electronicsCardStyles.imageContainer,
           { borderColor: statusColor },
         ]}
       >
         <Image
           source={imageSource}
-          style={applianceCardStyles.image}
+          style={electronicsCardStyles.image}
           contentFit="contain"
           // Memory-only session cache: decode once, stay
-          // instant while the app is open (see ApplianceBox).
+          // instant while the app is open (see ElectronicsBox).
           cachePolicy="memory"
         />
       </View>
@@ -91,7 +91,7 @@ export default function ApplianceStatusBox({
       {/* Appliance Name */}
       <AppText
         variant="caption"
-        style={applianceCardStyles.name}
+        style={electronicsCardStyles.name}
         numberOfLines={2}
       >
         {name}
@@ -100,7 +100,7 @@ export default function ApplianceStatusBox({
       {/* Wattage */}
       <AppText
         variant="caption"
-        style={applianceCardStyles.watts}
+        style={electronicsCardStyles.watts}
       >
         {wattage}
       </AppText>
@@ -111,7 +111,7 @@ export default function ApplianceStatusBox({
       {tone !== "not" && (
         <View
           style={[
-            applianceCardStyles.status,
+            electronicsCardStyles.status,
             {
               backgroundColor:
                 statusColor,
@@ -128,7 +128,7 @@ export default function ApplianceStatusBox({
 
           <AppText
             variant="caption"
-            style={applianceCardStyles.statusText}
+            style={electronicsCardStyles.statusText}
           >
             {status}
           </AppText>

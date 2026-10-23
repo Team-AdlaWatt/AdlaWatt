@@ -14,7 +14,7 @@
 4. [Signing In](#4-signing-in)
 5. [Resetting a Forgotten Password](#5-resetting-a-forgotten-password)
 6. [Dashboard: Reading Your System](#6-dashboard-reading-your-system)
-7. [Appliances: What Can I Safely Use?](#7-appliances-what-can-i-safely-use)
+7. [Electronics: What Can I Safely Use?](#7-electronics-what-can-i-safely-use)
 8. [Analytics & Reports](#8-analytics--reports)
 9. [Notifications](#9-notifications)
 10. [Activity Logs](#10-activity-logs)
@@ -28,15 +28,15 @@
 
 ## 1. What Is AdlaWatt?
 
-AdlaWatt is a transportable, off-grid solar backup power system for households. A solar panel collects sunlight, a battery inside a lockable enclosure stores the energy, and a built-in AC outlet supplies backup electricity to everyday appliances during power interruptions.
+AdlaWatt is a transportable, off-grid solar backup power system for households. A solar panel collects sunlight, a battery inside a lockable enclosure stores the energy, and a built-in AC outlet supplies backup electricity to everyday electronics during power interruptions.
 
 The mobile app is your window into the system. It shows:
 
 - Live battery level, voltage, stored energy, and estimated time remaining
 - Incoming solar power and 5-day solar outlook
-- Current appliance load and depth-of-discharge safety status
+- Current electronics load and depth-of-discharge safety status
 - Battery, solar panel, and interior temperatures
-- Smart appliance recommendations based on your remaining battery
+- Smart electronics recommendations based on your remaining battery
 - Notifications, activity history, and exportable energy reports
 
 AdlaWatt is a **backup power source only**. It is not a replacement for the electrical grid.
@@ -53,7 +53,7 @@ Follow these steps the first time you open the app:
 2. **Confirm your email.** Check your inbox for the confirmation link and tap it. You cannot sign in until your email is confirmed.
 3. **Sign in.** Enter your username or email and password, then tap **Sign In**. See [Section 4](#4-signing-in).
 4. **Read your battery.** On the Dashboard, look at the battery gauge at the top. It shows your current battery percentage and whether the battery is Charging, Discharging, or Idle.
-5. **Check one appliance.** Scroll to Appliance Recommendation on the Dashboard or open the **Appliances** tab. A badge of **OK to use** means safe; **Not advisable** means wait for more charge. See [Section 7](#7-appliances-what-can-i-safely-use).
+5. **Check one electronics item.** Scroll to Electronics Recommendation on the Dashboard or open the **Electronics** tab. A badge of **OK to use** means safe; **Not advisable** means wait for more charge. See [Section 7](#7-electronics-what-can-i-safely-use).
 
 That is enough to start monitoring. The rest of this manual explains each screen in detail.
 
@@ -112,12 +112,12 @@ The Dashboard is the home screen. It updates in real time whenever the AdlaWatt 
 ### Battery section
 
 - **Battery gauge** — your state of charge as a percentage, animated as it changes.
-- **Battery status** — *Charging* (solar is filling the battery), *Discharging* (appliances are drawing power), or *Idle*.
+- **Battery status** — *Charging* (solar is filling the battery), *Discharging* (electronics are drawing power), or *Idle*.
 - **Voltage** — current battery voltage in volts.
 - **Watt-hours + time remaining** — stored energy and the estimated runtime at the current load, e.g. `7h 45m`.
 - **Depth of discharge (DoD)** — *Safe* means normal use; *Unsafe* means the battery is drained past its healthy limit and needs recharging immediately.
 
-**The 20% rule.** Treat **20% battery as your empty line** for daily use. The battery keeps a 151.2 Wh safety reserve (20% of its 756 Wh capacity) that the app never counts as usable. Appliance advice, alerts, and the DoD status all follow this rule: at or below 20%, the system considers the battery unsafe for further loads.
+**The 20% rule.** Treat **20% battery as your empty line** for daily use. The battery keeps a 151.2 Wh safety reserve (20% of its 756 Wh capacity) that the app never counts as usable. Electronics advice, alerts, and the DoD status all follow this rule: at or below 20%, the system considers the battery unsafe for further loads.
 
 ### Solar section
 
@@ -125,56 +125,56 @@ The Dashboard is the home screen. It updates in real time whenever the AdlaWatt 
 - **Solar status** — *Low*, *Moderate*, or *High*.
 - **Details** — solar voltage, current, charging timer, and total energy harvested.
 - **Weather card** — current temperature, conditions, and location for your area (needs location permission), refreshing about every 10 minutes.
-- **5-day solar outlook** — groups the forecast into daily summaries with a solar outlook (High / Moderate / Low) and names the best sun day. Use it to plan heavy appliance use on sunny days and conserve when a low-sun stretch is coming.
+- **5-day solar outlook** — groups the forecast into daily summaries with a solar outlook (High / Moderate / Low) and names the best sun day. Use it to plan high-draw electronics use on sunny days and conserve when a low-sun stretch is coming.
 
 ### Load, temperature, and device
 
-- **Current load** — what connected appliances are drawing right now, in watts.
+- **Current load** — what connected electronics are drawing right now, in watts.
 - **Temperatures** — battery, solar panel, and interior, each rated *Nominal*, *Elevated*, *High*, or *Critical*. *Critical* triggers an alert — check the unit when safe.
 - **Device status** — *Online* (unit is reporting) or *Offline* (unit unreachable — see troubleshooting).
 
 ### Quick navigation
 
-Buttons near the top scroll the Dashboard to each section, including the **Appliance Recommendation** card. If you are new and have no appliances yet, that card shows a welcome greeting with an **Add Appliances** button that takes you straight to setup (see [Section 7.1](#71-picking-appliances-from-the-catalog)). The top bar shows a notification bell with an unread-count badge — tap it to open Notifications.
+Buttons near the top scroll the Dashboard to each section, including the **Electronics Recommendation** card. If you are new and have no electronics yet, that card shows a welcome greeting with an **Add Electronics** button that takes you straight to setup (see [Section 7.1](#71-picking-electronics-from-the-catalog)). The top bar shows a notification bell with an unread-count badge — tap it to open Notifications.
 
 <!-- SCREENSHOT: Dashboard with numbered callouts per card -->
 
 ---
 
-## 7. Appliances: What Can I Safely Use?
+## 7. Electronics: What Can I Safely Use?
 
-Open the **Appliances** tab to see household appliances with a safety badge computed from your live battery:
+Open the **Electronics** tab to see household electronics with a safety badge computed from your live battery:
 
-- **OK to use** — the appliance is within your safe energy budget (includes light "use with care" cases).
-- **Not advisable** — blocked: battery unsafe, peak draw over the charge-scaled limit, or the appliance would drain too much per hour. Recharge first or pick a lighter appliance.
+- **OK to use** — the electronics item is within your safe energy budget (includes light "use with care" cases).
+- **Not advisable** — blocked: battery unsafe, peak draw over the charge-scaled limit, or the electronics item would drain too much per hour. Recharge first or pick a lighter electronics item.
 
 Each row shows the power range (e.g. `35-75W`) and estimated runtime from your usable energy.
 
-### 7.1. Picking appliances from the catalog
+### 7.1. Picking electronics from the catalog
 
-1. On the Dashboard, tap the **Appliance Recommendation** button (it scrolls you to the recommendation card), then tap **Add Appliances**. Or open the **Appliances** tab directly and tap **Select Appliances**.
-2. A selection modal appears with the appliance catalog — scroll through it.
-3. Use the **search box** to find an appliance by name instead of scrolling.
+1. On the Dashboard, tap the **Electronics Recommendation** button (it scrolls you to the recommendation card), then tap **Add Electronics**. Or open the **Electronics** tab directly and tap **Select Electronics**.
+2. A selection modal appears with the electronics catalog — scroll through it.
+3. Use the **search box** to find electronics by name instead of scrolling.
 4. Tap the boxes to select what you plan to use; tap again to deselect.
 5. Tap **Add**. The modal closes and your picks are now rated advisable or not advisable.
 
 **Why selection matters:** the boxes' selection circles mark what you plan to run. Selection feeds the dashboard recommendation summary — and a safety alert if your combined selected load exceeds the safe limit while the battery is at 20% or below.
 
-### 7.2. Adding a custom appliance
+### 7.2. Adding a custom electronics item
 
-If your appliance is not in the catalog:
+If your electronics item is not in the catalog:
 
 1. In the selection modal, tap **Add Custom** (if you have no customs yet, the empty state points you to the same button).
-2. A form modal appears. Enter the appliance **name**, **minimum wattage**, and **maximum wattage**. Look the wattage up online (nameplate or manufacturer specs) — accurate numbers make the recommendation accurate.
+2. A form modal appears. Enter the electronics **name**, **minimum wattage**, and **maximum wattage**. Look the wattage up online (nameplate or manufacturer specs) — accurate numbers make the recommendation accurate.
 3. Optionally attach a photo: tap the photo area, then **Choose from Library**, and pick an image from your files (5 MB maximum, photo-library permission required). It attaches when you save. Without a photo, the default AdlaWatt icon is used.
-4. Tap **Add**. The appliance registers and appears in your list, ready for recommendation.
+4. Tap **Add**. The electronics item registers and appears in your list, ready for recommendation.
 
 ### 7.3. Edit, archive, or delete (3-dot menu)
 
-Each custom appliance box has a **3-dot icon** at its bottom-right. Tap it to open its menu:
+Each custom electronics box has a **3-dot icon** at its bottom-right. Tap it to open its menu:
 
-- **Pen icon** — edit: a modal opens with the appliance's info for editing.
-- **Box icon** — archive: a Yes/No confirmation appears. Confirming moves the appliance to the archives.
+- **Pen icon** — edit: a modal opens with the electronics item's info for editing.
+- **Box icon** — archive: a Yes/No confirmation appears. Confirming moves the electronics item to the archives.
 - **Trash icon** — delete: a Yes/No confirmation appears. Confirming permanently deletes it.
 
 The menu closes by itself after about **3 seconds** if you tap nothing, or tap the dots again to close it.
@@ -182,22 +182,22 @@ The menu closes by itself after about **3 seconds** if you tap nothing, or tap t
 ### 7.4. Archives
 
 1. Inside the selection modal, tap the **Archived** button (below the search box, showing how many items are archived).
-2. The archived viewer opens: here you can edit, **unarchive**, or delete archived appliances.
-3. Unarchiving returns the appliance to the custom display.
+2. The archived viewer opens: here you can edit, **unarchive**, or delete archived electronics.
+3. Unarchiving returns the electronics item to the custom display.
 4. To go back to the selection screen, tap the **Back** button in the footer.
 
 ### 7.5. Select all and reset
 
 The selection modal footer has two bulk actions:
 
-- **Select All** — selects every appliance, catalog and custom.
+- **Select All** — selects every electronics item, catalog and custom.
 - **Reset** — clears all selections.
 
 ### 7.6. Sorting the list
 
-On the Appliances screen, use the two dropdowns to sort by **power level** and **area**, plus the advisability segments (which only show segments that actually contain appliances). Play with the combinations until the list shows what you need.
+On the Electronics screen, use the two dropdowns to sort by **power level** and **area**, plus the advisability segments (which only show segments that actually contain electronics). Play with the combinations until the list shows what you need.
 
-<!-- SCREENSHOT: Appliances list with badge, filter, and 3-dot menu callouts -->
+<!-- SCREENSHOT: Electronics list with badge, filter, and 3-dot menu callouts -->
 
 ---
 
@@ -211,7 +211,7 @@ Sections:
 - **Solar** — solar vs load, best sun days, sun hours, and the daily solar curve (when the sun is strongest).
 - **Energy** — energy in and out, net surplus/deficit, running balance, and how much of your use the sun covered.
 - **Health** — temperature trends, temperature alerts, device uptime, online-vs-offline share.
-- **Usage** — average vs peak load, and power use by hour of day (tells you when to avoid heavy appliances).
+- **Usage** — average vs peak load, and power use by hour of day (tells you when to avoid high-draw electronics).
 
 ### Exporting reports
 
@@ -253,7 +253,7 @@ Filter by **type** (All / Normal / Alert) and **time** (All, Last Hour, Today, T
 
 ## 10. Activity Logs
 
-Activity Logs record **what you did** (sign-ins, appliance changes, settings updates) — not what the hardware did. That separation is deliberate: hardware events live in Notifications.
+Activity Logs record **what you did** (sign-ins, electronics changes, settings updates) — not what the hardware did. That separation is deliberate: hardware events live in Notifications.
 
 Filter by **type** (Info, Warning, Error, Critical) and **time range**, and page with Prev / Next. The Dashboard shows a recent-activity preview with a **View All** link to this screen.
 
@@ -299,8 +299,8 @@ Theme, fonts, language, vibration, and the email toggle survive restarts and hol
 **Dashboard data is frozen or the device shows Offline.**
 First look for the offline banner: if your *phone* has no connection, the Dashboard shows your last readings with their time — reconnect and it goes live by itself. If the phone is online but the device reads Offline, the unit has likely lost Wi-Fi or power — confirm the unit is powered and within Wi-Fi range, then wait a few minutes for it to reconnect. A *Monitoring Data Stale* alert (fires after 60 seconds without fresh data) confirms the app side is working and the unit side is silent.
 
-**My appliance says Not advisable but I need it.**
-That badge means the battery cannot safely cover it right now (low charge, over the safe draw limit, or too costly per hour). Options: recharge via solar, switch to a lighter appliance, or run it briefly and watch the battery gauge. Do not repeatedly override the warning below 20%.
+**My electronics item says Not advisable but I need it.**
+That badge means the battery cannot safely cover it right now (low charge, over the safe draw limit, or too costly per hour). Options: recharge via solar, switch to a lighter electronics item, or run it briefly and watch the battery gauge. Do not repeatedly override the warning below 20%.
 
 **I never got the confirmation / recovery / alert email.**
 Check spam, verify the address in Menu → Account Profile, and respect the resend throttle (wait ~1 minute). Only *alert*-type events send emails — routine events never do. If Email Notifications is OFF, turn it ON.
@@ -325,7 +325,7 @@ This manual covers app operation. For hardware faults (damaged panel, enclosure,
 - **Depth of discharge (DoD)** — how much of the battery has been used; *Unsafe* means past the healthy limit.
 - **Watt-hour (Wh)** — energy unit. Your battery holds 756 Wh total; 151.2 Wh is locked as reserve, leaving 604.8 Wh usable.
 - **Reserve floor** — the protected 20% (151.2 Wh) the app never counts as spendable.
-- **Load** — the combined wattage your connected appliances draw right now.
+- **Load** — the combined wattage your connected electronics draw right now.
 - **Solar input / solar status** — incoming panel watts, rated Low / Moderate / High.
 - **Time remaining** — estimated runtime at the current load (e.g. `7h 45m`).
 - **ESP32** — the unit's microcontroller that reads sensors and uploads data over Wi-Fi.

@@ -31,6 +31,7 @@ import {
   type AppColors,
 } from "@/hooks/useAppColors";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { useScrollToTopController } from "@/hooks/useScrollToTopController";
 import { Radius } from "@/constants/theme";
 import { Control, useScreenPadding } from "@/constants/sizing";
 
@@ -102,10 +103,13 @@ export default function DashboardScreen() {
   const scrollRef =
     useRef<ScrollView>(null);
 
+  const scrollToTop =
+    useScrollToTopController(scrollRef);
+
   const monitoringRef =
     useRef<View>(null);
 
-  const applianceRef =
+  const electronicsRef =
     useRef<View>(null);
 
   const scrollYRef =
@@ -606,7 +610,7 @@ export default function DashboardScreen() {
   // ==========================================================
 
   return (
-    <ScreenContainer2>
+    <ScreenContainer2 scrollToTop={scrollToTop}>
       {/* ====================================================
           FIXED NAVBAR
           ==================================================== */}
@@ -634,6 +638,8 @@ export default function DashboardScreen() {
         onScroll={(event) => {
           scrollYRef.current =
             event.nativeEvent.contentOffset.y;
+
+          scrollToTop.reportScroll(event);
         }}
         scrollEventThrottle={16}
         refreshing={sessionRefreshing}
@@ -676,12 +682,12 @@ export default function DashboardScreen() {
           <Pressable
             onPress={() =>
               scrollToSection(
-                applianceRef,
+                electronicsRef,
               )
             }
             accessibilityRole="button"
             accessibilityLabel={t(
-              "dashboard.home.goToApplianceRecommendation",
+              "dashboard.home.goToElectronicsRecommendation",
             )}
             style={({ pressed }) => [
               styles.quickNavButton,
@@ -693,7 +699,7 @@ export default function DashboardScreen() {
               variant="caption"
               style={styles.quickNavButtonText}
             >
-              {t("dashboard.home.applianceRecommendation")}
+              {t("dashboard.home.electronicsRecommendation")}
             </AppText>
 
             <Ionicons
@@ -870,14 +876,14 @@ export default function DashboardScreen() {
             ================================================== */}
 
         <View
-          ref={applianceRef}
+          ref={electronicsRef}
           style={styles.section}
         >
           <AppText
             variant="body"
             style={styles.sectionTitle}
           >
-            {t("dashboard.home.applianceRecommendation")}
+            {t("dashboard.home.electronicsRecommendation")}
           </AppText>
 
           <AppRecCard

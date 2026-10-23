@@ -15,10 +15,10 @@ import {
   View,
 } from "react-native";
 
-import ApplianceModal from "@/components/forms/ApplianceModal";
+import ElectronicsModal from "@/components/forms/ElectronicsModal";
 import {
-  useApplianceCardStyles,
-} from "@/components/forms/applianceCard";
+  useElectronicsCardStyles,
+} from "@/components/forms/electronicsCard";
 import AppText from "@/components/ui/AppText";
 
 import { Colors } from "@/constants/colors";
@@ -38,7 +38,7 @@ import { getAuthenticatedUserSafe, supabase } from "@/lib/supabase";
 
 import {
   type BatteryStateInput,
-  recommendAppliance,
+  recommendElectronics,
 } from "@/services/recommendation";
 
 type Status =
@@ -46,7 +46,7 @@ type Status =
   | "care"
   | "notAdvisable";
 
-type Appliance = {
+type Electronics = {
   id: string;
   name: string;
   watts: string;
@@ -56,7 +56,7 @@ type Appliance = {
   imageKey?: string | null;
 };
 
-type DecoratedAppliance = Appliance & {
+type DecoratedElectronics = Electronics & {
   color: string;
 };
 
@@ -99,19 +99,19 @@ const EMPTY_STATE_META: Record<
   { title: string; description: string }
 > = {
   advisable: {
-    title: "No Advisable Appliances",
+    title: "No Advisable Electronics",
     description:
-      "No selected appliances are currently advisable to use.",
+      "No selected electronics are currently advisable to use.",
   },
   care: {
-    title: "No Appliances to Use With Care",
+    title: "No Electronics to Use With Care",
     description:
-      "No selected appliances currently need caution.",
+      "No selected electronics currently need caution.",
   },
   notAdvisable: {
-    title: "No Not Advisable Appliances",
+    title: "No Not Advisable Electronics",
     description:
-      "No selected appliances are currently not advisable to use.",
+      "No selected electronics are currently not advisable to use.",
   },
 };
 
@@ -128,21 +128,21 @@ const TOGGLE_META: {
     // active segment tracks dark mode.
     color: "themed-primary",
     accessibilityLabel:
-      "Show advisable appliances",
+      "Show advisable electronics",
   },
   {
     mode: "care",
     label: "Caution",
     color: "themed-warning",
     accessibilityLabel:
-      "Show appliances to use with care",
+      "Show electronics to use with care",
   },
   {
     mode: "notAdvisable",
     label: "Not Advisable",
     color: "themed-error",
     accessibilityLabel:
-      "Show not advisable appliances",
+      "Show not advisable electronics",
   },
 ];
 
@@ -165,15 +165,15 @@ export default function AppRecCard({
     [colors],
   );
 
-  const applianceCardStyles =
-    useApplianceCardStyles();
+  const electronicsCardStyles =
+    useElectronicsCardStyles();
 
   const [index, setIndex] = useState(0);
 
-  const [appliances, setAppliances] =
-    useState<Appliance[]>([]);
+  const [electronics, setElectronics] =
+    useState<Electronics[]>([]);
 
-  const [hasSelectedAppliances, setHasSelectedAppliances] =
+  const [hasSelectedElectronics, setHasSelectedElectronics] =
     useState(false);
 
   const [modalVisible, setModalVisible] =
@@ -186,17 +186,17 @@ export default function AppRecCard({
   );
 
   // ============================================
-  // DECORATE APPLIANCES WITH RECOMMENDATION STATUS
+  // DECORATE ELECTRONICS WITH RECOMMENDATION STATUS
   //
   // When a live battery reading exists the engine
   // verdict decides the badge. Without one the legacy
   // wattage-only heuristic keeps the prior behavior.
   // ============================================
 
-  const decoratedAppliances =
-    useMemo((): DecoratedAppliance[] => {
+  const decoratedElectronics =
+    useMemo((): DecoratedElectronics[] => {
       if (!battery) {
-        return appliances.map((item) => {
+        return electronics.map((item) => {
           const values =
             String(item.watts)
               .match(/\d+/g)
@@ -224,9 +224,9 @@ export default function AppRecCard({
         });
       }
 
-      return appliances.map((item) => {
+      return electronics.map((item) => {
         const recommendation =
-          recommendAppliance(
+          recommendElectronics(
             battery,
             {
               id: item.id,
@@ -254,15 +254,15 @@ export default function AppRecCard({
             ).color,
         };
       });
-    }, [appliances, battery, colors]);
+    }, [electronics, battery, colors]);
 
   // ============================================
   // CONTENT-AWARE STATUS SEGMENTS
   //
-  // Only segments holding appliances render; the mode
+  // Only segments holding electronics render; the mode
   // follows the first non-empty status in
   // Caution → Advisable → Not Advisable order — the same
-  // contract as the Appliances screen, which reads the
+  // contract as the Electronics screen, which reads the
   // same selection through the same engine (parent/child
   // stay consistent by construction).
   // ============================================
@@ -274,12 +274,12 @@ export default function AppRecCard({
       notAdvisable: 0,
     };
 
-    for (const item of decoratedAppliances) {
+    for (const item of decoratedElectronics) {
       counts[item.status] += 1;
     }
 
     return counts;
-  }, [decoratedAppliances]);
+  }, [decoratedElectronics]);
 
   const visibleModes = useMemo<Status[]>(() => {
     const ordered: Status[] = [
@@ -334,55 +334,55 @@ export default function AppRecCard({
   );
 
   // ============================================
-  // FILTER APPLIANCES BY STATUS
+  // FILTER ELECTRONICS BY STATUS
   // ============================================
 
-  const filteredAppliances = useMemo(
+  const filteredElectronics = useMemo(
     () =>
-      decoratedAppliances.filter(
+      decoratedElectronics.filter(
         (item) =>
           item.status === effectiveMode,
       ),
-    [decoratedAppliances, effectiveMode],
+    [decoratedElectronics, effectiveMode],
   );
 
   // ============================================
   // CAROUSEL ITEMS
   // ============================================
 
-  const currentAppliances = useMemo(() => {
-    if (filteredAppliances.length === 0) {
+  const currentElectronics = useMemo(() => {
+    if (filteredElectronics.length === 0) {
       return [];
     }
 
     const count = Math.min(
       2,
-      filteredAppliances.length,
+      filteredElectronics.length,
     );
 
     return Array.from(
       { length: count },
       (_, offset) =>
-        filteredAppliances[
+        filteredElectronics[
         (index + offset) %
-        filteredAppliances.length
+        filteredElectronics.length
         ],
     );
-  }, [filteredAppliances, index]);
+  }, [filteredElectronics, index]);
 
   // ============================================
-  // LOAD USER APPLIANCES
+  // LOAD USER ELECTRONICS
   // ============================================
 
-  const loadAppliances = async () => {
+  const loadElectronics = async () => {
     try {
-      const { fetchSelectedAppliances } = await import(
-        "@/services/appliancesService"
+      const { fetchSelectedElectronics } = await import(
+        "@/services/electronicsService"
       );
-      const resolved = await fetchSelectedAppliances();
+      const resolved = await fetchSelectedElectronics();
 
-      setHasSelectedAppliances(resolved.length > 0);
-      setAppliances(
+      setHasSelectedElectronics(resolved.length > 0);
+      setElectronics(
         resolved.map((item) => ({
           id: item.appId ?? item.id,
           name: item.name,
@@ -402,28 +402,28 @@ export default function AppRecCard({
     const user = await getAuthenticatedUserSafe();
 
     if (!user) {
-      setAppliances([]);
-      setHasSelectedAppliances(false);
+      setElectronics([]);
+      setHasSelectedElectronics(false);
       return;
     }
 
     const { data, error } =
       await supabase
-        .from("appliances")
+        .from("electronics")
         .select(
-          "app_id, appliance_name, wattage_min, wattage_max, selection, image_url, catalog_key",
+          "app_id, electronics_name, wattage_min, wattage_max, selection, image_url, catalog_key",
         )
         .eq("user_id", user.id)
-        .order("appliance_name");
+        .order("electronics_name");
 
     if (error) {
       console.error(
-        "Failed to load appliances:",
+        "Failed to load electronics:",
         error.message,
       );
 
-      setAppliances([]);
-      setHasSelectedAppliances(false);
+      setElectronics([]);
+      setHasSelectedElectronics(false);
       return;
     }
 
@@ -432,11 +432,11 @@ export default function AppRecCard({
         (item) => item.selection === true,
       );
 
-    setHasSelectedAppliances(
+    setHasSelectedElectronics(
       selectedRows.length > 0,
     );
 
-    const mapped: Appliance[] =
+    const mapped: Electronics[] =
       selectedRows.map((item) => {
         const min = Number(item.wattage_min);
         const max = Number(item.wattage_max);
@@ -450,7 +450,7 @@ export default function AppRecCard({
 
         return {
           id: item.app_id,
-          name: item.appliance_name,
+          name: item.electronics_name,
           watts,
           status: "advisable",
           imageUrl:
@@ -464,7 +464,7 @@ export default function AppRecCard({
         };
       });
 
-    setAppliances(mapped);
+    setElectronics(mapped);
   };
 
   // ============================================
@@ -473,7 +473,7 @@ export default function AppRecCard({
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial Supabase fetch on mount (external sync); results settle in async callbacks
-    loadAppliances();
+    loadElectronics();
   }, []);
 
   // ============================================
@@ -486,11 +486,11 @@ export default function AppRecCard({
   }, [mode]);
 
   // ============================================
-  // APPLIANCE CAROUSEL
+  // ELECTRONICS CAROUSEL
   // ============================================
 
   useEffect(() => {
-    if (filteredAppliances.length <= 1) {
+    if (filteredElectronics.length <= 1) {
       return;
     }
 
@@ -503,19 +503,19 @@ export default function AppRecCard({
 
     return () =>
       clearInterval(timer);
-  }, [filteredAppliances.length]);
+  }, [filteredElectronics.length]);
 
   // ============================================
-  // OPEN / CLOSE APPLIANCE MODAL
+  // OPEN / CLOSE ELECTRONICS MODAL
   // ============================================
 
-  const openApplianceModal = () => {
+  const openElectronicsModal = () => {
     setModalVisible(true);
   };
 
-  const closeApplianceModal = () => {
+  const closeElectronicsModal = () => {
     setModalVisible(false);
-    loadAppliances();
+    loadElectronics();
   };
 
   // ============================================
@@ -534,10 +534,10 @@ export default function AppRecCard({
   };
 
   // ============================================
-  // MODE 1: NO SELECTED APPLIANCES
+  // MODE 1: NO SELECTED ELECTRONICS
   // ============================================
 
-  if (!hasSelectedAppliances) {
+  if (!hasSelectedElectronics) {
     return (
       <>
         <View style={styles.recCard}>
@@ -557,7 +557,7 @@ export default function AppRecCard({
               </AppText>
 
               <Pressable
-                onPress={openApplianceModal}
+                onPress={openElectronicsModal}
                 onPressIn={() =>
                   animateButton(0.95)
                 }
@@ -565,11 +565,11 @@ export default function AppRecCard({
                   animateButton(1)
                 }
                 accessibilityRole="button"
-                accessibilityLabel="Add Appliances"
+                accessibilityLabel="Add Electronics"
               >
                 <Animated.View
                   style={[
-                    styles.addAppliancesButton,
+                    styles.addElectronicsButton,
                     {
                       transform: [
                         {
@@ -588,10 +588,10 @@ export default function AppRecCard({
                   <AppText
                     variant="caption"
                     style={
-                      styles.addAppliancesButtonText
+                      styles.addElectronicsButtonText
                     }
                   >
-                    Add Appliances
+                    Add Electronics
                   </AppText>
                 </Animated.View>
               </Pressable>
@@ -600,16 +600,16 @@ export default function AppRecCard({
           </View>
         </View>
 
-        <ApplianceModal
+        <ElectronicsModal
           visible={modalVisible}
-          onClose={closeApplianceModal}
+          onClose={closeElectronicsModal}
         />
       </>
     );
   }
 
   // ============================================
-  // MODE 2: SELECTED APPLIANCES EXIST
+  // MODE 2: SELECTED ELECTRONICS EXIST
   // ============================================
 
   return (
@@ -651,8 +651,8 @@ export default function AppRecCard({
             )}
           />
 
-          {/* Appliances / Empty Text */}
-          {filteredAppliances.length > 0 ? (
+          {/* Electronics / Empty Text */}
+          {filteredElectronics.length > 0 ? (
           <View
             style={[
               styles.recContent,
@@ -662,27 +662,27 @@ export default function AppRecCard({
           >
             <View
               style={[
-                styles.applianceRow,
+                styles.electronicsRow,
                 isTightMode &&
-                  styles.applianceRowTight,
+                  styles.electronicsRowTight,
               ]}
             >
-              {currentAppliances.map(
-                (appliance) => {
+              {currentElectronics.map(
+                (electronics) => {
                   const meta =
                     badgeMeta(
-                      appliance.status,
+                      electronics.status,
                       colors,
                     );
 
                   return (
                   <View
-                    key={appliance.id}
+                    key={electronics.id}
                     style={[
-                      appliance.status !==
+                      electronics.status !==
                       "notAdvisable"
-                        ? applianceCardStyles.box
-                        : applianceCardStyles.boxTight,
+                        ? electronicsCardStyles.box
+                        : electronicsCardStyles.boxTight,
                       {
                         borderColor:
                           meta.color,
@@ -692,7 +692,7 @@ export default function AppRecCard({
                     {/* Fixed Image Area */}
                     <View
                       style={[
-                        applianceCardStyles.imageContainer,
+                        electronicsCardStyles.imageContainer,
                         {
                           borderColor:
                             meta.color,
@@ -701,21 +701,21 @@ export default function AppRecCard({
                     >
                       <Image
                         source={
-                          appliance.imageUrl
+                          electronics.imageUrl
                             ? {
-                                uri: appliance.imageUrl,
+                                uri: electronics.imageUrl,
                               }
                             : (
-                                (appliance.imageKey
+                                (electronics.imageKey
                                   ? CATALOG_IMAGES[
-                                      appliance.imageKey
+                                      electronics.imageKey
                                     ]
                                   : undefined) ??
                                 defaultImage
                               )
                         }
                         style={
-                          applianceCardStyles.image
+                          electronicsCardStyles.image
                         }
                         resizeMode="contain"
                       />
@@ -725,33 +725,33 @@ export default function AppRecCard({
                     <AppText
                       variant="caption"
                       style={
-                        applianceCardStyles.name
+                        electronicsCardStyles.name
                       }
                       numberOfLines={2}
                     >
-                      {appliance.name}
+                      {electronics.name}
                     </AppText>
 
                     {/* Wattage */}
                     <AppText
                       variant="caption"
                       style={
-                        applianceCardStyles.watts
+                        electronicsCardStyles.watts
                       }
                       numberOfLines={1}
                     >
-                      {appliance.watts}
+                      {electronics.watts}
                     </AppText>
 
                     {/* Status (not-advisable items show
                         no pill: the active toggle segment
                         already states it, so the red pill
                         is redundant) */}
-                    {appliance.status !==
+                    {electronics.status !==
                       "notAdvisable" && (
                       <View
                         style={[
-                          applianceCardStyles.status,
+                          electronicsCardStyles.status,
                           {
                             backgroundColor:
                               meta.color,
@@ -767,7 +767,7 @@ export default function AppRecCard({
                         <AppText
                           variant="caption"
                           style={
-                            applianceCardStyles.statusText
+                            electronicsCardStyles.statusText
                           }
                           numberOfLines={1}
                         >
@@ -786,12 +786,12 @@ export default function AppRecCard({
               {Array.from({
                 length: Math.min(
                   10,
-                  Math.ceil(filteredAppliances.length / 2),
+                  Math.ceil(filteredElectronics.length / 2),
                 ),
               }).map((_, itemIndex) => {
                 const indicatorCount = Math.min(
                   10,
-                  Math.ceil(filteredAppliances.length / 2),
+                  Math.ceil(filteredElectronics.length / 2),
                 );
 
                 const activeIndicator =
@@ -805,7 +805,7 @@ export default function AppRecCard({
                       {
                         backgroundColor:
                           itemIndex === activeIndicator
-                            ? currentAppliances[0]
+                            ? currentElectronics[0]
                                 .color
                             : colors.border,
                       },
@@ -849,9 +849,9 @@ export default function AppRecCard({
         </View>
       </View>
 
-      <ApplianceModal
+      <ElectronicsModal
         visible={modalVisible}
-        onClose={closeApplianceModal}
+        onClose={closeElectronicsModal}
       />
     </>
   );
@@ -877,7 +877,7 @@ function RecHeader({
           variant="heading"
           style={styles.recHeaderTitle}
         >
-          Appliance Recommendation
+          Electronics Recommendation
         </AppText>
       </View>
     </View>
@@ -970,10 +970,10 @@ const getStyles = (colors: AppColors) =>
   },
 
   // ============================================
-  // APPLIANCE CAROUSEL / EMPTY STATE SLOT
+  // ELECTRONICS CAROUSEL / EMPTY STATE SLOT
   // ============================================
 
-  applianceRow: {
+  electronicsRow: {
     width: "100%",
     height: 240,
     flexDirection: "row",
@@ -982,7 +982,7 @@ const getStyles = (colors: AppColors) =>
     gap: 12,
   },
 
-  applianceRowTight: {
+  electronicsRowTight: {
     height: 202,
   },
 
@@ -1063,7 +1063,7 @@ const getStyles = (colors: AppColors) =>
     marginBottom: 16,
   },
 
-  addAppliancesButton: {
+  addElectronicsButton: {
     minHeight: Control.button,
     width: "100%",
     paddingHorizontal: 18,
@@ -1075,7 +1075,7 @@ const getStyles = (colors: AppColors) =>
     borderRadius: Radius.md,
   },
 
-  addAppliancesButtonText: {
+  addElectronicsButtonText: {
     color: colors.onPrimary,
     fontWeight: "700",
   },

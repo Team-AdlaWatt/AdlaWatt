@@ -2,7 +2,7 @@
 // BATTERY REFERENCE CONSTANTS
 //
 // Single source of truth for the battery bank used by the
-// recommendation engine, the battery gauge, the appliance
+// recommendation engine, the battery gauge, the electronics
 // wattage caps, and the in-app advisory copy.
 //
 // Bank: ZENOVA 12V 30Ah x2 in parallel.
@@ -26,5 +26,5 @@ export const BATTERY_RESERVE_WH = 151.2;
 /** 80% depth-of-discharge window available to loads. */
 export const BATTERY_USABLE_WH = 604.8;
 
-/** Largest wattage a single appliance may declare. */
-export const BATTERY_MAX_APPLIANCE_W = 756;
+/** Largest wattage a single electronics may declare. */
+export const BATTERY_MAX_ELECTRONICS_W = 756;

@@ -172,10 +172,13 @@ export function AuthProvider({
 
   const signOut = useCallback(async () => {
     profileRequestId.current += 1;
+    // Clear local state first so any consumer awaiting signOut
+    // is not blocked on the network round-trip; the SIGNED_OUT
+    // event then re-confirms the null session.
     setProfileUsername(null);
-    await supabase.auth.signOut();
     setSession(null);
     setIsRecoverySession(false);
+    await supabase.auth.signOut();
   }, []);
 
   const value = useMemo<AuthContextValue>(

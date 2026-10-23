@@ -16,7 +16,7 @@ import { ThemeProvider } from "@/context/ThemeContext";
 import { useAuth } from "@/context/AuthContext";
 import {
   getCurrentUserProfile,
-  resolvePostLoginRoute,
+  resolveOnboardingAwareRoute,
 } from "@/services/auth";
 import {
   useAppColors,
@@ -119,16 +119,20 @@ function ThemedAuth() {
 
     // Signed-in users have no business on login/register —
     // route role-aware so the admin test account lands on
-    // /admin instead of /dashboard.
+    // /admin, first-time household users on /onboarding,
+    // everyone else on /dashboard.
     void (async () => {
       try {
         const profile = await getCurrentUserProfile();
 
         router.replace(
-          resolvePostLoginRoute(
+          resolveOnboardingAwareRoute(
             profile.success
               ? (profile as { role?: unknown }).role
               : null,
+            profile.success
+              ? profile.onboardingCompleted
+              : true,
           ) as never,
         );
       } catch {

@@ -2,9 +2,9 @@
 
 # AdlaWatt
 
-A transportable off-grid solar power system with a mobile app for real-time energy monitoring, appliance recommendations, notifications, and backup power management during electricity interruptions.
+A transportable off-grid solar power system with a mobile app for real-time energy monitoring, electronics recommendations, notifications, and backup power management during electricity interruptions.
 
-AdlaWatt harvests solar energy, stores it in a 12V battery, and supplies power through a built-in AC outlet. The mobile app lets households monitor battery status, solar energy, power consumption, temperatures, system health, and energy history — and tells them which appliances are safe to run on the available power.
+AdlaWatt harvests solar energy, stores it in a 12V battery, and supplies power through a built-in AC outlet. The mobile app lets households monitor battery status, solar energy, power consumption, temperatures, system health, and energy history — and tells them which electronics are safe to run on the available power.
 
 > **Project Status:** In Development. The mobile app is fully integrated with Supabase (auth, database, real-time). The ESP32 hardware feed is still being wired up end to end.
 
@@ -29,9 +29,9 @@ AdlaWatt harvests solar energy, stores it in a 12V battery, and supplies power t
 
 ## Overview
 
-AdlaWatt is a backup power solution for households during outages. A solar panel charges a 12V battery inside a transportable lockable enclosure, and a built-in AC outlet lets compatible appliances use the stored energy.
+AdlaWatt is a backup power solution for households during outages. A solar panel charges a 12V battery inside a transportable lockable enclosure, and a built-in AC outlet lets compatible electronics use the stored energy.
 
-The system also watches itself. An ESP32 reads solar, load, voltage, and temperature sensors, sends the data to the cloud, and the mobile app shows it live. The app's main feature is appliance guidance: pick the appliances you plan to use and it recommends what fits your current battery level.
+The system also watches itself. An ESP32 reads solar, load, voltage, and temperature sensors, sends the data to the cloud, and the mobile app shows it live. The app's main feature is electronics guidance: pick the electronics you plan to use and it recommends what fits your current battery level.
 
 AdlaWatt is a backup source, not a replacement for the electrical grid.
 
@@ -40,7 +40,7 @@ AdlaWatt is a backup source, not a replacement for the electrical grid.
 ## Features
 
 - **Real-Time Monitoring** — Battery percentage, voltage, watt-hours, time remaining, charge/discharge status, load, depth of discharge, solar input, and battery/solar/interior temperatures, all updating live.
-- **Appliance Recommendations** — Each appliance is labeled **OK to use** or **Not advisable** based on the remaining battery energy, voltage, and power draw.
+- **Electronics Recommendations** — Each electronics item is labeled **OK to use** or **Not advisable** based on the remaining battery energy, voltage, and power draw.
 - **Weather & 5-Day Solar Forecast** — Current temperature, condition, and location, plus a 5-day outlook that flags the best day to charge.
 - **Notifications** — Automatic alerts for battery, temperature, solar, load, and device status. Delivered in-app, by email for alerts, with an alert vibration, plus daily local reminders.
 - **Analytics & Reports** — 17 charts across Battery, Solar, Energy, Health, and Usage, with CSV and PDF export.
@@ -79,7 +79,7 @@ AdlaWatt/
 │   │   │   └── callback.tsx
 │   │   ├── dashboard/
 │   │   │   ├── index.tsx
-│   │   │   ├── appliances.tsx
+│   │   │   ├── electronics.tsx
 │   │   │   ├── analytics.tsx
 │   │   │   ├── components.tsx
 │   │   │   ├── notifications.tsx
@@ -117,17 +117,17 @@ AdlaWatt/
 | Charge Controller | Regulates battery charging |
 | 12V Battery (ZENOVA 30Ah ×2) | Stores energy — 756 Wh nominal, 604.8 Wh usable |
 | Inverter | Converts DC to AC |
-| AC Outlet | Powers compatible appliances |
+| AC Outlet | Powers compatible electronics |
 
 **IoT**
 
 | Component | Purpose |
 |---|---|
-| ESP32 | Main controller and Wi-Fi communication |
+| ESP32-S3 | Main controller and Wi-Fi communication |
 | INA228 (Input / Output) | Monitors solar and load voltage/current |
 | DS18B20 (Battery / Solar) | Monitors temperatures |
 | DHT22 | Monitors interior temperature and humidity |
-| Voltage Sensor | Measures system voltage |
+| INA219 | Measures system voltage |
 | Relay Module | Controls load and cooling fan |
 | SPI TFT Display | Shows local real-time info |
 | 5V DC Fan | Cooling |
@@ -208,7 +208,7 @@ supabase functions deploy send-alert-email
 
 | Role | Access |
 |---|---|
-| Household User | Full app: dashboard, appliances, analytics, components, notifications, activity logs, and settings |
+| Household User | Full app: dashboard, electronics, analytics, components, notifications, activity logs, and settings |
 | Admin | A limited shell (login, log out, exit) — assigned in the database, not through the app |
 
 Users sign up with a username, email, and password, or sign in with Google. Passwords can be reset by email.
@@ -221,7 +221,7 @@ Users sign up with a username, email, and password, or sign in with Google. Pass
 
 - **Live weather** — today's card is now driven by real GPS coordinates with accurate OpenWeather condition labels and icons.
 - **5-day solar forecast** — daily solar outlook with a "best day to charge" summary and hot/cold flags.
-- **Appliance catalog refresh** — updated to the current electronics list with corrected wattage ranges and new images.
+- **Electronics catalog refresh** — updated to the current electronics list with corrected wattage ranges and new images.
 - **Battery figures** — standardized to 756 Wh nominal / 151.2 Wh reserve / 604.8 Wh usable.
 - **Self-hosted auth links** — confirmation and recovery emails now route back into the app, with clearer create-account copy.
 - **Language support** — English, Filipino, and Cebuano.
@@ -233,7 +233,7 @@ Users sign up with a username, email, and password, or sign in with Google. Pass
 
 - **Sustainable Development Goals** — SDG 7 (Affordable and Clean Energy), SDG 11 (Sustainable Cities and Communities), and SDG 13 (Climate Action).
 - **Evaluation** — Usability measured with the System Usability Scale (SUS).
-- **Purpose** — To provide an affordable backup power solution that combines off-grid solar harvesting, real-time monitoring, and appliance guidance in a single system.
+- **Purpose** — To provide an affordable backup power solution that combines off-grid solar harvesting, real-time monitoring, and electronics guidance in a single system.
 
 ---
 

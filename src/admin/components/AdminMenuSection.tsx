@@ -18,18 +18,18 @@ import {
 } from "@/hooks/useAppColors";
 import { Radius, Spacing } from "@/constants/theme";
 import { Routes } from "@/constants/routes";
-import { supabase } from "@/lib/supabase";
-import { logAuth } from "@/services/activityLogService";
+import { performSignOut } from "@/services/signOut";
 
 // ============================================================
 // ADMIN MENU SECTION (English-only, pinned light)
 //
 // Mirrors the household Menu boxes (2x2 grid, 60px icons)
 // plus Log Out + Exit row below. Temporary boxes are
-// presentational no-ops marked TEMP. Log Out and Exit are
-// fully functional (same ordering as household: log, then
-// sign out, then route). All strings hardcoded English so
-// household language switches cannot affect admin.
+// presentational no-ops marked TEMP. Log Out routes to Login
+// immediately and runs teardown in the background via the
+// shared performSignOut() (same as household). All strings
+// hardcoded English so household language switches cannot
+// affect admin.
 // ============================================================
 
 const TEMP_BOXES: {
@@ -77,23 +77,10 @@ export default function AdminMenuSection() {
   );
 
   const handleLogout = () => {
-    const logout = async () => {
-      // Logged before sign-out: after sign-out there is no
-      // session left to satisfy RLS on insert.
-      logAuth.loggedOut();
-
-      try {
-        await supabase.auth.signOut();
-      } catch (error) {
-        console.warn(
-          "Admin sign out failed:",
-          error instanceof Error
-            ? error.message
-            : error,
-        );
-      } finally {
-        router.replace(Routes.LOGIN);
-      }
+    const logout = () => {
+      // Immediate UI exit: teardown runs in the background.
+      performSignOut();
+      router.replace(Routes.LOGIN);
     };
 
     if (Platform.OS === "web") {

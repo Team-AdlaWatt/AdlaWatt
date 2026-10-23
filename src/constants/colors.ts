@@ -11,9 +11,9 @@
 // component. Register new colors here instead of hardcoding
 // them in components.
 //
-// Frozen records (areas, severity, weather) are classification
-// color-coding: they render identically in both themes and are
-// shared by reference, not duplicated.
+// Frozen records (areas, severity, weather, manualFigure) are
+// classification color-coding: they render identically in both
+// themes and are shared by reference, not duplicated.
 // ============================================================
 
 // ——— classification data colors (frozen, both themes) ———
@@ -90,6 +90,19 @@ const weatherColors = {
   },
 } as const;
 
+// ——— user-manual figure card (frozen, both themes) ———
+// The manual's figure/open cards are deliberately
+// theme-independent: brand green with white type. White on
+// #00805A is 4.96:1 (WCAG 1.4.3 AA), whereas the palette's
+// dark-mode primary (#33C191) would fail against white and
+// its onPrimary is near-black.
+const manualFigureColors = {
+  surface: "#00805A",
+  onSurface: "#FFFFFF",
+  onSurfaceMuted: "rgba(255, 255, 255, 0.6)",
+  divider: "rgba(255, 255, 255, 0.25)",
+} as const;
+
 export const Colors = {
   light: {
     // ——— 60 · dominant surfaces ———
@@ -126,7 +139,7 @@ export const Colors = {
     headerContent: "#FFFFFF",
     // Card shells: green borders in light, navbar-icon white
     // (#E3E3E3, same value as bar.text) in dark. Controls,
-    // inputs, toggles, and appliance/component boxes keep
+    // inputs, toggles, and electronics/component boxes keep
     // their green; only card containers use this.
     cardBorder: "#00805A",
 
@@ -171,6 +184,7 @@ export const Colors = {
     areas: areaColors,
     severity: severityColors,
     weather: weatherColors,
+    manualFigure: manualFigureColors,
 
     // ——— chart data colors (series frozen, neutrals theme) ———
     chart: {
@@ -275,6 +289,7 @@ export const Colors = {
     areas: areaColors,
     severity: severityColors,
     weather: weatherColors,
+    manualFigure: manualFigureColors,
 
     // ——— chart neutrals themed, series frozen ———
     chart: {

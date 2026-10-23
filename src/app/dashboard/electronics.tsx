@@ -3,20 +3,22 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
 import {
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
 } from "react-native";
 
-import ApplianceModal from "@/components/forms/ApplianceModal";
-import ApplianceStatusBox from "@/components/forms/ApplianceStatusBox";
+import ElectronicsModal from "@/components/forms/ElectronicsModal";
+import ElectronicsStatusBox from "@/components/forms/ElectronicsStatusBox";
 import {
-  applianceCardGrid,
-} from "@/components/forms/applianceCard";
+  electronicsCardGrid,
+} from "@/components/forms/electronicsCard";
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
 import PullRefreshScroll from "@/components/PullRefreshScroll";
@@ -25,10 +27,12 @@ import AppText from "@/components/ui/AppText";
 import { useTranslation } from "react-i18next";
 import { DropdownModal, RadioOptionRow } from "@/components/ui/DropdownModal";
 import EmptyState from "@/components/ui/EmptyState";
+import { useScrollToTopController } from "@/hooks/useScrollToTopController";
 
 import { Colors } from "@/constants/colors";
 import {
   CATALOG_IMAGES,
+  CUSTOM_AREA,
 } from "@/constants/electronicsCatalog";
 import {
   useAppColors,
@@ -45,7 +49,7 @@ import {
 import { getAuthenticatedUserSafe, supabase } from "@/lib/supabase";
 import {
   type BatteryStateInput,
-  recommendAppliance,
+  recommendElectronics,
 } from "@/services/recommendation";
 import {
   useMonitoring,
@@ -67,7 +71,7 @@ type Area =
   | "Bathroom Area"
   | "Custom";
 
-type SelectedAppliance = {
+type SelectedElectronics = {
   id: string;
   name: string;
   watts: string;
@@ -80,14 +84,14 @@ type StatusFilter =
   | "Caution"
   | "notAdvisable";
 
-type ApplianceStatus =
+type ElectronicsStatus =
   | "advisable"
   | "care"
   | "notAdvisable";
 
 const STATUS_FOR_FILTER: Record<
   StatusFilter,
-  ApplianceStatus
+  ElectronicsStatus
 > = {
   Advisable: "advisable",
   Caution: "care",
@@ -105,21 +109,21 @@ const TOGGLE_META_BASE: {
     label: "Advisable",
     tone: "primary",
     accessibilityLabel:
-      "Show advisable appliances",
+      "Show advisable electronics",
   },
   {
     filter: "Caution",
     label: "Caution",
     tone: "warning",
     accessibilityLabel:
-      "Show appliances to use with care",
+      "Show electronics to use with care",
   },
   {
     filter: "notAdvisable",
     label: "Not Advisable",
     tone: "error",
     accessibilityLabel:
-      "Show not advisable appliances",
+      "Show not advisable electronics",
   },
 ];
 
@@ -134,7 +138,7 @@ const getToggleColor = (
       : colors.primary;
 
 const statusMeta = (
-  status: ApplianceStatus,
+  status: ElectronicsStatus,
 ) => {
 
   if (
@@ -165,7 +169,7 @@ const statusMeta = (
 
 /*
  * UI area names (resolved areas already use these names —
- * catalog uiArea values and "Custom Appliances").
+ * catalog uiArea values and CUSTOM_AREA).
  */
 const areaMap: Record<
   Exclude<Area, "All Areas">,
@@ -177,10 +181,10 @@ const areaMap: Record<
   "Kitchen Area": "Kitchen Area",
   "Work/Study Area": "Work/Study Area",
   "Bathroom Area": "Bathroom Area",
-  Custom: "Custom Appliances",
+  Custom: CUSTOM_AREA,
 };
 
-export default function AppliancesScreen() {
+export default function ElectronicsScreen() {
   const { t } = useTranslation();
   const [statusFilter, setStatusFilter] =
     useState<StatusFilter>("Advisable");
@@ -195,19 +199,25 @@ export default function AppliancesScreen() {
     [colors],
   );
 
+  const scrollRef =
+    useRef<ScrollView>(null);
+
+  const scrollToTop =
+    useScrollToTopController(scrollRef);
+
   const {
     monitoring,
     refresh: refreshMonitoring,
   } = useMonitoring();
 
   const [
-    selectedAppliances,
-    setSelectedAppliances,
-  ] = useState<SelectedAppliance[]>([]);
+    selectedElectronics,
+    setSelectedElectronics,
+  ] = useState<SelectedElectronics[]>([]);
 
   const [
-    applianceModalVisible,
-    setApplianceModalVisible,
+    electronicsModalVisible,
+    setElectronicsModalVisible,
   ] = useState(false);
 
   const [powerFilter, setPowerFilter] =
@@ -226,14 +236,14 @@ export default function AppliancesScreen() {
     setAreaModalVisible,
   ] = useState(false);
 
-  const loadSelectedAppliances = useCallback(async () => {
+  const loadSelectedElectronics = useCallback(async () => {
     try {
-      const { fetchSelectedAppliances } = await import(
-        "@/services/appliancesService"
+      const { fetchSelectedElectronics } = await import(
+        "@/services/electronicsService"
       );
-      const resolved = await fetchSelectedAppliances();
+      const resolved = await fetchSelectedElectronics();
 
-      setSelectedAppliances(
+      setSelectedElectronics(
         resolved.map((item) => ({
           id: item.id,
           name: item.name,
@@ -251,31 +261,31 @@ export default function AppliancesScreen() {
     const user = await getAuthenticatedUserSafe();
 
     if (!user) {
-      setSelectedAppliances([]);
+      setSelectedElectronics([]);
       return;
     }
 
     const { data, error } = await supabase
-      .from("appliances")
+      .from("electronics")
       .select(
-        "app_id, appliance_name, type, catalog_key, wattage_min, wattage_max, selection, image_url",
+        "app_id, electronics_name, type, catalog_key, wattage_min, wattage_max, selection, image_url",
       )
       .eq("user_id", user.id)
-      .order("appliance_name");
+      .order("electronics_name");
 
     if (error) {
       console.error(
-        "Failed to load selected appliances:",
+        "Failed to load selected electronics:",
         error.message,
       );
       return;
     }
 
     const { CATALOG_BY_KEY } = await import(
-      "@/constants/applianceCatalog"
+      "@/constants/electronicsCatalog"
     );
 
-    setSelectedAppliances(
+    setSelectedElectronics(
       (data ?? [])
         .filter(
           (item) =>
@@ -313,9 +323,9 @@ export default function AppliancesScreen() {
 
           return {
             id: String(item.app_id),
-            name: String(item.appliance_name),
+            name: String(item.electronics_name),
             watts,
-            area: "Custom Appliances",
+            area: CUSTOM_AREA,
             imageUrl:
               typeof item.image_url === "string"
                 ? item.image_url
@@ -325,29 +335,29 @@ export default function AppliancesScreen() {
     );
   }, []);
 
-  const handleApplianceSave = async () => {
-    await loadSelectedAppliances();
+  const handleElectronicsSave = async () => {
+    await loadSelectedElectronics();
   };
 
-  // Pull-to-refresh: appliance list plus the monitoring row
+  // Pull-to-refresh: electronics list plus the monitoring row
   // behind the status badges. No cooldown — the shared hook
   // collapses repeat pulls into one fetch.
-  const loadApplianceSession = useCallback(async () => {
+  const loadElectronicsSession = useCallback(async () => {
     await Promise.all([
       refreshMonitoring(),
-      loadSelectedAppliances(),
+      loadSelectedElectronics(),
     ]);
-  }, [refreshMonitoring, loadSelectedAppliances]);
+  }, [refreshMonitoring, loadSelectedElectronics]);
 
   const {
-    refreshing: appliancesRefreshing,
-    onRefresh: onAppliancesRefresh,
-  } = usePullToRefresh(loadApplianceSession);
+    refreshing: electronicsRefreshing,
+    onRefresh: onElectronicsRefresh,
+  } = usePullToRefresh(loadElectronicsSession);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- mount fetch is the effect's purpose
-    loadSelectedAppliances();
-  }, [loadSelectedAppliances]);
+    loadSelectedElectronics();
+  }, [loadSelectedElectronics]);
 
   const handlePowerFilter = (
     filter: PowerLevel,
@@ -369,17 +379,17 @@ export default function AppliancesScreen() {
   // keeps the prior behavior until data arrives.
   // ==========================================================
 
-  const getApplianceStatus = useCallback(
+  const getElectronicsStatus = useCallback(
     (
-      appliance: SelectedAppliance,
-    ): ApplianceStatus => {
+      electronics: SelectedElectronics,
+    ): ElectronicsStatus => {
 
     if (
       !monitoring
     ) {
 
       const watts =
-        appliance.watts
+        electronics.watts
           .match(/\d+/g)
           ?.map(Number) ?? [];
 
@@ -402,12 +412,12 @@ export default function AppliancesScreen() {
     };
 
     const recommendation =
-      recommendAppliance(
+      recommendElectronics(
         battery,
         {
-          id: appliance.id,
-          name: appliance.name,
-          wattage: appliance.watts,
+          id: electronics.id,
+          name: electronics.name,
+          wattage: electronics.watts,
         },
       );
 
@@ -435,29 +445,29 @@ export default function AppliancesScreen() {
   // ==========================================================
   // CONTENT-AWARE STATUS SEGMENTS
   //
-  // Only segments holding appliances render; the selection
+  // Only segments holding electronics render; the selection
   // follows the first non-empty segment in
   // Caution → Advisable → Not Advisable order (Not Advisable
-  // is the last-resort fallback). An empty appliance list
+  // is the last-resort fallback). An empty electronics list
   // keeps all three segments on Advisable.
   // ==========================================================
 
   const statusCounts = useMemo(() => {
-    const counts: Record<ApplianceStatus, number> = {
+    const counts: Record<ElectronicsStatus, number> = {
       advisable: 0,
       care: 0,
       notAdvisable: 0,
     };
 
-    for (const appliance of selectedAppliances) {
-      counts[getApplianceStatus(appliance)] += 1;
+    for (const electronics of selectedElectronics) {
+      counts[getElectronicsStatus(electronics)] += 1;
     }
 
     return counts;
-  }, [selectedAppliances, getApplianceStatus]);
+  }, [selectedElectronics, getElectronicsStatus]);
 
   const visibleStatusFilters = useMemo<StatusFilter[]>(() => {
-    if (selectedAppliances.length === 0) {
+    if (selectedElectronics.length === 0) {
       return ["Advisable", "Caution", "notAdvisable"];
     }
 
@@ -472,12 +482,12 @@ export default function AppliancesScreen() {
         statusCounts[STATUS_FOR_FILTER[filter]] > 0,
     );
 
-    // Unreachable (every appliance has a status), but a
+    // Unreachable (every electronics has a status), but a
     // zero-option toggle would break the pill math.
     return visible.length > 0
       ? visible
       : (["Advisable", "Caution", "notAdvisable"] as StatusFilter[]);
-  }, [selectedAppliances.length, statusCounts]);
+  }, [selectedElectronics.length, statusCounts]);
 
   // Effective selection for this render (covers first paint
   // before the canonical sync below commits).
@@ -506,10 +516,10 @@ export default function AppliancesScreen() {
     [visibleStatusFilters],
   );
 
-  const filteredAppliances =
-    selectedAppliances.filter((appliance) => {
+  const filteredElectronics =
+    selectedElectronics.filter((electronics) => {
       const watts =
-        appliance.watts.match(/\d+/g)?.map(Number) ??
+        electronics.watts.match(/\d+/g)?.map(Number) ??
         [];
 
       const maxWatts = Math.max(...watts, 0);
@@ -526,10 +536,10 @@ export default function AppliancesScreen() {
 
       const matchesArea =
         areaFilter === "All Areas" ||
-        appliance.area === areaMap[areaFilter];
+        electronics.area === areaMap[areaFilter];
 
       const status =
-        getApplianceStatus(appliance);
+        getElectronicsStatus(electronics);
 
       const matchesStatus =
         status ===
@@ -545,18 +555,20 @@ export default function AppliancesScreen() {
     });
 
   return (
-    <ScreenContainer2>
+    <ScreenContainer2 scrollToTop={scrollToTop}>
       <NavBar />
 
       <PullRefreshScroll
+        scrollRef={scrollRef}
         style={styles.scrollView}
         contentContainerStyle={[
           styles.content,
           { paddingHorizontal: screenPadding },
         ]}
         showsVerticalScrollIndicator={false}
-        refreshing={appliancesRefreshing}
-        onRefresh={onAppliancesRefresh}
+        onScroll={scrollToTop.reportScroll}
+        refreshing={electronicsRefreshing}
+        onRefresh={onElectronicsRefresh}
         refreshLabel={t(
           "dashboard.common.pullToRefresh",
         )}
@@ -569,29 +581,29 @@ export default function AppliancesScreen() {
             variant="heading"
             style={styles.title}
           >
-            {t("dashboard.appliances.title")}
+            {t("dashboard.electronics.title")}
           </AppText>
 
           <AppText
             variant="caption"
             style={styles.subtitle}
           >
-            {t("dashboard.appliances.subtitle")}
+            {t("dashboard.electronics.subtitle")}
           </AppText>
         </View>
 
         {/* Controls */}
-        {/* Select Appliances (full spread, above the filters) */}
+        {/* Select Electronics (full spread, above the filters) */}
         <Pressable
           onPress={() =>
-            setApplianceModalVisible(true)
+            setElectronicsModalVisible(true)
           }
           style={({ pressed }) => [
             styles.addButton,
             pressed && styles.pressed,
           ]}
           accessibilityRole="button"
-          accessibilityLabel="Select appliances"
+          accessibilityLabel="Select electronics"
         >
           <Ionicons
             name="add-outline"
@@ -603,7 +615,7 @@ export default function AppliancesScreen() {
             variant="caption"
             style={styles.addButtonText}
           >
-            Select Appliances
+            Select Electronics
           </AppText>
         </Pressable>
 
@@ -702,28 +714,28 @@ export default function AppliancesScreen() {
           )}
         />
 
-        {/* Appliances */}
-        <View style={[applianceCardGrid, { marginTop: 20 }]}>
-          {filteredAppliances.length === 0 ? (
+        {/* Electronics */}
+        <View style={[electronicsCardGrid, { marginTop: 20 }]}>
+          {filteredElectronics.length === 0 ? (
             <EmptyState
               title={
-                selectedAppliances.length === 0
-                  ? "No Appliances"
+                selectedElectronics.length === 0
+                  ? "No Electronics"
                   : effectiveStatusFilter ===
                       "Advisable"
-                    ? "No Advisable Appliances"
+                    ? "No Advisable Electronics"
                     : effectiveStatusFilter ===
                         "Caution"
-                      ? "No Appliances to Use With Care"
-                      : "No Not Advisable Appliances"
+                      ? "No Electronics to Use With Care"
+                      : "No Not Advisable Electronics"
               }
               description={
-                selectedAppliances.length === 0
-                  ? "No appliances have been selected yet."
-                  : "No appliances match the selected filters."
+                selectedElectronics.length === 0
+                  ? "No electronics have been selected yet."
+                  : "No electronics match the selected filters."
               }
               icon={
-                selectedAppliances.length === 0
+                selectedElectronics.length === 0
                   ? "cube-outline"
                   : effectiveStatusFilter ===
                       "Advisable"
@@ -735,18 +747,18 @@ export default function AppliancesScreen() {
               }
             />
           ) : (
-            filteredAppliances.map((appliance) => {
+            filteredElectronics.map((electronics) => {
               const status =
-                getApplianceStatus(appliance);
+                getElectronicsStatus(electronics);
 
               const statusMapped =
                 statusMeta(status);
 
               return (
-                <ApplianceStatusBox
-                  key={appliance.id}
-                  name={appliance.name}
-                  wattage={appliance.watts}
+                <ElectronicsStatusBox
+                  key={electronics.id}
+                  name={electronics.name}
+                  wattage={electronics.watts}
                   status={
                     statusMapped.label
                   }
@@ -754,10 +766,10 @@ export default function AppliancesScreen() {
                     statusMapped.tone
                   }
                   imageSource={
-                    appliance.imageUrl
-                      ? { uri: appliance.imageUrl }
+                    electronics.imageUrl
+                      ? { uri: electronics.imageUrl }
                       : (CATALOG_IMAGES[
-                          appliance.id
+                          electronics.id
                         ] ?? undefined)
                   }
                 />
@@ -769,13 +781,13 @@ export default function AppliancesScreen() {
         <Copyright />
       </PullRefreshScroll>
 
-      <ApplianceModal
-        visible={applianceModalVisible}
+      <ElectronicsModal
+        visible={electronicsModalVisible}
         onClose={() =>
-          setApplianceModalVisible(false)
+          setElectronicsModalVisible(false)
         }
-        onSave={handleApplianceSave}
-        selectedAppliances={selectedAppliances}
+        onSave={handleElectronicsSave}
+        selectedElectronics={selectedElectronics}
       />
 
       {/* ========================================================
@@ -942,7 +954,7 @@ const getStyles = (colors: AppColors) =>
     opacity: 0.7,
   },
 
-  applianceSection: {
+  electronicsSection: {
     width: "100%",
     marginBottom: 18,
   },

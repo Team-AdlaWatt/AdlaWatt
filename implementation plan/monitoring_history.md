@@ -91,7 +91,7 @@ Related table: **Live Monitoring Table** (`public.monitoring`).
 
 | Column | Type | Meaning |
 |---|---|---|
-| `current_load` | numeric(10,2) | Current appliance or system load |
+| `current_load` | numeric(10,2) | Current electronics or system load |
 
 ### 5.5 Temperature
 

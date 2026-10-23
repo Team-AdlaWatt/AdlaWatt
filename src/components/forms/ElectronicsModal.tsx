@@ -18,25 +18,26 @@ import {
   Image as ExpoImage,
 } from "expo-image";
 
-import ApplianceBox from "@/components/forms/ApplianceBox";
+import ElectronicsBox from "@/components/forms/ElectronicsBox";
 import {
-  applianceCardGrid,
-} from "@/components/forms/applianceCard";
-import CustomApplianceModal from "@/components/forms/CustomApplianceModal";
+  electronicsCardGrid,
+} from "@/components/forms/electronicsCard";
+import CustomElectronicsModal from "@/components/forms/CustomElectronicsModal";
 import MediaPickerModal, {
   type PickedPhoto,
 } from "@/components/forms/MediaPickerModal";
 import {
-  deleteAppliancePhotoByUrl,
-  uploadAppliancePhoto,
-} from "@/services/appliancePhotoService";
+  deleteElectronicsPhotoByUrl,
+  uploadElectronicsPhoto,
+} from "@/services/electronicsPhotoService";
 import AppText from "@/components/ui/AppText";
 import EmptyState from "@/components/ui/EmptyState";
 import SearchBox from "@/components/ui/SearchBox";
+import ScrollToTopButton from "@/components/layout/ScrollToTopButton";
 
 import {
   BATTERY_CAPACITY_WH,
-  BATTERY_MAX_APPLIANCE_W,
+  BATTERY_MAX_ELECTRONICS_W,
 } from "@/constants/battery";
 import { Colors } from "@/constants/colors";
 import {
@@ -45,11 +46,12 @@ import {
   GIVEN_CATALOG,
   type CatalogItem,
 } from "@/constants/electronicsCatalog";
-import { logAppliance } from "@/services/activityLogService";
+import { logElectronics } from "@/services/activityLogService";
 import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
+import { useScrollToTopController } from "@/hooks/useScrollToTopController";
 import {
   Radius,
   Spacing,
@@ -59,7 +61,7 @@ import { Control, Touch } from "@/constants/sizing";
 
 import { getAuthenticatedUserSafe, supabase } from "@/lib/supabase";
 
-type Appliance = {
+type Electronics = {
   id: string;
   name: string;
   watts: string;
@@ -77,7 +79,7 @@ type Appliance = {
 const prefetchedPhotoUrls = new Set<string>();
 
 function prefetchCustomPhotos(
-  items: Appliance[],
+  items: Electronics[],
 ): void {
   const fresh = items
     .map((item) => item.imageUrl)
@@ -103,16 +105,16 @@ function prefetchCustomPhotos(
   );
 }
 
-type ApplianceModalProps = {
+type ElectronicsModalProps = {
   visible: boolean;
   onClose: () => void;
-  onSave?: (appliances: Appliance[]) => void;
-  onCustomAdd?: (appliance: Appliance) => void;
+  onSave?: (electronics: Electronics[]) => void;
+  onCustomAdd?: (electronics: Electronics) => void;
   onCustomUpdate?: (
-    appliance: Appliance,
+    electronics: Electronics,
   ) => void;
   onCustomDelete?: (id: string) => void;
-  selectedAppliances?: Appliance[];
+  selectedElectronics?: Electronics[];
 };
 
 /*
@@ -174,7 +176,7 @@ const parseWattInterval = (
     !Number.isFinite(min) ||
     !Number.isFinite(max) ||
     min < 1 ||
-    max > BATTERY_MAX_APPLIANCE_W ||
+    max > BATTERY_MAX_ELECTRONICS_W ||
     min > max
   ) {
     return null;
@@ -201,30 +203,30 @@ const getAreaColor = (
 ) =>
   areaColors[area] ?? fallback;
 
-const catalogToAppliance = (
+const catalogToElectronics = (
   item: CatalogItem,
-): Appliance => ({
+): Electronics => ({
   id: item.key,
   name: item.name,
   watts: item.display,
   area: item.uiArea,
 });
 
-export default function ApplianceModal({
+export default function ElectronicsModal({
   visible,
   onClose,
-  selectedAppliances = [],
+  selectedElectronics = [],
   onCustomAdd,
   onCustomUpdate,
   onCustomDelete,
   onSave,
-}: ApplianceModalProps) {
+}: ElectronicsModalProps) {
   const [selected, setSelected] = useState<
     string[]
   >([]);
 
-  const [appliances, setAppliances] = useState<
-    Appliance[]
+  const [electronics, setElectronics] = useState<
+    Electronics[]
   >([]);
 
   const [searchText, setSearchText] =
@@ -267,13 +269,13 @@ export default function ApplianceModal({
   const [successMessage, setSuccessMessage] =
     useState("");
 
-  // True while custom appliances are being fetched, so the
+  // True while custom electronics are being fetched, so the
   // section can show a loading state instead of flashing empty.
   const [isLoadingCustoms, setIsLoadingCustoms] =
     useState(false);
 
   const [editingCustom, setEditingCustom] =
-    useState<Appliance | null>(null);
+    useState<Electronics | null>(null);
 
   // ---- Custom photo draft (add/edit form) ----
   // Local pick (fresh from the library) wins over the
@@ -306,13 +308,13 @@ export default function ApplianceModal({
 
   const [isSaving, setIsSaving] = useState(false);
 
-  // Layer 1 = Add Appliances (catalog + active customs).
+  // Layer 1 = Add Electronics (catalog + active customs).
   // Layer 2 = Archived viewer (archive=true customs only).
   // Same shell/modal, only the content layer swaps.
   const [layer, setLayer] = useState<1 | 2>(1);
 
-  const [archivedAppliances, setArchivedAppliances] =
-    useState<Appliance[]>([]);
+  const [archivedElectronics, setArchivedElectronics] =
+    useState<Electronics[]>([]);
 
   const [archiveSearchText, setArchiveSearchText] =
     useState("");
@@ -339,6 +341,9 @@ export default function ApplianceModal({
 
   const scrollRef = useRef<ScrollView>(null);
 
+  const scrollToTop =
+    useScrollToTopController(scrollRef);
+
   const colors = useAppColors();
 
   const styles = useMemo(
@@ -349,12 +354,12 @@ export default function ApplianceModal({
   // Custom section follows the themed brand primary so it
   // stays correct in both light and dark mode.
   const areaColor = (area: string) =>
-    area === "Custom Appliances"
+    area === CUSTOM_AREA
       ? colors.primary
       : getAreaColor(area, colors.border);
 
   // ============================================================
-  // LOAD APPLIANCES
+  // LOAD ELECTRONICS
   // ============================================================
   //
   // Single open wins: `seq` invalidates stale fetches, and the
@@ -363,8 +368,8 @@ export default function ApplianceModal({
   // parent's selected customs.
   // ============================================================
 
-  const loadAppliances = async (
-    propSnapshot: Appliance[],
+  const loadElectronics = async (
+    propSnapshot: Electronics[],
   ) => {
     const seq = loadSeq.current + 1;
     loadSeq.current = seq;
@@ -384,8 +389,8 @@ export default function ApplianceModal({
       );
       // Dismissed is always empty on fresh open (cleared in the
       // open effect), so no filter needed here.
-      setAppliances(propCustoms);
-      setArchivedAppliances([]);
+      setElectronics(propCustoms);
+      setArchivedElectronics([]);
       setSelected(propIds);
       setArchivedCount(0);
       setIsLoadingCustoms(false);
@@ -393,12 +398,12 @@ export default function ApplianceModal({
     }
 
     const { data, error } = await supabase
-      .from("appliances")
+      .from("electronics")
       .select(
-        "app_id, appliance_name, type, catalog_key, wattage_min, wattage_max, selection, archive, image_url",
+        "app_id, electronics_name, type, catalog_key, wattage_min, wattage_max, selection, archive, image_url",
       )
       .eq("user_id", user.id)
-      .order("appliance_name");
+      .order("electronics_name");
 
     if (loadSeq.current !== seq) {
       return;
@@ -406,7 +411,7 @@ export default function ApplianceModal({
 
     if (error) {
       console.error(
-        "Failed to load appliances:",
+        "Failed to load electronics:",
         error.message,
       );
       // Keep the prop snapshot visible instead of flashing
@@ -416,7 +421,7 @@ export default function ApplianceModal({
       const propCustoms = propSnapshot.filter(
         (item) => item.area === CUSTOM_AREA,
       );
-      setAppliances((current) => {
+      setElectronics((current) => {
         if (current.length > 0) {
           return current;
         }
@@ -444,7 +449,7 @@ export default function ApplianceModal({
 
     // Layer 1 list: active customs (archive != true).
     // Layer 2 list: archived customs (archive == true).
-    const customs: Appliance[] = rows
+    const customs: Electronics[] = rows
       .filter(
         (item) =>
           item.type === "custom" &&
@@ -452,7 +457,7 @@ export default function ApplianceModal({
       )
       .map((item) => ({
         id: String(item.app_id),
-        name: String(item.appliance_name),
+        name: String(item.electronics_name),
         watts: formatCustomWatts(
           item.wattage_min,
           item.wattage_max,
@@ -464,7 +469,7 @@ export default function ApplianceModal({
             : null,
       }));
 
-    const archived: Appliance[] = rows
+    const archived: Electronics[] = rows
       .filter(
         (item) =>
           item.type === "custom" &&
@@ -472,7 +477,7 @@ export default function ApplianceModal({
       )
       .map((item) => ({
         id: String(item.app_id),
-        name: String(item.appliance_name),
+        name: String(item.electronics_name),
         watts: formatCustomWatts(
           item.wattage_min,
           item.wattage_max,
@@ -494,8 +499,8 @@ export default function ApplianceModal({
 
     const propIds = propSnapshot.map(({ id }) => id);
 
-    setAppliances(customs);
-    setArchivedAppliances(archived);
+    setElectronics(customs);
+    setArchivedElectronics(archived);
     setSelected([
       ...new Set([
         ...pickedCatalogKeys,
@@ -511,7 +516,7 @@ export default function ApplianceModal({
     prefetchCustomPhotos([...customs, ...archived]);
 
     console.debug(
-      `[ApplianceModal] loaded rows=${rows.length} active=${customs.length} archived=${archived.length}`,
+      `[ElectronicsModal] loaded rows=${rows.length} active=${customs.length} archived=${archived.length}`,
     );
   };
 
@@ -538,21 +543,21 @@ export default function ApplianceModal({
     }
 
     if (!user) {
-      setArchivedAppliances([]);
+      setArchivedElectronics([]);
       setArchivedCount(0);
       setIsLoadingCustoms(false);
       return;
     }
 
     const { data, error } = await supabase
-      .from("appliances")
+      .from("electronics")
       .select(
-        "app_id, appliance_name, type, catalog_key, wattage_min, wattage_max, selection, archive, image_url",
+        "app_id, electronics_name, type, catalog_key, wattage_min, wattage_max, selection, archive, image_url",
       )
       .eq("user_id", user.id)
       .eq("type", "custom")
       .eq("archive", true)
-      .order("appliance_name");
+      .order("electronics_name");
 
     if (loadSeq.current !== seq) {
       return;
@@ -560,20 +565,20 @@ export default function ApplianceModal({
 
     if (error) {
       console.error(
-        "Failed to load archived appliances:",
+        "Failed to load archived electronics:",
         error.message,
       );
       setCustomError(
-        "Unable to load archived appliances. Please try again.",
+        "Unable to load archived electronics. Please try again.",
       );
       setIsLoadingCustoms(false);
       return;
     }
 
-    const archived: Appliance[] = (data ?? []).map(
+    const archived: Electronics[] = (data ?? []).map(
       (item) => ({
         id: String(item.app_id),
-        name: String(item.appliance_name),
+        name: String(item.electronics_name),
         watts: formatCustomWatts(
           item.wattage_min,
           item.wattage_max,
@@ -587,10 +592,10 @@ export default function ApplianceModal({
     );
 
     console.debug(
-      `[ApplianceModal] loaded archived=${archived.length}`,
+      `[ElectronicsModal] loaded archived=${archived.length}`,
     );
 
-    setArchivedAppliances(archived);
+    setArchivedElectronics(archived);
     setArchivedCount(archived.length);
     setIsLoadingCustoms(false);
 
@@ -602,18 +607,20 @@ export default function ApplianceModal({
   // ============================================================
   //
   // Deps are [visible] only on purpose. Depending on the
-  // `selectedAppliances` array would re-run the loader mid-edit
+  // `selectedElectronics` array would re-run the loader mid-edit
   // (wiping toggles + search) whenever the parent re-renders
   // with a new array identity. The prop is snapshotted once per
   // open for the immediate paint + DB union above.
   // ============================================================
 
   useEffect(() => {
+    scrollToTop.reset();
+
     if (visible) {
-      const snapshot = selectedAppliances;
+      const snapshot = selectedElectronics;
 
       // Immediate paint so selected customs are visible even
-      // before the DB fetch resolves. loadAppliances() owns the
+      // before the DB fetch resolves. loadElectronics() owns the
       // seq guard, so a slow fetch cannot overwrite a newer open
       // and closing mid-fetch invalidates it.
       // eslint-disable-next-line react-hooks/set-state-in-effect -- modal open snapshots selection + resets draft state (intentional UI sync with visible)
@@ -624,7 +631,7 @@ export default function ApplianceModal({
       setLayer(1);
       setIsSaving(false);
 
-      void loadAppliances(snapshot);
+      void loadElectronics(snapshot);
 
       return;
     }
@@ -635,7 +642,7 @@ export default function ApplianceModal({
     setArchiveSearchText("");
     setLayer(1);
     setOpenMenuId(null);
-    setArchivedAppliances([]);
+    setArchivedElectronics([]);
     setIsLoadingCustoms(false);
     setEditModalVisible(false);
     setAddModalVisible(false);
@@ -651,10 +658,10 @@ export default function ApplianceModal({
   }, [visible]);
 
   // ============================================================
-  // TOGGLE APPLIANCE
+  // TOGGLE ELECTRONICS
   // ============================================================
 
-  const toggleAppliance = (id: string) => {
+  const toggleElectronics = (id: string) => {
     setSelected((current) =>
       current.includes(id)
         ? current.filter(
@@ -682,12 +689,12 @@ export default function ApplianceModal({
 
     if (error) {
       console.error(
-        "Reset appliance selection error:",
+        "Reset electronics selection error:",
         error.message,
       );
 
       setCustomError(
-        "Unable to reset appliance selection.",
+        "Unable to reset electronics selection.",
       );
 
       return;
@@ -707,17 +714,17 @@ export default function ApplianceModal({
     // list is untouched, so there is nothing to move or
     // dismiss here.
 
-    logAppliance.selectionReset();
+    logElectronics.selectionReset();
   };
 
   // ============================================================
-  // SAVE APPLIANCE SELECTION
+  // SAVE ELECTRONICS SELECTION
   // ============================================================
 
   const handleSave = async () => {
     if (isLoadingCustoms) {
       setCustomError(
-        "Still loading your custom appliances. Please wait a moment and try again.",
+        "Still loading your custom electronics items. Please wait a moment and try again.",
       );
       return;
     }
@@ -752,8 +759,8 @@ export default function ApplianceModal({
     const customsForSave = [
       ...new Map(
         [
-          ...appliances,
-          ...selectedAppliances.filter(
+          ...electronics,
+          ...selectedElectronics.filter(
             (item) =>
               item.area === CUSTOM_AREA &&
               !dismissedCustomIds.includes(item.id),
@@ -778,22 +785,22 @@ export default function ApplianceModal({
 
     if (saveError) {
       console.error(
-        "Save appliance selection error:",
+        "Save electronics selection error:",
         saveError.message,
       );
 
       setCustomError(
-        "Unable to save appliance selection.",
+        "Unable to save electronics selection.",
       );
 
       return;
     }
 
-    const selectedItems = displayAppliances.filter(
+    const selectedItems = displayElectronics.filter(
       (item) => selected.includes(item.id),
     );
 
-    logAppliance.selectionSaved(selectedItems.length);
+    logElectronics.selectionSaved(selectedItems.length);
 
     onSave?.(selectedItems);
     onClose();
@@ -840,7 +847,7 @@ export default function ApplianceModal({
   };
 
   // ============================================================
-  // ADD CUSTOM APPLIANCE
+  // ADD CUSTOM ELECTRONICS
   // ============================================================
 
   const handleCustomAdd = async () => {
@@ -853,7 +860,7 @@ export default function ApplianceModal({
       )
     ) {
       setCustomError(
-        "Appliance name must be valid and readable.",
+        "Electronics item name must be valid and readable.",
       );
       return;
     }
@@ -869,7 +876,7 @@ export default function ApplianceModal({
 
     if (!interval) {
       setCustomError(
-        `Enter a valid wattage interval between 1W and ${BATTERY_MAX_APPLIANCE_W}W.`,
+        `Enter a valid wattage interval between 1W and ${BATTERY_MAX_ELECTRONICS_W}W.`,
       );
       return;
     }
@@ -878,7 +885,7 @@ export default function ApplianceModal({
 
     if (!user) {
       setCustomError(
-        "You must be signed in to add an appliance.",
+        "You must be signed in to add an electronics item.",
       );
       return;
     }
@@ -887,21 +894,21 @@ export default function ApplianceModal({
       data: duplicate,
       error: duplicateError,
     } = await supabase
-      .from("appliances")
+      .from("electronics")
       .select("app_id")
       .eq("user_id", user.id)
       .eq("type", "custom")
-      .ilike("appliance_name", name)
+      .ilike("electronics_name", name)
       .maybeSingle();
 
     if (duplicateError) {
       console.error(
-        "Duplicate appliance check error:",
+        "Duplicate electronics check error:",
         duplicateError.message,
       );
 
       setCustomError(
-        "Unable to check appliance name.",
+        "Unable to check electronics item name.",
       );
 
       return;
@@ -909,7 +916,7 @@ export default function ApplianceModal({
 
     if (duplicate) {
       setCustomError(
-        "This appliance already exists.",
+        "This electronics item already exists.",
       );
       return;
     }
@@ -921,7 +928,7 @@ export default function ApplianceModal({
     if (customPhotoLocal) {
       setPhotoBusy(true);
 
-      const upload = await uploadAppliancePhoto(
+      const upload = await uploadElectronicsPhoto(
         user.id,
         customPhotoLocal.uri,
         customPhotoLocal.mimeType,
@@ -945,10 +952,10 @@ export default function ApplianceModal({
     }
 
     const { data, error } = await supabase
-      .from("appliances")
+      .from("electronics")
       .insert({
         user_id: user.id,
-        appliance_name: name,
+        electronics_name: name,
         type: "custom",
         wattage_min: interval.min,
         wattage_max: interval.max,
@@ -959,26 +966,26 @@ export default function ApplianceModal({
         selection: true,
       })
       .select(
-        "app_id, appliance_name, wattage_min, wattage_max, image_url",
+        "app_id, electronics_name, wattage_min, wattage_max, image_url",
       )
       .single();
 
     if (error) {
       console.error(
-        "Custom appliance error:",
+        "Custom electronics error:",
         error.message,
       );
 
       setCustomError(
-        "Unable to add appliance. Please try again.",
+        "Unable to add electronics item. Please try again.",
       );
 
       return;
     }
 
-    const appliance: Appliance = {
+    const electronics: Electronics = {
       id: String(data.app_id),
-      name: String(data.appliance_name),
+      name: String(data.electronics_name),
       watts: formatCustomWatts(
         data.wattage_min,
         data.wattage_max,
@@ -990,17 +997,17 @@ export default function ApplianceModal({
           : imageUrl,
     };
 
-    onCustomAdd?.(appliance);
+    onCustomAdd?.(electronics);
 
-    logAppliance.added(name, appliance.watts);
+    logElectronics.added(name, electronics.watts);
 
-    setAppliances((current) => [
+    setElectronics((current) => [
       ...current,
-      appliance,
+      electronics,
     ]);
 
     setSelected((current) => [
-      ...new Set([...current, appliance.id]),
+      ...new Set([...current, electronics.id]),
     ]);
 
     setCustomName("");
@@ -1021,7 +1028,7 @@ export default function ApplianceModal({
   };
 
   // ============================================================
-  // UPDATE CUSTOM APPLIANCE
+  // UPDATE CUSTOM ELECTRONICS
   // ============================================================
 
   const handleCustomUpdate = async () => {
@@ -1036,7 +1043,7 @@ export default function ApplianceModal({
       )
     ) {
       setCustomError(
-        "Enter a valid appliance name.",
+        "Enter a valid electronics item name.",
       );
       return;
     }
@@ -1052,7 +1059,7 @@ export default function ApplianceModal({
 
     if (!interval) {
       setCustomError(
-        `Enter a valid wattage interval between 1W and ${BATTERY_MAX_APPLIANCE_W}W.`,
+        `Enter a valid wattage interval between 1W and ${BATTERY_MAX_ELECTRONICS_W}W.`,
       );
       return;
     }
@@ -1061,7 +1068,7 @@ export default function ApplianceModal({
 
     if (!user) {
       setCustomError(
-        "You must be signed in to update an appliance.",
+        "You must be signed in to update an electronics item.",
       );
       return;
     }
@@ -1070,22 +1077,22 @@ export default function ApplianceModal({
       data: duplicate,
       error: duplicateError,
     } = await supabase
-      .from("appliances")
+      .from("electronics")
       .select("app_id")
       .eq("user_id", user.id)
       .eq("type", "custom")
-      .ilike("appliance_name", name)
+      .ilike("electronics_name", name)
       .neq("app_id", editingCustom.id)
       .maybeSingle();
 
     if (duplicateError) {
       console.error(
-        "Duplicate appliance check error:",
+        "Duplicate electronics check error:",
         duplicateError.message,
       );
 
       setCustomError(
-        "Unable to check appliance name.",
+        "Unable to check electronics item name.",
       );
 
       return;
@@ -1093,7 +1100,7 @@ export default function ApplianceModal({
 
     if (duplicate) {
       setCustomError(
-        "This appliance already exists.",
+        "This electronics item already exists.",
       );
       return;
     }
@@ -1107,7 +1114,7 @@ export default function ApplianceModal({
     if (customPhotoLocal) {
       setPhotoBusy(true);
 
-      const upload = await uploadAppliancePhoto(
+      const upload = await uploadElectronicsPhoto(
         user.id,
         customPhotoLocal.uri,
         customPhotoLocal.mimeType,
@@ -1131,9 +1138,9 @@ export default function ApplianceModal({
     }
 
     const { data, error } = await supabase
-      .from("appliances")
+      .from("electronics")
       .update({
-        appliance_name: name,
+        electronics_name: name,
         wattage_min: interval.min,
         wattage_max: interval.max,
         image_url: finalImageUrl,
@@ -1142,26 +1149,26 @@ export default function ApplianceModal({
       .eq("user_id", user.id)
       .eq("type", "custom")
       .select(
-        "app_id, appliance_name, wattage_min, wattage_max, image_url",
+        "app_id, electronics_name, wattage_min, wattage_max, image_url",
       )
       .single();
 
     if (error) {
       console.error(
-        "Custom appliance update error:",
+        "Custom electronics update error:",
         error.message,
       );
 
       setCustomError(
-        "Unable to update appliance. Please try again.",
+        "Unable to update electronics item. Please try again.",
       );
 
       return;
     }
 
-    const updated: Appliance = {
+    const updated: Electronics = {
       id: String(data.app_id),
-      name: String(data.appliance_name),
+      name: String(data.electronics_name),
       watts: formatCustomWatts(
         data.wattage_min,
         data.wattage_max,
@@ -1180,12 +1187,12 @@ export default function ApplianceModal({
       customPhotoOriginalUrl &&
       customPhotoOriginalUrl !== finalImageUrl
     ) {
-      void deleteAppliancePhotoByUrl(
+      void deleteElectronicsPhotoByUrl(
         customPhotoOriginalUrl,
       ).catch(() => {});
     }
 
-    setAppliances((current) =>
+    setElectronics((current) =>
       current.map((item) =>
         item.id === updated.id
           ? updated
@@ -1194,7 +1201,7 @@ export default function ApplianceModal({
     );
 
     // Edit works from either layer; keep both lists in sync.
-    setArchivedAppliances((current) =>
+    setArchivedElectronics((current) =>
       current.map((item) =>
         item.id === updated.id
           ? updated
@@ -1204,7 +1211,7 @@ export default function ApplianceModal({
 
     onCustomUpdate?.(updated);
 
-    logAppliance.updated(name);
+    logElectronics.updated(name);
 
     setEditingCustom(null);
     setCustomName("");
@@ -1225,7 +1232,7 @@ export default function ApplianceModal({
   };
 
   // ============================================================
-  // DELETE CUSTOM APPLIANCE
+  // DELETE CUSTOM ELECTRONICS
   // ============================================================
 
   const handleCustomDelete = async (
@@ -1235,13 +1242,13 @@ export default function ApplianceModal({
 
     if (!user) {
       setCustomError(
-        "You must be signed in to delete an appliance.",
+        "You must be signed in to delete an electronics item.",
       );
       return;
     }
 
     const { error } = await supabase
-      .from("appliances")
+      .from("electronics")
       .delete()
       .eq("app_id", id)
       .eq("user_id", user.id)
@@ -1249,40 +1256,40 @@ export default function ApplianceModal({
 
     if (error) {
       console.error(
-        "Custom appliance delete error:",
+        "Custom electronics delete error:",
         error.message,
       );
 
       setCustomError(
-        "Unable to delete appliance. Please try again.",
+        "Unable to delete electronics item. Please try again.",
       );
 
       return;
     }
 
     const removed =
-      appliances.find((item) => item.id === id) ??
-      archivedAppliances.find((item) => item.id === id);
+      electronics.find((item) => item.id === id) ??
+      archivedElectronics.find((item) => item.id === id);
 
     // Deleting the row orphans its photo: remove the stored
     // object best-effort. Never fails the delete itself.
     const removedImageUrl = removed?.imageUrl ?? null;
 
     if (removedImageUrl) {
-      void deleteAppliancePhotoByUrl(
+      void deleteElectronicsPhotoByUrl(
         removedImageUrl,
       ).catch(() => {});
     }
 
-    const wasArchived = archivedAppliances.some(
+    const wasArchived = archivedElectronics.some(
       (item) => item.id === id,
     );
 
-    setAppliances((current) =>
+    setElectronics((current) =>
       current.filter((item) => item.id !== id),
     );
 
-    setArchivedAppliances((current) =>
+    setArchivedElectronics((current) =>
       current.filter((item) => item.id !== id),
     );
 
@@ -1302,15 +1309,15 @@ export default function ApplianceModal({
         : [...current, id],
     );
 
-    logAppliance.removed(
-      removed?.name ?? "Custom appliance",
+    logElectronics.removed(
+      removed?.name ?? "Custom electronics item",
     );
 
     onCustomDelete?.(id);
   };
 
   // ============================================================
-  // ARCHIVE CUSTOM APPLIANCE (Layer 1 -> Layer 2)
+  // ARCHIVE CUSTOM ELECTRONICS (Layer 1 -> Layer 2)
   // ============================================================
   //
   // v7 manual archive: archive_appliance() sets
@@ -1326,18 +1333,18 @@ export default function ApplianceModal({
 
     if (!user) {
       setCustomError(
-        "You must be signed in to archive an appliance.",
+        "You must be signed in to archive an electronics item.",
       );
       return;
     }
 
     // The row may be rendered from the prop fallback merge
-    // (DB fetch pending) rather than `appliances` state, so look
+    // (DB fetch pending) rather than `electronics` state, so look
     // in both places. Otherwise archiving a prop-fallback row
     // would vanish from Layer 1 without ever reaching Layer 2.
     const target =
-      appliances.find((item) => item.id === id) ??
-      selectedAppliances.find(
+      electronics.find((item) => item.id === id) ??
+      selectedElectronics.find(
         (item) =>
           item.id === id && item.area === CUSTOM_AREA,
       ) ??
@@ -1352,7 +1359,7 @@ export default function ApplianceModal({
 
     if (error) {
       console.error(
-        "Custom appliance archive error:",
+        "Custom electronics archive error:",
         error.message,
       );
 
@@ -1360,7 +1367,7 @@ export default function ApplianceModal({
         error.message.includes("Appliance not found")
       ) {
         setCustomError(
-          "Appliance not found. It may have been deleted.",
+          "Electronics item not found. It may have been deleted.",
         );
       } else if (
         error.message.includes("archive_appliance")
@@ -1370,7 +1377,7 @@ export default function ApplianceModal({
         );
       } else {
         setCustomError(
-          "Unable to archive appliance. Please try again.",
+          "Unable to archive electronics item. Please try again.",
         );
       }
 
@@ -1378,16 +1385,16 @@ export default function ApplianceModal({
     }
 
     const name =
-      target?.name ?? "Custom appliance";
+      target?.name ?? "Custom electronics item";
 
-    const moved: Appliance | null = target ?? null;
+    const moved: Electronics | null = target ?? null;
 
-    setAppliances((current) =>
+    setElectronics((current) =>
       current.filter((item) => item.id !== id),
     );
 
     if (moved) {
-      setArchivedAppliances((current) =>
+      setArchivedElectronics((current) =>
         current.some((item) => item.id === moved.id)
           ? current
           : [...current, moved].sort((a, b) =>
@@ -1410,7 +1417,7 @@ export default function ApplianceModal({
       (current) => current + 1,
     );
 
-    logAppliance.archived(name);
+    logElectronics.archived(name);
 
     setSuccessMessage(
       `${name} archived.`,
@@ -1422,7 +1429,7 @@ export default function ApplianceModal({
   };
 
   // ============================================================
-  // UNARCHIVE CUSTOM APPLIANCE (Layer 2 -> Layer 1, unticked)
+  // UNARCHIVE CUSTOM ELECTRONICS (Layer 2 -> Layer 1, unticked)
   // ============================================================
   //
   // v7 manual archive: unarchive_appliance() restores
@@ -1438,12 +1445,12 @@ export default function ApplianceModal({
 
     if (!user) {
       setCustomError(
-        "You must be signed in to unarchive an appliance.",
+        "You must be signed in to unarchive an electronics item.",
       );
       return;
     }
 
-    const target = archivedAppliances.find(
+    const target = archivedElectronics.find(
       (item) => item.id === id,
     );
 
@@ -1456,7 +1463,7 @@ export default function ApplianceModal({
 
     if (error) {
       console.error(
-        "Custom appliance unarchive error:",
+        "Custom electronics unarchive error:",
         error.message,
       );
 
@@ -1464,7 +1471,7 @@ export default function ApplianceModal({
         error.message.includes("Appliance not found")
       ) {
         setCustomError(
-          "Appliance not found. It may have been deleted.",
+          "Electronics item not found. It may have been deleted.",
         );
       } else if (
         error.message.includes("unarchive_appliance")
@@ -1474,7 +1481,7 @@ export default function ApplianceModal({
         );
       } else {
         setCustomError(
-          "Unable to unarchive appliance. Please try again.",
+          "Unable to unarchive electronics item. Please try again.",
         );
       }
 
@@ -1482,9 +1489,9 @@ export default function ApplianceModal({
     }
 
     const name =
-      target?.name ?? "Custom appliance";
+      target?.name ?? "Custom electronics item";
 
-    setArchivedAppliances((current) =>
+    setArchivedElectronics((current) =>
       current.filter((item) => item.id !== id),
     );
 
@@ -1493,7 +1500,7 @@ export default function ApplianceModal({
     );
 
     if (target) {
-      setAppliances((current) =>
+      setElectronics((current) =>
         current.some((item) => item.id === target.id)
           ? current
           : [...current, target].sort((a, b) =>
@@ -1511,7 +1518,7 @@ export default function ApplianceModal({
       current.filter((item) => item !== id),
     );
 
-    logAppliance.unarchived(name);
+    logElectronics.unarchived(name);
 
     setSuccessMessage(
       `${name} restored.`,
@@ -1527,23 +1534,23 @@ export default function ApplianceModal({
   // ============================================================
   //
   // Opens the shared add/edit dialog prefilled with the custom
-  // appliance values, using the exact same layout as adding.
+  // electronics values, using the exact same layout as adding.
   // ============================================================
 
   const openCustomEditor = (
-    appliance: Appliance,
+    electronics: Electronics,
   ) => {
-    setEditingCustom(appliance);
-    setCustomName(appliance.name);
+    setEditingCustom(electronics);
+    setCustomName(electronics.name);
 
     setCustomWatts(
-      appliance.watts.replace(/W$/, ""),
+      electronics.watts.replace(/W$/, ""),
     );
 
     setCustomPhotoLocal(null);
-    setCustomPhotoUrl(appliance.imageUrl ?? null);
+    setCustomPhotoUrl(electronics.imageUrl ?? null);
     setCustomPhotoOriginalUrl(
-      appliance.imageUrl ?? null,
+      electronics.imageUrl ?? null,
     );
 
     setCustomError("");
@@ -1614,7 +1621,7 @@ export default function ApplianceModal({
   // Catalog always renders from GIVEN_CATALOG in code.
   // DB only holds user picks: given rows (catalog_key) for
   // selection state, custom rows for user-created items.
-  // `appliances` state holds DB customs only; prop customs are
+  // `electronics` state holds DB customs only; prop customs are
   // merged in (minus locally dismissed) so a selected custom
   // stays displayed with the catalog boxes even while the fetch
   // is pending, fails, or filtered the row out.
@@ -1622,17 +1629,17 @@ export default function ApplianceModal({
 
   const propCustomFallback = useMemo(
     () =>
-      selectedAppliances.filter(
+      selectedElectronics.filter(
         (item) =>
           item.area === CUSTOM_AREA &&
           !dismissedCustomIds.includes(item.id),
       ),
-    [selectedAppliances, dismissedCustomIds],
+    [selectedElectronics, dismissedCustomIds],
   );
 
   const mergedCustoms = useMemo(() => {
-    const byId = new Map<string, Appliance>(
-      appliances.map((item) => [item.id, item]),
+    const byId = new Map<string, Electronics>(
+      electronics.map((item) => [item.id, item]),
     );
 
     for (const item of propCustomFallback) {
@@ -1642,21 +1649,21 @@ export default function ApplianceModal({
     }
 
     return [...byId.values()];
-  }, [appliances, propCustomFallback]);
+  }, [electronics, propCustomFallback]);
 
   // Derived each render so React Compiler can memoize it
   // (react-hooks/preserve-manual-memoization). Catalog is
   // module-stable and small; no manual useMemo needed.
-  const displayAppliances: Appliance[] = [
-    ...GIVEN_CATALOG.map(catalogToAppliance),
+  const displayElectronics: Electronics[] = [
+    ...GIVEN_CATALOG.map(catalogToElectronics),
     ...mergedCustoms,
   ];
 
-  const filteredAppliances =
-    displayAppliances.filter(
-      (appliance) =>
+  const filteredElectronics =
+    displayElectronics.filter(
+      (electronics) =>
         !normalizedSearch ||
-        appliance.name
+        electronics.name
           .toLowerCase()
           .includes(normalizedSearch),
     );
@@ -1664,7 +1671,7 @@ export default function ApplianceModal({
   // Customs visible in the section. Loading/empty states own
   // this list only when not searching; search results keep the
   // previous hide-when-no-match behavior.
-  const customAppliances = filteredAppliances.filter(
+  const customElectronics = filteredElectronics.filter(
     (item) => item.area === CUSTOM_AREA,
   );
 
@@ -1678,11 +1685,11 @@ export default function ApplianceModal({
     .trim()
     .toLowerCase();
 
-  const filteredArchivedAppliances =
-    archivedAppliances.filter(
-      (appliance) =>
+  const filteredArchivedElectronics =
+    archivedElectronics.filter(
+      (electronics) =>
         !normalizedArchiveSearch ||
-        appliance.name
+        electronics.name
           .toLowerCase()
           .includes(normalizedArchiveSearch),
     );
@@ -1696,6 +1703,7 @@ export default function ApplianceModal({
     setOpenMenuId(null);
     setLayer(2);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
+    scrollToTop.reset();
     // Always refetch so Layer 2 reflects the table, not just
     // the optimistic Layer 1 state.
     void loadArchived();
@@ -1706,6 +1714,7 @@ export default function ApplianceModal({
     setOpenMenuId(null);
     setLayer(1);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
+    scrollToTop.reset();
   };
 
   // ============================================================
@@ -1725,7 +1734,7 @@ export default function ApplianceModal({
           pressed && styles.pressed,
         ]}
         accessibilityRole="button"
-        accessibilityLabel="Add custom appliance"
+        accessibilityLabel="Add custom electronics item"
       >
         <Ionicons
           name="add-circle-outline"
@@ -1750,7 +1759,7 @@ export default function ApplianceModal({
           pressed && styles.pressed,
         ]}
         accessibilityRole="button"
-        accessibilityLabel={`Archived appliances, ${archivedCount} archived`}
+        accessibilityLabel={`Archived electronics, ${archivedCount} archived`}
       >
         <Ionicons
           name="archive-outline"
@@ -1777,13 +1786,13 @@ export default function ApplianceModal({
   // No filter: selects every catalog + custom box. Filtering:
   // adds only visible boxes, unioned with existing picks so
   // pre-search selections are never dropped. Local-only like
-  // toggleAppliance — persisted on Save.
+  // toggleElectronics — persisted on Save.
   // ============================================================
 
   const handleSelectAll = () => {
     const target = normalizedSearch
-      ? filteredAppliances
-      : displayAppliances;
+      ? filteredElectronics
+      : displayElectronics;
 
     if (target.length === 0) {
       return;
@@ -1815,8 +1824,8 @@ export default function ApplianceModal({
               style={styles.title}
             >
               {layer === 2
-                ? "Archived Appliances"
-                : "Select Appliances"}
+                ? "Archived Electronics"
+                : "Select Electronics"}
             </AppText>
 
             <Pressable
@@ -1825,8 +1834,8 @@ export default function ApplianceModal({
               accessibilityRole="button"
               accessibilityLabel={
                 layer === 2
-                  ? "Close Archived Appliances"
-                  : "Close Select Appliances"
+                  ? "Close Archived Electronics"
+                  : "Close Select Electronics"
               }
             >
               <Ionicons
@@ -1861,14 +1870,17 @@ export default function ApplianceModal({
           ) : null}
 
           {/* Content */}
-          <ScrollView
-            ref={scrollRef}
-            style={styles.content}
-            contentContainerStyle={
-              styles.contentContainer
-            }
-            showsVerticalScrollIndicator={false}
-          >
+          <View style={styles.contentShell}>
+            <ScrollView
+              ref={scrollRef}
+              style={styles.content}
+              contentContainerStyle={
+                styles.contentContainer
+              }
+              showsVerticalScrollIndicator={false}
+              onScroll={scrollToTop.reportScroll}
+              scrollEventThrottle={16}
+            >
             {/* Battery Advisory (Layer 1 only) */}
             {layer === 1 ? (
               <View style={styles.advisory}>
@@ -1894,7 +1906,7 @@ export default function ApplianceModal({
                         styles.advisoryDescription
                       }
                     >
-                      Select the appliances you want to use
+                      Select the electronics you want to use
                       and keep them within the available
                       energy capacity.
                     </AppText>
@@ -1910,10 +1922,10 @@ export default function ApplianceModal({
                   <SearchBox
                     value={searchText}
                     onChangeText={setSearchText}
-                    placeholder="Search appliances..."
+                    placeholder="Search electronics..."
                     autoCapitalize="none"
                     autoCorrect={false}
-                    accessibilityLabel="Search appliances"
+                    accessibilityLabel="Search electronics"
                   />
                 </View>
               </View>
@@ -1923,17 +1935,17 @@ export default function ApplianceModal({
                 below its own search box. */}
             {layer === 1 ? renderActionRow() : null}
 
-            {/* Custom Appliances Layer 1 only (header always shows) */}
+            {/* Custom Electronics Layer 1 only (header always shows) */}
             {layer === 1 &&
               (showCustomStates ||
-                customAppliances.length > 0) && (
+                customElectronics.length > 0) && (
                 <View style={styles.section}>
                   <View style={styles.sectionHeader}>
                     <AppText
                       variant="body"
                       style={styles.sectionTitle}
                     >
-                      Custom Appliances
+                      Custom Electronics
                     </AppText>
 
                     <View
@@ -1950,32 +1962,32 @@ export default function ApplianceModal({
                   {isLoadingCustoms &&
                   showCustomStates ? (
                     <EmptyState
-                      title="Loading Custom Appliances"
-                      description="Fetching your custom appliances…"
+                      title="Loading Custom Electronics"
+                      description="Fetching your custom electronics…"
                       icon="sync-outline"
                       style={styles.customState}
                     />
-                  ) : customAppliances.length > 0 ? (
+                  ) : customElectronics.length > 0 ? (
                     <View style={styles.grid}>
-                      {customAppliances.map(
-                        (appliance) => {
+                      {customElectronics.map(
+                        (electronics) => {
                           const isSelected =
                             selected.includes(
-                              appliance.id,
+                              electronics.id,
                             );
 
                           return (
-                            <ApplianceBox
-                              key={appliance.id}
-                              name={appliance.name}
-                              wattage={appliance.watts}
+                            <ElectronicsBox
+                              key={electronics.id}
+                              name={electronics.name}
+                              wattage={electronics.watts}
                               color={
                                 colors.primary
                               }
                               imageSource={
-                                appliance.imageUrl
+                                electronics.imageUrl
                                   ? {
-                                      uri: appliance.imageUrl,
+                                      uri: electronics.imageUrl,
                                     }
                                   : undefined
                               }
@@ -1983,31 +1995,31 @@ export default function ApplianceModal({
                               isCustom
                               menuOpen={
                                 openMenuId ===
-                                appliance.id
+                                electronics.id
                               }
                               onMenuToggle={() =>
                                 handleBoxMenuToggle(
-                                  appliance.id,
+                                  electronics.id,
                                 )
                               }
                               onPress={() =>
-                                toggleAppliance(
-                                  appliance.id,
+                                toggleElectronics(
+                                  electronics.id,
                                 )
                               }
                               onEdit={() =>
                                 openCustomEditor(
-                                  appliance,
+                                  electronics,
                                 )
                               }
                               onDelete={() =>
                                 handleCustomDelete(
-                                  appliance.id,
+                                  electronics.id,
                                 )
                               }
                               onArchive={() =>
                                 handleCustomArchive(
-                                  appliance.id,
+                                  electronics.id,
                                 )
                               }
                             />
@@ -2017,8 +2029,8 @@ export default function ApplianceModal({
                     </View>
                   ) : showCustomStates ? (
                     <EmptyState
-                      title="No Custom Appliances"
-                      description="You haven't added any yet. Tap Add Custom Appliance above to create one."
+                      title="No Custom Electronics"
+                      description="You haven't added any yet. Tap Add Custom above to create one."
                       icon="cube-outline"
                       style={styles.customState}
                     />
@@ -2030,7 +2042,7 @@ export default function ApplianceModal({
             {layer === 1 &&
               sections.map((section) => {
                 const items =
-                  filteredAppliances.filter(
+                  filteredElectronics.filter(
                     (item) =>
                       item.area === section,
                   );
@@ -2064,29 +2076,29 @@ export default function ApplianceModal({
                     </View>
 
                     <View style={styles.grid}>
-                      {items.map((appliance) => {
+                      {items.map((electronics) => {
                         const isSelected =
                           selected.includes(
-                            appliance.id,
+                            electronics.id,
                           );
 
                         return (
-                          <ApplianceBox
-                            key={appliance.id}
-                            name={appliance.name}
-                            wattage={appliance.watts}
+                          <ElectronicsBox
+                            key={electronics.id}
+                            name={electronics.name}
+                            wattage={electronics.watts}
                             color={areaColor(
-                              appliance.area,
+                              electronics.area,
                             )}
                             imageSource={
                               CATALOG_IMAGES[
-                                appliance.id
+                                electronics.id
                               ]
                             }
                             selected={isSelected}
                             onPress={() =>
-                              toggleAppliance(
-                                appliance.id,
+                              toggleElectronics(
+                                electronics.id,
                               )
                             }
                           />
@@ -2100,7 +2112,7 @@ export default function ApplianceModal({
             {/* No Search Results (Layer 1 only) */}
             {layer === 1 &&
               normalizedSearch.length > 0 &&
-              filteredAppliances.length === 0 && (
+              filteredElectronics.length === 0 && (
                 <View style={styles.noResults}>
                   <Ionicons
                     name="search-outline"
@@ -2114,7 +2126,7 @@ export default function ApplianceModal({
                     variant="caption"
                     style={styles.noResultsText}
                   >
-                    {`No appliances found for "${searchText.trim()}"`}
+                    {`No electronics found for "${searchText.trim()}"`}
                   </AppText>
                 </View>
               )}
@@ -2136,7 +2148,7 @@ export default function ApplianceModal({
                         variant="body"
                         style={styles.advisoryTitle}
                       >
-                        Archived Appliances
+                        Archived Electronics
                       </AppText>
 
                       <AppText
@@ -2164,7 +2176,7 @@ export default function ApplianceModal({
                       placeholder="Search archived..."
                       autoCapitalize="none"
                       autoCorrect={false}
-                      accessibilityLabel="Search archived appliances"
+                      accessibilityLabel="Search archived electronics"
                     />
                   </View>
                 </View>
@@ -2176,7 +2188,7 @@ export default function ApplianceModal({
                       variant="body"
                       style={styles.sectionTitle}
                     >
-                      Archived Appliances
+                      Archived Electronics
                     </AppText>
 
                     <View
@@ -2193,25 +2205,25 @@ export default function ApplianceModal({
                   {isLoadingCustoms &&
                   showArchivedStates ? (
                     <EmptyState
-                      title="Loading Archived Appliances"
-                      description="Fetching your archived appliances…"
+                      title="Loading Archived Electronics"
+                      description="Fetching your archived electronics…"
                       icon="sync-outline"
                       style={styles.customState}
                     />
-                  ) : filteredArchivedAppliances.length >
+                  ) : filteredArchivedElectronics.length >
                     0 ? (
                     <View style={styles.grid}>
-                      {filteredArchivedAppliances.map(
-                        (appliance) => (
-                          <ApplianceBox
-                            key={appliance.id}
-                            name={appliance.name}
-                            wattage={appliance.watts}
+                      {filteredArchivedElectronics.map(
+                        (electronics) => (
+                          <ElectronicsBox
+                            key={electronics.id}
+                            name={electronics.name}
+                            wattage={electronics.watts}
                             color={colors.primary}
                             imageSource={
-                              appliance.imageUrl
+                              electronics.imageUrl
                                 ? {
-                                    uri: appliance.imageUrl,
+                                    uri: electronics.imageUrl,
                                   }
                                 : undefined
                             }
@@ -2220,26 +2232,26 @@ export default function ApplianceModal({
                             archiveVariant="unarchive"
                             menuOpen={
                               openMenuId ===
-                              appliance.id
+                              electronics.id
                             }
                             onMenuToggle={() =>
                               handleBoxMenuToggle(
-                                appliance.id,
+                                electronics.id,
                               )
                             }
                             onEdit={() =>
                               openCustomEditor(
-                                appliance,
+                                electronics,
                               )
                             }
                             onDelete={() =>
                               handleCustomDelete(
-                                appliance.id,
+                                electronics.id,
                               )
                             }
                             onArchive={() =>
                               handleCustomUnarchive(
-                                appliance.id,
+                                electronics.id,
                               )
                             }
                           />
@@ -2248,7 +2260,7 @@ export default function ApplianceModal({
                     </View>
                   ) : showArchivedStates ? (
                     <EmptyState
-                      title="No Archived Appliances"
+                      title="No Archived Electronics"
                       description="Nothing archived yet. Archived customs will appear here."
                       icon="archive-outline"
                       style={styles.customState}
@@ -2258,7 +2270,7 @@ export default function ApplianceModal({
 
                 {/* No Archived Search Results */}
                 {normalizedArchiveSearch.length > 0 &&
-                  filteredArchivedAppliances.length ===
+                  filteredArchivedElectronics.length ===
                     0 && (
                     <View style={styles.noResults}>
                       <Ionicons
@@ -2273,13 +2285,21 @@ export default function ApplianceModal({
                         variant="caption"
                         style={styles.noResultsText}
                       >
-                        {`No archived appliances found for "${archiveSearchText.trim()}"`}
+                        {`No archived electronics found for "${archiveSearchText.trim()}"`}
                       </AppText>
                     </View>
                   )}
               </>
             ) : null}
-          </ScrollView>
+            </ScrollView>
+
+            <ScrollToTopButton
+              enabled={scrollToTop.enabled}
+              onPress={scrollToTop.scrollToTop}
+              rightOffset={Spacing.lg}
+              bottomOffset={Spacing.md}
+            />
+          </View>
 
           {/* Footer: Layer 1 = selection actions, Layer 2 = viewer count + back */}
           {layer === 2 ? (
@@ -2288,7 +2308,7 @@ export default function ApplianceModal({
                 <View
                   style={styles.selectedGroup}
                   accessibilityRole="text"
-                  accessibilityLabel={`${archivedCount} appliances archived`}
+                  accessibilityLabel={`${archivedCount} electronics archived`}
                 >
                   <Ionicons
                     name="archive-outline"
@@ -2300,7 +2320,7 @@ export default function ApplianceModal({
                     variant="caption"
                     style={styles.selectedText}
                   >
-                    {archivedCount} appliance
+                    {archivedCount} electronics
                     {archivedCount !== 1 ? "s" : ""}{" "}
                     archived
                   </AppText>
@@ -2315,7 +2335,7 @@ export default function ApplianceModal({
                     pressed && styles.buttonPressed,
                   ]}
                   accessibilityRole="button"
-                  accessibilityLabel="Back to appliances"
+                  accessibilityLabel="Back to electronics"
                 >
                   <AppText
                     variant="caption"
@@ -2342,7 +2362,7 @@ export default function ApplianceModal({
                   variant="caption"
                   style={styles.selectedText}
                 >
-                  {selected.length} appliance
+                  {selected.length} electronics
                   {selected.length !== 1
                     ? "s"
                     : ""}{" "}
@@ -2353,7 +2373,7 @@ export default function ApplianceModal({
               <View
                 style={styles.selectedGroup}
                 accessibilityRole="text"
-                accessibilityLabel={`${archivedCount} appliances archived`}
+                accessibilityLabel={`${archivedCount} electronics archived`}
               >
                 <Ionicons
                   name="archive-outline"
@@ -2365,7 +2385,7 @@ export default function ApplianceModal({
                   variant="caption"
                   style={styles.selectedText}
                 >
-                  {archivedCount} appliance
+                  {archivedCount} electronics
                   {archivedCount !== 1 ? "s" : ""}{" "}
                   archived
                 </AppText>
@@ -2380,7 +2400,7 @@ export default function ApplianceModal({
                   pressed && styles.buttonPressed,
                 ]}
                 accessibilityRole="button"
-                accessibilityLabel="Select all appliances"
+                accessibilityLabel="Select all electronics"
               >
                 <AppText
                   variant="caption"
@@ -2417,10 +2437,10 @@ export default function ApplianceModal({
                 accessibilityRole="button"
                 accessibilityLabel={
                   isSaving
-                    ? "Saving appliance selection"
+                    ? "Saving electronics selection"
                     : isLoadingCustoms
-                      ? "Loading custom appliances"
-                      : "Save appliance selection"
+                      ? "Loading custom electronics"
+                      : "Save electronics selection"
                 }
               >
                 <AppText
@@ -2441,7 +2461,7 @@ export default function ApplianceModal({
           )}
         </View>
 
-        <CustomApplianceModal
+        <CustomElectronicsModal
           visible={addModalVisible}
           name={customName}
           watts={customWatts}
@@ -2469,7 +2489,7 @@ export default function ApplianceModal({
           }
         />
 
-        <CustomApplianceModal
+        <CustomElectronicsModal
           visible={editModalVisible}
           mode="edit"
           name={customName}
@@ -2556,6 +2576,10 @@ const getStyles = (colors: AppColors) =>
     backgroundColor: colors.background,
   },
 
+  contentShell: {
+    flex: 1,
+  },
+
   contentContainer: {
     padding: Spacing.lg,
     paddingBottom: Spacing.xl,
@@ -2623,12 +2647,14 @@ const getStyles = (colors: AppColors) =>
     marginTop: 2,
   },
 
-  // Loading/empty state card for the custom section. Matches
-  // the custom appliance box outer height (boxCustom 234) so
-  // both share one silhouette, plus breathing room before the
-  // next section header (stacks with the section margin).
+  // Loading/empty state card for the custom section only. The
+  // fixed height overrides EmptyState's base 90% height so the
+  // card cannot stretch during loading. It matches the custom
+  // box silhouette (234) plus breathing room before the next
+  // section header (stacks with the section margin). Do not use
+  // this style for the electronics card grid.
   customState: {
-    minHeight: 234,
+    height: 234,
     marginBottom: Spacing.md,
   },
 
@@ -2670,7 +2696,7 @@ const getStyles = (colors: AppColors) =>
     fontSize: 14,
   },
 
-  grid: applianceCardGrid,
+  grid: electronicsCardGrid,
 
   searchRow: {
     flexDirection: "row",

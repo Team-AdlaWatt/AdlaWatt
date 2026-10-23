@@ -1,13 +1,13 @@
-# Appliance Recommendation Engine Design
+# Electronics Recommendation Engine Design
 
 ## Overview
 
-The appliance recommendation engine is a **pure calculation module** with no network calls and no React Native imports, so its logic can be verified anywhere and unit-tested in isolation. It lives in `src/services/recommendation.ts` and answers one question per appliance: *should the user run this appliance off the battery right now?*
+The electronics recommendation engine is a **pure calculation module** with no network calls and no React Native imports, so its logic can be verified anywhere and unit-tested in isolation. It lives in `src/services/recommendation.ts` and answers one question per electronics item: *should the user run this electronics item off the battery right now?*
 
 It consumes two things:
 
 - A **live battery reading** (SoC, terminal voltage, remaining energy, depth-of-discharge guard).
-- A **wattage string** per appliance (e.g. `"35-75W"`, `"50W"`, `"15-20"`).
+- A **wattage string** per electronics item (e.g. `"35-75W"`, `"50W"`, `"15-20"`).
 
 It produces a **verdict** (`recommended`, `care`, `notRecommended`), a projected **runtime range**, the per-hour **budget share** of usable energy, a charge-scaled **peak wattage cap**, a **projected voltage** after the estimated draw drop, and a human-readable **reason**. The UI exposes **three toggle segments** that mirror the verdicts so the user is never overloaded:
 
@@ -24,7 +24,7 @@ The engine performs the full analysis pipeline:
 3. Charge-scaled peak wattage cap (SoC-backed).
 4. Voltage headroom projection (estimated draw drop vs `UNSAFE_VOLTAGE`).
 5. Budget share (mid draw vs usable energy per hour).
-6. Per-appliance wattage resolution and runtime estimate.
+6. Per-electronics-item wattage resolution and runtime estimate.
 7. Recommendation verdict and reason.
 8. Combined load-stack checks (reserved for a future catalog screen).
 
@@ -71,8 +71,8 @@ The reserve floor is what separates "can be spent" from "cannot be spent." Remai
 | `UNSAFE_VOLTAGE`               | 10.6     | Voltage at/below which everything is blocked        |
 | `MAX_SAFE_LOAD_W`              | 1000     | Inverter-safe combined-load limit at 100% charge    |
 | `ALL_DAY_HOURS_LIMIT`          | 72       | Round-trip shown as "All day"                       |
-| `BUDGET_RECOMMENDED_MAX_RATIO` | 0.10     | Budget share at/below which an appliance is `recommended` |
-| `BUDGET_CARE_MAX_RATIO`        | 0.25     | Budget share above which an appliance is `notRecommended`; 0.10–0.25 → `care` |
+| `BUDGET_RECOMMENDED_MAX_RATIO` | 0.10     | Budget share at/below which an electronics item is `recommended` |
+| `BUDGET_CARE_MAX_RATIO`        | 0.25     | Budget share above which an electronics item is `notRecommended`; 0.10–0.25 → `care` |
 | `VOLTAGE_DROP_STEP_WATTS`      | 50       | Load increment for the voltage-drop model          |
 | `VOLTAGE_DROP_STEP_VOLTS`      | 0.1      | Voltage dropped per `VOLTAGE_DROP_STEP_WATTS` of load |
 | `RUNTIME_CARE_MIN_HOURS`       | 0.1667   | Display only: runtime below this renders "<10 min"  |
@@ -85,9 +85,9 @@ Given a live `BatteryStateInput`, the engine derives a tier that every verdict d
 
 | Tier      | Meaning                                                              | Entry condition                                                                 |
 |-----------|----------------------------------------------------------------------|----------------------------------------------------------------------------------|
-| Safe      | Normal operation; all appliances can be evaluated                     | SoC ≥ 21% **and** remainingWh > 151.2 Wh **and** voltage > 10.65 V **and** no unsafe signal |
+| Safe      | Normal operation; all electronics can be evaluated                     | SoC ≥ 21% **and** remainingWh > 151.2 Wh **and** voltage > 10.65 V **and** no unsafe signal |
 | Caution   | At the recommended cutoff boundary; light loads only                 | Any of: SoC == 20, remainingWh == 151.2, or voltage ≤ 10.65 V (and no unsafe signal) |
-| Unsafe    | Critical signal present; block every appliance                       | DoD unsafe, or SoC < 20, or remainingWh < 151.2 Wh, or voltage ≤ 10.6 V             |
+| Unsafe    | Critical signal present; block every electronics item                       | DoD unsafe, or SoC < 20, or remainingWh < 151.2 Wh, or voltage ≤ 10.6 V             |
 
 Rules:
 
@@ -118,7 +118,7 @@ usableWh = max(remainingWh − 151.2, 0)
 
 ## Wattage Resolution
 
-Wattage arrives as a free-form string. The engine extracts **every number** in the string and describes the appliance with a min/mid/max range:
+Wattage arrives as a free-form string. The engine extracts **every number** in the string and describes the electronics item with a min/mid/max range:
 
 | Input string | min | mid | max | Note                              |
 |--------------|-----|-----|-----|-----------------------------------|
@@ -134,7 +134,7 @@ mid = min === max ? min : round((min + max) / 2)
 ```
 
 - Any string without digits, or where min < 1, max < 1, or max < min, resolves to `null`.
-- `null` watt range is treated as **invalid wattage** and blocks the appliance.
+- `null` watt range is treated as **invalid wattage** and blocks the electronics item.
 
 ---
 
@@ -172,7 +172,7 @@ Three derived numbers gate the verdict before any runtime label matters:
 
 ### Budget share (per-hour draw)
 
-The **drain ratio** is the fraction of the *usable* energy the appliance spends in one hour:
+The **drain ratio** is the fraction of the *usable* energy the electronics item spends in one hour:
 
 ```
 drainRatio = mid_wattage / usable_Wh
@@ -205,7 +205,7 @@ estimatedVoltageDrop = (max_wattage / 50) × 0.1   // 0.1 V per 50 W
 projectedVoltage     = current_voltage − estimatedVoltageDrop
 ```
 
-A `projectedVoltage` at or below `UNSAFE_VOLTAGE` (10.6 V) blocks the appliance even if the SoC and budget look fine. The estimate uses the **max** wattage — the worst case when the appliance surges.
+A `projectedVoltage` at or below `UNSAFE_VOLTAGE` (10.6 V) blocks the electronics item even if the SoC and budget look fine. The estimate uses the **max** wattage — the worst case when the electronics item surges.
 
 ### Helper functions
 
@@ -219,7 +219,7 @@ estimateVoltageDrop(watts)          = watts > 0 ? (watts / 50) × 0.1 : 0
 
 ## Verdict Mapping
 
-Each appliance gets one verdict driven by the battery tier, its per-hour **budget share**, the charge-scaled **wattage cap**, and the **projected voltage headroom**:
+Each electronics item gets one verdict driven by the battery tier, its per-hour **budget share**, the charge-scaled **wattage cap**, and the **projected voltage headroom**:
 
 | Verdict         | Meaning                                                                 |
 |-----------------|-------------------------------------------------------------------------|
@@ -230,7 +230,7 @@ Each appliance gets one verdict driven by the battery tier, its per-hour **budge
 ### Decision ladder (checked in order)
 
 1. Battery **blocked** (Unsafe or no usable energy) → `notRecommended`
-   - Unsafe → "Battery is unsafe — recharge before using appliances."
+   - Unsafe → "Battery is unsafe — recharge before using electronics."
    - Reserve-only → "Reserve only — no load recommended."
 2. **Invalid wattage range** → `notRecommended` → "Invalid wattage range."
 3. **Projected voltage ≤ 10.6 V** → `notRecommended` → "Peak draw XW would drop voltage to unsafe levels (YV)."
@@ -244,7 +244,7 @@ Each appliance gets one verdict driven by the battery tier, its per-hour **budge
 
 ### Worked example (80% SoC → usableWh 453.6)
 
-| Appliance     | Wattage     | Budget share | Projected V | Cap (800 W) | Verdict          |
+| Electronics   | Wattage     | Budget share | Projected V | Cap (800 W) | Verdict          |
 |---------------|-------------|--------------|-------------|-------------|------------------|
 | Wi-Fi router  | 10–25 W     | 3.9%/hr      | 12.4 V      | under       | `recommended`    |
 | Laptop        | 45–55 W     | 11.0%/hr     | 12.4 V      | under       | `care`           |
@@ -255,11 +255,11 @@ Each appliance gets one verdict driven by the battery tier, its per-hour **budge
 
 ## Recommendation Output
 
-`recommendAppliance` returns one flat object per appliance:
+`recommendElectronics` returns one flat object per electronics item:
 
 | Field             | Meaning                                            |
 |-------------------|----------------------------------------------------|
-| `id`, `name`      | Appliance identity                                 |
+| `id`, `name`      | Electronics identity                                 |
 | `area`            | Optional location label                            |
 | `wattRange`       | Resolved min/mid/max range or `null`               |
 | `verdict`         | `recommended`, `care`, or `notRecommended`         |
@@ -293,20 +293,20 @@ otherwise                     →  "OK to use"       (green)
 | **Use with care** | care        | yellow  | Draws a moderate budget share, or battery near cutoff |
 | **Not advisable** | notRecommended | red   | Blocked, unsafe, over the cap, or oversized budget   |
 
-"Use with care" appliances remain usable, but they get their own segment so the user can see at a glance which loads are drawing a moderate budget share or running near the cutoff.
+"Use with care" electronics remain usable, but they get their own segment so the user can see at a glance which loads are drawing a moderate budget share or running near the cutoff.
 
 ---
 
 ## Batch Recommendation
 
-`recommendAppliances` evaluates every appliance against the same live battery reading and sorts the results so the most usable appliances come first:
+`recommendElectronicsBatch` evaluates every electronics item against the same live battery reading and sorts the results so the most usable electronics come first:
 
 ```
 sort key 1: verdict rank   recommended (0) → care (1) → notRecommended (2)
 sort key 2: mid runtime    highest average runtime first (within the same verdict)
 ```
 
-Each per-appliance recommendation in the batch carries the full new budget-model payload (`drainRatio`, `projectedVoltage`, `wattCap`).
+Each per-electronics-item recommendation in the batch carries the full new budget-model payload (`drainRatio`, `projectedVoltage`, `wattCap`).
 
 Returned payload:
 
@@ -315,24 +315,24 @@ Returned payload:
 | `tier`          | Battery tier for the whole batch     |
 | `usableWh`      | Spendable energy above the reserve   |
 | `blocked`       | Whether the whole batch is blocked   |
-| `recommendations` | Sorted per-appliance results       |
+| `recommendations` | Sorted per-electronics-item results |
 
 ---
 
-## Load-Stack (Multi-Appliance) Mode
+## Load-Stack (Multi-Electronics) Mode
 
 `computeLoadStack` sums combined draws for a future catalog / "running together" screen. The simplified dashboard does not surface these numbers today.
 
 | Field           | Calculation                                    |
 |-----------------|------------------------------------------------|
-| `totalMinWatts` | Sum of every appliance's min wattage           |
-| `totalMidWatts` | Sum of every appliance's mid wattage           |
-| `totalMaxWatts` | Sum of every appliance's max wattage           |
+| `totalMinWatts` | Sum of every electronics item's min wattage    |
+| `totalMidWatts` | Sum of every electronics item's mid wattage    |
+| `totalMaxWatts` | Sum of every electronics item's max wattage    |
 | `runtimeMidHours` | `usableWh / totalMidWatts` (0 if no valid draw) |
 | `overLimit`     | `totalMidWatts > 1000 W` (inverter-safe limit)  |
-| `topDrain`      | Appliance with the highest mid wattage          |
+| `topDrain`      | Electronics item with the highest mid wattage   |
 
-- Appliance rows that fail wattage resolution are skipped from the totals.
+- Electronics rows that fail wattage resolution are skipped from the totals.
 - This mode is the only place the 1000 W inverter assumption is applied.
 
 ---
@@ -342,7 +342,7 @@ Returned payload:
 The recommendation engine feeds two screens:
 
 1. **AppRecCard** — the dashboard recommendation carousel.
-2. **Appliances screen** — the full filtered appliance grid.
+2. **Electronics screen** — the full filtered electronics grid.
 
 Shared rules:
 
@@ -361,7 +361,7 @@ Shared rules:
 
 ## Errors to Avoid
 
-- Do not treat `care` as `notRecommended` — those appliances remain usable and stay grouped under "OK to use".
+- Do not treat `care` as `notRecommended` — those electronics remain usable and stay grouped under "OK to use".
 - Do not spend the 151.2 Wh reserve floor in a runtime estimate. Runtime must come from `usable_Wh = remaining − 151.2`.
 - Do not let a healthy SoC override a critically low voltage; voltage is the harder safety signal and forces Unsafe.
 - Do not resolve wattage by taking only the first number in the string; compile min/max/mid from every digit found.
@@ -369,17 +369,17 @@ Shared rules:
 - Do not reorder the decision ladder; the voltage, cap, and budget guards are safety-first and must precede the Caution-care rule.
 - Do not stack `drainRatio` thresholds with a separate min-runtime floor — they are the same signal inverted and would double-count.
 - Do not apply the full 1000 W inverter cap regardless of charge; `wattCap` must scale with SoC (`soc / 100 × 1000`).
-- Do not ignore the projected voltage drop for high-draw appliances; a large peak can push past `UNSAFE_VOLTAGE` even on a healthy SoC.
+- Do not ignore the projected voltage drop for high-draw electronics; a large peak can push past `UNSAFE_VOLTAGE` even on a healthy SoC.
 - Do not render `care` without its distinct yellow state; the UI shows three visual states and the toggle mirrors the three verdicts.
-- Do not run heavy per-appliance Supabase queries in the engine — it must stay a pure, synchronous, network-free module.
+- Do not run heavy per-electronics-item Supabase queries in the engine — it must stay a pure, synchronous, network-free module.
 
 ---
 
 ## References
 
 1. `src/services/recommendation.ts` — engine source (types, constants, classification, runtime, verdict, batch, load stack).
-2. `src/components/AppRecCard.tsx` — dashboard recommendation carousel consuming `recommendAppliance`.
-3. `src/app/dashboard/appliances.tsx` — appliances screen consuming `recommendAppliance` with power/area/status filters.
+2. `src/components/AppRecCard.tsx` — dashboard recommendation carousel consuming `recommendElectronics`.
+3. `src/app/dashboard/electronics.tsx` — electronics screen consuming `recommendElectronics` with power/area/status filters.
 4. `src/services/monitoringService.ts` — live battery fields (`battery_level`, `voltage`, `watt_hours`, `dod_status`) feeding the engine.
-5. `src/components/forms/applianceCard.ts` — shared compact card sizing for the recommendation and appliance grids.
+5. `src/components/forms/electronicsCard.ts` — shared compact card sizing for the recommendation and electronics grids.
 6. `implementation plan/zenova_battery.md` — the battery bank reference the recommendation constants mirror.

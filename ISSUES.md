@@ -148,14 +148,14 @@ web fix only.
 
 ---
 
-### 4. The keyboard covered the fields when adding an appliance
+### 4. The keyboard covered the fields when adding an electronics item
 
 **Summary**
-In the "add custom appliance" form, the keyboard sat on top of the name and
+In the "add custom electronics" form, the keyboard sat on top of the name and
 wattage fields. You couldn't see what you were typing.
 
 **Steps to Reproduce**
-1. Open the add/edit custom appliance form.
+1. Open the add/edit custom electronics form.
 2. Tap the name field, or the min/max wattage fields.
 3. Start typing.
 
@@ -225,7 +225,7 @@ An empty, labeled box. Nothing to see, nothing to tap.
 - **Device:** Android, iPhone, and web browser
 - **App Version:** v1.0.0
 
-**Fixed:** Each figure is now a green "Open Dashboard" / "Open Appliances" / "Open
+**Fixed:** Each figure is now a green "Open Dashboard" / "Open Electronics" / "Open
 Analytics" button that opens the real screen with live data. Generate Report,
 Notifications, Components, and Menu got one too, and Activity Logs — which had
 nothing — now has one as well.
@@ -356,12 +356,12 @@ all.
 
 **Summary**
 The battery bank is rated 756 Wh (12.6 V × 60 Ah), but the app still described a
-720 Wh pack with a 144 Wh reserve and 576 Wh usable. Because the appliance
+720 Wh pack with a 144 Wh reserve and 576 Wh usable. Because the electronics
 recommendation engine reads the battery's energy, every label, limit, and
 recommendation was built on the older 720 Wh figure.
 
 **Steps to Reproduce**
-1. Open the Appliances screen and add an appliance, or open Menu, then User Manual.
+1. Open the Electronics screen and add an electronics item, or open Menu, then User Manual.
 2. Look at the battery capacity and reserve figures shown.
 3. Compare them with the battery datasheet (756 Wh, 20% reserve = 151.2 Wh).
 
@@ -370,7 +370,7 @@ The app shows 756 Wh total, a 151.2 Wh reserve, and 604.8 Wh usable, and the
 recommendations and wattage limits follow those numbers.
 
 **Actual Behavior**
-The app used 720 Wh / 144 Wh / 576 Wh and capped appliance wattage at 720 W.
+The app used 720 Wh / 144 Wh / 576 Wh and capped electronics wattage at 720 W.
 
 **Environment**
 - **Device:** Android, iPhone, and web browser
@@ -378,11 +378,11 @@ The app used 720 Wh / 144 Wh / 576 Wh and capped appliance wattage at 720 W.
 
 **Fixed:** Updated the recommendation engine (`BATTERY_NOMINAL_WH` 756, `RESERVE_WH`
 151.2), the battery gauge ceiling (756 Wh) and low threshold (151.2 Wh), the
-appliance wattage cap (756 W), the in-app advisory and User Manual, and the
+electronics wattage cap (756 W), the in-app advisory and User Manual, and the
 README / implementation-plan docs, including the 1% SoC table recomputed as
 756 × SoC ÷ 100. The capacity, reserve, and usable figures now come from a
 single source of truth (`src/constants/battery.ts`) shared by the engine, the
-battery gauge, and the appliance modals — 756 is the basis, the old 720 value is
+battery gauge, and the electronics modals — 756 is the basis, the old 720 value is
 gone.
 **Note:** The ESP32 firmware must also report `watt_hours` on the 756 Wh scale
 before recommendations reflect the new capacity — still to do on the hardware side.
@@ -507,7 +507,7 @@ shared redirect helper) and that URL is allowlisted in the Supabase project,
 so the link returns to the app instead of `localhost`.
 
 ---
-
+ 
 ### 16. Login with Google fails
 
 **Summary**
@@ -535,6 +535,275 @@ enabled as a provider — so OAuth returns to the app.
 **Note:** The Google Cloud OAuth client must list
 `https://nxdabgvbwunyeffzrzta.supabase.co/auth/v1/callback` as an authorized
 redirect URI for the browser hand-off to complete.
+
+---
+
+### 17. [Bug] Empty electronics loading state stretched the panel
+
+**Summary**
+When the electronics picker had nothing to show while loading or after a search
+returned no matches, the empty/loading state grew far taller than intended. Its
+style used a minimum height, so it inherited the shared `EmptyState` component's
+base `height: "90%"` and stretched to most of the modal.
+
+**Steps to Reproduce**
+1. Open the dashboard and open the electronics picker.
+2. Search for an item with no results, or open the picker while the list is
+   still loading.
+3. Look at the empty/loading panel.
+
+**Expected Behavior**
+The empty/loading state keeps a compact, fixed height, and the rest of the
+picker stays in place.
+
+**Actual Behavior**
+The empty state stretched to about 90% of the modal, leaving a tall blank area
+and making the picker look broken.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** The picker's custom state now uses `height: 234` instead of
+`minHeight: 234`, overriding `EmptyState`'s base height so the empty and
+loading states stay compact.
+
+---
+
+### 18. feat(weather): improve location tracking and add sample coordinates
+
+**Summary**
+The Today weather card did not always follow the device's actual location. It
+used a curated city-center list, could reuse a recent GPS fix, and quietly fell
+back to a fixed point when location was unavailable, so the card could show
+another area's weather or keep stale readings. We added sample coordinates for
+testing and early fallback behavior, then improved the flow to rely on a live,
+high-accuracy GPS fix.
+
+**Steps to Reproduce**
+1. Open the dashboard with location services off, or move to a different area
+   while the app is open.
+2. Wait for the Today card to refresh, or tap its refresh control.
+3. Compare the displayed weather and location with the device's actual position.
+
+**Expected Behavior**
+The card uses the device's current location, refreshes when the user moves or
+returns to the app, and explains when location is unavailable instead of showing
+weather from somewhere else.
+
+**Actual Behavior**
+The app could snap to a configured city center, reuse an older fix, or silently
+use fallback coordinates, so the reading did not always match where the user was.
+
+**Environment**
+- **Device:** Android and iPhone
+- **App Version:** v1.0.0
+
+**Fixed:** Today weather now requests a fresh high-accuracy GPS fix, rounds
+coordinates to four decimals (about 11 m), and detects movement of 1 km or more.
+The app refreshes the weather when it returns to the foreground. The sample
+coordinates and curated city list used during development were removed; denied
+permission, disabled location services, or a failed fix now show an explicit
+location error with a retry path instead of putting another point's weather on
+the card.
+
+---
+
+### 19. refactor(database): rename the Appliances table to Electronics
+
+**Summary**
+The database table was renamed from `public.appliances` to `public.electronics`,
+and its `appliance_name` column became `electronics_name`. The app was still
+querying the old names, so the Electronics screen would break after the rename.
+
+**Steps to Reproduce**
+1. Apply the database rename.
+2. Open the Electronics screen and load, add, edit, or archive an item.
+
+**Expected Behavior**
+Every read and write targets `public.electronics` and `electronics_name`.
+
+**Actual Behavior**
+Queries still used `public.appliances` and `appliance_name`, so they failed
+against the renamed table.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Updated all 12 `.from("appliances")` queries to
+`.from("electronics")` and replaced `appliance_name` in select lists, ordering,
+search clauses, insert payloads, and row types. The migration
+`20261022000000_rename_appliances_to_electronics.sql` renames the table and
+column and repairs the stored function bodies. Legacy RPC names
+(`archive_appliance`, `unarchive_appliance`, `save_appliance_selection`,
+`reset_appliance_selection`), the `appliance-images` storage bucket, and the
+`"Appliance not found."` database message were left unchanged on purpose.
+
+---
+
+### 20. feat(navigation): add a scroll-to-top button above the lower navbar
+
+**Summary**
+Long household screens had no quick way back to the top after scrolling down.
+Users had to swipe repeatedly or drag the scrollbar, which was awkward on
+phones, especially on Analytics, Components, and Activity Logs.
+
+**Steps to Reproduce**
+1. Open a long screen such as Analytics or Activity Logs.
+2. Scroll down past the first screenful of content.
+3. Look for a control that returns to the top.
+
+**Expected Behavior**
+A clear scroll-to-top button appears above the lower navigation bar and returns
+the screen to the top when tapped.
+
+**Actual Behavior**
+There was no shortcut, so the user had to scroll all the way back up manually.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Added a reusable 48x48 round button on the dashboard, Electronics,
+Analytics, Components, Activity Logs, Notifications, and User Manual screens,
+plus the electronics picker modal. It appears after 50% of the scroll range and
+hides below 45% to avoid flicker, respects reduced-motion settings, uses a
+translated accessibility label, and sits 16 px above the lower navbar or footer
+with no shadow.
+
+---
+
+### 21. refactor(copy): rename Appliances to Electronics throughout the app
+
+**Summary**
+The app still called the household items "Appliances" in menus, headings,
+buttons, messages, routes, files, and translations, even though the product
+language had moved to "Electronics."
+
+**Steps to Reproduce**
+1. Open the lower navigation and the dashboard.
+2. Visit the Electronics screen, recommendation card, activity logs, and user
+   manual.
+3. Read the labels and messages.
+
+**Expected Behavior**
+The app consistently says "Electronics" in every screen and language.
+
+**Actual Behavior**
+The screens mixed "Appliances" and "Electronics," which made the feature feel
+inconsistent and outdated.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Renamed the screen and route to Electronics, renamed the related
+components, services, cards, hooks, types, and image assets, and updated the
+English, Filipino, and Cebuano translations plus the user manual and
+documentation. This is the app-facing rename; the database contract change is
+covered separately in issue 19.
+
+---
+
+### 22. fix(components): refresh hardware names and remove unused components
+
+**Summary**
+The Components screen still showed older hardware names and images, including
+"ESP32" and the retired "Voltage Sensor," and it carried component entries and
+assets that were no longer used.
+
+**Steps to Reproduce**
+1. Open the Components screen.
+2. Compare the listed hardware names and pictures with the actual unit.
+3. Scroll through the list for components that are no longer part of the build.
+
+**Expected Behavior**
+The screen shows the current hardware names, matching images, and only the
+components that are actually installed.
+
+**Actual Behavior**
+The board still appeared as "ESP32," the voltage sensor used the old name, and
+some unused component assets remained in the project.
+
+**Environment**
+- **Device:** Android and iPhone
+- **App Version:** v1.0.0
+
+**Fixed:** The board now reads "ESP32-S3" with a matching image, the voltage
+sensor now reads "INA219" with a matching image, and the migration
+`20261021000000_rename_components_esp32s3_ina219.sql` updates existing rows in
+one pass. The obsolete Voltage Sensor mapping and unused component assets were
+removed, while the app still accepts the old "ESP32" row name until the
+migration runs.
+
+---
+
+### 23. feat(auth): detect deleted accounts and show an on-screen message
+
+**Summary**
+Deleting a user in Supabase Authentication did not immediately sign them out in
+the app. The stored session token stayed valid until it expired, so the
+dashboard kept rendering a "ghost" account that only failed on the next server
+write.
+
+**Steps to Reproduce**
+1. Sign in to the app on a phone.
+2. Delete that account from Supabase Authentication while the app is open.
+3. Return to the app or bring it back to the foreground.
+
+**Expected Behavior**
+The app notices the account is gone, stops using the session, shows an on-screen
+message, and returns the user to the sign-in screen.
+
+**Actual Behavior**
+The dashboard stayed visible and the app kept acting as if the account still
+existed until a server request failed.
+
+**Environment**
+- **Device:** Android and iPhone
+- **App Version:** v1.0.0
+
+**Fixed:** Added a session guard that checks on mount, every 15 seconds while the
+app is active, and whenever the app returns to the foreground. It only treats
+explicit server signals as a deleted account; offline, server errors, expired
+tokens, and missing sessions stay "unknown" so a flaky connection cannot lock
+anyone out. A confirmed deletion signs the user out right away and shows a
+full-screen "Account Not Existing" message with a "Back to Sign In" button.
+
+---
+
+### 24. feat(onboarding): add a first-run walkthrough for new users
+
+**Summary**
+New users landed directly on the dashboard with no introduction to what AdlaWatt
+does, what the main features are, or what the app is trying to protect. The
+first session assumed knowledge the user had not been given yet.
+
+**Steps to Reproduce**
+1. Create a new household account.
+2. Sign in for the first time.
+3. Observe the first screen after authentication.
+
+**Expected Behavior**
+A short, skippable walkthrough introduces the app before the dashboard, and it
+does not appear again once completed.
+
+**Actual Behavior**
+The app went straight to the dashboard with no introduction.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Added a five-slide swipeable onboarding panel covering welcome, what
+AdlaWatt is, key features, goals, and a final confirmation. It includes a page
+indicator, a Skip action on the first four slides, and a "Proceed to Dashboard"
+button on the last slide. Both Skip and Proceed set `users.onboarding_completed`,
+and routing from splash, login, register, and password recovery now sends
+incomplete household accounts to onboarding. Admins are never routed there, the
+copy is available in English, Filipino, and Cebuano, and tests cover the routing
+rules.
 
 ---
 

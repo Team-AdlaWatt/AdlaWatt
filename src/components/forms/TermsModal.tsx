@@ -124,9 +124,9 @@ If you do not agree with these Terms and Conditions, you should not create an ac
 
             <Section
               title="2. Purpose of AdlaWatt"
-              text={`AdlaWatt is designed to provide households with an alternative backup power source during electricity interruptions. The system stores energy collected from solar panels in a battery and provides power through a built-in AC outlet for compatible household appliances.
+              text={`AdlaWatt is designed to provide households with an alternative backup power source during electricity interruptions. The system stores energy collected from solar panels in a battery and provides power through a built-in AC outlet for compatible household electronics.
 
-The mobile application provides monitoring information including battery level, incoming solar energy, energy consumption, energy history, temperature information, system status, appliance recommendations, weather information with a five-day solar forecast, analytics with CSV and PDF report export, activity logs, notifications, and multi-language support.
+The mobile application provides monitoring information including battery level, incoming solar energy, energy consumption, energy history, temperature information, system status, electronics recommendations, weather information with a five-day solar forecast, analytics with CSV and PDF report export, activity logs, notifications, and multi-language support.
 
 AdlaWatt is an alternative backup power source and is not intended to replace the electrical grid.`}
             />
@@ -148,19 +148,19 @@ Users must not use the application for unlawful activities, attempt to access an
             />
 
             <Section
-              title="5. Appliance Compatibility"
-              text={`Users must only connect appliances that are compatible with the AdlaWatt system.
+              title="5. Electronics Compatibility"
+              text={`Users must only connect electronics that are compatible with the AdlaWatt system.
 
-The system is intended for compatible household appliances within its supported power capacity. Users must not connect appliances that exceed the recommended capacity or use the system in a manner that may cause electrical or equipment-related risks.
+The system is intended for compatible household electronics within its supported power capacity. Users must not connect electronics that exceed the recommended capacity or use the system in a manner that may cause electrical or equipment-related risks.
 
-Appliance recommendations provided by the application are intended as guidance. Users remain responsible for determining whether an appliance is appropriate and safe to use.`}
+Electronics recommendations provided by the application are intended as guidance. Users remain responsible for determining whether an electronics item is appropriate and safe to use.`}
             />
 
             <Section
               title="6. Electrical and Physical Safety"
               text={`Users must operate the physical AdlaWatt system responsibly.
 
-Users should keep electrical connections dry and protected, avoid damaging the enclosure and components, avoid unauthorized modifications, follow instructions provided by authorized personnel, and disconnect appliances when necessary to prevent excessive power consumption.
+Users should keep electrical connections dry and protected, avoid damaging the enclosure and components, avoid unauthorized modifications, follow instructions provided by authorized personnel, and disconnect electronics when necessary to prevent excessive power consumption.
 
 Monitoring features do not eliminate all electrical, battery, fire, or equipment-related risks.`}
             />
@@ -241,7 +241,7 @@ The application or certain features may become temporarily unavailable because o
 
             <Section
               title="17. Limitation of Liability"
-              text={`To the extent permitted by applicable law, the developers shall not be responsible for losses or damages arising from improper use of the application, improper use of the AdlaWatt hardware, incompatible appliances, exceeding recommended power limits, unauthorized modifications, loss of internet connectivity, temporary application unavailability, hardware or sensor malfunction, loss of monitoring data, device incompatibility, user negligence, or events beyond the reasonable control of the developers.`}
+              text={`To the extent permitted by applicable law, the developers shall not be responsible for losses or damages arising from improper use of the application, improper use of the AdlaWatt hardware, incompatible electronics, exceeding recommended power limits, unauthorized modifications, loss of internet connectivity, temporary application unavailability, hardware or sensor malfunction, loss of monitoring data, device incompatibility, user negligence, or events beyond the reasonable control of the developers.`}
             />
 
             <Section

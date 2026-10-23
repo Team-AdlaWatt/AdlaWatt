@@ -35,6 +35,7 @@ import {
   type AppColors,
 } from "@/hooks/useAppColors";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { useScrollToTopController } from "@/hooks/useScrollToTopController";
 import { getAuthenticatedUserSafe, supabase } from "@/lib/supabase";
 import { useTranslation } from "react-i18next";
 
@@ -66,7 +67,7 @@ type ActivityLog = {
 // ============================================================
 
 // Same glide as the dashboard home quick-nav button
-// (Appliance Recommendation): fixed 1.5s cubic in-out
+// (Electronics Recommendation): fixed 1.5s cubic in-out
 // drive to the very top whenever Prev/Next turns the page.
 const PAGE_TURN_SCROLL_MS = 1500;
 
@@ -138,6 +139,9 @@ export default function ActivityLogsScreen() {
 
   const scrollRef =
     useRef<ScrollView>(null);
+
+  const scrollToTop =
+    useScrollToTopController(scrollRef);
 
   const scrollYRef =
     useRef(0);
@@ -452,7 +456,7 @@ export default function ActivityLogsScreen() {
   // ============================================
 
   return (
-    <ScreenContainer2>
+    <ScreenContainer2 scrollToTop={scrollToTop}>
       <NavBar />
 
       <PullRefreshScroll
@@ -466,6 +470,8 @@ export default function ActivityLogsScreen() {
         onScroll={(event) => {
           scrollYRef.current =
             event.nativeEvent.contentOffset.y;
+
+          scrollToTop.reportScroll(event);
         }}
         scrollEventThrottle={16}
         refreshing={logsRefreshing}

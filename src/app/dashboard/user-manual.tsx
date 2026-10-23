@@ -21,6 +21,8 @@ import ManualCallout from "@/components/ManualCallout";
 import ManualSectionCard, {
   ManualSubRow,
 } from "@/components/ManualSectionCard";
+import ManualOpenButton from "@/components/ManualOpenButton";
+import { useScrollToTopController } from "@/hooks/useScrollToTopController";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -39,6 +41,11 @@ import {
 // shells via ManualSectionCard, severity-tinted ManualCallout
 // boxes, and a quick-jump chip row using the dashboard
 // scroll-to-section pattern.
+//
+// Figures: every figure's subject is a real dashboard screen, so
+// the manual renders a ManualOpenButton (live navigation) instead
+// of a screenshot — no bundled screenshots remain, and the screen
+// the user opens always matches the installed build.
 // ============================================================
 
 const CHIPS: {
@@ -48,7 +55,7 @@ const CHIPS: {
   { label: "Quick Start", target: "s2" },
   { label: "Account", target: "s3" },
   { label: "Dashboard", target: "s6" },
-  { label: "Appliances", target: "s7" },
+  { label: "Electronics", target: "s7" },
   { label: "Reports", target: "s8" },
   { label: "Notifications", target: "s9" },
   { label: "Settings", target: "s12" },
@@ -69,6 +76,9 @@ export default function UserManualScreen() {
 
   const scrollRef =
     useRef<ScrollView | null>(null);
+
+  const scrollToTop =
+    useScrollToTopController(scrollRef);
 
   const sectionTops =
     useRef<Record<string, number>>({});
@@ -112,7 +122,7 @@ export default function UserManualScreen() {
     };
 
   return (
-    <ScreenContainer2>
+    <ScreenContainer2 scrollToTop={scrollToTop}>
       {/* Fixed Navbar */}
       <NavBar />
 
@@ -126,6 +136,8 @@ export default function UserManualScreen() {
         showsVerticalScrollIndicator={
           false
         }
+        onScroll={scrollToTop.reportScroll}
+        scrollEventThrottle={16}
       >
         {/* Header */}
         <View style={styles.headerCard}>
@@ -141,6 +153,17 @@ export default function UserManualScreen() {
             style={styles.subtitle}
           >
             {t("dashboard.manual.subtitle")}
+          </AppText>
+
+          {/* Live-navigation hint, stated once for the whole
+              screen instead of on every open button (this app
+              has no back stack; screens are reached by tab). */}
+          <AppText
+            variant="caption"
+            style={styles.headerHint}
+          >
+            Green buttons open the live screen.
+            Return here via Menu → User Manual.
           </AppText>
         </View>
 
@@ -227,7 +250,7 @@ export default function UserManualScreen() {
               5-day solar outlook
             </Bullet>
             <Bullet>
-              Appliance load and
+              Electronics load and
               depth-of-discharge safety
             </Bullet>
             <Bullet>
@@ -235,7 +258,7 @@ export default function UserManualScreen() {
               temperatures
             </Bullet>
             <Bullet>
-              Smart appliance
+              Smart electronics
               recommendations, alerts,
               and energy reports
             </Bullet>
@@ -247,9 +270,10 @@ export default function UserManualScreen() {
               electrical grid.
             </ManualCallout>
 
-            <FigureSlot
-              label="Figure 1 — Dashboard overview"
-              styles={styles}
+            <ManualOpenButton
+              label="Dashboard"
+              route="/dashboard"
+              icon="home"
             />
           </ManualSectionCard>
         </View>
@@ -268,7 +292,7 @@ export default function UserManualScreen() {
             <Step n="2" text="Confirm your email via the link in your inbox — sign-in stays locked until then." />
             <Step n="3" text="Sign in with your username or email and password." />
             <Step n="4" text="Read your battery gauge: percentage plus Charging, Discharging, or Idle." />
-            <Step n="5" text="Check one appliance badge: OK to use means safe, Not advisable means wait for charge." />
+            <Step n="5" text="Check one electronics badge: OK to use means safe, Not advisable means wait for charge." />
 
             <ManualCallout kind="tip">
               You can also register or sign
@@ -301,11 +325,6 @@ export default function UserManualScreen() {
               minute. You can also use a
               different email address.
             </ManualCallout>
-
-            <FigureSlot
-              label="Figure 2 — Register screen"
-              styles={styles}
-            />
           </ManualSectionCard>
         </View>
 
@@ -331,11 +350,6 @@ export default function UserManualScreen() {
               Password? instead of
               guessing.
             </ManualCallout>
-
-            <FigureSlot
-              label="Figure 3 — Login screen"
-              styles={styles}
-            />
           </ManualSectionCard>
         </View>
 
@@ -452,7 +466,7 @@ export default function UserManualScreen() {
               Quick-navigation buttons
               scroll to each section; new
               users get a welcome greeting
-              with an Add Appliances
+              with an Add Electronics
               button in the recommendation
               card. The bell icon carries
               the unread badge.
@@ -460,13 +474,13 @@ export default function UserManualScreen() {
           </ManualSectionCard>
         </View>
 
-        {/* 7 · Appliances */}
+        {/* 7 · Electronics */}
         <View
           onLayout={rememberTop("s7")}
         >
           <ManualSectionCard
             number="7"
-            title="Appliances: What Can I Safely Use?"
+            title="Electronics: What Can I Safely Use?"
             icon="bulb"
             subtitle="Badges, picking, customs, archives."
           >
@@ -488,7 +502,7 @@ export default function UserManualScreen() {
                 toggleRow("s7.1")
               }
             >
-              <Step n="1" text="Dashboard: tap Appliance Recommendation, then Add Appliances — or open Appliances and tap Select Appliances." />
+              <Step n="1" text="Dashboard: tap Electronics Recommendation, then Add Electronics — or open Electronics and tap Select Electronics." />
               <Step n="2" text="Scroll the catalog, or use the search box." />
               <Step n="3" text="Tap boxes to select (tap again to deselect)." />
               <Step n="4" text="Tap Add — picks come back rated advisable or not." />
@@ -503,7 +517,7 @@ export default function UserManualScreen() {
             </ManualSubRow>
 
             <ManualSubRow
-              label="7.2 Adding a custom appliance"
+              label="7.2 Adding a custom electronics item"
               expanded={openRow === "s7.2"}
               onToggle={() =>
                 toggleRow("s7.2")
@@ -586,13 +600,14 @@ export default function UserManualScreen() {
                 level and area, alongside
                 advisability segments that
                 only show segments holding
-                appliances.
+                electronics.
               </Para>
             </ManualSubRow>
 
-            <FigureSlot
-              label="Figure 4 — Appliances list"
-              styles={styles}
+            <ManualOpenButton
+              label="Electronics"
+              route="/dashboard/electronics"
+              icon="grid"
             />
           </ManualSectionCard>
         </View>
@@ -629,9 +644,18 @@ export default function UserManualScreen() {
               holds the complete dataset.
             </ManualCallout>
 
-            <FigureSlot
-              label="Figure 5 — Analytics and exports"
-              styles={styles}
+            <ManualOpenButton
+              label="Analytics"
+              route="/dashboard/analytics"
+              icon="bar-chart"
+            />
+            <ManualOpenButton
+              label="Generate Report"
+              route={{
+                pathname: "/dashboard/analytics",
+                params: { focus: "report" },
+              }}
+              icon="document-text"
             />
           </ManualSectionCard>
         </View>
@@ -684,9 +708,10 @@ export default function UserManualScreen() {
               with Prev / Next.
             </Para>
 
-            <FigureSlot
-              label="Figure 6 — Notifications list"
-              styles={styles}
+            <ManualOpenButton
+              label="Notifications"
+              route="/dashboard/notifications"
+              icon="notifications"
             />
           </ManualSectionCard>
         </View>
@@ -702,7 +727,7 @@ export default function UserManualScreen() {
             subtitle="What you did — not the hardware."
           >
             <Para>
-              Sign-ins, appliance changes,
+              Sign-ins, electronics changes,
               and settings updates live
               here, typed Info, Warning,
               Error, Critical. Hardware
@@ -712,6 +737,12 @@ export default function UserManualScreen() {
               the Dashboard preview links
               here via View All.
             </Para>
+
+            <ManualOpenButton
+              label="Activity Logs"
+              route="/dashboard/activity-logs"
+              icon="list"
+            />
           </ManualSectionCard>
         </View>
 
@@ -739,9 +770,10 @@ export default function UserManualScreen() {
               the app.
             </Para>
 
-            <FigureSlot
-              label="Figure 7 — Components grid"
-              styles={styles}
+            <ManualOpenButton
+              label="Components"
+              route="/dashboard/components"
+              icon="hardware-chip"
             />
           </ManualSectionCard>
         </View>
@@ -795,9 +827,10 @@ export default function UserManualScreen() {
               restarts and hold offline.
             </ManualCallout>
 
-            <FigureSlot
-              label="Figure 8 — Menu preferences"
-              styles={styles}
+            <ManualOpenButton
+              label="Menu"
+              route="/dashboard/menu"
+              icon="settings"
             />
           </ManualSectionCard>
         </View>
@@ -821,8 +854,8 @@ export default function UserManualScreen() {
             />
             <Faq
               id="q2"
-              q="Appliance says Not advisable but I need it?"
-              a="The battery cannot safely cover it now. Recharge via solar, pick a lighter appliance, or run it briefly while watching the gauge. Do not repeatedly override below 20%."
+              q="An electronics item says Not advisable but I need it?"
+              a="The battery cannot safely cover it now. Recharge via solar, pick a lighter electronics item, or run it briefly while watching the gauge. Do not repeatedly override below 20%."
               openRow={openRow}
               onToggle={toggleRow}
             />
@@ -1168,38 +1201,6 @@ function Faq({
   );
 }
 
-function FigureSlot({
-  label,
-  styles,
-}: {
-  label: string;
-  styles: ReturnType<typeof getStyles>;
-}) {
-  const colors = useAppColors();
-
-  return (
-    <View
-      style={[
-        styles.figureSlot,
-        { borderColor: colors.border },
-      ]}
-      accessibilityRole="text"
-      accessibilityLabel={`${label}, screenshot pending`}
-    >
-      <AppText
-        variant="caption"
-        style={{
-          color: colors.textSecondary,
-          textAlign: "center",
-        }}
-      >
-        {label}
-        {"\n"}screenshot pending
-      </AppText>
-    </View>
-  );
-}
-
 const manualDimensions = {
   borderWidth: 3,
   cardRadius: 16,
@@ -1250,6 +1251,16 @@ const getStyles = (colors: AppColors) =>
       lineHeight: 19,
     },
 
+    headerHint: {
+      color: colors.textSecondary,
+
+      marginTop: 8,
+
+      fontWeight: "600",
+
+      lineHeight: 19,
+    },
+
     /* Contents chips */
 
     chipBlock: {
@@ -1286,19 +1297,5 @@ const getStyles = (colors: AppColors) =>
     chipText: {
       color: colors.primaryText,
       fontWeight: "600",
-    },
-
-    /* Figure placeholders */
-
-    figureSlot: {
-      width: "100%",
-      borderWidth: 2,
-      borderStyle: "dashed",
-      borderRadius: 12,
-      paddingVertical: 18,
-      paddingHorizontal: 12,
-      marginTop: 10,
-      alignItems: "center",
-      justifyContent: "center",
     },
   });

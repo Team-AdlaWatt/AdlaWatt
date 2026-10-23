@@ -5,11 +5,14 @@ export const Routes = {
   FORGOT_PASSWORD: "/auth/forgot-password",
   AUTH_CALLBACK: "/auth/callback",
 
+  // Onboarding (first-time household users)
+  ONBOARDING: "/onboarding",
+
   // Dashboard
   DASHBOARD: "/dashboard",
 
   // Dashboard Pages
-  APPLIANCES: "/dashboard/appliances",
+  ELECTRONICS: "/dashboard/electronics",
   COMPONENTS: "/dashboard/components",
   ACTIVITY_LOGS: "/dashboard/activity-logs",
   ANALYTICS: "/dashboard/analytics",

@@ -32,8 +32,8 @@ const TABS = [
   },
   {
     icon: "grid" as const,
-    label: "Appliances",
-    href: Routes.APPLIANCES,
+    label: "Electronics",
+    href: Routes.ELECTRONICS,
   },
   {
     icon: "analytics" as const,

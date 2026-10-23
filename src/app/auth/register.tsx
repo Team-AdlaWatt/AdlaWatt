@@ -33,7 +33,7 @@ import {
   getCurrentUserProfile,
   registerUser,
   resendConfirmation,
-  resolvePostLoginRoute,
+  resolveOnboardingAwareRoute,
   signInWithGoogle,
 } from "@/services/auth";
 import { useTranslation } from "react-i18next";
@@ -198,15 +198,19 @@ export default function RegisterScreen() {
       setWarning("");
 
       // Confirm-off projects hand back a live session, so
-      // skip login and route role-aware (admin to /admin).
+      // skip login and route role-aware (admin to /admin,
+      // new accounts to /onboarding).
       try {
         const profile = await getCurrentUserProfile();
 
         router.replace(
-          resolvePostLoginRoute(
+          resolveOnboardingAwareRoute(
             profile.success
               ? (profile as { role?: unknown }).role
               : null,
+            profile.success
+              ? profile.onboardingCompleted
+              : true,
           ) as never,
         );
       } catch {
@@ -249,10 +253,13 @@ export default function RegisterScreen() {
             const profile = await getCurrentUserProfile();
 
             router.replace(
-              resolvePostLoginRoute(
+              resolveOnboardingAwareRoute(
                 profile.success
                   ? (profile as { role?: unknown }).role
                   : null,
+                profile.success
+                  ? profile.onboardingCompleted
+                  : true,
               ) as never,
             );
           } catch {

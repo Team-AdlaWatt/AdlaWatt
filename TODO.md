@@ -14,13 +14,13 @@
 - [x] Login: Password visibility should only be available for 5 seconds — **Resolved**
   - `PasswordInput` eye toggle with 5s auto-hide, live countdown, timer bar, screen-reader labels
 - [x] Overall: Display only the toggle that has content — **Resolved**
-  - Appliances status filter renders only segments holding appliances (Caution → Advisable → Not Advisable auto-pick)
+  - Electronics status filter renders only segments holding electronics (Caution → Advisable → Not Advisable auto-pick)
   - Empty active segment auto-corrects on add/archive/delete/battery verdict shifts
-  - Empty appliance list keeps all three segments on Advisable
+  - Empty electronics list keeps all three segments on Advisable
   - Example: If there are no advisable devices, display the default toggle for Not Advisable Devices
 - [x] Navbar Upper: Display username — **Resolved**
   - Username slot in `Navbar.tsx` with profile-username + auth-fallback so it never renders empty
-- [x] Appliances: Add image upload inside the Custom Appliance box with a media picker modal — **Resolved**
+- [x] Electronics: Add image upload inside the Custom Electronics box with a media picker modal — **Resolved**
   - Public `appliance-images` bucket (per-user write scope) + `appliances.image_url` column
   - Library-only `MediaPickerModal` on the system `DropdownModal` shell (square crop, 5MB validation, permission-denied copy)
   - Photo preview in Add/Edit custom form (adlawatt icon stays the default for every custom); upload on save, orphan cleanup on replace/remove/delete

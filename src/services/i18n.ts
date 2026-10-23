@@ -21,7 +21,7 @@ import fil from "@/locales/fil";
 // default i18n.t() at call time — always current.
 //
 // Translation policy: UI chrome translates; proper nouns
-// (appliance + catalog names, usernames, emails, brand,
+// (electronics + catalog names, usernames, emails, brand,
 // units, model terms) and email templates stay as-is.
 // ============================================================
 

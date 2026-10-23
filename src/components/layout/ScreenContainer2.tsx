@@ -7,14 +7,18 @@ import {
 } from "react-native";
 
 import NavBarBottom from "@/components/layout/NavBarBottom";
+import ScrollToTopButton from "@/components/layout/ScrollToTopButton";
+import { useScreenPadding } from "@/constants/sizing";
 import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
+import type { ScrollToTopController } from "@/hooks/useScrollToTopController";
 
 interface ScreenContainer2Props {
   children: ReactNode;
   style?: StyleProp<ViewStyle>;
+  scrollToTop?: ScrollToTopController;
 }
 
 // Dashboard container. Consumes the dashboard-level
@@ -26,8 +30,10 @@ interface ScreenContainer2Props {
 export default function ScreenContainer2({
   children,
   style,
+  scrollToTop,
 }: ScreenContainer2Props) {
   const colors = useAppColors();
+  const screenPadding = useScreenPadding();
 
   const styles = useMemo(
     () => getStyles(colors),
@@ -38,6 +44,15 @@ export default function ScreenContainer2({
     <View style={styles.container}>
       <View style={[styles.content, style]}>
         {children}
+
+        {scrollToTop ? (
+          <ScrollToTopButton
+            enabled={scrollToTop.enabled}
+            onPress={scrollToTop.scrollToTop}
+            rightOffset={screenPadding}
+            bottomOffset={16}
+          />
+        ) : null}
       </View>
 
       {/* Bottom nav sits in normal flow so it never overlaps

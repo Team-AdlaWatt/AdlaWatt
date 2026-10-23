@@ -229,6 +229,13 @@ const ceb = {
       footerAction: "Balik sa Sign In",
     },
 
+    session: {
+      notFoundTitle: "Wala Na Ang Account",
+      notFoundBody:
+        "Dili na existent ang account nimo. Palihok nga log-in usab.",
+      backToSignIn: "Balik sa Sign In",
+    },
+
     callback: {
       title: "Kumpirmasyon sa Email",
       subtitle:
@@ -352,13 +359,14 @@ const ceb = {
   dashboard: {
     common: {
       pullToRefresh: "Biraha paubos para mag-refresh",
+      scrollToTop: "Mag-scroll paibabaw",
     },
     home: {
       title: "Dashboard",
       subtitle: "I-monitor ang imong AdlaWatt system nga real time.",
-      applianceRecommendation: "Appliance Recommendation",
+      electronicsRecommendation: "Electronics Recommendation",
       realtimeMonitoring: "Real-Time Monitoring",
-      goToApplianceRecommendation: "Adto sa Appliance Recommendation",
+      goToElectronicsRecommendation: "Adto sa Electronics Recommendation",
       offlineBanner:
         "Wala kay koneksyon — katapusang readings ang gipakita.",
       lastUpdated:
@@ -376,20 +384,20 @@ const ceb = {
       roleDocumenter: "Documenter",
       roleDataAnalyst: "Data Analyst",
       dev1Bio:
-        "Naghimo ug nag-maintain sa AdlaWatt mobile application, gihiusa ang live nga battery, solar, ug temperature data gikan sa mga sensor sa system ngadto sa klaro ug real-time nga kasinatian, ug nag-develop sa recommendation logic nga nagsulti sa mga user kung unsang appliance ang luwas nga mapadagan sa ilang kasamtangang kuryente.",
+        "Naghimo ug nag-maintain sa AdlaWatt mobile application, gihiusa ang live nga battery, solar, ug temperature data gikan sa mga sensor sa system ngadto sa klaro ug real-time nga kasinatian, ug nag-develop sa recommendation logic nga nagsulti sa mga user kung unsang electronics ang luwas nga mapadagan sa ilang kasamtangang kuryente.",
       dev2Bio:
         "Nagdokumento sa tibuok AdlaWatt system, gikan sa hardware setup ug safety guidance hangtod sa in-app user manual, aron magamit, masabtan, ug mapadayon sa mga user ug sunod nga researchers ang proyekto nga may kasiguruhan.",
       dev3Bio:
-        "Nagtuon sa mosulod nga sensor data sa system, gikan sa solar generation ug appliance power draw hangtod sa performance sa baterya, ug gihimong insights kini aron mapalambo ang efficiency sa system ug mapabiling tukma ang appliance recommendations.",
+        "Nagtuon sa mosulod nga sensor data sa system, gikan sa solar generation ug electronics power draw hangtod sa performance sa baterya, ug gihimong insights kini aron mapalambo ang efficiency sa system ug mapabiling tukma ang electronics recommendations.",
       contactDetails: "Contact Details",
     },
     manual: {
       title: "User Manual",
       subtitle: "Mga giya sa pagpadagan sa imong AdlaWatt system.",
     },
-    appliances: {
-      title: "Mga Appliance",
-      subtitle: "Dumalaha ug i-monitor ang gisuportahang mga appliance.",
+    electronics: {
+      title: "Mga Electronics",
+      subtitle: "Dumalaha ug i-monitor ang gisuportahang mga electronics.",
     },
     components: {
       title: "Mga Komponente",
@@ -398,7 +406,7 @@ const ceb = {
     analytics: {
       title: "Analytics ug Trends",
       subtitle:
-        "Susiha ang performance sa system, paggamit sa enerhiya, temperatura, ug datos sa appliance sa paglabay sa panahon.",
+        "Susiha ang performance sa system, paggamit sa enerhiya, temperatura, ug datos sa electronics sa paglabay sa panahon.",
       sectionBattery: "Baterya",
       sectionSolar: "Solar",
       sectionEnergy: "Enerhiya",
@@ -414,7 +422,7 @@ const ceb = {
     },
     logs: {
       title: "Activity Logs",
-      subtitle: "Dinhi makita ang aktibidad sa system ug mga event sa appliance.",
+      subtitle: "Dinhi makita ang aktibidad sa system ug mga event sa electronics.",
       total: "Tibuok Activity Logs:",
       loadFailed:
         "Dili ma-load ang imong activity logs. Susiha ang imong koneksyon ug sulayi pag-usab.",
@@ -493,22 +501,22 @@ const ceb = {
     libraryFailed: "Dili maablihan ang imong photo library. Sulayi pag-usab.",
   },
 
-  applianceBox: {
-    editAppliance: "I-edit ang appliance",
-    archiveAppliance: "I-archive ang appliance",
-    unarchiveAppliance: "I-unarchive ang appliance",
-    deleteAppliance: "Papason ang appliance",
-    showOptions: "Ipakita ang mga opsyon sa appliance",
-    hideOptions: "Tagoa ang mga opsyon sa appliance",
+  electronicsBox: {
+    editElectronics: "I-edit ang electronics item",
+    archiveElectronics: "I-archive ang electronics item",
+    unarchiveElectronics: "I-unarchive ang electronics item",
+    deleteElectronics: "Papason ang electronics item",
+    showOptions: "Ipakita ang mga opsyon sa electronics",
+    hideOptions: "Tagoa ang mga opsyon sa electronics",
     deleteQuestion: "Gusto ba nimong papason kini?",
-    doNotDelete: "Ayaw papasa ang appliance",
-    confirmDelete: "Kumpirmahi ang pagpapasa sa appliance",
-    archiveQuestion: "I-archive kini nga appliance?",
-    unarchiveQuestion: "I-unarchive kini nga appliance?",
-    doNotArchive: "Ayaw i-archive ang appliance",
-    doNotUnarchive: "Ayaw i-unarchive ang appliance",
-    confirmArchive: "Kumpirmahi ang pag-archive sa appliance",
-    confirmUnarchive: "Kumpirmahi ang pag-unarchive sa appliance",
+    doNotDelete: "Ayaw papasa ang electronics item",
+    confirmDelete: "Kumpirmahi ang pagpapasa sa electronics item",
+    archiveQuestion: "I-archive kini nga electronics item?",
+    unarchiveQuestion: "I-unarchive kini nga electronics item?",
+    doNotArchive: "Ayaw i-archive ang electronics item",
+    doNotUnarchive: "Ayaw i-unarchive ang electronics item",
+    confirmArchive: "Kumpirmahi ang pag-archive sa electronics item",
+    confirmUnarchive: "Kumpirmahi ang pag-unarchive sa electronics item",
   },
 
   activityCard: {
@@ -525,6 +533,45 @@ const ceb = {
     fallbackDetails: "Walay detalye sa notification.",
     newTypeA11y: "Bag-o, Matang: {{label}}",
     typeA11y: "Matang: {{label}}",
+  },
+
+  onboarding: {
+    skip: "Pasagdan",
+    proceed: "Adto sa Dashboard",
+    swipeHint: "I-swipe para mosunod",
+    page: "Panid {{current}} sa {{total}}",
+    welcome: {
+      title: "Maayong pag-abot sa AdlaWatt",
+      subtitle:
+        "Bantayi ang imong solar power, bisan kanus-a.",
+    },
+    about: {
+      title: "Unsa ang AdlaWatt?",
+      subtitle:
+        "Ang AdlaWatt usa ka off-grid solar backup power monitor. Gisubayan niya ang imong solar, baterya, temperatura, ug output nga adunay real-time data gikan sa imong device.",
+    },
+    features: {
+      title: "Pangunang Bahin",
+      bulletDashboard: "Live dashboard nga adunay gauges",
+      bulletAlerts: "Smart alerts alang sa delikadong lebel",
+      bulletPlanner: "Electronics planner ug mga rekomendasyon",
+      bulletLog: "Activity log ug kasaysayan",
+    },
+    goals: {
+      title: "Among mga Katuyoan",
+      bulletReliable:
+        "Panatilihang kasaligan ang imong backup power",
+      bulletBattery:
+        "Panalipdan ang baterya gikan sa kadaot",
+      bulletWise:
+        "Tabang nga gamiton nga maayo ang kuryente",
+      bulletLanguages:
+        "Sayon para sa tanan — Iningles, Cebuano, Tagalog",
+    },
+    finish: {
+      title: "Andam Na Tanan",
+      subtitle: "Ang imong kuryente, sa imong mga kamot.",
+    },
   },
 } as const;
 

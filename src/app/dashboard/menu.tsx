@@ -39,7 +39,6 @@ import {
 } from "@/services/auth";
 import PasswordInput from "@/components/ui/PasswordInput";
 import {
-  logAuth,
   logProfile,
   logSettings,
 } from "@/services/activityLogService";
@@ -79,6 +78,7 @@ import {
   cancelAllReminders,
   ensureEveningReminder,
 } from "@/services/reminderService";
+import { performSignOut } from "@/services/signOut";
 
 import { Ionicons } from "@expo/vector-icons";
 
@@ -843,27 +843,10 @@ export default function SettingsScreen() {
   const { height: windowHeight } = useWindowDimensions();
 
   const handleLogout = () => {
-    const logout = async () => {
-      // Logged before sign-out: after sign-out there is no
-      // session left to satisfy RLS on insert.
-      logAuth.loggedOut();
-
-      // Scheduled reminders belong to the signed-in phone:
-      // cancel so a signed-out device stays silent.
-      await cancelAllReminders();
-
-      try {
-        await supabase.auth.signOut();
-      } catch (error) {
-        console.warn(
-          "Sign out failed:",
-          error instanceof Error
-            ? error.message
-            : error,
-        );
-      } finally {
-        router.replace(Routes.LOGIN);
-      }
+    const logout = () => {
+      // Immediate UI exit: teardown runs in the background.
+      performSignOut();
+      router.replace(Routes.LOGIN);
     };
 
     if (Platform.OS === "web") {
