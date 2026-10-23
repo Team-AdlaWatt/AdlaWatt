@@ -3,11 +3,13 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
 import {
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
 } from "react-native";
@@ -25,6 +27,7 @@ import AppText from "@/components/ui/AppText";
 import { useTranslation } from "react-i18next";
 import { DropdownModal, RadioOptionRow } from "@/components/ui/DropdownModal";
 import EmptyState from "@/components/ui/EmptyState";
+import { useScrollToTopController } from "@/hooks/useScrollToTopController";
 
 import { Colors } from "@/constants/colors";
 import {
@@ -195,6 +198,12 @@ export default function ElectronicsScreen() {
     () => getStyles(colors),
     [colors],
   );
+
+  const scrollRef =
+    useRef<ScrollView>(null);
+
+  const scrollToTop =
+    useScrollToTopController(scrollRef);
 
   const {
     monitoring,
@@ -546,16 +555,18 @@ export default function ElectronicsScreen() {
     });
 
   return (
-    <ScreenContainer2>
+    <ScreenContainer2 scrollToTop={scrollToTop}>
       <NavBar />
 
       <PullRefreshScroll
+        scrollRef={scrollRef}
         style={styles.scrollView}
         contentContainerStyle={[
           styles.content,
           { paddingHorizontal: screenPadding },
         ]}
         showsVerticalScrollIndicator={false}
+        onScroll={scrollToTop.reportScroll}
         refreshing={electronicsRefreshing}
         onRefresh={onElectronicsRefresh}
         refreshLabel={t(

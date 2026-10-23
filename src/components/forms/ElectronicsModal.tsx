@@ -33,6 +33,7 @@ import {
 import AppText from "@/components/ui/AppText";
 import EmptyState from "@/components/ui/EmptyState";
 import SearchBox from "@/components/ui/SearchBox";
+import ScrollToTopButton from "@/components/layout/ScrollToTopButton";
 
 import {
   BATTERY_CAPACITY_WH,
@@ -50,6 +51,7 @@ import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
+import { useScrollToTopController } from "@/hooks/useScrollToTopController";
 import {
   Radius,
   Spacing,
@@ -339,6 +341,9 @@ export default function ElectronicsModal({
 
   const scrollRef = useRef<ScrollView>(null);
 
+  const scrollToTop =
+    useScrollToTopController(scrollRef);
+
   const colors = useAppColors();
 
   const styles = useMemo(
@@ -609,6 +614,8 @@ export default function ElectronicsModal({
   // ============================================================
 
   useEffect(() => {
+    scrollToTop.reset();
+
     if (visible) {
       const snapshot = selectedElectronics;
 
@@ -1696,6 +1703,7 @@ export default function ElectronicsModal({
     setOpenMenuId(null);
     setLayer(2);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
+    scrollToTop.reset();
     // Always refetch so Layer 2 reflects the table, not just
     // the optimistic Layer 1 state.
     void loadArchived();
@@ -1706,6 +1714,7 @@ export default function ElectronicsModal({
     setOpenMenuId(null);
     setLayer(1);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
+    scrollToTop.reset();
   };
 
   // ============================================================
@@ -1861,14 +1870,17 @@ export default function ElectronicsModal({
           ) : null}
 
           {/* Content */}
-          <ScrollView
-            ref={scrollRef}
-            style={styles.content}
-            contentContainerStyle={
-              styles.contentContainer
-            }
-            showsVerticalScrollIndicator={false}
-          >
+          <View style={styles.contentShell}>
+            <ScrollView
+              ref={scrollRef}
+              style={styles.content}
+              contentContainerStyle={
+                styles.contentContainer
+              }
+              showsVerticalScrollIndicator={false}
+              onScroll={scrollToTop.reportScroll}
+              scrollEventThrottle={16}
+            >
             {/* Battery Advisory (Layer 1 only) */}
             {layer === 1 ? (
               <View style={styles.advisory}>
@@ -2279,7 +2291,15 @@ export default function ElectronicsModal({
                   )}
               </>
             ) : null}
-          </ScrollView>
+            </ScrollView>
+
+            <ScrollToTopButton
+              enabled={scrollToTop.enabled}
+              onPress={scrollToTop.scrollToTop}
+              rightOffset={Spacing.lg}
+              bottomOffset={Spacing.xs}
+            />
+          </View>
 
           {/* Footer: Layer 1 = selection actions, Layer 2 = viewer count + back */}
           {layer === 2 ? (
@@ -2556,6 +2576,10 @@ const getStyles = (colors: AppColors) =>
     backgroundColor: colors.background,
   },
 
+  contentShell: {
+    flex: 1,
+  },
+
   contentContainer: {
     padding: Spacing.lg,
     paddingBottom: Spacing.xl,
@@ -2623,12 +2647,14 @@ const getStyles = (colors: AppColors) =>
     marginTop: 2,
   },
 
-  // Loading/empty state card for the custom section. Matches
-  // the custom electronics box outer height (boxCustom 234) so
-  // both share one silhouette, plus breathing room before the
-  // next section header (stacks with the section margin).
+  // Loading/empty state card for the custom section only. The
+  // fixed height overrides EmptyState's base 90% height so the
+  // card cannot stretch during loading. It matches the custom
+  // box silhouette (234) plus breathing room before the next
+  // section header (stacks with the section margin). Do not use
+  // this style for the electronics card grid.
   customState: {
-    minHeight: 234,
+    height: 234,
     marginBottom: Spacing.md,
   },
 

@@ -38,6 +38,7 @@ import {
 } from "@/components/ui/DropdownModal";
 import { useAppColors, type AppColors } from "@/hooks/useAppColors";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { useScrollToTopController } from "@/hooks/useScrollToTopController";
 import PullRefreshScroll from "@/components/PullRefreshScroll";
 import { Radius } from "@/constants/theme";
 import { Control, useScreenPadding } from "@/constants/sizing";
@@ -161,6 +162,9 @@ export default function AnalyticsScreen() {
      ========================================================== */
 
   const scrollRef = useRef<ScrollView>(null);
+
+  const scrollToTop =
+    useScrollToTopController(scrollRef);
 
   // Shared scroll offset for the lazy chart sections. Created
   // once; consumers subscribe instead of re-rendering the whole
@@ -1224,7 +1228,7 @@ export default function AnalyticsScreen() {
     );
 
   return (
-    <ScreenContainer2>
+    <ScreenContainer2 scrollToTop={scrollToTop}>
       {/* Fixed Navbar */}
       <NavBar />
 
@@ -1249,6 +1253,8 @@ export default function AnalyticsScreen() {
             scrollYRef.current = offsetY;
 
             scrollVisibility.notify(offsetY);
+
+            scrollToTop.reportScroll(event);
           }}
           onContentSizeChange={
             handleContentSizeChange

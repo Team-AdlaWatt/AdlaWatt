@@ -359,6 +359,7 @@ const fil = {
   dashboard: {
     common: {
       pullToRefresh: "Hilahin pababa para mag-refresh",
+      scrollToTop: "Mag-scroll pataas",
     },
     home: {
       title: "Dashboard",

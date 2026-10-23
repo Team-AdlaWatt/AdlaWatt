@@ -359,6 +359,7 @@ const ceb = {
   dashboard: {
     common: {
       pullToRefresh: "Biraha paubos para mag-refresh",
+      scrollToTop: "Mag-scroll paibabaw",
     },
     home: {
       title: "Dashboard",

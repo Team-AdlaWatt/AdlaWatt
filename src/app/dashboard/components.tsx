@@ -2,6 +2,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -23,6 +24,7 @@ import { useScreenPadding } from "@/constants/sizing";
 
 import AppText from "@/components/ui/AppText";
 import EmptyState from "@/components/ui/EmptyState";
+import { useScrollToTopController } from "@/hooks/useScrollToTopController";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -143,6 +145,12 @@ export default function ComponentsScreen() {
     () => getStyles(colors),
     [colors],
   );
+
+  const scrollRef =
+    useRef<ScrollView>(null);
+
+  const scrollToTop =
+    useScrollToTopController(scrollRef);
 
   const [statusFilter, setStatusFilter] =
     useState<
@@ -449,15 +457,18 @@ export default function ComponentsScreen() {
   // ============================================
 
   return (
-    <ScreenContainer2>
+    <ScreenContainer2 scrollToTop={scrollToTop}>
       <NavBar />
 
       <ScrollView
+        ref={scrollRef}
         style={styles.scrollView}
         contentContainerStyle={[
           styles.content,
           { paddingHorizontal: screenPadding },
         ]}
+        onScroll={scrollToTop.reportScroll}
+        scrollEventThrottle={16}
       >
         {/* Header */}
 

@@ -44,6 +44,7 @@ import {
   type AppColors,
 } from "@/hooks/useAppColors";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { useScrollToTopController } from "@/hooks/useScrollToTopController";
 import { OptionRow, useScreenPadding } from "@/constants/sizing";
 
 import { getAuthenticatedUserSafe, supabase } from "@/lib/supabase";
@@ -134,6 +135,9 @@ export default function NotificationsScreen() {
 
   const scrollRef =
     useRef<ScrollView>(null);
+
+  const scrollToTop =
+    useScrollToTopController(scrollRef);
 
   const scrollYRef =
     useRef(0);
@@ -586,7 +590,7 @@ export default function NotificationsScreen() {
   // ============================================
 
   return (
-    <ScreenContainer2>
+    <ScreenContainer2 scrollToTop={scrollToTop}>
       {/* Fixed Navbar */}
       <NavBar />
 
@@ -601,6 +605,8 @@ export default function NotificationsScreen() {
         onScroll={(event) => {
           scrollYRef.current =
             event.nativeEvent.contentOffset.y;
+
+          scrollToTop.reportScroll(event);
         }}
         scrollEventThrottle={16}
         refreshing={notificationsRefreshing}

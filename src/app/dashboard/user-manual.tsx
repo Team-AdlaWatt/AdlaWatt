@@ -22,6 +22,7 @@ import ManualSectionCard, {
   ManualSubRow,
 } from "@/components/ManualSectionCard";
 import ManualOpenButton from "@/components/ManualOpenButton";
+import { useScrollToTopController } from "@/hooks/useScrollToTopController";
 import { useTranslation } from "react-i18next";
 
 import {
@@ -76,6 +77,9 @@ export default function UserManualScreen() {
   const scrollRef =
     useRef<ScrollView | null>(null);
 
+  const scrollToTop =
+    useScrollToTopController(scrollRef);
+
   const sectionTops =
     useRef<Record<string, number>>({});
 
@@ -118,7 +122,7 @@ export default function UserManualScreen() {
     };
 
   return (
-    <ScreenContainer2>
+    <ScreenContainer2 scrollToTop={scrollToTop}>
       {/* Fixed Navbar */}
       <NavBar />
 
@@ -132,6 +136,8 @@ export default function UserManualScreen() {
         showsVerticalScrollIndicator={
           false
         }
+        onScroll={scrollToTop.reportScroll}
+        scrollEventThrottle={16}
       >
         {/* Header */}
         <View style={styles.headerCard}>

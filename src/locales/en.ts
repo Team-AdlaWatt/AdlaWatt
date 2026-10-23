@@ -340,6 +340,7 @@ const en = {
   dashboard: {
     common: {
       pullToRefresh: "Pull down to refresh",
+      scrollToTop: "Scroll to top",
     },
     home: {
       title: "Dashboard",
