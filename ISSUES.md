@@ -507,7 +507,7 @@ shared redirect helper) and that URL is allowlisted in the Supabase project,
 so the link returns to the app instead of `localhost`.
 
 ---
-
+ 
 ### 16. Login with Google fails
 
 **Summary**

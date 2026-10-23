@@ -50,7 +50,7 @@ export default function ScreenContainer2({
             enabled={scrollToTop.enabled}
             onPress={scrollToTop.scrollToTop}
             rightOffset={screenPadding}
-            bottomOffset={4}
+            bottomOffset={16}
           />
         ) : null}
       </View>

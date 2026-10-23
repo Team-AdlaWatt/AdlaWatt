@@ -2297,7 +2297,7 @@ export default function ElectronicsModal({
               enabled={scrollToTop.enabled}
               onPress={scrollToTop.scrollToTop}
               rightOffset={Spacing.lg}
-              bottomOffset={Spacing.xs}
+              bottomOffset={Spacing.md}
             />
           </View>
 

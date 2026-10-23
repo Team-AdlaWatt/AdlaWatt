@@ -112,9 +112,6 @@ const getStyles = (
       height: Touch.target,
       borderRadius: Radius.round,
       zIndex: 20,
-      elevation: 8,
-      boxShadow:
-        "0px 4px 8px rgba(0,0,0,0.18)",
     },
 
     button: {
