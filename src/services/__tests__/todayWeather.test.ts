@@ -107,6 +107,18 @@ beforeEach(() => {
   mockFetch.mockReset();
 
   global.fetch = mockFetch as unknown as typeof fetch;
+  
+  try {
+    const { memoryCache } = require("@/services/memoryCache");
+    memoryCache.clear();
+  } catch {}
+  
+  try {
+    const wf = require("@/services/weatherForecast");
+    if (wf && wf.__clearInFlightTodayForTests) {
+      wf.__clearInFlightTodayForTests();
+    }
+  } catch {}
 
   return AsyncStorage.clear();
 });

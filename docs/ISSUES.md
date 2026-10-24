@@ -807,6 +807,139 @@ rules.
 
 ---
 
+### 25. feat(location): add sample coordinates for the location tracking
+
+**Summary**
+Location tracking relied entirely on the device's GPS/location services. When location permissions were denied, services were disabled, or in testing environments, there were no fallback coordinates. As a result, location-dependent features (like weather) failed to load or showed empty/error states without a sensible default.
+
+**Steps to Reproduce**
+1. Deny location permission on first launch, or disable location services.
+2. Open the app and navigate to the Dashboard/Weather screen.
+3. Observe how location-dependent data behaves.
+
+**Expected Behavior**
+When device location is unavailable or not permitted, the app should fall back to predefined sample coordinates for location tracking so that location-dependent features can still load with a reasonable default location.
+
+**Actual Behavior**
+No fallback coordinates existed. Location tracking failed and location-dependent features showed errors or remained empty with no default location applied.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Added sample coordinates for location tracking as a fallback. The app now uses these predefined coordinates when device location cannot be obtained, allowing location-dependent features to continue working in those scenarios.
+
+---
+
+### 26. chore: clean-up and organize the project folder
+
+**Summary**
+The repository root has accumulated many documentation and planning files. The goal is to tidy the structure by moving documentation into a root `docs/` folder while removing junk/unnecessary files that are no longer needed.
+
+**Steps to Reproduce**
+1. Browse the repository root.
+2. Notice many `.md` files and planning folders mixed with config/source files.
+
+**Expected Behavior**
+Documentation lives under `docs/` for organization, `README.md` stays at root, and only necessary files remain. Unused/junk files are removed.
+
+**Actual Behavior**
+Documentation is scattered across the root and some folders with spaces exist alongside source/config files.
+
+**Environment**
+- **Device:** Any
+- **App Version:** v1.0.0
+
+**Fixed:** Created `docs/` at root and moved documentation files into it (keeping their content), kept `README.md` at root, removed junk/unnecessary files (e.g. temp/backups/duplicates) that are no longer needed. Verified no broken internal references.
+
+---
+
+### 27. fix(analytics): keep analytics chart card shells visible with placeholders while data loads
+
+**Summary**
+On first open of the Analytics screen, the chart card shells do not appear until the analytics data finishes loading. Because entire card lists are conditionally rendered or hidden behind loading guards, users see a mostly blank screen when scrolling down before `get_analytics_report` and `get_analytics_summary` return results.
+
+**Steps to Reproduce**
+1. Open the app and go to Dashboard > Analytics.
+2. Load the screen on a fresh open or with a slower network.
+3. Scroll down through the active tab before the data finishes fetching.
+4. Observe that the chart cards are missing until the data loads.
+
+**Expected Behavior**
+All analytics chart card shells should render immediately on first load for the active tab, regardless of loading state. While waiting for data, each card should show a placeholder (e.g. "Waiting for graph and chart data...") inside it. Once the data arrives, the actual chart should render in place without layout shift.
+
+**Actual Behavior**
+Card shells are omitted during the initial fetch. The screen appears empty on first scroll and only shows the cards after data exists.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Render a fixed registry of chart cards per tab in `src/app/dashboard/analytics.tsx` unconditionally (no filtering by data presence). Move loading/empty states into `src/components/forms/AnalyticsChartCard.tsx` to display a waiting placeholder while loading and the correct "no data for this range" state when applicable. Prevent individual chart components from returning `null` on missing data, add `minHeight` to `AnalyticsChartCard` to reserve layout space, and remove any section-level early returns that hide entire card lists.
+
+---
+
+### 28. fix(ci): resolve test failures from request coalescing and in-memory cache
+
+**Summary**
+After adding request coalescing and in-memory caching for monitoring and weather refreshes, the CI Jest suite began failing due to cross-test pollution. The new singletons (`memoryCache` and the weather in-flight state) were persisting between tests, causing state leakage that broke existing test expectations.
+
+**Failing Tests**
+- `src/services/__tests__/todayWeather.test.ts`
+  - "getWeather coordinates › rounds raw coordinates outside coverage"
+  - "getWeather coordinates › a failed GPS fix throws location_unavailable"
+- `src/services/__tests__/monitoringCache.test.ts`
+  - "getMonitoringData write-through › error returns null without poisoning the cache"
+
+**Steps to Reproduce**
+1. Run the test suite after introducing the perf changes.
+2. Observe failures in the above tests due to stale cached/in-flight state from previous tests.
+3. CI exits with code 1.
+
+**Expected Behavior**
+Each test should run in isolation with a clean cache and in-flight state.
+
+**Actual Behavior**
+CI reported: 21 passed, 2 failed (23 suites total) and 308 passed, 14 failed (322 tests total). The failures were caused by shared cache/in-flight state leaking between tests, not production logic regressions.
+
+**Environment**
+- **CI:** GitHub Actions (Android Builds workflow)
+- **Stack:** Expo 57, React Native, TypeScript, Jest
+
+**Fixed:** Cleared `memoryCache` in the affected test `beforeEach` blocks and added `__clearInFlightTodayForTests()` to `src/services/weatherForecast.ts` to reset in-flight weather requests between tests. Test-only changes with no impact to production code paths or OTA.
+
+---
+
+### 29. fix(electronics): improve custom electronics modal keyboard handling and add name validation
+
+**Summary**
+The Add/Edit Custom Electronics modal has two issues: (1) when the on-screen keyboard opens, the action buttons (Cancel/Save) get pushed behind or hidden by the keyboard, and (2) there is no validation message like "Must be valid electronics name" displayed when the name is invalid.
+
+**Steps to Reproduce**
+1. Open the Electronics screen and tap "Add Custom Electronics" (or edit an existing custom electronics item).
+2. Tap the "Name" input field to open the keyboard.
+3. Observe that the Cancel/Save buttons may be hidden behind the keyboard.
+4. Enter an invalid name (or leave empty) and try to save - no constraint message is shown.
+
+**Expected Behavior**
+- The modal should stay above the keyboard with all action buttons visible and accessible.
+- When the electronics name is invalid/empty, display "Must be valid electronics name" below the name input field (matching the style of other validation messages in the app).
+- The Save/Add button should be disabled until both name and wattage are valid.
+- Both add and edit flows should behave consistently.
+
+**Actual Behavior**
+- Buttons get covered by the keyboard on smaller screens/devices.
+- No name validation message is displayed; users only see generic behavior.
+- Layout doesn't adapt well to keyboard appearance.
+
+**Environment**
+- **Device:** Android and iPhone
+- **App Version:** v1.0.0
+
+**Fixed:** Restructured `src/components/forms/CustomElectronicsModal.tsx` to use `KeyboardAvoidingView` with proper behavior/offsets, split layout into fixed header, scrollable content area, and fixed footer with buttons. Added name validation (alphanumeric, spaces, hyphens, parentheses allowed) with "Must be valid electronics name" error message displayed below the name input. Disabled confirm button when name or wattage is invalid. Applied consistent styling with existing validation messages.
+
+---
+
 ## Still To Do
 
 - Update the ESP32 firmware so watt_hours is reported on the 756 Wh scale.
