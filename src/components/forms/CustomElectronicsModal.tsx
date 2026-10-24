@@ -1,4 +1,8 @@
-import React, { useMemo } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import { Ionicons } from "@expo/vector-icons";
 
@@ -23,8 +27,11 @@ import {
   type AppColors,
 } from "@/hooks/useAppColors";
 import {
-  BATTERY_MAX_ELECTRONICS_W,
-} from "@/constants/battery";
+  CUSTOM_ELECTRONICS_HINT,
+  CUSTOM_ELECTRONICS_NAME_MAX_LENGTH,
+  sanitizeWattSide,
+  validateCustomElectronics,
+} from "@/lib/customElectronicsValidation";
 import {
   Radius,
 } from "@/constants/theme";
@@ -53,10 +60,6 @@ type CustomElectronicsModalProps = {
   onCancel: () => void;
   onAdd: () => void;
   onSave?: () => void;
-  // Live interval validity from the parent (same rules as
-  // submit): the confirm button can't move forward on
-  // incomplete or reversed intervals.
-  wattsValid: boolean;
   // Photo preview to display: a freshly picked local uri or
   // the stored uploaded url. Null renders the bundled
   // adlawatt icon — the default for every custom electronics.
@@ -74,11 +77,6 @@ const defaultPhoto = require(
 // Twin wattage inputs share the parent's single "min-max"
 // string: split for display, rejoin on edit. The parent's
 // validation, prefill, and resets work unchanged.
-// Strict per-side rule: digits, one dot, max 2 decimals,
-// max 3 integer digits, integer value at most
-// BATTERY_MAX_ELECTRONICS_W. Empty
-// is always fine (deletion never blocked). Rejected
-// keystrokes keep the previous text with no error flash.
 const splitWatts = (watts: string): [string, string] => {
   const dash = watts.indexOf("-");
 
@@ -89,42 +87,12 @@ const splitWatts = (watts: string): [string, string] => {
   return [watts.slice(0, dash), watts.slice(dash + 1)];
 };
 
-const sanitizeWattSide = (
-  text: string,
-): string | null => {
-  const clean = text.replace(/-/g, "");
-
-  if (clean === "") {
-    return "";
-  }
-
-  if (!/^\d{0,3}(\.\d{0,2})?$/.test(clean)) {
-    return null;
-  }
-
-  const intPart = clean.split(".")[0] ?? "";
-
-  if (intPart !== "" && Number(intPart) > BATTERY_MAX_ELECTRONICS_W) {
-    return null;
-  }
-
-  return clean;
-};
-
 const joinWatts = (min: string, max: string): string => {
   if (!min && !max) {
     return "";
   }
 
   return `${min}-${max}`;
-};
-
-const isValidElectronicsName = (name: string): boolean => {
-  const trimmed = name.trim();
-  if (trimmed.length === 0) {
-    return false;
-  }
-  return /^[a-zA-Z0-9\s\-\(\)\.]+$/.test(trimmed);
 };
 
 export default function CustomElectronicsModal({
@@ -138,7 +106,6 @@ export default function CustomElectronicsModal({
   onCancel,
   onAdd,
   onSave,
-  wattsValid,
   photoPreview,
   photoBusy,
   onPhotoPress,
@@ -149,6 +116,16 @@ export default function CustomElectronicsModal({
     () => getStyles(colors),
     [colors],
   );
+
+  const [attemptedSubmit, setAttemptedSubmit] =
+    useState(false);
+
+  useEffect(() => {
+    if (!visible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset the submit attempt when the modal closes
+      setAttemptedSubmit(false);
+    }
+  }, [visible]);
 
   const { scaledSize, family, weight } =
     useTypography();
@@ -169,8 +146,37 @@ export default function CustomElectronicsModal({
     : onAdd;
 
   const [wattMin, wattMax] = splitWatts(watts);
-  const nameValid = isValidElectronicsName(name);
-  const showNameError = name.trim().length > 0 && !nameValid;
+  const validation = useMemo(
+    () => validateCustomElectronics(name, watts),
+    [name, watts],
+  );
+  const hasFieldContent =
+    name.trim().length > 0 || watts.trim().length > 0;
+  const showFieldError =
+    attemptedSubmit ||
+    (hasFieldContent && !validation.valid);
+  const showError =
+    Boolean(error) ||
+    (showFieldError && validation.message !== null);
+  const message = error
+    ? error
+    : showFieldError && validation.message
+      ? validation.message
+      : CUSTOM_ELECTRONICS_HINT;
+
+  const handleConfirmPress = () => {
+    if (photoBusy) {
+      return;
+    }
+
+    if (!validation.valid) {
+      setAttemptedSubmit(true);
+      return;
+    }
+
+    setAttemptedSubmit(false);
+    handleConfirm();
+  };
 
   const handleWattMinChange = (text: string) => {
     const clean = sanitizeWattSide(text);
@@ -277,6 +283,7 @@ export default function CustomElectronicsModal({
               colors.textSecondary
             }
             allowFontScaling={false}
+            maxLength={CUSTOM_ELECTRONICS_NAME_MAX_LENGTH}
             style={[styles.input, inputFontStyle]}
             accessibilityLabel={
               isEdit
@@ -284,15 +291,6 @@ export default function CustomElectronicsModal({
                 : "Add custom electronics name"
             }
           />
-
-          {showNameError ? (
-            <AppText
-              variant="caption"
-              style={styles.nameError}
-            >
-              Must be valid electronics name
-            </AppText>
-          ) : null}
 
           <View style={styles.wattsRow}>
             <TextInput
@@ -341,18 +339,22 @@ export default function CustomElectronicsModal({
               }
             />
           </View>
-
-          {error ? (
-            <AppText
-              variant="caption"
-              style={styles.customError}
-            >
-              {error}
-            </AppText>
-          ) : null}
         </ScrollView>
 
         <View style={styles.footer}>
+          <AppText
+            variant="caption"
+            style={[
+              styles.footerMessage,
+              showError
+                ? styles.footerMessageError
+                : styles.footerMessageHint,
+            ]}
+            accessibilityLiveRegion="polite"
+          >
+            {message}
+          </AppText>
+
           <View style={styles.customActions}>
             <Pressable
               onPress={onCancel}
@@ -378,17 +380,16 @@ export default function CustomElectronicsModal({
             </Pressable>
 
             <Pressable
-              onPress={handleConfirm}
-              disabled={
-                !nameValid || !wattsValid || photoBusy
-              }
+              onPress={handleConfirmPress}
+              disabled={photoBusy}
               style={({ pressed }) => [
                 styles.customAction,
                 styles.addAction,
-                pressed && nameValid && wattsValid && !photoBusy && styles.pressed,
+                pressed && !photoBusy && styles.pressed,
                 photoBusy && styles.pressed,
               ]}
               accessibilityRole="button"
+              accessibilityState={{ disabled: photoBusy }}
               accessibilityLabel={
                 isEdit
                   ? "Save custom electronics"
@@ -499,24 +500,24 @@ const getStyles = (colors: AppColors) =>
       fontWeight: "700",
     },
 
-    nameError: {
-      color: colors.error,
-      fontSize: 12,
-      fontWeight: "600",
-      marginBottom: 8,
-      marginTop: -2,
-    },
-
-    customError: {
-      color: colors.error,
-      fontSize: 12,
-      fontWeight: "600",
-      marginBottom: 2,
-    },
-
     footer: {
       width: "100%",
       paddingTop: 4,
+    },
+
+    footerMessage: {
+      fontSize: 12,
+      lineHeight: 16,
+      marginBottom: 8,
+    },
+
+    footerMessageHint: {
+      color: colors.textSecondary,
+    },
+
+    footerMessageError: {
+      color: colors.error,
+      fontWeight: "600",
     },
 
     customActions: {
