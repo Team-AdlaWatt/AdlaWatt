@@ -11,6 +11,8 @@ import {
   getAuthenticatedUserSafe,
   supabase,
 } from "@/lib/supabase";
+import { requestManager } from "@/services/requestManager";
+import { memoryCache, CACHE_TTL } from "@/services/memoryCache";
 
 // ============================================================
 // TYPES
@@ -410,67 +412,84 @@ export const getMonitoringData =
       return null;
     }
 
-    const {
-      data,
-      error,
-    } = await supabase
-      .from("monitoring")
-      .select(`
-        battery_level,
-        battery_status,
-        time_remaining,
-        voltage,
-        watt_hours,
-        solar_input,
-        solar_status,
-        solar_timer,
-        solar_voltage,
-        solar_current,
-        total_energy,
-        current_load,
-        device_status,
-        battery_temperature,
-        battery_temperature_status,
-        dod_status,
-        solar_temperature,
-        solar_temperature_status,
-        interior_temp,
-        interior_temp_status
-      `)
-      .eq(
-        "user_id",
-        user.id,
-      )
-      .maybeSingle();
-
-    if (error) {
-
-      console.error(
-        "Error loading monitoring data:",
-        error.message,
-      );
-
-      return null;
+    const cacheKey = `monitoring:${user.id}`;
+    
+    // Check memory cache first for fast response
+    const cached = memoryCache.get<MonitoringData>(cacheKey);
+    if (cached) {
+      return cached;
     }
 
-    if (!data) {
+    // Use request coalescing to prevent duplicate in-flight requests
+    return requestManager.execute(
+      RequestManager.userKey(user.id, "monitoring"),
+      async () => {
+        const {
+          data,
+          error,
+        } = await supabase
+          .from("monitoring")
+          .select(`
+            battery_level,
+            battery_status,
+            time_remaining,
+            voltage,
+            watt_hours,
+            solar_input,
+            solar_status,
+            solar_timer,
+            solar_voltage,
+            solar_current,
+            total_energy,
+            current_load,
+            device_status,
+            battery_temperature,
+            battery_temperature_status,
+            dod_status,
+            solar_temperature,
+            solar_temperature_status,
+            interior_temp,
+            interior_temp_status
+          `)
+          .eq(
+            "user_id",
+            user.id,
+          )
+          .maybeSingle();
 
-      return null;
-    }
+        if (error) {
 
-    const normalized =
-      normalizeMonitoringData(
-        data,
-      );
+          console.error(
+            "Error loading monitoring data:",
+            error.message,
+          );
 
-    // Fire-and-forget: the dashboard must never wait on
-    // storage, and a blocked store must not break reads.
-    void saveCachedMonitoring(
-      normalized,
-      user.id,
+          return null;
+        }
+
+        if (!data) {
+
+          return null;
+        }
+
+        const normalized =
+          normalizeMonitoringData(
+            data,
+          );
+
+        // Cache in memory for fast subsequent access
+        memoryCache.set(cacheKey, normalized, CACHE_TTL.MONITORING);
+
+        // Fire-and-forget: the dashboard must never wait on
+        // storage, and a blocked store must not break reads.
+        void saveCachedMonitoring(
+          normalized,
+          user.id,
+        );
+
+        return normalized;
+      }
     );
-
-    return normalized;
   };
 
 // ============================================================
@@ -586,11 +605,16 @@ export const subscribeToMonitoring =
               payload.new
             ) {
 
-              onChange(
-                normalizeMonitoringData(
-                  payload.new,
-                ),
+              const normalized = normalizeMonitoringData(
+                payload.new,
               );
+              // Update memory cache on realtime updates
+              memoryCache.set(
+                `monitoring:${user.id}`,
+                normalized,
+                CACHE_TTL.MONITORING
+              );
+              onChange(normalized);
             }
           },
         )
@@ -839,6 +863,8 @@ export const useMonitoring =
             setStale(false);
 
             setCachedAt(Date.now());
+            // Update memory cache on manual refresh
+            memoryCache.set(`monitoring:${cachedUser?.id ?? ""}`, data, CACHE_TTL.MONITORING);
           }
         } catch (error) {
           console.warn(
