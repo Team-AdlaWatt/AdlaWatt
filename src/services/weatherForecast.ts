@@ -909,6 +909,10 @@ export function getWeather(options?: {
   return inflightToday;
 }
 
+export function __clearInFlightTodayForTests() {
+  inflightToday = null;
+}
+
 async function runWeatherFetch(options?: {
   fresh?: boolean;
   coordinates?: Coordinates;
