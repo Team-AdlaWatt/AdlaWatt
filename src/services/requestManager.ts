@@ -97,4 +97,5 @@ class RequestManager {
   }
 }
 
+export { RequestManager };
 export const requestManager = new RequestManager();

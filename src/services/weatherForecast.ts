@@ -1,7 +1,7 @@
 import * as Location from "expo-location";
 
 import weatherJson from "@/data/weather.json";
-import { requestManager, RequestManager } from "@/services/requestManager";
+import { requestManager } from "@/services/requestManager";
 import { memoryCache, CACHE_TTL } from "@/services/memoryCache";
 import {
   formatApiError,
