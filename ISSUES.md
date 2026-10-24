@@ -807,6 +807,53 @@ rules.
 
 ---
 
+### 25. feat(location): add sample coordinates for the location tracking
+
+**Summary**
+Location tracking relied entirely on the device's GPS/location services. When location permissions were denied, services were disabled, or in testing environments, there were no fallback coordinates. As a result, location-dependent features (like weather) failed to load or showed empty/error states without a sensible default.
+
+**Steps to Reproduce**
+1. Deny location permission on first launch, or disable location services.
+2. Open the app and navigate to the Dashboard/Weather screen.
+3. Observe how location-dependent data behaves.
+
+**Expected Behavior**
+When device location is unavailable or not permitted, the app should fall back to predefined sample coordinates for location tracking so that location-dependent features can still load with a reasonable default location.
+
+**Actual Behavior**
+No fallback coordinates existed. Location tracking failed and location-dependent features showed errors or remained empty with no default location applied.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Added sample coordinates for location tracking as a fallback. The app now uses these predefined coordinates when device location cannot be obtained, allowing location-dependent features to continue working in those scenarios.
+
+---
+
+### 26. chore: clean-up and organize the project folder
+
+**Summary**
+The repository root has accumulated many documentation and planning files. The goal is to tidy the structure by moving documentation into a root `docs/` folder while removing junk/unnecessary files that are no longer needed.
+
+**Steps to Reproduce**
+1. Browse the repository root.
+2. Notice many `.md` files and planning folders mixed with config/source files.
+
+**Expected Behavior**
+Documentation lives under `docs/` for organization, `README.md` stays at root, and only necessary files remain. Unused/junk files are removed.
+
+**Actual Behavior**
+Documentation is scattered across the root and some folders with spaces exist alongside source/config files.
+
+**Environment**
+- **Device:** Any
+- **App Version:** v1.0.0
+
+**Fixed:** Created `docs/` at root and moved documentation files into it (keeping their content), kept `README.md` at root, removed junk/unnecessary files (e.g. temp/backups/duplicates) that are no longer needed. Verified no broken internal references.
+
+---
+
 ## Still To Do
 
 - Update the ESP32 firmware so watt_hours is reported on the 756 Wh scale.
