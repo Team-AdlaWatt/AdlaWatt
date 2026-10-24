@@ -11,11 +11,7 @@ import {
   getAuthenticatedUserSafe,
   supabase,
 } from "@/lib/supabase";
-import { requestManager } from "@/services/requestManager";
-import type { requestManager as RequestManagerType } from "@/services/requestManager";
-// Use requestManager instance's static methods via the class
-import { requestManager as _rm } from "@/services/requestManager";
-const RequestManager = (await import('@/services/requestManager')).RequestManager;
+import { requestManager, RequestManager } from "@/services/requestManager";
 import { memoryCache, CACHE_TTL } from "@/services/memoryCache";
 
 // ============================================================
