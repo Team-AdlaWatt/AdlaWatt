@@ -11,7 +11,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -209,13 +208,7 @@ export default function CustomElectronicsModal({
         keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
         style={styles.keyboardAvoid}
       >
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          bounces={false}
-        >
+        <View style={styles.content}>
           <AppText
             variant="caption"
             style={styles.infoNote}
@@ -338,8 +331,8 @@ export default function CustomElectronicsModal({
                   : "Add maximum wattage"
               }
             />
+            </View>
           </View>
-        </ScrollView>
 
         <View style={styles.footer}>
           <AppText
