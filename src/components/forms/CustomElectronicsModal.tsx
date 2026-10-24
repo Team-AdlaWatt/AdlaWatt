@@ -159,9 +159,9 @@ export default function CustomElectronicsModal({
     (showFieldError && validation.message !== null);
   const message = error
     ? error
-    : showFieldError && validation.message
-      ? validation.message
-      : CUSTOM_ELECTRONICS_HINT;
+    : !validation.valid && (attemptedSubmit || hasFieldContent)
+      ? CUSTOM_ELECTRONICS_HINT
+      : "";
 
   const handleConfirmPress = () => {
     if (photoBusy) {
