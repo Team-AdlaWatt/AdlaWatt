@@ -409,26 +409,21 @@ const getStyles = (colors: AppColors) =>
       width: "100%",
     },
 
-    scrollView: {
+    content: {
       width: "100%",
-      maxHeight: 420,
-    },
-
-    scrollContent: {
-      width: "100%",
-      paddingBottom: 4,
+      flexShrink: 1,
     },
 
     infoNote: {
       color: colors.textSecondary,
       fontSize: 12,
       lineHeight: 17,
-      marginBottom: 10,
+      marginBottom: 6,
     },
 
     photoDisplay: {
-      width: "100%",
-      aspectRatio: 1,
+      width: 110,
+      height: 110,
       borderRadius: Radius.md,
       borderWidth: 2,
       borderColor: colors.border,
@@ -437,6 +432,7 @@ const getStyles = (colors: AppColors) =>
       alignItems: "center",
       justifyContent: "center",
       marginBottom: 8,
+      alignSelf: "center",
     },
 
     photoDisplayImage: {
@@ -455,7 +451,7 @@ const getStyles = (colors: AppColors) =>
       borderWidth: 2,
       borderColor: colors.primary,
       borderRadius: Radius.md,
-      marginBottom: 16,
+      marginBottom: 8,
     },
 
     photoButtonText: {
