@@ -854,6 +854,31 @@ Documentation is scattered across the root and some folders with spaces exist al
 
 ---
 
+### 27. fix(analytics): keep analytics chart card shells visible with placeholders while data loads
+
+**Summary**
+On first open of the Analytics screen, the chart card shells do not appear until the analytics data finishes loading. Because entire card lists are conditionally rendered or hidden behind loading guards, users see a mostly blank screen when scrolling down before `get_analytics_report` and `get_analytics_summary` return results.
+
+**Steps to Reproduce**
+1. Open the app and go to Dashboard > Analytics.
+2. Load the screen on a fresh open or with a slower network.
+3. Scroll down through the active tab before the data finishes fetching.
+4. Observe that the chart cards are missing until the data loads.
+
+**Expected Behavior**
+All analytics chart card shells should render immediately on first load for the active tab, regardless of loading state. While waiting for data, each card should show a placeholder (e.g. "Waiting for graph and chart data...") inside it. Once the data arrives, the actual chart should render in place without layout shift.
+
+**Actual Behavior**
+Card shells are omitted during the initial fetch. The screen appears empty on first scroll and only shows the cards after data exists.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Render a fixed registry of chart cards per tab in `src/app/dashboard/analytics.tsx` unconditionally (no filtering by data presence). Move loading/empty states into `src/components/forms/AnalyticsChartCard.tsx` to display a waiting placeholder while loading and the correct "no data for this range" state when applicable. Prevent individual chart components from returning `null` on missing data, add `minHeight` to `AnalyticsChartCard` to reserve layout space, and remove any section-level early returns that hide entire card lists.
+
+---
+
 ## Still To Do
 
 - Update the ESP32 firmware so watt_hours is reported on the 756 Wh scale.
