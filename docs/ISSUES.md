@@ -879,6 +879,67 @@ Card shells are omitted during the initial fetch. The screen appears empty on fi
 
 ---
 
+### 28. fix(ci): resolve test failures from request coalescing and in-memory cache
+
+**Summary**
+After adding request coalescing and in-memory caching for monitoring and weather refreshes, the CI Jest suite began failing due to cross-test pollution. The new singletons (`memoryCache` and the weather in-flight state) were persisting between tests, causing state leakage that broke existing test expectations.
+
+**Failing Tests**
+- `src/services/__tests__/todayWeather.test.ts`
+  - "getWeather coordinates › rounds raw coordinates outside coverage"
+  - "getWeather coordinates › a failed GPS fix throws location_unavailable"
+- `src/services/__tests__/monitoringCache.test.ts`
+  - "getMonitoringData write-through › error returns null without poisoning the cache"
+
+**Steps to Reproduce**
+1. Run the test suite after introducing the perf changes.
+2. Observe failures in the above tests due to stale cached/in-flight state from previous tests.
+3. CI exits with code 1.
+
+**Expected Behavior**
+Each test should run in isolation with a clean cache and in-flight state.
+
+**Actual Behavior**
+CI reported: 21 passed, 2 failed (23 suites total) and 308 passed, 14 failed (322 tests total). The failures were caused by shared cache/in-flight state leaking between tests, not production logic regressions.
+
+**Environment**
+- **CI:** GitHub Actions (Android Builds workflow)
+- **Stack:** Expo 57, React Native, TypeScript, Jest
+
+**Fixed:** Cleared `memoryCache` in the affected test `beforeEach` blocks and added `__clearInFlightTodayForTests()` to `src/services/weatherForecast.ts` to reset in-flight weather requests between tests. Test-only changes with no impact to production code paths or OTA.
+
+---
+
+### 29. fix(electronics): improve custom electronics modal keyboard handling and add name validation
+
+**Summary**
+The Add/Edit Custom Electronics modal has two issues: (1) when the on-screen keyboard opens, the action buttons (Cancel/Save) get pushed behind or hidden by the keyboard, and (2) there is no validation message like "Must be valid electronics name" displayed when the name is invalid.
+
+**Steps to Reproduce**
+1. Open the Electronics screen and tap "Add Custom Electronics" (or edit an existing custom electronics item).
+2. Tap the "Name" input field to open the keyboard.
+3. Observe that the Cancel/Save buttons may be hidden behind the keyboard.
+4. Enter an invalid name (or leave empty) and try to save - no constraint message is shown.
+
+**Expected Behavior**
+- The modal should stay above the keyboard with all action buttons visible and accessible.
+- When the electronics name is invalid/empty, display "Must be valid electronics name" below the name input field (matching the style of other validation messages in the app).
+- The Save/Add button should be disabled until both name and wattage are valid.
+- Both add and edit flows should behave consistently.
+
+**Actual Behavior**
+- Buttons get covered by the keyboard on smaller screens/devices.
+- No name validation message is displayed; users only see generic behavior.
+- Layout doesn't adapt well to keyboard appearance.
+
+**Environment**
+- **Device:** Android and iPhone
+- **App Version:** v1.0.0
+
+**Fixed:** Restructured `src/components/forms/CustomElectronicsModal.tsx` to use `KeyboardAvoidingView` with proper behavior/offsets, split layout into fixed header, scrollable content area, and fixed footer with buttons. Added name validation (alphanumeric, spaces, hyphens, parentheses allowed) with "Must be valid electronics name" error message displayed below the name input. Disabled confirm button when name or wattage is invalid. Applied consistent styling with existing validation messages.
+
+---
+
 ## Still To Do
 
 - Update the ESP32 firmware so watt_hours is reported on the 756 Wh scale.

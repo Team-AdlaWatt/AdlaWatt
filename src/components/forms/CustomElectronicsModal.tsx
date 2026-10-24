@@ -4,7 +4,10 @@ import { Ionicons } from "@expo/vector-icons";
 
 import {
   Image,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -116,6 +119,14 @@ const joinWatts = (min: string, max: string): string => {
   return `${min}-${max}`;
 };
 
+const isValidElectronicsName = (name: string): boolean => {
+  const trimmed = name.trim();
+  if (trimmed.length === 0) {
+    return false;
+  }
+  return /^[a-zA-Z0-9\s\-\(\)\.]+$/.test(trimmed);
+};
+
 export default function CustomElectronicsModal({
   visible,
   mode = "add",
@@ -158,6 +169,8 @@ export default function CustomElectronicsModal({
     : onAdd;
 
   const [wattMin, wattMax] = splitWatts(watts);
+  const nameValid = isValidElectronicsName(name);
+  const showNameError = name.trim().length > 0 && !nameValid;
 
   const handleWattMinChange = (text: string) => {
     const clean = sanitizeWattSide(text);
@@ -185,194 +198,233 @@ export default function CustomElectronicsModal({
       title={title}
       onClose={onCancel}
     >
-      <AppText
-        variant="caption"
-        style={styles.infoNote}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
+        style={styles.keyboardAvoid}
       >
-        Check the electronics wattage first, for
-        example, soldering wire may use 15-25W.
-      </AppText>
-
-      {/* Photo display on top, picker button below it,
-          with a section break before the fields. */}
-      <View style={styles.photoDisplay}>
-        <Image
-          source={
-            photoPreview
-              ? { uri: photoPreview }
-              : defaultPhoto
-          }
-          style={styles.photoDisplayImage}
-          resizeMode="contain"
-          accessibilityLabel={
-            photoPreview
-              ? "Custom electronics photo"
-              : "Default electronics icon"
-          }
-        />
-      </View>
-
-      <Pressable
-        onPress={onPhotoPress}
-        disabled={photoBusy}
-        style={({ pressed }) => [
-          styles.photoButton,
-          pressed && !photoBusy && styles.pressed,
-          photoBusy && styles.pressed,
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel={
-          photoPreview
-            ? "Change electronics photo"
-            : "Add electronics photo"
-        }
-        accessibilityHint="Opens the photo picker"
-      >
-        <Ionicons
-          name="camera"
-          size={20}
-          color={colors.onPrimary}
-        />
-
-        <AppText
-          variant="caption"
-          style={styles.photoButtonText}
-        >
-          {photoPreview
-            ? "Change Photo"
-            : "Add Photo"}
-        </AppText>
-      </Pressable>
-
-      <TextInput
-        value={name}
-        onChangeText={onNameChange}
-        placeholder="Enter valid electronics name"
-        placeholderTextColor={
-          colors.textSecondary
-        }
-        allowFontScaling={false}
-        style={[styles.input, inputFontStyle]}
-        accessibilityLabel={
-          isEdit
-            ? "Edit custom electronics name"
-            : "Add custom electronics name"
-        }
-      />
-
-      <View style={styles.wattsRow}>
-        <TextInput
-          value={wattMin}
-          onChangeText={handleWattMinChange}
-          placeholder="Min (W)"
-          placeholderTextColor={
-            colors.textSecondary
-          }
-          allowFontScaling={false}
-          style={[
-            styles.input,
-            styles.wattsInput,
-            inputFontStyle,
-          ]}
-          keyboardType="numeric"
-          accessibilityLabel={
-            isEdit
-              ? "Edit minimum wattage"
-              : "Add minimum wattage"
-          }
-        />
-
-        <AppText style={styles.wattsDash}>
-          –
-        </AppText>
-
-        <TextInput
-          value={wattMax}
-          onChangeText={handleWattMaxChange}
-          placeholder="Max (W)"
-          placeholderTextColor={
-            colors.textSecondary
-          }
-          allowFontScaling={false}
-          style={[
-            styles.input,
-            styles.wattsInput,
-            inputFontStyle,
-          ]}
-          keyboardType="numeric"
-          accessibilityLabel={
-            isEdit
-              ? "Edit maximum wattage"
-              : "Add maximum wattage"
-          }
-        />
-      </View>
-
-      {error ? (
-        <AppText
-          variant="caption"
-          style={styles.customError}
-        >
-          {error}
-        </AppText>
-      ) : null}
-
-      <View style={styles.customActions}>
-        <Pressable
-          onPress={onCancel}
-          disabled={photoBusy}
-          style={({ pressed }) => [
-            styles.customAction,
-            styles.cancelAction,
-            pressed && !photoBusy && styles.pressed,
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel={
-            isEdit
-              ? "Cancel edit custom electronics"
-              : "Cancel add custom electronics"
-          }
+        <ScrollView
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
         >
           <AppText
             variant="caption"
-            style={styles.cancelText}
+            style={styles.infoNote}
           >
-            Cancel
+            Check the electronics wattage first, for
+            example, soldering wire may use 15-25W.
           </AppText>
-        </Pressable>
 
-        <Pressable
-          onPress={handleConfirm}
-          disabled={
-            !name.trim() || !wattsValid || photoBusy
-          }
-          style={({ pressed }) => [
-            styles.customAction,
-            styles.addAction,
-            pressed && !photoBusy && styles.pressed,
-            photoBusy && styles.pressed,
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel={
-            isEdit
-              ? "Save custom electronics"
-              : "Add custom electronics"
-          }
-        >
-          <AppText
-            variant="caption"
-            style={styles.addText}
+          {/* Photo display on top, picker button below it,
+              with a section break before the fields. */}
+          <View style={styles.photoDisplay}>
+            <Image
+              source={
+                photoPreview
+                  ? { uri: photoPreview }
+                  : defaultPhoto
+              }
+              style={styles.photoDisplayImage}
+              resizeMode="contain"
+              accessibilityLabel={
+                photoPreview
+                  ? "Custom electronics photo"
+                  : "Default electronics icon"
+              }
+            />
+          </View>
+
+          <Pressable
+            onPress={onPhotoPress}
+            disabled={photoBusy}
+            style={({ pressed }) => [
+              styles.photoButton,
+              pressed && !photoBusy && styles.pressed,
+              photoBusy && styles.pressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={
+              photoPreview
+                ? "Change electronics photo"
+                : "Add electronics photo"
+            }
+            accessibilityHint="Opens the photo picker"
           >
-            {photoBusy ? "Saving…" : confirmLabel}
-          </AppText>
-        </Pressable>
-      </View>
+            <Ionicons
+              name="camera"
+              size={20}
+              color={colors.onPrimary}
+            />
+
+            <AppText
+              variant="caption"
+              style={styles.photoButtonText}
+            >
+              {photoPreview
+                ? "Change Photo"
+                : "Add Photo"}
+            </AppText>
+          </Pressable>
+
+          <TextInput
+            value={name}
+            onChangeText={onNameChange}
+            placeholder="Enter valid electronics name"
+            placeholderTextColor={
+              colors.textSecondary
+            }
+            allowFontScaling={false}
+            style={[styles.input, inputFontStyle]}
+            accessibilityLabel={
+              isEdit
+                ? "Edit custom electronics name"
+                : "Add custom electronics name"
+            }
+          />
+
+          {showNameError ? (
+            <AppText
+              variant="caption"
+              style={styles.nameError}
+            >
+              Must be valid electronics name
+            </AppText>
+          ) : null}
+
+          <View style={styles.wattsRow}>
+            <TextInput
+              value={wattMin}
+              onChangeText={handleWattMinChange}
+              placeholder="Min (W)"
+              placeholderTextColor={
+                colors.textSecondary
+              }
+              allowFontScaling={false}
+              style={[
+                styles.input,
+                styles.wattsInput,
+                inputFontStyle,
+              ]}
+              keyboardType="numeric"
+              accessibilityLabel={
+                isEdit
+                  ? "Edit minimum wattage"
+                  : "Add minimum wattage"
+              }
+            />
+
+            <AppText style={styles.wattsDash}>
+              –
+            </AppText>
+
+            <TextInput
+              value={wattMax}
+              onChangeText={handleWattMaxChange}
+              placeholder="Max (W)"
+              placeholderTextColor={
+                colors.textSecondary
+              }
+              allowFontScaling={false}
+              style={[
+                styles.input,
+                styles.wattsInput,
+                inputFontStyle,
+              ]}
+              keyboardType="numeric"
+              accessibilityLabel={
+                isEdit
+                  ? "Edit maximum wattage"
+                  : "Add maximum wattage"
+              }
+            />
+          </View>
+
+          {error ? (
+            <AppText
+              variant="caption"
+              style={styles.customError}
+            >
+              {error}
+            </AppText>
+          ) : null}
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <View style={styles.customActions}>
+            <Pressable
+              onPress={onCancel}
+              disabled={photoBusy}
+              style={({ pressed }) => [
+                styles.customAction,
+                styles.cancelAction,
+                pressed && !photoBusy && styles.pressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={
+                isEdit
+                  ? "Cancel edit custom electronics"
+                  : "Cancel add custom electronics"
+              }
+            >
+              <AppText
+                variant="caption"
+                style={styles.cancelText}
+              >
+                Cancel
+              </AppText>
+            </Pressable>
+
+            <Pressable
+              onPress={handleConfirm}
+              disabled={
+                !nameValid || !wattsValid || photoBusy
+              }
+              style={({ pressed }) => [
+                styles.customAction,
+                styles.addAction,
+                pressed && nameValid && wattsValid && !photoBusy && styles.pressed,
+                photoBusy && styles.pressed,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={
+                isEdit
+                  ? "Save custom electronics"
+                  : "Add custom electronics"
+              }
+            >
+              <AppText
+                variant="caption"
+                style={styles.addText}
+              >
+                {photoBusy ? "Saving…" : confirmLabel}
+              </AppText>
+            </Pressable>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
     </DropdownModal>
   );
 }
 
 const getStyles = (colors: AppColors) =>
   StyleSheet.create({
+    keyboardAvoid: {
+      width: "100%",
+    },
+
+    scrollView: {
+      width: "100%",
+      maxHeight: 420,
+    },
+
+    scrollContent: {
+      width: "100%",
+      paddingBottom: 4,
+    },
+
     infoNote: {
       color: colors.textSecondary,
       fontSize: 12,
@@ -447,6 +499,14 @@ const getStyles = (colors: AppColors) =>
       fontWeight: "700",
     },
 
+    nameError: {
+      color: colors.error,
+      fontSize: 12,
+      fontWeight: "600",
+      marginBottom: 8,
+      marginTop: -2,
+    },
+
     customError: {
       color: colors.error,
       fontSize: 12,
@@ -454,10 +514,15 @@ const getStyles = (colors: AppColors) =>
       marginBottom: 2,
     },
 
+    footer: {
+      width: "100%",
+      paddingTop: 4,
+    },
+
     customActions: {
       flexDirection: "row",
       gap: 10,
-      marginTop: 10,
+      marginTop: 6,
     },
 
     customAction: {
@@ -488,7 +553,7 @@ const getStyles = (colors: AppColors) =>
       fontWeight: "700",
     },
 
-  pressed: {
-    opacity: 0.7,
-  },
-});
+    pressed: {
+      opacity: 0.7,
+    },
+  });
