@@ -132,7 +132,6 @@ export default function AnalyticsChartCard({
                 variant="caption"
                 style={styles.placeholderText}
                 numberOfLines={2}
-                textAlign="center"
               >
                 Waiting for graph and chart data...
               </AppText>
@@ -143,7 +142,7 @@ export default function AnalyticsChartCard({
                 variant="caption"
                 style={styles.placeholderText}
                 numberOfLines={2}
-                textAlign="center"
+
               >
                 {emptyMessage}
               </AppText>
@@ -241,7 +240,7 @@ const getStyles = (colors: AppColors) =>
 
     placeholderText: {
       color: colors.textSecondary,
-      textAlign: "center",
+      
     },
 
     pressed: {
