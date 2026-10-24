@@ -37,7 +37,6 @@ import ScrollToTopButton from "@/components/layout/ScrollToTopButton";
 
 import {
   BATTERY_CAPACITY_WH,
-  BATTERY_MAX_ELECTRONICS_W,
 } from "@/constants/battery";
 import { Colors } from "@/constants/colors";
 import {
@@ -60,6 +59,10 @@ import {
 import { Control, Touch } from "@/constants/sizing";
 
 import { getAuthenticatedUserSafe, supabase } from "@/lib/supabase";
+import {
+  parseCustomWattInterval,
+  validateCustomElectronics,
+} from "@/lib/customElectronicsValidation";
 
 type Electronics = {
   id: string;
@@ -157,34 +160,6 @@ const formatCustomWatts = (
   return "";
 };
 
-/* Parses "15-25" / "15 - 25" / "15.5-25.5" into { min, max }. */
-const parseWattInterval = (
-  raw: string,
-): { min: number; max: number } | null => {
-  const match = raw.match(
-    /^(\d+(?:\.\d{1,2})?)\s*-\s*(\d+(?:\.\d{1,2})?)$/,
-  );
-
-  if (!match) {
-    return null;
-  }
-
-  const min = Number(match[1]);
-  const max = Number(match[2]);
-
-  if (
-    !Number.isFinite(min) ||
-    !Number.isFinite(max) ||
-    min < 1 ||
-    max > BATTERY_MAX_ELECTRONICS_W ||
-    min > max
-  ) {
-    return null;
-  }
-
-  return { min, max };
-};
-
 /*
  * UI area colors
  */
@@ -249,19 +224,10 @@ export default function ElectronicsModal({
   // incomplete ("12-") or reversed ("756-129"). The confirm
   // button stays disabled until the whole interval passes
   // the exact submit rules below.
-  const customWattsValid = useMemo(() => {
-    const text = customWatts.trim();
-
-    if (
-      !/^\d+(\.\d{1,2})?\s*-\s*\d+(\.\d{1,2})?$/.test(
-        text,
-      )
-    ) {
-      return false;
-    }
-
-    return parseWattInterval(text) !== null;
-  }, [customWatts]);
+  const customWattsValid = useMemo(
+    () => parseCustomWattInterval(customWatts) !== null,
+    [customWatts],
+  );
 
   const [customError, setCustomError] =
     useState("");
@@ -851,35 +817,21 @@ export default function ElectronicsModal({
   // ============================================================
 
   const handleCustomAdd = async () => {
+    const validation = validateCustomElectronics(
+      customName,
+      customWatts,
+    );
+
+    if (!validation.valid || !validation.interval) {
+      setCustomError(
+        validation.message ??
+          "Please check the electronics details.",
+      );
+      return;
+    }
+
     const name = customName.trim();
-    const wattsRaw = customWatts.trim();
-
-    if (
-      !/^[A-Za-z][A-Za-z0-9 /&.'-]{2,49}$/.test(
-        name,
-      )
-    ) {
-      setCustomError(
-        "Electronics item name must be valid and readable.",
-      );
-      return;
-    }
-
-    if (!/^\d+(\.\d{1,2})?\s*-\s*\d+(\.\d{1,2})?$/.test(wattsRaw)) {
-      setCustomError(
-        "Enter wattage interval, for example 15-25.",
-      );
-      return;
-    }
-
-    const interval = parseWattInterval(wattsRaw);
-
-    if (!interval) {
-      setCustomError(
-        `Enter a valid wattage interval between 1W and ${BATTERY_MAX_ELECTRONICS_W}W.`,
-      );
-      return;
-    }
+    const interval = validation.interval;
 
     const user = await getAuthenticatedUserSafe();
 
@@ -1034,35 +986,21 @@ export default function ElectronicsModal({
   const handleCustomUpdate = async () => {
     if (!editingCustom) return;
 
+    const validation = validateCustomElectronics(
+      customName,
+      customWatts,
+    );
+
+    if (!validation.valid || !validation.interval) {
+      setCustomError(
+        validation.message ??
+          "Please check the electronics details.",
+      );
+      return;
+    }
+
     const name = customName.trim();
-    const wattsRaw = customWatts.trim();
-
-    if (
-      !/^[A-Za-z][A-Za-z0-9 /&.'-]{2,49}$/.test(
-        name,
-      )
-    ) {
-      setCustomError(
-        "Enter a valid electronics item name.",
-      );
-      return;
-    }
-
-    if (!/^\d+(\.\d{1,2})?\s*-\s*\d+(\.\d{1,2})?$/.test(wattsRaw)) {
-      setCustomError(
-        "Enter wattage interval, for example 15-25.",
-      );
-      return;
-    }
-
-    const interval = parseWattInterval(wattsRaw);
-
-    if (!interval) {
-      setCustomError(
-        `Enter a valid wattage interval between 1W and ${BATTERY_MAX_ELECTRONICS_W}W.`,
-      );
-      return;
-    }
+    const interval = validation.interval;
 
     const user = await getAuthenticatedUserSafe();
 
