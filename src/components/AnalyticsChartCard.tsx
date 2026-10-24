@@ -29,7 +29,10 @@ export interface AnalyticsChartCardProps {
   onFrequencyChange?: (
     frequency: ChartFrequency,
   ) => void;
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  loading?: boolean;
+  hasData?: boolean;
+  emptyMessage?: string;
 }
 
 /* ============================================================
@@ -43,6 +46,9 @@ export default function AnalyticsChartCard({
   frequency,
   onFrequencyChange,
   children,
+  loading = false,
+  hasData = true,
+  emptyMessage = "No data for this range",
 }: AnalyticsChartCardProps) {
   const colors = useAppColors();
 
@@ -53,9 +59,10 @@ export default function AnalyticsChartCard({
 
   return (
     <View
-      style={
-        styles.card
-      }
+      style={[
+        styles.card,
+        styles.cardMinHeight,
+      ]}
     >
       {/* Header / Accent Panel */}
       <View
@@ -119,7 +126,31 @@ export default function AnalyticsChartCard({
             styles.chartArea
           }
         >
-          {children}
+          {loading ? (
+            <View style={styles.placeholderContainer}>
+              <AppText
+                variant="caption"
+                style={styles.placeholderText}
+                numberOfLines={2}
+                textAlign="center"
+              >
+                Waiting for graph and chart data...
+              </AppText>
+            </View>
+          ) : !hasData ? (
+            <View style={styles.placeholderContainer}>
+              <AppText
+                variant="caption"
+                style={styles.placeholderText}
+                numberOfLines={2}
+                textAlign="center"
+              >
+                {emptyMessage}
+              </AppText>
+            </View>
+          ) : (
+            children
+          )}
         </View>
       </View>
     </View>
@@ -144,6 +175,10 @@ const getStyles = (colors: AppColors) =>
       alignItems: "stretch",
       overflow: "hidden",
       marginBottom: 18,
+    },
+
+    cardMinHeight: {
+      minHeight: 280,
     },
 
     headerPanel: {
@@ -192,6 +227,21 @@ const getStyles = (colors: AppColors) =>
     chartArea: {
       width: "100%",
       alignItems: "stretch",
+      minHeight: 200,
+      justifyContent: "center",
+    },
+
+    placeholderContainer: {
+      width: "100%",
+      minHeight: 200,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 16,
+    },
+
+    placeholderText: {
+      color: colors.textSecondary,
+      textAlign: "center",
     },
 
     pressed: {
