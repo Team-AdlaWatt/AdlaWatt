@@ -124,8 +124,8 @@ The Dashboard is the home screen. It updates in real time whenever the AdlaWatt 
 - **Solar input** — incoming power in watts right now.
 - **Solar status** — *Low*, *Moderate*, or *High*.
 - **Details** — solar voltage, current, charging timer, and total energy harvested.
-- **Weather card** — current temperature, conditions, and location for your area (needs location permission), refreshing about every 10 minutes.
-- **5-day solar outlook** — groups the forecast into daily summaries with a solar outlook (High / Moderate / Low) and names the best sun day. Use it to plan high-draw electronics use on sunny days and conserve when a low-sun stretch is coming.
+- **Weather card** — current temperature, conditions, and location for your area (needs location permission), refreshing about every 10 minutes. Within 10 km of a configured Bukidnon point, the app uses that point's exact coordinates for both current weather and forecast and shows a local location label. Outside coverage, it shows a notice and uses your raw GPS location.
+- **5-day solar outlook** — groups the forecast into daily summaries with a solar outlook (High / Moderate / Low) and names the best sun day. Use it to plan high-draw electronics use on sunny days and conserve when a low-sun stretch is coming. The 4-day rows show condition, high temperature in Celsius, daily max feels-like temperature, and solar outlook without rain-chance percentages.
 
 ### Load, temperature, and device
 

@@ -4,13 +4,17 @@ import weatherJson from "@/data/weather.json";
 import {
   formatApiError,
   formatCoordFallback,
+  formatLocalPlaceLabel,
   formatNetworkError,
   formatTimeoutError,
+  getCoverageRadiusKm,
   getFeelsMode,
   getFeelsOffsetC,
+  getLocalPlaces,
   resolveFeelsLike,
   roundTemperature,
   type FeelsLikeSource,
+  type LocalPlace,
 } from "@/services/weatherConfig";
 
 // ============================================================
@@ -24,7 +28,9 @@ import {
 //      every call — a denial is never cached in app state).
 //      Denials and unavailable GPS throw; there is no
 //      silent fallback point.
-//   3. Read the current GPS coordinates (high accuracy).
+//   3. Read the current GPS coordinates (high accuracy) and
+//      snap to the nearest configured Bukidnon sample within
+//      the coverage radius; otherwise keep the raw fix.
 //   4. Call OpenWeatherMap Current Weather:
 //      /data/2.5/weather?lat={lat}&lon={lon}&appid={key}&units=metric
 //   5. Validate the response and map it to WeatherData.
@@ -77,6 +83,13 @@ export interface WeatherData {
   humidity?: number;
   description: string;
   city: string;
+  // True when no configured Bukidnon sample is within the
+  // coverage radius, so the raw GPS fix and OpenWeather city
+  // are used instead of a local place label.
+  outsideScope: boolean;
+  // Matched weather.json location id when the fix snapped to
+  // a configured Bukidnon sample.
+  localPlaceId?: string;
   // Stable OpenWeather group (Clear, Clouds, Rain, ...).
   // Kept for context; the Today card classifies by
   // conditionId, never by this string.
@@ -138,16 +151,19 @@ function validateApiKey(): void {
 }
 
 // ============================================================
-// LOCATION (LIVE GPS, EXACT POINT)
+// LOCATION (LIVE GPS, BUKIDNON SAMPLE SNAP)
 //
-// Each fetch uses the device's current GPS fix, so a user
-// gets their own coordinates — no curated city list and no
-// silent fallback point. Permission is re-requested on every
-// call (the OS shows the dialog only while undetermined; once
-// denied, the UI routes the user to app settings). Denied
-// permission, disabled services, or a failed fix throw a
-// descriptive WeatherError so the card can show a location
-// error state instead of another city's weather.
+// Each fetch uses the device's current GPS fix. Inside the
+// configured Bukidnon coverage radius, OpenWeather is asked
+// for the nearest sample's exact coordinates so current
+// weather and forecast stay on the same area. Outside
+// coverage, the raw fix is used and the UI shows a soft
+// notice. Permission is re-requested on every call (the OS
+// shows the dialog only while undetermined; once denied, the
+// UI routes the user to app settings). Denied permission,
+// disabled services, or a failed fix throw a descriptive
+// WeatherError so the card can show a location error state
+// instead of another city's weather.
 //
 // Coordinates round to coordDecimals (4 ≈ 11 m).
 // ============================================================
@@ -215,6 +231,69 @@ export function detectLocationChange(
     haversineDistanceKm(prev, next) >=
     LOCATION_CHANGE_THRESHOLD_KM
   );
+}
+
+// ============================================================
+// WEATHER LOCATION RESOLUTION
+//
+// Compare the live GPS fix with the configured Bukidnon
+// samples. Inside the coverage radius, OpenWeather is queried
+// at the sample's exact coordinates so current weather and
+// forecast stay pinned to the same area. Outside coverage,
+// the raw GPS fix is used and the UI shows the soft notice.
+// ============================================================
+
+export interface ResolvedWeatherLocation {
+  fix: Coordinates;
+  coordinates: Coordinates;
+  place: LocalPlace | null;
+  label: string | null;
+  outsideScope: boolean;
+  distanceKm: number;
+}
+
+export function resolveWeatherLocation(
+  fix: Coordinates,
+): ResolvedWeatherLocation {
+  const radiusKm = getCoverageRadiusKm();
+
+  let nearest: LocalPlace | null = null;
+  let nearestKm = Number.POSITIVE_INFINITY;
+
+  for (const place of getLocalPlaces()) {
+    const km = haversineDistanceKm(fix, {
+      lat: place.lat,
+      lon: place.lon,
+    });
+
+    if (km < nearestKm) {
+      nearest = place;
+      nearestKm = km;
+    }
+  }
+
+  if (nearest && nearestKm <= radiusKm) {
+    return {
+      fix,
+      coordinates: {
+        lat: nearest.lat,
+        lon: nearest.lon,
+      },
+      place: nearest,
+      label: formatLocalPlaceLabel(nearest),
+      outsideScope: false,
+      distanceKm: nearestKm,
+    };
+  }
+
+  return {
+    fix,
+    coordinates: fix,
+    place: null,
+    label: null,
+    outsideScope: true,
+    distanceKm: nearestKm,
+  };
 }
 
 // Last successful GPS fix of this app session (module scope:
@@ -490,7 +569,7 @@ function getTempOffsetC(isDay?: boolean): number {
 
 function parseWeatherResponse(
   data: unknown,
-  coordinates: Coordinates
+  location: ResolvedWeatherLocation
 ): WeatherData {
   if (
     !data ||
@@ -577,13 +656,14 @@ function parseWeatherResponse(
   }
 
   const city =
-    typeof payload.name === "string" &&
+    location.label ??
+    (typeof payload.name === "string" &&
     payload.name.trim().length > 0
       ? payload.name.trim()
       : formatCoordFallback(
-          coordinates.lat,
-          coordinates.lon
-        );
+          location.coordinates.lat,
+          location.coordinates.lon
+        ));
 
   const mainGroup =
     typeof rawMain === "string" &&
@@ -670,6 +750,10 @@ function parseWeatherResponse(
     description:
       description.trim(),
     city,
+    outsideScope: location.outsideScope,
+    ...(location.place
+      ? { localPlaceId: location.place.id }
+      : {}),
     ...(mainGroup
       ? { mainGroup }
       : {}),
@@ -695,7 +779,7 @@ function isDev(): boolean {
 }
 
 function debugTodayReading(
-  coordinates: Coordinates,
+  location: ResolvedWeatherLocation,
   raw: unknown,
   data: WeatherData,
 ): void {
@@ -726,8 +810,15 @@ function debugTodayReading(
   const parsed = data as Partial<WeatherData>;
 
   console.debug("[today-weather]", {
-    lat: coordinates.lat,
-    lon: coordinates.lon,
+    lat: location.fix.lat,
+    lon: location.fix.lon,
+    requestLat: location.coordinates.lat,
+    requestLon: location.coordinates.lon,
+    place: location.place?.id ?? null,
+    outsideScope: location.outsideScope,
+    distanceKm: Number(
+      location.distanceKm.toFixed(2),
+    ),
     name:
       typeof payload.name === "string"
         ? payload.name
@@ -804,16 +895,21 @@ async function runWeatherFetch(options?: {
 }): Promise<WeatherData> {
   validateApiKey();
 
-  const coordinates =
+  const fix =
     options?.coordinates ??
     (await getCoordinates(options));
 
+  const location =
+    resolveWeatherLocation(fix);
+
   const response =
-    await fetchCurrentWeather(coordinates);
+    await fetchCurrentWeather(
+      location.coordinates,
+    );
 
   const parsed = parseWeatherResponse(
     response,
-    coordinates,
+    location,
   );
 
   const data: WeatherData =
@@ -825,7 +921,7 @@ async function runWeatherFetch(options?: {
         };
 
   debugTodayReading(
-    coordinates,
+    location,
     response,
     data,
   );

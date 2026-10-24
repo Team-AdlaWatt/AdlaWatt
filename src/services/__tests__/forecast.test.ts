@@ -7,7 +7,13 @@ const RealDate = Date;
 const entry = (overrides: Record<string, unknown> = {}) => ({
   dt: 1729051200,
   dt_txt: "2024-10-16 04:00:00",
-  main: { temp: 30, temp_min: 28, temp_max: 32, humidity: 70 },
+  main: {
+    temp: 30,
+    temp_min: 28,
+    temp_max: 32,
+    feels_like: 31,
+    humidity: 70,
+  },
   weather: [
     { id: 800, main: "Clear", description: "clear sky", icon: "01d" },
   ],
@@ -72,11 +78,108 @@ describe("getForecast upcoming days", () => {
 
     expect([...dates].sort()).toEqual(dates);
 
-    expect(result.cityName).toBe("Malaybalay");
+    expect(result.cityName).toBe(
+      "Manolo Fortich, Bukidnon",
+    );
+
+    const url = String(
+      mockFetch.mock.calls[0]?.[0] ?? "",
+    );
+
+    expect(url).toContain("lat=8.37");
+    expect(url).toContain("lon=124.86");
 
     // No calibration offset (tempOffsetC 0 in weather.json).
     expect(result.upcoming[0].tempMax).toBe(32 + 1);
     expect(result.upcoming[0].tempMin).toBe(28 + 1);
+  });
+
+  test("feelsLikeMax uses the hottest feels-like slot", async () => {
+    const tz = 28800;
+    const noon = localNoonDt(1, tz);
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        list: [
+          entry({
+            dt: noon,
+            main: {
+              temp: 30,
+              temp_min: 28,
+              temp_max: 32,
+              feels_like: 36,
+              humidity: 70,
+            },
+          }),
+          entry({
+            dt: noon - 3 * 3600,
+            main: {
+              temp: 29,
+              temp_min: 27,
+              temp_max: 31,
+              feels_like: 38,
+              humidity: 70,
+            },
+          }),
+        ],
+        city: { name: "Malaybalay", timezone: tz },
+      }),
+    });
+
+    const result = await getForecast(8.368, 124.873);
+
+    expect(result.upcoming[0].tempMax).toBe(32);
+    expect(result.upcoming[0].feelsLikeMax).toBe(38);
+  });
+
+  test("feelsLikeMax falls back to slot temperature when absent", async () => {
+    const tz = 28800;
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        list: [
+          entry({
+            dt: localNoonDt(1, tz),
+            main: {
+              temp: 30,
+              temp_min: 28,
+              temp_max: 34,
+              humidity: 70,
+            },
+          }),
+        ],
+        city: { name: "Malaybalay", timezone: tz },
+      }),
+    });
+
+    const result = await getForecast(8.368, 124.873);
+
+    expect(result.upcoming[0].tempMax).toBe(34);
+    expect(result.upcoming[0].feelsLikeMax).toBe(30);
+  });
+
+  test("keeps raw coordinates outside coverage", async () => {
+    const tz = 28800;
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        list: [entry({ dt: localNoonDt(1, tz) })],
+        city: { name: "Malaybalay", timezone: tz },
+      }),
+    });
+
+    const result = await getForecast(8.5, 125.5);
+
+    const url = String(
+      mockFetch.mock.calls[0]?.[0] ?? "",
+    );
+
+    expect(url).toContain("lat=8.5");
+    expect(url).toContain("lon=125.5");
+    expect(result.cityName).toBe("Malaybalay");
   });
 
   test("peak label + icon come from the id classifier (confirmed rain)", async () => {

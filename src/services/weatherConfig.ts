@@ -32,6 +32,15 @@ interface ResolvedCondition {
   severity: WeatherSeverity;
 }
 
+export interface LocalPlace {
+  id: string;
+  name: string;
+  municipality?: string;
+  label?: string;
+  lat: number;
+  lon: number;
+}
+
 // ============================================================
 // STARTUP ASSERT
 //
@@ -84,6 +93,138 @@ function assertWeatherConfig(): void {
   ) {
     throw new Error(
       "weather.json: invalid conditions.fallback."
+    );
+  }
+
+  const location = weatherJson.location as unknown as {
+    coverageRadiusKm?: unknown;
+    province?: unknown;
+    places?: LocalPlace[];
+  };
+
+  if (
+    typeof location.coverageRadiusKm !== "number" ||
+    !Number.isFinite(location.coverageRadiusKm) ||
+    location.coverageRadiusKm <= 0
+  ) {
+    throw new Error(
+      "weather.json: location.coverageRadiusKm must be a positive number."
+    );
+  }
+
+  if (
+    typeof location.province !== "string" ||
+    location.province.trim().length === 0
+  ) {
+    throw new Error(
+      "weather.json: location.province must not be empty."
+    );
+  }
+
+  if (
+    !Array.isArray(location.places) ||
+    location.places.length === 0
+  ) {
+    throw new Error(
+      "weather.json: location.places must not be empty."
+    );
+  }
+
+  const placeIds = new Set<string>();
+
+  for (const place of location.places) {
+    if (
+      typeof place.id !== "string" ||
+      place.id.trim().length === 0 ||
+      placeIds.has(place.id)
+    ) {
+      throw new Error(
+        "weather.json: every location place needs a unique id."
+      );
+    }
+
+    placeIds.add(place.id);
+
+    if (
+      typeof place.name !== "string" ||
+      place.name.trim().length === 0
+    ) {
+      throw new Error(
+        `weather.json: location place "${place.id}" needs a name.`
+      );
+    }
+
+    if (
+      typeof place.lat !== "number" ||
+      !Number.isFinite(place.lat) ||
+      place.lat < -90 ||
+      place.lat > 90 ||
+      typeof place.lon !== "number" ||
+      !Number.isFinite(place.lon) ||
+      place.lon < -180 ||
+      place.lon > 180
+    ) {
+      throw new Error(
+        `weather.json: location place "${place.id}" has invalid coordinates.`
+      );
+    }
+
+    for (const key of ["municipality", "label"] as const) {
+      const value = place[key];
+
+      if (
+        value !== undefined &&
+        (typeof value !== "string" ||
+          value.trim().length === 0)
+      ) {
+        throw new Error(
+          `weather.json: location place "${place.id}" has an invalid ${key}.`
+        );
+      }
+    }
+  }
+
+  const localFormats = weatherJson.formats as unknown as {
+    localPlaceLabel?: unknown;
+    localOnlyLabel?: unknown;
+  };
+
+  const localPlaceLabel = localFormats.localPlaceLabel;
+  const localOnlyLabel = localFormats.localOnlyLabel;
+
+  if (
+    typeof localPlaceLabel !== "string" ||
+    !localPlaceLabel.includes("{place}") ||
+    !localPlaceLabel.includes("{municipality}") ||
+    !localPlaceLabel.includes("{province}")
+  ) {
+    throw new Error(
+      "weather.json: formats.localPlaceLabel needs {place}, {municipality}, and {province}."
+    );
+  }
+
+  if (
+    typeof localOnlyLabel !== "string" ||
+    !localOnlyLabel.includes("{place}") ||
+    !localOnlyLabel.includes("{province}")
+  ) {
+    throw new Error(
+      "weather.json: formats.localOnlyLabel needs {place} and {province}."
+    );
+  }
+
+  const notices = (
+    weatherJson.messages as unknown as {
+      notices?: { outside_scope?: unknown };
+    }
+  ).notices;
+
+  if (
+    typeof notices?.outside_scope !== "string" ||
+    notices.outside_scope.trim().length === 0
+  ) {
+    throw new Error(
+      "weather.json: messages.notices.outside_scope must not be empty."
     );
   }
 
@@ -409,6 +550,50 @@ export function scoreSolarDay(args: {
 // ============================================================
 // FORMATTING
 // ============================================================
+
+export function getLocalPlaces(): readonly LocalPlace[] {
+  return weatherJson.location
+    .places as unknown as LocalPlace[];
+}
+
+export function getCoverageRadiusKm(): number {
+  return weatherJson.location.coverageRadiusKm;
+}
+
+export function formatLocalPlaceLabel(
+  place: LocalPlace,
+): string {
+  const province = weatherJson.location.province;
+
+  const placeName =
+    place.label?.trim() || place.name.trim();
+
+  const municipality =
+    place.municipality?.trim();
+
+  const template =
+    municipality &&
+    municipality !== placeName
+      ? weatherJson.formats.localPlaceLabel
+      : weatherJson.formats.localOnlyLabel;
+
+  return template
+    .replace("{place}", placeName)
+    .replace("{municipality}", municipality ?? "")
+    .replace("{province}", province);
+}
+
+export function outsideScopeNotice(): string {
+  const raw = (
+    weatherJson.messages as unknown as {
+      notices?: { outside_scope?: unknown };
+    }
+  ).notices?.outside_scope;
+
+  return typeof raw === "string" && raw.length > 0
+    ? raw
+    : "Outside the known Bukidnon coverage area — showing weather for your current location.";
+}
 
 export function formatApiError(
   status: number

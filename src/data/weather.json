@@ -13,7 +13,35 @@
   },
   "location": {
     "coordDecimals": 4,
-    "changeThresholdKm": 1
+    "changeThresholdKm": 1,
+    "coverageRadiusKm": 10,
+    "province": "Bukidnon",
+    "places": [
+      { "id": "agusan-canyon", "name": "Agusan Canyon", "municipality": "Manolo Fortich", "lat": 8.33, "lon": 124.81 },
+      { "id": "alae", "name": "Alae", "municipality": "Manolo Fortich", "lat": 8.42, "lon": 124.81 },
+      { "id": "dahilayan", "name": "Dahilayan", "municipality": "Manolo Fortich", "lat": 8.22, "lon": 124.87 },
+      { "id": "dalirig", "name": "Dalirig", "municipality": "Manolo Fortich", "lat": 8.38, "lon": 124.90 },
+      { "id": "damilag", "name": "Damilag", "municipality": "Manolo Fortich", "lat": 8.35, "lon": 124.81 },
+      { "id": "diclum", "name": "Diclum", "municipality": "Manolo Fortich", "lat": 8.37, "lon": 124.85 },
+      { "id": "guilang-guilang", "name": "Guilang-guilang", "municipality": "Manolo Fortich", "lat": 8.46, "lon": 125.04 },
+      { "id": "kalugmanan", "name": "Kalugmanan", "municipality": "Manolo Fortich", "lat": 8.28, "lon": 124.86 },
+      { "id": "lindaban", "name": "Lindaban", "municipality": "Manolo Fortich", "lat": 8.29, "lon": 124.85 },
+      { "id": "lingion", "name": "Lingion", "municipality": "Manolo Fortich", "lat": 8.40, "lon": 124.89 },
+      { "id": "lunocan", "name": "Lunocan", "municipality": "Manolo Fortich", "lat": 8.41, "lon": 124.82 },
+      { "id": "maluko", "name": "Maluko", "municipality": "Manolo Fortich", "lat": 8.37, "lon": 124.95 },
+      { "id": "mampayag", "name": "Mampayag", "municipality": "Manolo Fortich", "lat": 8.26, "lon": 124.83 },
+      { "id": "mantibugao", "name": "Mantibugao", "municipality": "Manolo Fortich", "lat": 8.46, "lon": 124.82 },
+      { "id": "minsuro", "name": "Minsuro", "municipality": "Manolo Fortich", "lat": 8.51, "lon": 124.83 },
+      { "id": "san-jose", "name": "San Jose", "municipality": "Manolo Fortich", "lat": 8.43, "lon": 124.80 },
+      { "id": "san-miguel", "name": "San Miguel", "municipality": "Manolo Fortich", "lat": 8.39, "lon": 124.83 },
+      { "id": "sankanan", "name": "Sankanan", "municipality": "Manolo Fortich", "lat": 8.32, "lon": 124.86 },
+      { "id": "santiago", "name": "Santiago", "municipality": "Manolo Fortich", "lat": 8.44, "lon": 124.99 },
+      { "id": "santo-nino", "name": "Santo Niño", "municipality": "Manolo Fortich", "lat": 8.40, "lon": 124.85 },
+      { "id": "tankulan", "name": "Tankulan", "municipality": "Manolo Fortich", "label": "Manolo Fortich", "lat": 8.37, "lon": 124.86 },
+      { "id": "ticala", "name": "Ticala", "municipality": "Manolo Fortich", "lat": 8.34, "lon": 124.89 },
+      { "id": "lingi-on", "name": "Lingi-on", "municipality": "Talakag", "lat": 8.19, "lon": 124.61 },
+      { "id": "balubal", "name": "Balubal", "lat": 8.27, "lon": 124.78 }
+    ]
   },
   "cache": {
     "staleMinutes": 30
@@ -197,12 +225,17 @@
       "missing_description": "OpenWeather response is missing a weather description.",
       "timeout": "Weather request timed out after {seconds} seconds.",
       "network": "Could not reach OpenWeather. {detail}"
+    },
+    "notices": {
+      "outside_scope": "Outside the known Bukidnon coverage area — showing weather for your current location."
     }
   },
   "formats": {
     "tempDecimals": 0,
     "coordFallback": "{lat}, {lon}",
     "coordDecimals": 2,
-    "time": "h:mm AM"
+    "time": "h:mm AM",
+    "localPlaceLabel": "{place}, {municipality}, {province}",
+    "localOnlyLabel": "{place}, {province}"
   }
 }

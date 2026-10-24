@@ -73,6 +73,7 @@ const forecastWith = (
         dateLabel: `Oct ${10 + index}`,
         tempMin: 24,
         tempMax: 31,
+        feelsLikeMax: 33,
         peakDescription: "Clear",
         peakIcon: "sunny",
         peakSeverity: "clear",

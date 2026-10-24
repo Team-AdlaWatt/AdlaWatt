@@ -49,6 +49,10 @@ AdlaWatt is a backup source, not a replacement for the electrical grid.
 - **Personalization** — Dark mode, font size and family, language (English, Filipino, Cebuano), vibration, and email notifications.
 - **Offline Support** — The dashboard shows the last cached readings with an offline banner when there is no connection.
 
+### Weather Location
+
+The weather card uses the device's live GPS fix. Within 10 km of one of the 24 configured Bukidnon points (22 Manolo Fortich barangays plus Lingi-on and Balubal), the app requests OpenWeather at that sample's exact coordinates for both current weather and forecast, then displays the resolved location label. Outside coverage, it keeps the raw GPS fix and shows a non-blocking notice. The 4-day forecast shows condition, high temperature with Celsius units, daily max feels-like temperature, and solar outlook without rain-chance percentages.
+
 ---
 
 ## Tech Stack
@@ -98,7 +102,7 @@ AdlaWatt/
 ├── supabase/
 │   ├── functions/send-alert-email/
 │   └── migrations/
-├── assets/images/            (logos, appliances, components, developers)
+├── assets/images/            (logos, electronics, components, developers)
 ├── android/
 ├── app.json
 ├── eas.json
@@ -145,14 +149,14 @@ Data lives in Supabase. Core tables used by the app:
 | `users` | Profiles, role, email-notification preference |
 | `monitoring` | Current live sensor readings |
 | `monitoring_history` | Historical readings for analytics |
-| `appliances` | Household appliances and their power ratings |
+| `electronics` | Household electronics and their power ratings |
 | `notifications` | In-app notification records |
 | `activity_logs` | System activity history |
 | `components` | IoT component list and status |
 
 **Edge Function:** `send-alert-email` — a server-side AgentMail proxy (the API key never ships in the app).
 
-**Storage buckets:** `email-assets` (email logo) and `appliance-images` (custom appliance photos).
+**Storage buckets:** `email-assets` (email logo) and `appliance-images` (custom electronics photos).
 
 ---
 
@@ -219,7 +223,8 @@ Users sign up with a username, email, and password, or sign in with Google. Pass
 
 ### Latest Changes
 
-- **Live weather** — today's card is now driven by real GPS coordinates with accurate OpenWeather condition labels and icons.
+- **Bukidnon weather snapping** — live GPS snaps to the nearest configured sample within 10 km for current weather and forecast, displays the resolved location, and warns outside coverage.
+- **4-day forecast** — daily rows now show high temperature in Celsius plus feels-like temperature, with rain-chance percentages removed.
 - **5-day solar forecast** — daily solar outlook with a "best day to charge" summary and hot/cold flags.
 - **Electronics catalog refresh** — updated to the current electronics list with corrected wattage ranges and new images.
 - **Battery figures** — standardized to 756 Wh nominal / 151.2 Wh reserve / 604.8 Wh usable.
