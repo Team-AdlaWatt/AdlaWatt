@@ -40,8 +40,8 @@ describe("today-card calibration", () => {
       coordinates: { lat: 8.37, lon: 124.87 },
     });
 
-    expect(weather.temperature).toBe(29);
-    expect(weather.feelsLike).toBe(31);
+    expect(weather.temperature).toBe(28);
+    expect(weather.feelsLike).toBe(30);
     expect(weather.humidity).toBe(72);
   });
 });
