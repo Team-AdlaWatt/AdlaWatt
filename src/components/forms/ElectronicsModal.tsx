@@ -631,43 +631,32 @@ export default function ElectronicsModal({
   // ============================================================
 
   const handleReset = async () => {
+    setCustomError("");
+
     const user = await getAuthenticatedUserSafe();
 
-    if (!user) {
-      setCustomError("You must be signed in.");
-      return;
-    }
-
-    const { error } = await supabase.rpc(
-      "reset_appliance_selection",
-    );
-
-    if (error) {
-      console.error(
-        "Reset electronics selection error:",
-        error.message,
+    if (user) {
+      const { error } = await supabase.rpc(
+        "reset_appliance_selection",
       );
 
-      setCustomError(
-        "Unable to reset electronics selection.",
-      );
-
-      return;
+      if (error) {
+        console.error(
+          "Reset electronics selection error:",
+          error.message,
+        );
+      }
     }
 
     setSelected([]);
     setCustomName("");
     setCustomWatts("");
-    setCustomError("");
     setEditModalVisible(false);
     setAddModalVisible(false);
     setEditingCustom(null);
     setIsReset(true);
-    // Selection-only reset (RPC clears given rows and flips
-    // customs to selection=false without touching archive):
-    // Layer 1 customs stay visible unticked, the archived
-    // list is untouched, so there is nothing to move or
-    // dismiss here.
+    // Selection-only reset: clear local selection regardless of
+    // RPC result so the UI always reflects the reset action.
 
     logElectronics.selectionReset();
   };
@@ -692,12 +681,41 @@ export default function ElectronicsModal({
 
     if (!user) {
       console.error("No authenticated user.");
+      setCustomError("You must be signed in.");
       return;
     }
 
     setIsSaving(true);
+    setCustomError("");
 
     const selectedSet = new Set(selected);
+
+    if (selectedSet.size === 0) {
+      const { error: resetError } = await supabase.rpc(
+        "reset_appliance_selection",
+      );
+
+      setIsSaving(false);
+
+      if (resetError) {
+        console.error(
+          "Reset electronics selection error:",
+          resetError.message,
+        );
+
+        setCustomError("Unable to save electronics selection.");
+
+        return;
+      }
+
+      setSelected([]);
+      setIsReset(true);
+      logElectronics.selectionReset();
+
+      onSave?.([]);
+      onClose();
+      return;
+    }
 
     const catalogPicks = GIVEN_CATALOG.filter(
       (item) => selectedSet.has(item.key),
@@ -2503,6 +2521,7 @@ const getStyles = (colors: AppColors) =>
 
   contentShell: {
     flex: 1,
+    position: "relative",
   },
 
   contentContainer: {

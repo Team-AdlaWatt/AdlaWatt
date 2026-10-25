@@ -1,0 +1,157 @@
+﻿Environment variables with visibility "Plain text" and "Sensitive" loaded from the "preview" environment on EAS: EXPO_PUBLIC_AGENTMAIL_LOGO_URL, EXPO_PUBLIC_OWM_KEY, EXPO_PUBLIC_SENTRY_DSN, EXPO_PUBLIC_SUPABASE_KEY, EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY, EXPO_PUBLIC_SUPABASE_URL.
+
+- Exporting...
+[expo-cli] --non-interactive is not supported, use $CI=1 instead
+[expo-cli] Using src/app as the root directory for Expo Router.
+[expo-cli] React Compiler enabled
+[expo-cli] Starting Metro Bundler
+[expo-cli] warning: Bundler cache is empty, rebuilding (this may take a minute)
+[expo-cli] Android Bundled 177597ms node_modules\expo-router\entry.js (2643 modules)
+[expo-cli] Creating asset map
+[expo-cli] 
+[expo-cli] ΓÇ║ Assets (126):
+[expo-cli] assets\images\adlawatt-icon.png (240KB)
+[expo-cli] assets\images\adlawatt-logo.png (71KB)
+[expo-cli] assets\images\components\Buck Converter.png (59KB)
+[expo-cli] assets\images\components\DC Fan.png (81KB)
+[expo-cli] assets\images\components\DHT22.png (51KB)
+[expo-cli] assets\images\components\DS18B20.png (76KB)
+[expo-cli] assets\images\components\ESP32-S3.png (236KB)
+[expo-cli] assets\images\components\INA219.png (163KB)
+[expo-cli] assets\images\components\INA228.png (37KB)
+[expo-cli] assets\images\components\Relay.png (64KB)
+[expo-cli] assets\images\components\SPI TFT Display.png (52KB)
+[expo-cli] assets\images\components\toph.jpg (11KB)
+[expo-cli] assets\images\developers\d1.jpg (64KB)
+[expo-cli] assets\images\developers\d2.jpg (18KB)
+[expo-cli] assets\images\developers\d3.jpg (41KB)
+[expo-cli] assets\images\electronics\blender.png (102KB)
+[expo-cli] assets\images\electronics\bulb.png (196KB)
+[expo-cli] assets\images\electronics\charger.png (143KB)
+[expo-cli] assets\images\electronics\clip-fan.png (155KB)
+[expo-cli] assets\images\electronics\desk-fan.png (3MB)
+[expo-cli] assets\images\electronics\desk-lamp.png (160KB)
+[expo-cli] assets\images\electronics\earbuds-charging-case.png (1.1MB)
+[expo-cli] assets\images\electronics\green-charger.png (2.5MB)
+[expo-cli] assets\images\electronics\green-emergency-light.png (2.7MB)
+[expo-cli] assets\images\electronics\green-exhaust-fan.png (2.8MB)
+[expo-cli] assets\images\electronics\hair-clipper.png (114KB)
+[expo-cli] assets\images\electronics\handheld-fan.png (2.8MB)
+[expo-cli] assets\images\electronics\laptop-charger.png (171KB)
+[expo-cli] assets\images\electronics\led-tv.png (163KB)
+[expo-cli] assets\images\electronics\mini-projector.png (1.2MB)
+[expo-cli] assets\images\electronics\multi-cooker.png (85KB)
+[expo-cli] assets\images\electronics\night-light.png (155KB)
+[expo-cli] assets\images\electronics\power-bank-charger.png (1.2MB)
+[expo-cli] assets\images\electronics\printer.png (170KB)
+[expo-cli] assets\images\electronics\refrigerator.png (141KB)
+[expo-cli] assets\images\electronics\rice-cooker.png (90KB)
+[expo-cli] assets\images\electronics\router.png (181KB)
+[expo-cli] assets\images\electronics\speaker.png (213KB)
+[expo-cli] assets\images\electronics\stand-fan.png (195KB)
+[expo-cli] assets\images\electronics\swatter.png (180KB)
+[expo-cli] assets\images\electronics\tv-box.png (83KB)
+[expo-cli] assets\images\electronics\washing-machine.png (88KB)
+[expo-cli] assets\images\electronics\water-dispenser-pump.png (1MB)
+[expo-cli] assets\images\electronics\water-dispenser.png (80KB)
+[expo-cli] node_modules\@expo-google-fonts\inter\100Thin_Italic\Inter_100Thin_Italic.ttf (347KB)
+[expo-cli] node_modules\@expo-google-fonts\inter\100Thin\Inter_100Thin.ttf (343KB)
+[expo-cli] node_modules\@expo-google-fonts\inter\200ExtraLight_Italic\Inter_200ExtraLight_Italic.ttf (347KB)
+[expo-cli] node_modules\@expo-google-fonts\inter\200ExtraLight\Inter_200ExtraLight.ttf (343KB)
+[expo-cli] node_modules\@expo-google-fonts\inter\300Light_Italic\Inter_300Light_Italic.ttf (347KB)
+[expo-cli] node_modules\@expo-google-fonts\inter\300Light\Inter_300Light.ttf (343KB)
+[expo-cli] node_modules\@expo-google-fonts\inter\400Regular_Italic\Inter_400Regular_Italic.ttf (346KB)
+[expo-cli] node_modules\@expo-google-fonts\inter\400Regular\Inter_400Regular.ttf (342KB)
+[expo-cli] node_modules\@expo-google-fonts\inter\500Medium_Italic\Inter_500Medium_Italic.ttf (346KB)
+[expo-cli] node_modules\@expo-google-fonts\inter\500Medium\Inter_500Medium.ttf (343KB)
+[expo-cli] node_modules\@expo-google-fonts\inter\600SemiBold_Italic\Inter_600SemiBold_Italic.ttf (347KB)
+[expo-cli] node_modules\@expo-google-fonts\inter\600SemiBold\Inter_600SemiBold.ttf (344KB)
+[expo-cli] node_modules\@expo-google-fonts\inter\700Bold_Italic\Inter_700Bold_Italic.ttf (348KB)
+[expo-cli] node_modules\@expo-google-fonts\inter\700Bold\Inter_700Bold.ttf (344KB)
+[expo-cli] node_modules\@expo-google-fonts\inter\800ExtraBold_Italic\Inter_800ExtraBold_Italic.ttf (349KB)
+[expo-cli] node_modules\@expo-google-fonts\inter\800ExtraBold\Inter_800ExtraBold.ttf (345KB)
+[expo-cli] node_modules\@expo-google-fonts\inter\900Black_Italic\Inter_900Black_Italic.ttf (349KB)
+[expo-cli] node_modules\@expo-google-fonts\inter\900Black\Inter_900Black.ttf (345KB)
+[expo-cli] node_modules\@expo-google-fonts\material-symbols\400Regular\MaterialSymbols_400Regular.ttf (971KB)
+[expo-cli] node_modules\@expo-google-fonts\roboto\100Thin_Italic\Roboto_100Thin_Italic.ttf (164KB)
+[expo-cli] node_modules\@expo-google-fonts\roboto\100Thin\Roboto_100Thin.ttf (159KB)
+[expo-cli] node_modules\@expo-google-fonts\roboto\200ExtraLight_Italic\Roboto_200ExtraLight_Italic.ttf (165KB)
+[expo-cli] node_modules\@expo-google-fonts\roboto\200ExtraLight\Roboto_200ExtraLight.ttf (159KB)
+[expo-cli] node_modules\@expo-google-fonts\roboto\300Light_Italic\Roboto_300Light_Italic.ttf (165KB)
+[expo-cli] node_modules\@expo-google-fonts\roboto\300Light\Roboto_300Light.ttf (159KB)
+[expo-cli] node_modules\@expo-google-fonts\roboto\400Regular_Italic\Roboto_400Regular_Italic.ttf (165KB)
+[expo-cli] node_modules\@expo-google-fonts\roboto\400Regular\Roboto_400Regular.ttf (159KB)
+[expo-cli] node_modules\@expo-google-fonts\roboto\500Medium_Italic\Roboto_500Medium_Italic.ttf (166KB)
+[expo-cli] node_modules\@expo-google-fonts\roboto\500Medium\Roboto_500Medium.ttf (159KB)
+[expo-cli] node_modules\@expo-google-fonts\roboto\600SemiBold_Italic\Roboto_600SemiBold_Italic.ttf (166KB)
+[expo-cli] node_modules\@expo-google-fonts\roboto\600SemiBold\Roboto_600SemiBold.ttf (160KB)
+[expo-cli] node_modules\@expo-google-fonts\roboto\700Bold_Italic\Roboto_700Bold_Italic.ttf (166KB)
+[expo-cli] node_modules\@expo-google-fonts\roboto\700Bold\Roboto_700Bold.ttf (160KB)
+[expo-cli] node_modules\@expo-google-fonts\roboto\800ExtraBold_Italic\Roboto_800ExtraBold_Italic.ttf (166KB)
+[expo-cli] node_modules\@expo-google-fonts\roboto\800ExtraBold\Roboto_800ExtraBold.ttf (160KB)
+[expo-cli] node_modules\@expo-google-fonts\roboto\900Black_Italic\Roboto_900Black_Italic.ttf (167KB)
+[expo-cli] node_modules\@expo-google-fonts\roboto\900Black\Roboto_900Black.ttf (160KB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\AntDesign.ttf (130KB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Entypo.ttf (66KB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\EvilIcons.ttf (13KB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Feather.ttf (56KB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome.ttf (166KB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome5_Brands.ttf (134KB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome5_Regular.ttf (34KB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome5_Solid.ttf (203KB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome6_Brands.ttf (209KB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome6_Regular.ttf (68KB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\FontAwesome6_Solid.ttf (424KB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Fontisto.ttf (314KB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Foundation.ttf (57KB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Ionicons.ttf (390KB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\MaterialCommunityIcons.ttf (1.3MB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\MaterialIcons.ttf (357KB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Octicons.ttf (69KB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\SimpleLineIcons.ttf (54KB)
+[expo-cli] node_modules\@expo\vector-icons\build\vendor\react-native-vector-icons\Fonts\Zocial.ttf (26KB)
+[expo-cli] node_modules\expo-router\assets\arrow_down.png (9.5KB)
+[expo-cli] node_modules\expo-router\assets\arrow_right.xml (307B)
+[expo-cli] node_modules\expo-router\assets\checkmark.xml (312B)
+[expo-cli] node_modules\expo-router\assets\error.png (469B)
+[expo-cli] node_modules\expo-router\assets\file.png (138B)
+[expo-cli] node_modules\expo-router\assets\forward.png (188B)
+[expo-cli] node_modules\expo-router\assets\pkg.png (364B)
+[expo-cli] node_modules\expo-router\assets\react-navigation\elements\back-icon-mask.png (653B)
+[expo-cli] node_modules\expo-router\assets\react-navigation\elements\back-icon.png (4 variations | 152B)
+[expo-cli] node_modules\expo-router\assets\react-navigation\elements\clear-icon.png (4 variations | 425B)
+[expo-cli] node_modules\expo-router\assets\react-navigation\elements\close-icon.png (4 variations | 235B)
+[expo-cli] node_modules\expo-router\assets\react-navigation\elements\search-icon.png (4 variations | 599B)
+[expo-cli] node_modules\expo-router\assets\sitemap.png (465B)
+[expo-cli] node_modules\expo-router\assets\unmatched.png (4.8KB)
+[expo-cli] ΓÇ║ android bundles (2):
+[expo-cli] _expo/static/js/android/entry-508d436c82442f998f8aa1f0e2efc935.hbc (7.7MB)
+[expo-cli] _expo/static/js/android/entry-508d436c82442f998f8aa1f0e2efc935.hbc.map (18MB)
+[expo-cli] ΓÇ║ Files (2):
+[expo-cli] assetmap.json (62KB)
+[expo-cli] metadata.json (8.2KB)
+[expo-cli] 
+[expo-cli] Exported: dist
+Γ£ö Exported bundle(s)
+- Uploading...
+- Uploading assetmap.json (0 / 60.9 KB)
+Γ£ö Uploaded assetmap.json 3s
+ΓêÜ Uploaded 1 app bundle
+ΓêÜ Uploading assets skipped - no new assets found
+i 127 Android assets (maximum: 2000 total per update). Learn more about asset limits: https://expo.fyi/eas-update-asset-limits
+- Computing project fingerprints
+Γî¢∩╕Å Computing the project fingerprints is taking longer than expected...
+ΓÅ⌐ To skip this step, set the environment variable: EAS_SKIP_AUTO_FINGERPRINT=1
+Γ£ö Computed project fingerprints
+- Publishing...
+Γ£ö Published!
+
+Branch             preview
+Runtime version    e552de68cf047f8c4681281ab6000865d965616a
+Platform           android
+Update group ID    c060c6a2-f81a-4348-9008-579b4266d36f
+Android update ID  01a17166-2d48-7226-b829-bd47060190df
+Message            Scroll custom electronics modal to hint
+Commit             21fff74b44265271c9a0bf8f3e203902ce7c862b*
+EAS Dashboard      https://expo.dev/accounts/fadrians-team/projects/ADLAWATT-/updates/c060c6a2-f81a-4348-9008-579b4266d36f
+

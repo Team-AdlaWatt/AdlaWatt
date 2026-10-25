@@ -1,0 +1,67 @@
+﻿Environment variables with visibility "Plain text" and "Sensitive" loaded from the "preview" environment on EAS: EXPO_PUBLIC_AGENTMAIL_LOGO_URL, EXPO_PUBLIC_OWM_KEY, EXPO_PUBLIC_SENTRY_DSN, EXPO_PUBLIC_SUPABASE_KEY, EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY, EXPO_PUBLIC_SUPABASE_URL.
+
+- Exporting...
+[expo-cli] --non-interactive is not supported, use $CI=1 instead
+[expo-cli] Using src/app as the root directory for Expo Router.
+[expo-cli] React Compiler enabled
+[expo-cli] Starting Metro Bundler
+[expo-cli] warning: Bundler cache is empty, rebuilding (this may take a minute)
+[expo-cli] iOS Bundled 223416ms node_modules\expo-router\entry.js (2514 modules)
+[expo-cli] Android Bundled 299761ms node_modules\expo-router\entry.js (2643 modules)
+[expo-cli] Creating asset map
+[expo-cli] Static rendering is enabled. Learn more: https://docs.expo.dev/router/web/static-rendering/
+[expo-cli] ╬╗ Bundled 225344ms node_modules\expo\node_modules\@expo\cli\node_modules\@expo\router-server\node\render.js (2357 modules)
+[expo-cli] [expo-notifications] Listening to push token changes is not yet fully supported on web. Adding a listener will have no effect.
+[expo-cli] Web Bundled 228598ms node_modules\expo-router\entry.js (2114 modules)
+[expo-cli] 
+[expo-cli] ΓÇ║ ios bundles (2):
+[expo-cli] _expo/static/js/ios/entry-a1651ffc217983656bdac4808be3e984.hbc (7.4MB)
+[expo-cli] _expo/static/js/ios/entry-a1651ffc217983656bdac4808be3e984.hbc.map (18MB)
+[expo-cli] ΓÇ║ android bundles (2):
+[expo-cli] _expo/static/js/android/entry-de2120d15fa28b2412cbdda2213f6dd4.hbc (7.7MB)
+[expo-cli] _expo/static/js/android/entry-de2120d15fa28b2412cbdda2213f6dd4.hbc.map (18MB)
+[expo-cli] 
+[expo-cli] ΓÇ║ web bundles (15):
+[expo-cli] _expo/static/css/global-5188b48ea99735b86643672c6c4540e1.css (912B)
+[expo-cli] _expo/static/js/web/electronicsService-e956198fa15bd3990648aed77b6c8d08.js (2.5KB)
+[expo-cli] _expo/static/js/web/electronicsService-e956198fa15bd3990648aed77b6c8d08.js.map (8.9KB)
+[expo-cli] _expo/static/js/web/entry-8960257989cee1d0ec6ddce443f413bb.js (5.5MB)
+[expo-cli] _expo/static/js/web/entry-8960257989cee1d0ec6ddce443f413bb.js.map (18MB)
+[expo-cli] _expo/static/js/web/html2canvas-a30a49b4609f7d43e7477f2740505790.js (203KB)
+[expo-cli] _expo/static/js/web/html2canvas-a30a49b4609f7d43e7477f2740505790.js.map (650KB)
+[expo-cli] _expo/static/js/web/index-bf7910fd8754d508345b17f05a23b3ad.js (174KB)
+[expo-cli] _expo/static/js/web/index-bf7910fd8754d508345b17f05a23b3ad.js.map (688KB)
+[expo-cli] _expo/static/js/web/purify-aeebddd9e212c87339e9c0f06ad3fd74.js (30KB)
+[expo-cli] _expo/static/js/web/purify-aeebddd9e212c87339e9c0f06ad3fd74.js.map (178KB)
+[expo-cli] _expo/static/js/web/reportPrint-6e876fdf93ee74db3188480370ef4ec2.js (33KB)
+[expo-cli] _expo/static/js/web/reportPrint-6e876fdf93ee74db3188480370ef4ec2.js.map (147KB)
+[expo-cli] _expo/static/js/web/reportStorage-957855c372bb4735afa90fc6b33583b8.js (12KB)
+[expo-cli] _expo/static/js/web/reportStorage-957855c372bb4735afa90fc6b33583b8.js.map (61KB)
+[expo-cli] 
+[expo-cli] ΓÇ║ Static routes (20):
+[expo-cli] / (index) (18KB)
+[expo-cli] /splash (21KB)
+[expo-cli] /_sitemap (18KB)
+[expo-cli] /+not-found (18KB)
+[expo-cli] /auth/login (28KB)
+[expo-cli] /admin (20KB)
+[expo-cli] /auth/callback (23KB)
+[expo-cli] /auth/register (32KB)
+[expo-cli] /dashboard/menu (22KB)
+[expo-cli] /dashboard (22KB)
+[expo-cli] /(opening)/splash (21KB)
+[expo-cli] /onboarding (26KB)
+[expo-cli] /dashboard/about-us (22KB)
+[expo-cli] /dashboard/analytics (22KB)
+[expo-cli] /auth/forgot-password (25KB)
+[expo-cli] /dashboard/components (22KB)
+[expo-cli] /dashboard/electronics (22KB)
+[expo-cli] /dashboard/user-manual (22KB)
+[expo-cli] /dashboard/activity-logs (22KB)
+[expo-cli] /dashboard/notifications (22KB)
+[expo-cli] 
+[expo-cli] Exported: dist
+Γ£ö Exported bundle(s)
+- Uploading...
+- Uploading assetmap.json (0 / 63.0 KB)
+Γ£ö Uploaded assetmap.json 3s

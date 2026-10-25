@@ -1,6 +1,7 @@
 import React, {
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -14,6 +15,7 @@ import {
   StyleSheet,
   TextInput,
   View,
+  type ScrollView,
 } from "react-native";
 
 import AppText from "@/components/ui/AppText";
@@ -123,8 +125,15 @@ export default function CustomElectronicsModal({
     if (!visible) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- reset the submit attempt when the modal closes
       setAttemptedSubmit(false);
+      return;
     }
-  }, [visible]);
+
+    if (message && (attemptedSubmit || hasFieldContent)) {
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, 50);
+    }
+  }, [visible, message, attemptedSubmit, hasFieldContent]);
 
   const { scaledSize, family, weight } =
     useTypography();
@@ -163,6 +172,8 @@ export default function CustomElectronicsModal({
       ? CUSTOM_ELECTRONICS_HINT
       : "";
 
+  const scrollRef = useRef<ScrollView>(null);
+
   const handleConfirmPress = () => {
     if (photoBusy) {
       return;
@@ -170,6 +181,9 @@ export default function CustomElectronicsModal({
 
     if (!validation.valid) {
       setAttemptedSubmit(true);
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, 50);
       return;
     }
 
@@ -197,11 +211,67 @@ export default function CustomElectronicsModal({
     onWattsChange(joinWatts(wattMin, clean));
   };
 
+  const footer = (
+    <View style={styles.footer}>
+      <View style={styles.customActions}>
+        <Pressable
+          onPress={onCancel}
+          disabled={photoBusy}
+          style={({ pressed }) => [
+            styles.customAction,
+            styles.cancelAction,
+            pressed && !photoBusy && styles.pressed,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={
+            isEdit
+              ? "Cancel edit custom electronics"
+              : "Cancel add custom electronics"
+          }
+        >
+          <AppText
+            variant="caption"
+            style={styles.cancelText}
+          >
+            Cancel
+          </AppText>
+        </Pressable>
+
+        <Pressable
+          onPress={handleConfirmPress}
+          disabled={photoBusy}
+          style={({ pressed }) => [
+            styles.customAction,
+            styles.addAction,
+            pressed && !photoBusy && styles.pressed,
+            photoBusy && styles.pressed,
+          ]}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: photoBusy }}
+          accessibilityLabel={
+            isEdit
+              ? "Save custom electronics"
+              : "Add custom electronics"
+          }
+        >
+          <AppText
+            variant="caption"
+            style={styles.addText}
+          >
+            {photoBusy ? "Saving…" : confirmLabel}
+          </AppText>
+        </Pressable>
+      </View>
+    </View>
+  );
+
   return (
     <DropdownModal
       visible={visible}
       title={title}
       onClose={onCancel}
+      footer={footer}
+      scrollRef={scrollRef}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -331,14 +401,13 @@ export default function CustomElectronicsModal({
                   : "Add maximum wattage"
               }
             />
-            </View>
           </View>
 
-        <View style={styles.footer}>
           <AppText
             variant="caption"
             style={[
               styles.footerMessage,
+              styles.footerMessageScroll,
               showError
                 ? styles.footerMessageError
                 : styles.footerMessageHint,
@@ -347,56 +416,6 @@ export default function CustomElectronicsModal({
           >
             {message}
           </AppText>
-
-          <View style={styles.customActions}>
-            <Pressable
-              onPress={onCancel}
-              disabled={photoBusy}
-              style={({ pressed }) => [
-                styles.customAction,
-                styles.cancelAction,
-                pressed && !photoBusy && styles.pressed,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={
-                isEdit
-                  ? "Cancel edit custom electronics"
-                  : "Cancel add custom electronics"
-              }
-            >
-              <AppText
-                variant="caption"
-                style={styles.cancelText}
-              >
-                Cancel
-              </AppText>
-            </Pressable>
-
-            <Pressable
-              onPress={handleConfirmPress}
-              disabled={photoBusy}
-              style={({ pressed }) => [
-                styles.customAction,
-                styles.addAction,
-                pressed && !photoBusy && styles.pressed,
-                photoBusy && styles.pressed,
-              ]}
-              accessibilityRole="button"
-              accessibilityState={{ disabled: photoBusy }}
-              accessibilityLabel={
-                isEdit
-                  ? "Save custom electronics"
-                  : "Add custom electronics"
-              }
-            >
-              <AppText
-                variant="caption"
-                style={styles.addText}
-              >
-                {photoBusy ? "Saving…" : confirmLabel}
-              </AppText>
-            </Pressable>
-          </View>
         </View>
       </KeyboardAvoidingView>
     </DropdownModal>
@@ -497,7 +516,11 @@ const getStyles = (colors: AppColors) =>
     footerMessage: {
       fontSize: 12,
       lineHeight: 16,
-      marginBottom: 8,
+    },
+
+    footerMessageScroll: {
+      marginTop: 4,
+      marginBottom: 2,
     },
 
     footerMessageHint: {

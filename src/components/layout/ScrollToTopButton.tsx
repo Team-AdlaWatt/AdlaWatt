@@ -111,7 +111,8 @@ const getStyles = (
       width: Touch.target,
       height: Touch.target,
       borderRadius: Radius.round,
-      zIndex: 20,
+      zIndex: 10,
+      elevation: 10,
     },
 
     button: {

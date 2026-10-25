@@ -944,3 +944,24 @@ The Add/Edit Custom Electronics modal has two issues: (1) when the on-screen key
 
 - Update the ESP32 firmware so watt_hours is reported on the 756 Wh scale.
 - Small pre-existing warning in the code cleanup (not related to these fixes).
+
+### 30. [Bug] Buttons in the select electronics modal not working
+
+**Summary**
+The buttons in the Select Electronics modal (the picker used to choose from the electronics list) are not responding to taps. Users cannot select items or interact with action buttons in that modal.
+
+**Steps to Reproduce**
+1. Open the Electronics screen.
+2. Tap to open the Select Electronics modal/picker.
+3. Try to tap on an electronics item or any buttons in the modal.
+
+**Expected Behavior**
+Tapping an item or button should select it and close/confirm as expected, same as it did before.
+
+**Actual Behavior**
+The buttons/items do not respond to taps; the modal appears unresponsive to user interaction.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
