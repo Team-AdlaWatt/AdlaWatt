@@ -634,11 +634,14 @@ against the renamed table.
 **Fixed:** Updated all 12 `.from("appliances")` queries to
 `.from("electronics")` and replaced `appliance_name` in select lists, ordering,
 search clauses, insert payloads, and row types. The migration
-`20261022000000_rename_appliances_to_electronics.sql` renames the table and
-column and repairs the stored function bodies. Legacy RPC names
-(`archive_appliance`, `unarchive_appliance`, `save_appliance_selection`,
-`reset_appliance_selection`), the `appliance-images` storage bucket, and the
-`"Appliance not found."` database message were left unchanged on purpose.
+`20261022000000_rename_appliances_to_electronics.sql` renames the table, column,
+indexes, constraints, and policies. The follow-up migration
+`20261026000000_complete_electronics_rename.sql` fixes the stored RPC bodies,
+adds the canonical `save_electronics_selection`,
+`reset_electronics_selection`, `archive_electronics`, and
+`unarchive_electronics` functions, creates the `electronics-images` bucket,
+and rewrites existing image URLs. The old RPC names remain temporarily as
+wrappers, and the old bucket remains until the new OTA is verified on-device.
 
 ---
 
@@ -940,28 +943,48 @@ The Add/Edit Custom Electronics modal has two issues: (1) when the on-screen key
 
 ---
 
-## Still To Do
-
-- Update the ESP32 firmware so watt_hours is reported on the 756 Wh scale.
-- Small pre-existing warning in the code cleanup (not related to these fixes).
-
-### 30. [Bug] Buttons in the select electronics modal not working
+### 30. [Bug] Select electronics modal footer buttons not working
 
 **Summary**
-The buttons in the Select Electronics modal (the picker used to choose from the electronics list) are not responding to taps. Users cannot select items or interact with action buttons in that modal.
+On the Select Electronics modal, the footer actions could appear dead. Tapping
+Add/Save or Reset produced no visible response when the selected-electronics RPC
+failed. Item selection still worked, which made the failure look like a broken
+modal rather than a backend error.
 
 **Steps to Reproduce**
 1. Open the Electronics screen.
 2. Tap to open the Select Electronics modal/picker.
-3. Try to tap on an electronics item or any buttons in the modal.
+3. Select or clear electronics items.
+4. Tap Add/Save or Reset in the modal footer.
 
 **Expected Behavior**
-Tapping an item or button should select it and close/confirm as expected, same as it did before.
+The footer action either completes or shows a clear error. Add/Save persists the
+selection and closes the modal; Reset clears the selection.
 
 **Actual Behavior**
-The buttons/items do not respond to taps; the modal appears unresponsive to user interaction.
+The footer looked unresponsive: Add/Save failed silently because the error was
+rendered only inside the closed custom-item modal, and Reset cleared local state
+even when the server reset failed.
 
 **Environment**
 - **Device:** Android, iPhone, and web browser
 - **App Version:** v1.0.0
+
+**Fixed:** The live RPCs still referenced `public.appliances` and
+`appliance_name`, so every Add/Save/Reset call failed while the error text was
+hidden inside the closed custom-item modal. Migration
+`20261026000000_complete_electronics_rename.sql` now defines the
+electronics-named RPCs against the correct table, and the app calls those new
+names. Save and reset failures now render in a visible banner above the footer,
+and Reset no longer clears local state when the RPC fails. The
+`CustomElectronicsModal` hook-order error that broke typechecking was also
+fixed. Verified fixed on-device after OTA group
+`2f2d3d04-efbf-4113-ab45-5cb296d13b1f`.
+
+---
+
+## Still To Do
+
+- Update the ESP32 firmware so watt_hours is reported on the 756 Wh scale.
+- Small pre-existing warning in the code cleanup (not related to these fixes).
 

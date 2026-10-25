@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 // ============================================================
 //
 // Custom electronics photos live in the public
-// `appliance-images` bucket under <user_id>/ filenames, so
+// `electronics-images` bucket under <user_id>/ filenames, so
 // box/list images load via plain public URLs. Filenames are
 // client-generated (uuid-style), so an upload never depends
 // on the row existing first: Add uploads, then inserts the
@@ -13,7 +13,7 @@ import { supabase } from "@/lib/supabase";
 // the row, then deletes the old object best-effort.
 // ============================================================
 
-const BUCKET = "appliance-images";
+const BUCKET = "electronics-images";
 
 export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 

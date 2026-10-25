@@ -121,20 +121,6 @@ export default function CustomElectronicsModal({
   const [attemptedSubmit, setAttemptedSubmit] =
     useState(false);
 
-  useEffect(() => {
-    if (!visible) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset the submit attempt when the modal closes
-      setAttemptedSubmit(false);
-      return;
-    }
-
-    if (message && (attemptedSubmit || hasFieldContent)) {
-      setTimeout(() => {
-        scrollRef.current?.scrollToEnd({ animated: true });
-      }, 50);
-    }
-  }, [visible, message, attemptedSubmit, hasFieldContent]);
-
   const { scaledSize, family, weight } =
     useTypography();
 
@@ -173,6 +159,20 @@ export default function CustomElectronicsModal({
       : "";
 
   const scrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (!visible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset the submit attempt when the modal closes
+      setAttemptedSubmit(false);
+      return;
+    }
+
+    if (message && (attemptedSubmit || hasFieldContent)) {
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, 50);
+    }
+  }, [visible, message, attemptedSubmit, hasFieldContent]);
 
   const handleConfirmPress = () => {
     if (photoBusy) {

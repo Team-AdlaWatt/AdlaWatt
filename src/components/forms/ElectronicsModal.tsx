@@ -635,17 +635,26 @@ export default function ElectronicsModal({
 
     const user = await getAuthenticatedUserSafe();
 
-    if (user) {
-      const { error } = await supabase.rpc(
-        "reset_appliance_selection",
+    if (!user) {
+      setCustomError("You must be signed in.");
+      return;
+    }
+
+    const { error } = await supabase.rpc(
+      "reset_electronics_selection",
+    );
+
+    if (error) {
+      console.error(
+        "Reset electronics selection error:",
+        error.message,
       );
 
-      if (error) {
-        console.error(
-          "Reset electronics selection error:",
-          error.message,
-        );
-      }
+      setCustomError(
+        "Unable to reset electronics selection. Please try again.",
+      );
+
+      return;
     }
 
     setSelected([]);
@@ -655,8 +664,6 @@ export default function ElectronicsModal({
     setAddModalVisible(false);
     setEditingCustom(null);
     setIsReset(true);
-    // Selection-only reset: clear local selection regardless of
-    // RPC result so the UI always reflects the reset action.
 
     logElectronics.selectionReset();
   };
@@ -692,7 +699,7 @@ export default function ElectronicsModal({
 
     if (selectedSet.size === 0) {
       const { error: resetError } = await supabase.rpc(
-        "reset_appliance_selection",
+        "reset_electronics_selection",
       );
 
       setIsSaving(false);
@@ -747,7 +754,7 @@ export default function ElectronicsModal({
       .map((item) => item.id);
 
     const { error: saveError } = await supabase.rpc(
-      "save_appliance_selection",
+      "save_electronics_selection",
       {
         p_catalog: catalogPicks,
         p_custom_selected: customSelected,
@@ -1265,10 +1272,11 @@ export default function ElectronicsModal({
   // ARCHIVE CUSTOM ELECTRONICS (Layer 1 -> Layer 2)
   // ============================================================
   //
-  // v7 manual archive: archive_appliance() sets
+  // Manual archive: archive_electronics() sets
   // (selection=false, archive=true) or raises
-  // 'Appliance not found.' Strict RPC-only so a missing v7
-  // migration surfaces loudly instead of silently succeeding.
+  // 'Electronics item not found.' Strict RPC-only so a missing
+  // database migration surfaces loudly instead of silently
+  // succeeding.
   // ============================================================
 
   const handleCustomArchive = async (
@@ -1296,7 +1304,7 @@ export default function ElectronicsModal({
       null;
 
     const { error } = await supabase.rpc(
-      "archive_appliance",
+      "archive_electronics",
       {
         p_app_id: id,
       },
@@ -1309,16 +1317,18 @@ export default function ElectronicsModal({
       );
 
       if (
-        error.message.includes("Appliance not found")
+        error.message.includes(
+          "Electronics item not found",
+        )
       ) {
         setCustomError(
           "Electronics item not found. It may have been deleted.",
         );
       } else if (
-        error.message.includes("archive_appliance")
+        error.message.includes("archive_electronics")
       ) {
         setCustomError(
-          "Archive service is not updated. Please apply the v7 database script.",
+          "Archive service is not updated. Please apply the database migration.",
         );
       } else {
         setCustomError(
@@ -1377,10 +1387,11 @@ export default function ElectronicsModal({
   // UNARCHIVE CUSTOM ELECTRONICS (Layer 2 -> Layer 1, unticked)
   // ============================================================
   //
-  // v7 manual archive: unarchive_appliance() restores
+  // Manual archive: unarchive_electronics() restores
   // (selection=false, archive=false) or raises
-  // 'Appliance not found.' Strict RPC-only so a missing v7
-  // migration surfaces loudly instead of silently succeeding.
+  // 'Electronics item not found.' Strict RPC-only so a missing
+  // database migration surfaces loudly instead of silently
+  // succeeding.
   // ============================================================
 
   const handleCustomUnarchive = async (
@@ -1400,7 +1411,7 @@ export default function ElectronicsModal({
     );
 
     const { error } = await supabase.rpc(
-      "unarchive_appliance",
+      "unarchive_electronics",
       {
         p_app_id: id,
       },
@@ -1413,16 +1424,18 @@ export default function ElectronicsModal({
       );
 
       if (
-        error.message.includes("Appliance not found")
+        error.message.includes(
+          "Electronics item not found",
+        )
       ) {
         setCustomError(
           "Electronics item not found. It may have been deleted.",
         );
       } else if (
-        error.message.includes("unarchive_appliance")
+        error.message.includes("unarchive_electronics")
       ) {
         setCustomError(
-          "Archive service is not updated. Please apply the v7 database script.",
+          "Archive service is not updated. Please apply the database migration.",
         );
       } else {
         setCustomError(
@@ -2246,6 +2259,29 @@ export default function ElectronicsModal({
             />
           </View>
 
+          {customError &&
+          !addModalVisible &&
+          !editModalVisible ? (
+            <View
+              style={styles.errorBanner}
+              accessibilityRole="alert"
+              accessibilityLiveRegion="polite"
+            >
+              <Ionicons
+                name="alert-circle-outline"
+                size={17}
+                color={colors.error}
+              />
+
+              <AppText
+                variant="caption"
+                style={styles.errorBannerText}
+              >
+                {customError}
+              </AppText>
+            </View>
+          ) : null}
+
           {/* Footer: Layer 1 = selection actions, Layer 2 = viewer count + back */}
           {layer === 2 ? (
             <View style={styles.footer}>
@@ -2755,6 +2791,23 @@ const getStyles = (colors: AppColors) =>
   successBannerText: {
     flex: 1,
     color: "#14532D",
+    fontWeight: "600",
+  },
+
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: Spacing.lg,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.error,
+  },
+
+  errorBannerText: {
+    flex: 1,
+    color: colors.error,
     fontWeight: "600",
   },
 });
