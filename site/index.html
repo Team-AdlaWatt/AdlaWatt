@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AdlaWatt | Off-Grid Solar Power Monitoring System</title>
+  <meta name="description" content="AdlaWatt is an off-grid solar power and backup system with ESP32 IoT monitoring and a mobile app for real-time household energy guidance.">
+  <meta name="author" content="AdlaWatt Research and Development Team">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <meta name="theme-color" content="#00805A">
+  <meta name="color-scheme" content="light">
+  <link rel="canonical" href="https://team-adlawatt.github.io/AdlaWatt/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="AdlaWatt">
+  <meta property="og:title" content="AdlaWatt | Off-Grid Solar Power Monitoring System">
+  <meta property="og:description" content="An off-grid solar power and backup system with ESP32 IoT monitoring and a mobile app for real-time household energy guidance.">
+  <meta property="og:url" content="https://team-adlawatt.github.io/AdlaWatt/">
+  <meta property="og:image" content="https://team-adlawatt.github.io/AdlaWatt/assets/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="AdlaWatt off-grid solar power monitoring system">
+  <meta property="og:locale" content="en_PH">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AdlaWatt | Off-Grid Solar Power Monitoring System">
+  <meta name="twitter:description" content="An off-grid solar power and backup system with ESP32 IoT monitoring and a mobile app for real-time household energy guidance.">
+  <meta name="twitter:image" content="https://team-adlawatt.github.io/AdlaWatt/assets/og-image.png">
+  <meta name="twitter:image:alt" content="AdlaWatt off-grid solar power monitoring system">
+
+  <link rel="icon" href="./assets/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/favicon-32.png">
+  <link rel="apple-touch-icon" href="./assets/apple-touch-icon.png">
+  <link rel="preload" href="./fonts/spline-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="./fonts/ibm-plex-mono-500-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="./styles.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://github.com/Team-AdlaWatt#organization",
+        "name": "Team AdlaWatt",
+        "url": "https://github.com/Team-AdlaWatt",
+        "logo": "https://team-adlawatt.github.io/AdlaWatt/assets/adlawatt-icon-512.png",
+        "description": "The AdlaWatt Research and Development Team builds an off-grid solar power and IoT energy monitoring system for outage-prone households.",
+        "address": {
+          "@type": "PostalAddress",
+          "addressRegion": "Bukidnon",
+          "addressCountry": "PH"
+        },
+        "sameAs": [
+          "https://github.com/Team-AdlaWatt/AdlaWatt"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://team-adlawatt.github.io/AdlaWatt/#website",
+        "url": "https://team-adlawatt.github.io/AdlaWatt/",
+        "name": "AdlaWatt",
+        "description": "Off-grid solar power monitoring and backup power guidance from AdlaWatt.",
+        "publisher": { "@id": "https://github.com/Team-AdlaWatt#organization" },
+        "inLanguage": "en"
+      },
+      {
+        "@type": "WebPage",
+        "@id": "https://team-adlawatt.github.io/AdlaWatt/#webpage",
+        "url": "https://team-adlawatt.github.io/AdlaWatt/",
+        "name": "AdlaWatt | Off-Grid Solar Power Monitoring System",
+        "description": "AdlaWatt is an off-grid solar power and backup system with ESP32 IoT monitoring and a mobile app for real-time household energy guidance.",
+        "isPartOf": { "@id": "https://team-adlawatt.github.io/AdlaWatt/#website" },
+        "primaryImageOfPage": {
+          "@type": "ImageObject",
+          "url": "https://team-adlawatt.github.io/AdlaWatt/assets/og-image.png",
+          "width": 1200,
+          "height": 630
+        },
+        "dateModified": "2026-10-26",
+        "inLanguage": "en"
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://team-adlawatt.github.io/AdlaWatt/#software",
+        "name": "AdlaWatt",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Android",
+        "softwareVersion": "1.0.0",
+        "description": "A mobile app and ESP32 IoT system for monitoring an off-grid solar power and backup battery system in real time.",
+        "url": "https://team-adlawatt.github.io/AdlaWatt/",
+        "codeRepository": "https://github.com/Team-AdlaWatt/AdlaWatt",
+        "programmingLanguage": "TypeScript",
+        "runtimePlatform": "React Native",
+        "author": { "@id": "https://github.com/Team-AdlaWatt#organization" },
+        "keywords": "off-grid solar power, solar energy monitoring, ESP32 solar monitor, IoT energy monitoring, backup power Philippines, React Native energy app"
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://team-adlawatt.github.io/AdlaWatt/#faq",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "What is AdlaWatt?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "AdlaWatt is a transportable off-grid solar power and backup system with an ESP32 IoT monitor and a mobile app for real-time energy monitoring and electronics guidance."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How does AdlaWatt monitor solar and battery data?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "An ESP32-S3 reads voltage, current, and temperature sensors, sends the readings to Supabase, and the AdlaWatt mobile app displays live battery, solar, load, and system-health data."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What electronics can AdlaWatt power?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "AdlaWatt works with compatible household electronics through its built-in AC outlet. The app compares remaining energy, battery voltage, and device power draw to label each item OK to use or not advisable."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is AdlaWatt available for purchase?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. AdlaWatt is an academic capstone prototype in development and is not a commercial product."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Is the AdlaWatt source code open source?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "The repository is publicly viewable, but no open-source license is specified. Reuse, redistribution, or modification requires permission from the authors."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Where was AdlaWatt built?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "AdlaWatt was developed by the AdlaWatt Research and Development Team at Northern Bukidnon State College in Bukidnon, Philippines."
+            }
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="./" aria-label="AdlaWatt home">
+        <picture>
+          <source srcset="./assets/adlawatt-logo-360.webp" type="image/webp">
+          <img src="./assets/adlawatt-logo-360.png" alt="AdlaWatt" width="360" height="162">
+        </picture>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="#how-it-works">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#hardware">Hardware</a>
+        <a href="#faq">FAQ</a>
+        <a class="nav-cta" href="https://github.com/Team-AdlaWatt/AdlaWatt">
+          GitHub
+          <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 8h9M8.5 3.5 13 8l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true"></span>Off-grid solar · IoT · mobile</p>
+          <h1 id="hero-title">Off-grid solar power, <span class="accent">monitored in real time.</span></h1>
+          <p class="lede">AdlaWatt pairs an ESP32-S3 energy monitor with an Expo mobile app, so households can see what their battery can safely power during an outage.</p>
+          <div class="hero-actions">
+            <a class="button" href="https://github.com/Team-AdlaWatt/AdlaWatt">
+              Explore the repository
+              <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 8h9M8.5 3.5 13 8l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </a>
+            <a class="text-link" href="#how-it-works">See how it works <span aria-hidden="true">↓</span></a>
+          </div>
+          <p class="hero-note">Academic capstone · Northern Bukidnon State College · Philippines</p>
+        </div>
+
+        <aside class="system-panel" aria-label="AdlaWatt system at a glance">
+          <div class="panel-top">
+            <span class="panel-status"><span class="status-dot" aria-hidden="true"></span>System at a glance</span>
+            <span class="mono">v1.0.0</span>
+          </div>
+
+          <div class="capacity">
+            <p class="mono capacity-label">Usable capacity</p>
+            <p class="capacity-value">604.8 <span>Wh</span></p>
+            <div class="capacity-track" role="img" aria-label="604.8 of 756 watt-hours usable">
+              <span></span>
+            </div>
+            <div class="capacity-scale"><span>0</span><span>756 Wh nominal</span></div>
+          </div>
+
+          <dl class="specs">
+            <div><dt>Storage</dt><dd>ZENOVA 30Ah ×2</dd></div>
+            <div><dt>IoT controller</dt><dd>ESP32-S3</dd></div>
+            <div><dt>High-load limit</dt><dd>800 W</dd></div>
+            <div><dt>Voltage window</dt><dd>11.6–14.6 V</dd></div>
+          </dl>
+
+          <p class="panel-foot">Designed for outages, not as a grid replacement.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="value" aria-labelledby="value-title">
+      <div class="wrap">
+        <p class="eyebrow">Why it exists</p>
+        <h2 id="value-title">Built for the space between outages.</h2>
+        <p class="section-lede">A backup battery is only useful when you know what it can carry. AdlaWatt makes stored solar energy visible, understandable, and easier to plan around.</p>
+        <div class="value-grid">
+          <article class="value-item">
+            <span class="index">01</span>
+            <h3>Make stored energy visible</h3>
+            <p>See battery level, solar input, load, voltage, and temperature in one live view instead of guessing from a few indicator lights.</p>
+          </article>
+          <article class="value-item">
+            <span class="index">02</span>
+            <h3>Know what can run</h3>
+            <p>Electronics guidance compares remaining energy, battery voltage, and device power draw before you plug something in.</p>
+          </article>
+          <article class="value-item">
+            <span class="index">03</span>
+            <h3>Stay useful offline</h3>
+            <p>When connectivity drops, the app keeps the last cached readings visible with a clear offline banner.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="how-it-works" class="section" aria-labelledby="how-title">
+      <div class="wrap">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">System flow</p>
+            <h2 id="how-title">From sunlight to a decision.</h2>
+          </div>
+          <p class="section-aside">Power moves through the hardware. Data moves through the ESP32, Supabase, and the mobile app.</p>
+        </div>
+
+        <ol class="flow">
+          <li class="flow-step">
+            <span class="flow-number">01</span>
+            <h3>Harvest</h3>
+            <p>A solar panel charges the battery through a charge controller.</p>
+          </li>
+          <li class="flow-step">
+            <span class="flow-number">02</span>
+            <h3>Store</h3>
+            <p>Two ZENOVA 30Ah batteries hold 756 Wh nominal, with 604.8 Wh usable.</p>
+          </li>
+          <li class="flow-step">
+            <span class="flow-number">03</span>
+            <h3>Convert</h3>
+            <p>An inverter supplies the built-in AC outlet for compatible electronics.</p>
+          </li>
+          <li class="flow-step">
+            <span class="flow-number">04</span>
+            <h3>Sense</h3>
+            <p>An ESP32-S3 reads solar, load, voltage, and temperature sensors.</p>
+          </li>
+          <li class="flow-step">
+            <span class="flow-number">05</span>
+            <h3>Guide</h3>
+            <p>The app shows live status and labels electronics OK to use or not advisable.</p>
+          </li>
+        </ol>
+
+        <div class="system-diagram">
+          <img src="./assets/system-diagram.svg" alt="AdlaWatt system architecture: solar power flows through a charge controller and battery to an inverter and AC outlet, while an ESP32 sends sensor data through Supabase to the AdlaWatt mobile app." width="1200" height="520" loading="lazy">
+        </div>
+
+        <p class="status-line"><span class="status-dot" aria-hidden="true"></span><strong>Current status:</strong> the mobile app is integrated with Supabase; the ESP32 hardware feed is being wired up end to end.</p>
+      </div>
+    </section>
+
+    <section id="features" class="section section-tint" aria-labelledby="features-title">
+      <div class="wrap">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">What the app does</p>
+            <h2 id="features-title">One system, six useful views.</h2>
+          </div>
+          <p class="section-aside">The app turns raw sensor readings into the information a household actually needs during an outage.</p>
+        </div>
+
+        <div class="feature-grid">
+          <article class="feature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 32 32"><path d="M16 4v4M16 24v4M4 16h4M24 16h4M7.5 7.5l3 3M21.5 21.5l3 3M24.5 7.5l-3 3M10.5 21.5l-3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="16" r="6" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+            </span>
+            <p class="mono feature-label">01 · Live data</p>
+            <h3>Real-time energy monitoring</h3>
+            <p>Battery percentage, voltage, watt-hours, time remaining, charge or discharge status, load, depth of discharge, solar input, and temperatures.</p>
+          </article>
+
+          <article class="feature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 32 32"><path d="M11 4v5M21 4v5M9 9h14v7a7 7 0 0 1-14 0V9ZM16 23v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <p class="mono feature-label">02 · Guidance</p>
+            <h3>Electronics recommendations</h3>
+            <p>Each electronics item is labeled OK to use or not advisable based on remaining energy, voltage, and power draw.</p>
+          </article>
+
+          <article class="feature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 32 32"><path d="M9 22h14a4 4 0 0 0 .5-8 7 7 0 0 0-13.4-1A5 5 0 0 0 9 22Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M11 26h10M16 26v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <p class="mono feature-label">03 · Forecast</p>
+            <h3>Weather and solar outlook</h3>
+            <p>Current conditions and a five-day solar forecast that flags the best day to charge. Locations within 10 km of the configured Bukidnon samples resolve to a local label.</p>
+          </article>
+
+          <article class="feature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 32 32"><path d="M8 17a8 8 0 0 1 16 0v6l3 3H5l3-3v-6Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M13 26a3 3 0 0 0 6 0" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </span>
+            <p class="mono feature-label">04 · Alerts</p>
+            <h3>Notifications</h3>
+            <p>Automatic alerts for battery, temperature, solar, load, and device status — delivered in-app, by email for alerts, with vibration and daily reminders.</p>
+          </article>
+
+          <article class="feature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 32 32"><path d="M5 26V6M5 26h22M9 21l5-6 4 3 6-9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <p class="mono feature-label">05 · History</p>
+            <h3>Analytics and reports</h3>
+            <p>Seventeen charts across battery, solar, energy, health, and usage, with CSV and PDF export for documentation.</p>
+          </article>
+
+          <article class="feature">
+            <span class="feature-icon" aria-hidden="true">
+              <svg viewBox="0 0 32 32"><path d="M5 16a11 11 0 0 1 18-8M27 16a11 11 0 0 1-18 8M5 8v6h6M27 24v-6h-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            <p class="mono feature-label">06 · Resilience</p>
+            <h3>Offline support</h3>
+            <p>The dashboard keeps the last cached readings visible with an offline banner when there is no connection.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="guidance" aria-labelledby="guidance-title">
+      <div class="wrap guidance-grid">
+        <div class="guidance-copy">
+          <p class="eyebrow eyebrow-light">Electronics guidance</p>
+          <h2 id="guidance-title">Know what your battery can carry.</h2>
+          <p class="guidance-lede">Pick the electronics you plan to use. AdlaWatt compares three inputs and gives a clear recommendation before the load is connected.</p>
+          <ul class="input-list">
+            <li><span class="mono">01</span>Remaining energy in watt-hours</li>
+            <li><span class="mono">02</span>Current battery voltage</li>
+            <li><span class="mono">03</span>Device power draw in watts</li>
+          </ul>
+        </div>
+        <div class="decision-card">
+          <p class="mono decision-label">Illustrative logic</p>
+          <div class="decision-row">
+            <span class="decision-dot decision-ok" aria-hidden="true"></span>
+            <div><strong>OK to use</strong><span>Within the current safe energy budget.</span></div>
+          </div>
+          <div class="decision-row">
+            <span class="decision-dot decision-no" aria-hidden="true"></span>
+            <div><strong>Not advisable</strong><span>Would exceed available or safe power.</span></div>
+          </div>
+          <p class="decision-note">Recommendations depend on live readings. This card illustrates the decision model, not a live device state.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="hardware" class="section" aria-labelledby="hardware-title">
+      <div class="wrap">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Hardware</p>
+            <h2 id="hardware-title">Built around off-the-shelf hardware.</h2>
+          </div>
+          <p class="section-aside">A transportable power enclosure, a small sensor stack, and an ESP32-S3 that connects the physical system to the app.</p>
+        </div>
+
+        <div class="hardware-grid">
+          <div class="hardware-column">
+            <h3 class="hardware-heading">Power path</h3>
+            <dl class="hardware-list">
+              <div><dt>Solar panel</dt><dd>Collects solar energy</dd></div>
+              <div><dt>Charge controller</dt><dd>Regulates battery charging</dd></div>
+              <div><dt>ZENOVA 30Ah ×2</dt><dd>756 Wh nominal · 604.8 Wh usable</dd></div>
+              <div><dt>Inverter</dt><dd>Converts DC to AC</dd></div>
+              <div><dt>AC outlet</dt><dd>Powers compatible electronics</dd></div>
+            </dl>
+          </div>
+          <div class="hardware-column">
+            <h3 class="hardware-heading">Sensing and control</h3>
+            <dl class="hardware-list">
+              <div><dt>ESP32-S3</dt><dd>Controller and Wi-Fi communication</dd></div>
+              <div><dt>INA228</dt><dd>Solar and load voltage/current</dd></div>
+              <div><dt>INA219</dt><dd>System voltage</dd></div>
+              <div><dt>DS18B20 ×2</dt><dd>Battery and solar temperature</dd></div>
+              <div><dt>DHT22</dt><dd>Interior temperature and humidity</dd></div>
+              <div><dt>Relay + 5V fan</dt><dd>Load and cooling control</dd></div>
+              <div><dt>SPI TFT display</dt><dd>Local real-time information</dd></div>
+            </dl>
+          </div>
+        </div>
+
+        <div class="thresholds" role="group" aria-label="Fixed safety thresholds">
+          <div><span class="mono">High load</span><strong>800 W</strong></div>
+          <div><span class="mono">Minimum voltage</span><strong>11.6 V</strong></div>
+          <div><span class="mono">Maximum voltage</span><strong>14.6 V</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="status-section" aria-labelledby="status-title">
+      <div class="wrap status-grid">
+        <div>
+          <p class="eyebrow">Project status</p>
+          <h2 id="status-title">Where the project stands.</h2>
+          <p class="status-lede">AdlaWatt is an academic capstone project in active development. The app already covers authentication, monitoring, electronics guidance, analytics, notifications, and offline behavior. The ESP32 hardware feed is the remaining integration work.</p>
+          <a class="text-link text-link-dark" href="https://github.com/Team-AdlaWatt/AdlaWatt">Follow the build on GitHub <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="status-card">
+          <span class="status-badge">In development</span>
+          <dl class="status-facts">
+            <div><dt>Mobile app</dt><dd>Integrated with Supabase</dd></div>
+            <div><dt>Hardware feed</dt><dd>Being wired end to end</dd></div>
+            <div><dt>Platforms</dt><dd>Android · Expo / React Native</dd></div>
+            <div><dt>Last updated</dt><dd><time datetime="2026-10-26">October 2026</time></dd></div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="section" aria-labelledby="faq-title">
+      <div class="wrap faq-wrap">
+        <div class="faq-heading">
+          <p class="eyebrow">Questions</p>
+          <h2 id="faq-title">AdlaWatt, explained.</h2>
+          <p class="section-lede">The short answers to the questions people ask most about the system, the app, and the project.</p>
+        </div>
+        <div class="faq-list">
+          <details>
+            <summary>What is AdlaWatt?</summary>
+            <p>AdlaWatt is a transportable off-grid solar power and backup system with an ESP32 IoT monitor and a mobile app for real-time energy monitoring, electronics guidance, notifications, and outage planning.</p>
+          </details>
+          <details>
+            <summary>How does AdlaWatt monitor solar and battery data?</summary>
+            <p>An ESP32-S3 reads voltage, current, and temperature sensors, sends the readings to Supabase, and the AdlaWatt mobile app displays live battery, solar, load, and system-health data.</p>
+          </details>
+          <details>
+            <summary>What electronics can AdlaWatt power?</summary>
+            <p>AdlaWatt works with compatible household electronics through its built-in AC outlet. The app compares remaining energy, battery voltage, and device power draw to label each item OK to use or not advisable.</p>
+          </details>
+          <details>
+            <summary>Is AdlaWatt available for purchase?</summary>
+            <p>No. AdlaWatt is an academic capstone prototype in development and is not a commercial product.</p>
+          </details>
+          <details>
+            <summary>Is the AdlaWatt source code open source?</summary>
+            <p>The repository is publicly viewable, but no open-source license is specified. Reuse, redistribution, or modification requires permission from the authors.</p>
+          </details>
+          <details>
+            <summary>Where was AdlaWatt built?</summary>
+            <p>AdlaWatt was developed by the AdlaWatt Research and Development Team at Northern Bukidnon State College in Bukidnon, Philippines.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta" aria-labelledby="cta-title">
+      <div class="wrap cta-inner">
+        <p class="eyebrow eyebrow-light">Follow the build</p>
+        <h2 id="cta-title">A solar backup system you can inspect.</h2>
+        <p>The repository contains the Expo app, Supabase schema and migrations, ESP32 integration notes, hardware documentation, and the project’s user manual.</p>
+        <div class="cta-actions">
+          <a class="button button-light" href="https://github.com/Team-AdlaWatt/AdlaWatt">View the repository <span aria-hidden="true">→</span></a>
+          <a class="text-link text-link-light" href="https://github.com/Team-AdlaWatt/AdlaWatt/blob/development/docs/USER-MANUAL.md">Read the user manual</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-grid">
+      <div class="footer-brand">
+        <picture>
+          <source srcset="./assets/adlawatt-logo-360.webp" type="image/webp">
+          <img src="./assets/adlawatt-logo-360.png" alt="AdlaWatt" width="360" height="162" loading="lazy">
+        </picture>
+        <p>An off-grid solar power and IoT energy monitoring project by the AdlaWatt Research and Development Team at Northern Bukidnon State College, Bukidnon, Philippines.</p>
+        <p class="mono footer-note">SDG 7 · SDG 11 · SDG 13</p>
+      </div>
+      <div class="footer-links">
+        <h2>Project</h2>
+        <a href="https://github.com/Team-AdlaWatt/AdlaWatt">Source code</a>
+        <a href="https://github.com/Team-AdlaWatt/AdlaWatt/blob/development/docs/USER-MANUAL.md">User manual</a>
+        <a href="https://github.com/Team-AdlaWatt/AdlaWatt/blob/development/docs/ISSUES.md">Known issues</a>
+        <a href="https://github.com/Team-AdlaWatt/AdlaWatt">Contributors</a>
+      </div>
+      <div class="footer-links">
+        <h2>Technology</h2>
+        <a href="https://expo.dev/">Expo</a>
+        <a href="https://supabase.com/">Supabase</a>
+        <a href="https://www.espressif.com/">ESP32</a>
+        <a href="https://openweathermap.org/">OpenWeather</a>
+      </div>
+    </div>
+    <div class="wrap footer-bottom">
+      <p>© 2026 AdlaWatt Research and Development Team</p>
+      <p>Academic capstone project · No commercial license</p>
+    </div>
+  </footer>
+</body>
+</html>
