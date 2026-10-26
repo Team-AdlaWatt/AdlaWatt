@@ -640,8 +640,9 @@ indexes, constraints, and policies. The follow-up migration
 adds the canonical `save_electronics_selection`,
 `reset_electronics_selection`, `archive_electronics`, and
 `unarchive_electronics` functions, creates the `electronics-images` bucket,
-and rewrites existing image URLs. The old RPC names remain temporarily as
-wrappers, and the old bucket remains until the new OTA is verified on-device.
+and rewrites existing image URLs. After the new OTA was verified on-device,
+`20261026000100_drop_legacy_appliance_compat.sql` removed the temporary old
+RPC wrappers, the old storage policies, and the old `appliance-images` bucket.
 
 ---
 
