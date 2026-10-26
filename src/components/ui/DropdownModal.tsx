@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 
-import React, { ReactNode, useMemo } from "react";
+import React, { ReactNode, useMemo, type RefObject } from "react";
 
 import {
   KeyboardAvoidingView,
@@ -10,6 +10,7 @@ import {
   ScrollView,
   StyleSheet,
   View,
+  type ScrollView as ScrollViewType,
 } from "react-native";
 
 import AppText from "@/components/ui/AppText";
@@ -36,8 +37,10 @@ interface DropdownModalProps {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  footer?: ReactNode;
   showCloseButton?: boolean;
   dismissOnOverlayPress?: boolean;
+  scrollRef?: RefObject<ScrollViewType | null>;
 }
 
 export function DropdownModal({
@@ -45,8 +48,10 @@ export function DropdownModal({
   title,
   onClose,
   children,
+  footer,
   showCloseButton = true,
   dismissOnOverlayPress = true,
+  scrollRef,
 }: DropdownModalProps) {
   const { t } = useTranslation();
   const colors = useAppColors();
@@ -127,6 +132,7 @@ export function DropdownModal({
               still open.
             */}
             <ScrollView
+              ref={scrollRef}
               style={dropdownModalStyles.body}
               contentContainerStyle={
                 dropdownModalStyles.bodyContent
@@ -136,6 +142,12 @@ export function DropdownModal({
             >
               {children}
             </ScrollView>
+
+            {footer ? (
+              <View style={dropdownModalStyles.footer}>
+                {footer}
+              </View>
+            ) : null}
           </Pressable>
         </Pressable>
       </KeyboardAvoidingView>
@@ -330,6 +342,11 @@ const getDropdownModalStyles = (colors: AppColors) =>
 
     bodyContent: {
       paddingBottom: 2,
+    },
+
+    footer: {
+      width: "100%",
+      paddingTop: 8,
     },
 
     header: {

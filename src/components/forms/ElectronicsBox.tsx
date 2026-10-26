@@ -499,13 +499,10 @@ export default function ElectronicsBox({
           source={imageSource}
           style={electronicsCardStyles.image}
           contentFit="contain"
-          // Memory-only cache: thumbnails decode once and
-          // stay instant for the whole session, then drop
-          // on close. Remote custom photos stop re-loading
-          // on every modal open; bundled catalog art stops
-          // re-decoding per mount. Downsampling to the
-          // thumbnail size is what smooths the scroll.
-          cachePolicy="memory"
+          // Disk-backed cache keeps remote custom photos
+          // warm across app launches; bundled catalog art
+          // still resolves locally.
+          cachePolicy="memory-disk"
         />
       </View>
 

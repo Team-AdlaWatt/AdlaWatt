@@ -48,6 +48,9 @@ import {
 } from "@/components/ui/SlidingToggle";
 import { getAuthenticatedUserSafe, supabase } from "@/lib/supabase";
 import {
+  prefetchElectronicsPhotos,
+} from "@/services/electronicsPhotoService";
+import {
   type BatteryStateInput,
   recommendElectronics,
 } from "@/services/recommendation";
@@ -253,6 +256,10 @@ export default function ElectronicsScreen() {
         })),
       );
 
+      prefetchElectronicsPhotos(
+        resolved.map((item) => item.imageUrl),
+      );
+
       return;
     } catch {
       // Fall back to legacy direct query below.
@@ -285,53 +292,61 @@ export default function ElectronicsScreen() {
       "@/constants/electronicsCatalog"
     );
 
-    setSelectedElectronics(
-      (data ?? [])
-        .filter(
-          (item) =>
-            typeof item.catalog_key === "string" ||
-            (item.type === "custom" &&
-              item.selection === true),
-        )
-        .map((item) => {
-          if (
-            typeof item.catalog_key === "string"
-          ) {
-            const catalog =
-              CATALOG_BY_KEY.get(item.catalog_key);
+    const mappedElectronics = (data ?? [])
+      .filter(
+        (item) =>
+          typeof item.catalog_key === "string" ||
+          (item.type === "custom" &&
+            item.selection === true),
+      )
+      .map((item) => {
+        if (
+          typeof item.catalog_key === "string"
+        ) {
+          const catalog =
+            CATALOG_BY_KEY.get(item.catalog_key);
 
-            if (catalog) {
-              return {
-                id: catalog.key,
-                name: catalog.name,
-                watts: catalog.display,
-                area: catalog.uiArea,
-              };
-            }
+          if (catalog) {
+            return {
+              id: catalog.key,
+              name: catalog.name,
+              watts: catalog.display,
+              area: catalog.uiArea,
+            };
           }
+        }
 
-          const minWatts = Number(item.wattage_min);
-          const maxWatts = Number(item.wattage_max);
+        const minWatts = Number(item.wattage_min);
+        const maxWatts = Number(item.wattage_max);
 
-          const watts =
-            Number.isFinite(minWatts) &&
-            Number.isFinite(maxWatts) &&
-            minWatts > 0 &&
-            maxWatts >= minWatts
-              ? `${minWatts}-${maxWatts}W`
-              : "";
+        const watts =
+          Number.isFinite(minWatts) &&
+          Number.isFinite(maxWatts) &&
+          minWatts > 0 &&
+          maxWatts >= minWatts
+            ? `${minWatts}-${maxWatts}W`
+            : "";
 
-          return {
-            id: String(item.app_id),
-            name: String(item.electronics_name),
-            watts,
-            area: CUSTOM_AREA,
-            imageUrl:
-              typeof item.image_url === "string"
-                ? item.image_url
-                : null,
-          };
-        }),
+        return {
+          id: String(item.app_id),
+          name: String(item.electronics_name),
+          watts,
+          area: CUSTOM_AREA,
+          imageUrl:
+            typeof item.image_url === "string"
+              ? item.image_url
+              : null,
+        };
+      });
+
+    setSelectedElectronics(mappedElectronics);
+
+    prefetchElectronicsPhotos(
+      (data ?? []).map((item) =>
+        typeof item.image_url === "string"
+          ? item.image_url
+          : null,
+      ),
     );
   }, []);
 

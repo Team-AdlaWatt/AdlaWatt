@@ -1,13 +1,21 @@
-import React, { useMemo } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { Ionicons } from "@expo/vector-icons";
 
 import {
   Image,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleSheet,
   TextInput,
   View,
+  type ScrollView,
 } from "react-native";
 
 import AppText from "@/components/ui/AppText";
@@ -20,8 +28,11 @@ import {
   type AppColors,
 } from "@/hooks/useAppColors";
 import {
-  BATTERY_MAX_ELECTRONICS_W,
-} from "@/constants/battery";
+  CUSTOM_ELECTRONICS_HINT,
+  CUSTOM_ELECTRONICS_NAME_MAX_LENGTH,
+  sanitizeWattSide,
+  validateCustomElectronics,
+} from "@/lib/customElectronicsValidation";
 import {
   Radius,
 } from "@/constants/theme";
@@ -50,10 +61,6 @@ type CustomElectronicsModalProps = {
   onCancel: () => void;
   onAdd: () => void;
   onSave?: () => void;
-  // Live interval validity from the parent (same rules as
-  // submit): the confirm button can't move forward on
-  // incomplete or reversed intervals.
-  wattsValid: boolean;
   // Photo preview to display: a freshly picked local uri or
   // the stored uploaded url. Null renders the bundled
   // adlawatt icon — the default for every custom electronics.
@@ -71,11 +78,6 @@ const defaultPhoto = require(
 // Twin wattage inputs share the parent's single "min-max"
 // string: split for display, rejoin on edit. The parent's
 // validation, prefill, and resets work unchanged.
-// Strict per-side rule: digits, one dot, max 2 decimals,
-// max 3 integer digits, integer value at most
-// BATTERY_MAX_ELECTRONICS_W. Empty
-// is always fine (deletion never blocked). Rejected
-// keystrokes keep the previous text with no error flash.
 const splitWatts = (watts: string): [string, string] => {
   const dash = watts.indexOf("-");
 
@@ -84,28 +86,6 @@ const splitWatts = (watts: string): [string, string] => {
   }
 
   return [watts.slice(0, dash), watts.slice(dash + 1)];
-};
-
-const sanitizeWattSide = (
-  text: string,
-): string | null => {
-  const clean = text.replace(/-/g, "");
-
-  if (clean === "") {
-    return "";
-  }
-
-  if (!/^\d{0,3}(\.\d{0,2})?$/.test(clean)) {
-    return null;
-  }
-
-  const intPart = clean.split(".")[0] ?? "";
-
-  if (intPart !== "" && Number(intPart) > BATTERY_MAX_ELECTRONICS_W) {
-    return null;
-  }
-
-  return clean;
 };
 
 const joinWatts = (min: string, max: string): string => {
@@ -127,7 +107,6 @@ export default function CustomElectronicsModal({
   onCancel,
   onAdd,
   onSave,
-  wattsValid,
   photoPreview,
   photoBusy,
   onPhotoPress,
@@ -138,6 +117,9 @@ export default function CustomElectronicsModal({
     () => getStyles(colors),
     [colors],
   );
+
+  const [attemptedSubmit, setAttemptedSubmit] =
+    useState(false);
 
   const { scaledSize, family, weight } =
     useTypography();
@@ -158,6 +140,56 @@ export default function CustomElectronicsModal({
     : onAdd;
 
   const [wattMin, wattMax] = splitWatts(watts);
+  const validation = useMemo(
+    () => validateCustomElectronics(name, watts),
+    [name, watts],
+  );
+  const hasFieldContent =
+    name.trim().length > 0 || watts.trim().length > 0;
+  const showFieldError =
+    attemptedSubmit ||
+    (hasFieldContent && !validation.valid);
+  const showError =
+    Boolean(error) ||
+    (showFieldError && validation.message !== null);
+  const message = error
+    ? error
+    : !validation.valid && (attemptedSubmit || hasFieldContent)
+      ? CUSTOM_ELECTRONICS_HINT
+      : "";
+
+  const scrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    if (!visible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset the submit attempt when the modal closes
+      setAttemptedSubmit(false);
+      return;
+    }
+
+    if (message && (attemptedSubmit || hasFieldContent)) {
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, 50);
+    }
+  }, [visible, message, attemptedSubmit, hasFieldContent]);
+
+  const handleConfirmPress = () => {
+    if (photoBusy) {
+      return;
+    }
+
+    if (!validation.valid) {
+      setAttemptedSubmit(true);
+      setTimeout(() => {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      }, 50);
+      return;
+    }
+
+    setAttemptedSubmit(false);
+    handleConfirm();
+  };
 
   const handleWattMinChange = (text: string) => {
     const clean = sanitizeWattSide(text);
@@ -179,144 +211,8 @@ export default function CustomElectronicsModal({
     onWattsChange(joinWatts(wattMin, clean));
   };
 
-  return (
-    <DropdownModal
-      visible={visible}
-      title={title}
-      onClose={onCancel}
-    >
-      <AppText
-        variant="caption"
-        style={styles.infoNote}
-      >
-        Check the electronics wattage first, for
-        example, soldering wire may use 15-25W.
-      </AppText>
-
-      {/* Photo display on top, picker button below it,
-          with a section break before the fields. */}
-      <View style={styles.photoDisplay}>
-        <Image
-          source={
-            photoPreview
-              ? { uri: photoPreview }
-              : defaultPhoto
-          }
-          style={styles.photoDisplayImage}
-          resizeMode="contain"
-          accessibilityLabel={
-            photoPreview
-              ? "Custom electronics photo"
-              : "Default electronics icon"
-          }
-        />
-      </View>
-
-      <Pressable
-        onPress={onPhotoPress}
-        disabled={photoBusy}
-        style={({ pressed }) => [
-          styles.photoButton,
-          pressed && !photoBusy && styles.pressed,
-          photoBusy && styles.pressed,
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel={
-          photoPreview
-            ? "Change electronics photo"
-            : "Add electronics photo"
-        }
-        accessibilityHint="Opens the photo picker"
-      >
-        <Ionicons
-          name="camera"
-          size={20}
-          color={colors.onPrimary}
-        />
-
-        <AppText
-          variant="caption"
-          style={styles.photoButtonText}
-        >
-          {photoPreview
-            ? "Change Photo"
-            : "Add Photo"}
-        </AppText>
-      </Pressable>
-
-      <TextInput
-        value={name}
-        onChangeText={onNameChange}
-        placeholder="Enter valid electronics name"
-        placeholderTextColor={
-          colors.textSecondary
-        }
-        allowFontScaling={false}
-        style={[styles.input, inputFontStyle]}
-        accessibilityLabel={
-          isEdit
-            ? "Edit custom electronics name"
-            : "Add custom electronics name"
-        }
-      />
-
-      <View style={styles.wattsRow}>
-        <TextInput
-          value={wattMin}
-          onChangeText={handleWattMinChange}
-          placeholder="Min (W)"
-          placeholderTextColor={
-            colors.textSecondary
-          }
-          allowFontScaling={false}
-          style={[
-            styles.input,
-            styles.wattsInput,
-            inputFontStyle,
-          ]}
-          keyboardType="numeric"
-          accessibilityLabel={
-            isEdit
-              ? "Edit minimum wattage"
-              : "Add minimum wattage"
-          }
-        />
-
-        <AppText style={styles.wattsDash}>
-          –
-        </AppText>
-
-        <TextInput
-          value={wattMax}
-          onChangeText={handleWattMaxChange}
-          placeholder="Max (W)"
-          placeholderTextColor={
-            colors.textSecondary
-          }
-          allowFontScaling={false}
-          style={[
-            styles.input,
-            styles.wattsInput,
-            inputFontStyle,
-          ]}
-          keyboardType="numeric"
-          accessibilityLabel={
-            isEdit
-              ? "Edit maximum wattage"
-              : "Add maximum wattage"
-          }
-        />
-      </View>
-
-      {error ? (
-        <AppText
-          variant="caption"
-          style={styles.customError}
-        >
-          {error}
-        </AppText>
-      ) : null}
-
+  const footer = (
+    <View style={styles.footer}>
       <View style={styles.customActions}>
         <Pressable
           onPress={onCancel}
@@ -342,10 +238,8 @@ export default function CustomElectronicsModal({
         </Pressable>
 
         <Pressable
-          onPress={handleConfirm}
-          disabled={
-            !name.trim() || !wattsValid || photoBusy
-          }
+          onPress={handleConfirmPress}
+          disabled={photoBusy}
           style={({ pressed }) => [
             styles.customAction,
             styles.addAction,
@@ -353,6 +247,7 @@ export default function CustomElectronicsModal({
             photoBusy && styles.pressed,
           ]}
           accessibilityRole="button"
+          accessibilityState={{ disabled: photoBusy }}
           accessibilityLabel={
             isEdit
               ? "Save custom electronics"
@@ -367,22 +262,187 @@ export default function CustomElectronicsModal({
           </AppText>
         </Pressable>
       </View>
+    </View>
+  );
+
+  return (
+    <DropdownModal
+      visible={visible}
+      title={title}
+      onClose={onCancel}
+      footer={footer}
+      scrollRef={scrollRef}
+    >
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
+        style={styles.keyboardAvoid}
+      >
+        <View style={styles.content}>
+          <AppText
+            variant="caption"
+            style={styles.infoNote}
+          >
+            Check the electronics wattage first, for
+            example, soldering wire may use 15-25W.
+          </AppText>
+
+          {/* Photo display on top, picker button below it,
+              with a section break before the fields. */}
+          <View style={styles.photoDisplay}>
+            <Image
+              source={
+                photoPreview
+                  ? { uri: photoPreview }
+                  : defaultPhoto
+              }
+              style={styles.photoDisplayImage}
+              resizeMode="contain"
+              accessibilityLabel={
+                photoPreview
+                  ? "Custom electronics photo"
+                  : "Default electronics icon"
+              }
+            />
+          </View>
+
+          <Pressable
+            onPress={onPhotoPress}
+            disabled={photoBusy}
+            style={({ pressed }) => [
+              styles.photoButton,
+              pressed && !photoBusy && styles.pressed,
+              photoBusy && styles.pressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={
+              photoPreview
+                ? "Change electronics photo"
+                : "Add electronics photo"
+            }
+            accessibilityHint="Opens the photo picker"
+          >
+            <Ionicons
+              name="camera"
+              size={20}
+              color={colors.onPrimary}
+            />
+
+            <AppText
+              variant="caption"
+              style={styles.photoButtonText}
+            >
+              {photoPreview
+                ? "Change Photo"
+                : "Add Photo"}
+            </AppText>
+          </Pressable>
+
+          <TextInput
+            value={name}
+            onChangeText={onNameChange}
+            placeholder="Enter valid electronics name"
+            placeholderTextColor={
+              colors.textSecondary
+            }
+            allowFontScaling={false}
+            maxLength={CUSTOM_ELECTRONICS_NAME_MAX_LENGTH}
+            style={[styles.input, inputFontStyle]}
+            accessibilityLabel={
+              isEdit
+                ? "Edit custom electronics name"
+                : "Add custom electronics name"
+            }
+          />
+
+          <View style={styles.wattsRow}>
+            <TextInput
+              value={wattMin}
+              onChangeText={handleWattMinChange}
+              placeholder="Min (W)"
+              placeholderTextColor={
+                colors.textSecondary
+              }
+              allowFontScaling={false}
+              style={[
+                styles.input,
+                styles.wattsInput,
+                inputFontStyle,
+              ]}
+              keyboardType="numeric"
+              accessibilityLabel={
+                isEdit
+                  ? "Edit minimum wattage"
+                  : "Add minimum wattage"
+              }
+            />
+
+            <AppText style={styles.wattsDash}>
+              –
+            </AppText>
+
+            <TextInput
+              value={wattMax}
+              onChangeText={handleWattMaxChange}
+              placeholder="Max (W)"
+              placeholderTextColor={
+                colors.textSecondary
+              }
+              allowFontScaling={false}
+              style={[
+                styles.input,
+                styles.wattsInput,
+                inputFontStyle,
+              ]}
+              keyboardType="numeric"
+              accessibilityLabel={
+                isEdit
+                  ? "Edit maximum wattage"
+                  : "Add maximum wattage"
+              }
+            />
+          </View>
+
+          <AppText
+            variant="caption"
+            style={[
+              styles.footerMessage,
+              styles.footerMessageScroll,
+              showError
+                ? styles.footerMessageError
+                : styles.footerMessageHint,
+            ]}
+            accessibilityLiveRegion="polite"
+          >
+            {message}
+          </AppText>
+        </View>
+      </KeyboardAvoidingView>
     </DropdownModal>
   );
 }
 
 const getStyles = (colors: AppColors) =>
   StyleSheet.create({
+    keyboardAvoid: {
+      width: "100%",
+    },
+
+    content: {
+      width: "100%",
+      flexShrink: 1,
+    },
+
     infoNote: {
       color: colors.textSecondary,
       fontSize: 12,
       lineHeight: 17,
-      marginBottom: 10,
+      marginBottom: 6,
     },
 
     photoDisplay: {
-      width: "100%",
-      aspectRatio: 1,
+      width: 110,
+      height: 110,
       borderRadius: Radius.md,
       borderWidth: 2,
       borderColor: colors.border,
@@ -391,6 +451,7 @@ const getStyles = (colors: AppColors) =>
       alignItems: "center",
       justifyContent: "center",
       marginBottom: 8,
+      alignSelf: "center",
     },
 
     photoDisplayImage: {
@@ -409,7 +470,7 @@ const getStyles = (colors: AppColors) =>
       borderWidth: 2,
       borderColor: colors.primary,
       borderRadius: Radius.md,
-      marginBottom: 16,
+      marginBottom: 8,
     },
 
     photoButtonText: {
@@ -447,17 +508,34 @@ const getStyles = (colors: AppColors) =>
       fontWeight: "700",
     },
 
-    customError: {
-      color: colors.error,
+    footer: {
+      width: "100%",
+      paddingTop: 4,
+    },
+
+    footerMessage: {
       fontSize: 12,
-      fontWeight: "600",
+      lineHeight: 16,
+    },
+
+    footerMessageScroll: {
+      marginTop: 4,
       marginBottom: 2,
+    },
+
+    footerMessageHint: {
+      color: colors.textSecondary,
+    },
+
+    footerMessageError: {
+      color: colors.error,
+      fontWeight: "600",
     },
 
     customActions: {
       flexDirection: "row",
       gap: 10,
-      marginTop: 10,
+      marginTop: 6,
     },
 
     customAction: {
@@ -488,7 +566,7 @@ const getStyles = (colors: AppColors) =>
       fontWeight: "700",
     },
 
-  pressed: {
-    opacity: 0.7,
-  },
-});
+    pressed: {
+      opacity: 0.7,
+    },
+  });

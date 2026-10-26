@@ -8,12 +8,13 @@ import React, {
 
 import {
   Animated,
-  Image,
   Platform,
   Pressable,
   StyleSheet,
   View,
 } from "react-native";
+
+import { Image } from "expo-image";
 
 import ElectronicsModal from "@/components/forms/ElectronicsModal";
 import {
@@ -36,6 +37,9 @@ import {
 } from "@/components/ui/SlidingToggle";
 import { getAuthenticatedUserSafe, supabase } from "@/lib/supabase";
 
+import {
+  prefetchElectronicsPhotos,
+} from "@/services/electronicsPhotoService";
 import {
   type BatteryStateInput,
   recommendElectronics,
@@ -394,6 +398,10 @@ export default function AppRecCard({
         })),
       );
 
+      prefetchElectronicsPhotos(
+        resolved.map((item) => item.imageUrl),
+      );
+
       return;
     } catch {
       // Fall back to legacy direct query below.
@@ -465,6 +473,10 @@ export default function AppRecCard({
       });
 
     setElectronics(mapped);
+
+    prefetchElectronicsPhotos(
+      mapped.map((item) => item.imageUrl),
+    );
   };
 
   // ============================================
@@ -717,7 +729,8 @@ export default function AppRecCard({
                         style={
                           electronicsCardStyles.image
                         }
-                        resizeMode="contain"
+                        contentFit="contain"
+                        cachePolicy="memory-disk"
                       />
                     </View>
 

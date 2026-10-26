@@ -634,11 +634,15 @@ against the renamed table.
 **Fixed:** Updated all 12 `.from("appliances")` queries to
 `.from("electronics")` and replaced `appliance_name` in select lists, ordering,
 search clauses, insert payloads, and row types. The migration
-`20261022000000_rename_appliances_to_electronics.sql` renames the table and
-column and repairs the stored function bodies. Legacy RPC names
-(`archive_appliance`, `unarchive_appliance`, `save_appliance_selection`,
-`reset_appliance_selection`), the `appliance-images` storage bucket, and the
-`"Appliance not found."` database message were left unchanged on purpose.
+`20261022000000_rename_appliances_to_electronics.sql` renames the table, column,
+indexes, constraints, and policies. The follow-up migration
+`20261026000000_complete_electronics_rename.sql` fixes the stored RPC bodies,
+adds the canonical `save_electronics_selection`,
+`reset_electronics_selection`, `archive_electronics`, and
+`unarchive_electronics` functions, creates the `electronics-images` bucket,
+and rewrites existing image URLs. After the new OTA was verified on-device,
+`20261026000100_drop_legacy_appliance_compat.sql` removed the temporary old
+RPC wrappers, the old storage policies, and the old `appliance-images` bucket.
 
 ---
 
@@ -807,7 +811,226 @@ rules.
 
 ---
 
+### 25. feat(location): add sample coordinates for the location tracking
+
+**Summary**
+Location tracking relied entirely on the device's GPS/location services. When location permissions were denied, services were disabled, or in testing environments, there were no fallback coordinates. As a result, location-dependent features (like weather) failed to load or showed empty/error states without a sensible default.
+
+**Steps to Reproduce**
+1. Deny location permission on first launch, or disable location services.
+2. Open the app and navigate to the Dashboard/Weather screen.
+3. Observe how location-dependent data behaves.
+
+**Expected Behavior**
+When device location is unavailable or not permitted, the app should fall back to predefined sample coordinates for location tracking so that location-dependent features can still load with a reasonable default location.
+
+**Actual Behavior**
+No fallback coordinates existed. Location tracking failed and location-dependent features showed errors or remained empty with no default location applied.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Added sample coordinates for location tracking as a fallback. The app now uses these predefined coordinates when device location cannot be obtained, allowing location-dependent features to continue working in those scenarios.
+
+---
+
+### 26. chore: clean-up and organize the project folder
+
+**Summary**
+The repository root has accumulated many documentation and planning files. The goal is to tidy the structure by moving documentation into a root `docs/` folder while removing junk/unnecessary files that are no longer needed.
+
+**Steps to Reproduce**
+1. Browse the repository root.
+2. Notice many `.md` files and planning folders mixed with config/source files.
+
+**Expected Behavior**
+Documentation lives under `docs/` for organization, `README.md` stays at root, and only necessary files remain. Unused/junk files are removed.
+
+**Actual Behavior**
+Documentation is scattered across the root and some folders with spaces exist alongside source/config files.
+
+**Environment**
+- **Device:** Any
+- **App Version:** v1.0.0
+
+**Fixed:** Created `docs/` at root and moved documentation files into it (keeping their content), kept `README.md` at root, removed junk/unnecessary files (e.g. temp/backups/duplicates) that are no longer needed. Verified no broken internal references.
+
+---
+
+### 27. fix(analytics): keep analytics chart card shells visible with placeholders while data loads
+
+**Summary**
+On first open of the Analytics screen, the chart card shells do not appear until the analytics data finishes loading. Because entire card lists are conditionally rendered or hidden behind loading guards, users see a mostly blank screen when scrolling down before `get_analytics_report` and `get_analytics_summary` return results.
+
+**Steps to Reproduce**
+1. Open the app and go to Dashboard > Analytics.
+2. Load the screen on a fresh open or with a slower network.
+3. Scroll down through the active tab before the data finishes fetching.
+4. Observe that the chart cards are missing until the data loads.
+
+**Expected Behavior**
+All analytics chart card shells should render immediately on first load for the active tab, regardless of loading state. While waiting for data, each card should show a placeholder (e.g. "Waiting for graph and chart data...") inside it. Once the data arrives, the actual chart should render in place without layout shift.
+
+**Actual Behavior**
+Card shells are omitted during the initial fetch. The screen appears empty on first scroll and only shows the cards after data exists.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Render a fixed registry of chart cards per tab in `src/app/dashboard/analytics.tsx` unconditionally (no filtering by data presence). Move loading/empty states into `src/components/forms/AnalyticsChartCard.tsx` to display a waiting placeholder while loading and the correct "no data for this range" state when applicable. Prevent individual chart components from returning `null` on missing data, add `minHeight` to `AnalyticsChartCard` to reserve layout space, and remove any section-level early returns that hide entire card lists.
+
+---
+
+### 28. fix(ci): resolve test failures from request coalescing and in-memory cache
+
+**Summary**
+After adding request coalescing and in-memory caching for monitoring and weather refreshes, the CI Jest suite began failing due to cross-test pollution. The new singletons (`memoryCache` and the weather in-flight state) were persisting between tests, causing state leakage that broke existing test expectations.
+
+**Failing Tests**
+- `src/services/__tests__/todayWeather.test.ts`
+  - "getWeather coordinates › rounds raw coordinates outside coverage"
+  - "getWeather coordinates › a failed GPS fix throws location_unavailable"
+- `src/services/__tests__/monitoringCache.test.ts`
+  - "getMonitoringData write-through › error returns null without poisoning the cache"
+
+**Steps to Reproduce**
+1. Run the test suite after introducing the perf changes.
+2. Observe failures in the above tests due to stale cached/in-flight state from previous tests.
+3. CI exits with code 1.
+
+**Expected Behavior**
+Each test should run in isolation with a clean cache and in-flight state.
+
+**Actual Behavior**
+CI reported: 21 passed, 2 failed (23 suites total) and 308 passed, 14 failed (322 tests total). The failures were caused by shared cache/in-flight state leaking between tests, not production logic regressions.
+
+**Environment**
+- **CI:** GitHub Actions (Android Builds workflow)
+- **Stack:** Expo 57, React Native, TypeScript, Jest
+
+**Fixed:** Cleared `memoryCache` in the affected test `beforeEach` blocks and added `__clearInFlightTodayForTests()` to `src/services/weatherForecast.ts` to reset in-flight weather requests between tests. Test-only changes with no impact to production code paths or OTA.
+
+---
+
+### 29. fix(electronics): improve custom electronics modal keyboard handling and add name validation
+
+**Summary**
+The Add/Edit Custom Electronics modal has two issues: (1) when the on-screen keyboard opens, the action buttons (Cancel/Save) get pushed behind or hidden by the keyboard, and (2) there is no validation message like "Must be valid electronics name" displayed when the name is invalid.
+
+**Steps to Reproduce**
+1. Open the Electronics screen and tap "Add Custom Electronics" (or edit an existing custom electronics item).
+2. Tap the "Name" input field to open the keyboard.
+3. Observe that the Cancel/Save buttons may be hidden behind the keyboard.
+4. Enter an invalid name (or leave empty) and try to save - no constraint message is shown.
+
+**Expected Behavior**
+- The modal should stay above the keyboard with all action buttons visible and accessible.
+- When the electronics name is invalid/empty, display "Must be valid electronics name" below the name input field (matching the style of other validation messages in the app).
+- The Save/Add button should be disabled until both name and wattage are valid.
+- Both add and edit flows should behave consistently.
+
+**Actual Behavior**
+- Buttons get covered by the keyboard on smaller screens/devices.
+- No name validation message is displayed; users only see generic behavior.
+- Layout doesn't adapt well to keyboard appearance.
+
+**Environment**
+- **Device:** Android and iPhone
+- **App Version:** v1.0.0
+
+**Fixed:** Restructured `src/components/forms/CustomElectronicsModal.tsx` to use `KeyboardAvoidingView` with proper behavior/offsets, split layout into fixed header, scrollable content area, and fixed footer with buttons. Added name validation (alphanumeric, spaces, hyphens, parentheses allowed) with "Must be valid electronics name" error message displayed below the name input. Disabled confirm button when name or wattage is invalid. Applied consistent styling with existing validation messages.
+
+---
+
+### 30. [Bug] Select electronics modal footer buttons not working
+
+**Summary**
+On the Select Electronics modal, the footer actions could appear dead. Tapping
+Add/Save or Reset produced no visible response when the selected-electronics RPC
+failed. Item selection still worked, which made the failure look like a broken
+modal rather than a backend error.
+
+**Steps to Reproduce**
+1. Open the Electronics screen.
+2. Tap to open the Select Electronics modal/picker.
+3. Select or clear electronics items.
+4. Tap Add/Save or Reset in the modal footer.
+
+**Expected Behavior**
+The footer action either completes or shows a clear error. Add/Save persists the
+selection and closes the modal; Reset clears the selection.
+
+**Actual Behavior**
+The footer looked unresponsive: Add/Save failed silently because the error was
+rendered only inside the closed custom-item modal, and Reset cleared local state
+even when the server reset failed.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** The live RPCs still referenced `public.appliances` and
+`appliance_name`, so every Add/Save/Reset call failed while the error text was
+hidden inside the closed custom-item modal. Migration
+`20261026000000_complete_electronics_rename.sql` now defines the
+electronics-named RPCs against the correct table, and the app calls those new
+names. Save and reset failures now render in a visible banner above the footer,
+and Reset no longer clears local state when the RPC fails. The
+`CustomElectronicsModal` hook-order error that broke typechecking was also
+fixed. Verified fixed on-device after OTA group
+`2f2d3d04-efbf-4113-ab45-5cb296d13b1f`.
+
+---
+
+### 31. [Performance] Electronics images load slowly and scrolling lags
+
+**Summary**
+Electronics images took noticeable time to appear and the Select Electronics
+modal felt heavy while scrolling. The bundled catalog artwork included ten
+large PNGs between 1254×1254 and 2000×2000, and the 29 referenced catalog
+images together shipped about 20.25 MB. Custom photo uploads could also keep
+their original resolution, including a 3048×3048 image already in storage.
+
+**Steps to Reproduce**
+1. Open the Electronics screen on a cold app start.
+2. Scroll through the electronics grid.
+3. Open the Select Electronics modal and scroll through all catalog sections.
+4. Compare the first load with reopening the modal.
+
+**Expected Behavior**
+Images appear quickly, stay sharp at their displayed size, and scrolling stays
+smooth. Reopening the modal should reuse cached images.
+
+**Actual Behavior**
+Large source images took time to decode and scroll, and remote custom photos
+were rendered with a memory-only cache policy instead of a persistent disk
+cache.
+
+**Environment**
+- **Device:** Android and iPhone
+- **App Version:** v1.0.0
+
+**Fixed:** Resized the 29 referenced catalog PNGs to 360×360, preserving
+transparency, which reduced the referenced artwork from 20.25 MB to 2.45 MB.
+Custom photo picks are now always center-cropped and normalized to a 360px
+JPEG before upload, including square images. Electronics images now use the
+disk-backed `memory-disk` cache in the modal, electronics screen, and
+recommendation card, and custom photo URLs are prefetched as soon as the
+electronics data loads. Existing custom photos were not re-encoded, but disk
+caching now keeps their repeat loads immediate. Catalog names, wattages,
+selection behavior, and database data were not changed.
+
+**Verified:** Fixed on-device after OTA group
+`61fb03b7-7612-47c2-8850-a6157722e8f1`. Electronics images now load
+immediately and scrolling is smooth in both the Electronics screen and Select
+Electronics modal.
+
+---
+
 ## Still To Do
 
 - Update the ESP32 firmware so watt_hours is reported on the 756 Wh scale.
 - Small pre-existing warning in the code cleanup (not related to these fixes).
+

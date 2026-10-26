@@ -14,10 +14,6 @@ import {
   View,
 } from "react-native";
 
-import {
-  Image as ExpoImage,
-} from "expo-image";
-
 import ElectronicsBox from "@/components/forms/ElectronicsBox";
 import {
   electronicsCardGrid,
@@ -28,6 +24,7 @@ import MediaPickerModal, {
 } from "@/components/forms/MediaPickerModal";
 import {
   deleteElectronicsPhotoByUrl,
+  prefetchElectronicsPhotos,
   uploadElectronicsPhoto,
 } from "@/services/electronicsPhotoService";
 import AppText from "@/components/ui/AppText";
@@ -37,7 +34,6 @@ import ScrollToTopButton from "@/components/layout/ScrollToTopButton";
 
 import {
   BATTERY_CAPACITY_WH,
-  BATTERY_MAX_ELECTRONICS_W,
 } from "@/constants/battery";
 import { Colors } from "@/constants/colors";
 import {
@@ -60,6 +56,9 @@ import {
 import { Control, Touch } from "@/constants/sizing";
 
 import { getAuthenticatedUserSafe, supabase } from "@/lib/supabase";
+import {
+  validateCustomElectronics,
+} from "@/lib/customElectronicsValidation";
 
 type Electronics = {
   id: string;
@@ -70,40 +69,6 @@ type Electronics = {
   // bundled adlawatt icon — the default for every custom.
   imageUrl?: string | null;
 };
-
-// Session photo cache: remote custom URLs prefetched once
-// per app session (module lifetime), so reopening the modal
-// never re-downloads them. expo-image's memory cache holds
-// the bitmaps; this set just skips redundant prefetch calls
-// when the same URLs load again (reopen, layer-2 refetch).
-const prefetchedPhotoUrls = new Set<string>();
-
-function prefetchCustomPhotos(
-  items: Electronics[],
-): void {
-  const fresh = items
-    .map((item) => item.imageUrl)
-    .filter(
-      (url): url is string =>
-        typeof url === "string" &&
-        url.length > 0 &&
-        !prefetchedPhotoUrls.has(url),
-    );
-
-  if (fresh.length === 0) {
-    return;
-  }
-
-  for (const url of fresh) {
-    prefetchedPhotoUrls.add(url);
-  }
-
-  // Fire-and-forget: rows render from cache when ready;
-  // a failed prefetch just falls back to per-row loading.
-  void ExpoImage.prefetch(fresh).catch(
-    () => {},
-  );
-}
 
 type ElectronicsModalProps = {
   visible: boolean;
@@ -155,34 +120,6 @@ const formatCustomWatts = (
   }
 
   return "";
-};
-
-/* Parses "15-25" / "15 - 25" / "15.5-25.5" into { min, max }. */
-const parseWattInterval = (
-  raw: string,
-): { min: number; max: number } | null => {
-  const match = raw.match(
-    /^(\d+(?:\.\d{1,2})?)\s*-\s*(\d+(?:\.\d{1,2})?)$/,
-  );
-
-  if (!match) {
-    return null;
-  }
-
-  const min = Number(match[1]);
-  const max = Number(match[2]);
-
-  if (
-    !Number.isFinite(min) ||
-    !Number.isFinite(max) ||
-    min < 1 ||
-    max > BATTERY_MAX_ELECTRONICS_W ||
-    min > max
-  ) {
-    return null;
-  }
-
-  return { min, max };
 };
 
 /*
@@ -243,25 +180,6 @@ export default function ElectronicsModal({
 
   const [customWatts, setCustomWatts] =
     useState("");
-
-  // Live interval validity: the strict twin inputs admit
-  // only well-formed sides, but an interval can still be
-  // incomplete ("12-") or reversed ("756-129"). The confirm
-  // button stays disabled until the whole interval passes
-  // the exact submit rules below.
-  const customWattsValid = useMemo(() => {
-    const text = customWatts.trim();
-
-    if (
-      !/^\d+(\.\d{1,2})?\s*-\s*\d+(\.\d{1,2})?$/.test(
-        text,
-      )
-    ) {
-      return false;
-    }
-
-    return parseWattInterval(text) !== null;
-  }, [customWatts]);
 
   const [customError, setCustomError] =
     useState("");
@@ -511,9 +429,13 @@ export default function ElectronicsModal({
     setArchivedCount(archived.length);
     setIsLoadingCustoms(false);
 
-    // Warm the session photo cache the moment URLs are
-    // known — rows then paint from memory, no reload flash.
-    prefetchCustomPhotos([...customs, ...archived]);
+    // Warm the disk-backed photo cache as soon as URLs are
+    // known so rows paint without a reload flash.
+    prefetchElectronicsPhotos(
+      [...customs, ...archived].map(
+        (item) => item.imageUrl,
+      ),
+    );
 
     console.debug(
       `[ElectronicsModal] loaded rows=${rows.length} active=${customs.length} archived=${archived.length}`,
@@ -599,7 +521,9 @@ export default function ElectronicsModal({
     setArchivedCount(archived.length);
     setIsLoadingCustoms(false);
 
-    prefetchCustomPhotos(archived);
+    prefetchElectronicsPhotos(
+      archived.map((item) => item.imageUrl),
+    );
   };
 
   // ============================================================
@@ -676,6 +600,8 @@ export default function ElectronicsModal({
   // ============================================================
 
   const handleReset = async () => {
+    setCustomError("");
+
     const user = await getAuthenticatedUserSafe();
 
     if (!user) {
@@ -684,7 +610,7 @@ export default function ElectronicsModal({
     }
 
     const { error } = await supabase.rpc(
-      "reset_appliance_selection",
+      "reset_electronics_selection",
     );
 
     if (error) {
@@ -694,7 +620,7 @@ export default function ElectronicsModal({
       );
 
       setCustomError(
-        "Unable to reset electronics selection.",
+        "Unable to reset electronics selection. Please try again.",
       );
 
       return;
@@ -703,16 +629,10 @@ export default function ElectronicsModal({
     setSelected([]);
     setCustomName("");
     setCustomWatts("");
-    setCustomError("");
     setEditModalVisible(false);
     setAddModalVisible(false);
     setEditingCustom(null);
     setIsReset(true);
-    // Selection-only reset (RPC clears given rows and flips
-    // customs to selection=false without touching archive):
-    // Layer 1 customs stay visible unticked, the archived
-    // list is untouched, so there is nothing to move or
-    // dismiss here.
 
     logElectronics.selectionReset();
   };
@@ -737,12 +657,41 @@ export default function ElectronicsModal({
 
     if (!user) {
       console.error("No authenticated user.");
+      setCustomError("You must be signed in.");
       return;
     }
 
     setIsSaving(true);
+    setCustomError("");
 
     const selectedSet = new Set(selected);
+
+    if (selectedSet.size === 0) {
+      const { error: resetError } = await supabase.rpc(
+        "reset_electronics_selection",
+      );
+
+      setIsSaving(false);
+
+      if (resetError) {
+        console.error(
+          "Reset electronics selection error:",
+          resetError.message,
+        );
+
+        setCustomError("Unable to save electronics selection.");
+
+        return;
+      }
+
+      setSelected([]);
+      setIsReset(true);
+      logElectronics.selectionReset();
+
+      onSave?.([]);
+      onClose();
+      return;
+    }
 
     const catalogPicks = GIVEN_CATALOG.filter(
       (item) => selectedSet.has(item.key),
@@ -774,7 +723,7 @@ export default function ElectronicsModal({
       .map((item) => item.id);
 
     const { error: saveError } = await supabase.rpc(
-      "save_appliance_selection",
+      "save_electronics_selection",
       {
         p_catalog: catalogPicks,
         p_custom_selected: customSelected,
@@ -851,35 +800,21 @@ export default function ElectronicsModal({
   // ============================================================
 
   const handleCustomAdd = async () => {
+    const validation = validateCustomElectronics(
+      customName,
+      customWatts,
+    );
+
+    if (!validation.valid || !validation.interval) {
+      setCustomError(
+        validation.message ??
+          "Please check the electronics details.",
+      );
+      return;
+    }
+
     const name = customName.trim();
-    const wattsRaw = customWatts.trim();
-
-    if (
-      !/^[A-Za-z][A-Za-z0-9 /&.'-]{2,49}$/.test(
-        name,
-      )
-    ) {
-      setCustomError(
-        "Electronics item name must be valid and readable.",
-      );
-      return;
-    }
-
-    if (!/^\d+(\.\d{1,2})?\s*-\s*\d+(\.\d{1,2})?$/.test(wattsRaw)) {
-      setCustomError(
-        "Enter wattage interval, for example 15-25.",
-      );
-      return;
-    }
-
-    const interval = parseWattInterval(wattsRaw);
-
-    if (!interval) {
-      setCustomError(
-        `Enter a valid wattage interval between 1W and ${BATTERY_MAX_ELECTRONICS_W}W.`,
-      );
-      return;
-    }
+    const interval = validation.interval;
 
     const user = await getAuthenticatedUserSafe();
 
@@ -1034,35 +969,21 @@ export default function ElectronicsModal({
   const handleCustomUpdate = async () => {
     if (!editingCustom) return;
 
+    const validation = validateCustomElectronics(
+      customName,
+      customWatts,
+    );
+
+    if (!validation.valid || !validation.interval) {
+      setCustomError(
+        validation.message ??
+          "Please check the electronics details.",
+      );
+      return;
+    }
+
     const name = customName.trim();
-    const wattsRaw = customWatts.trim();
-
-    if (
-      !/^[A-Za-z][A-Za-z0-9 /&.'-]{2,49}$/.test(
-        name,
-      )
-    ) {
-      setCustomError(
-        "Enter a valid electronics item name.",
-      );
-      return;
-    }
-
-    if (!/^\d+(\.\d{1,2})?\s*-\s*\d+(\.\d{1,2})?$/.test(wattsRaw)) {
-      setCustomError(
-        "Enter wattage interval, for example 15-25.",
-      );
-      return;
-    }
-
-    const interval = parseWattInterval(wattsRaw);
-
-    if (!interval) {
-      setCustomError(
-        `Enter a valid wattage interval between 1W and ${BATTERY_MAX_ELECTRONICS_W}W.`,
-      );
-      return;
-    }
+    const interval = validation.interval;
 
     const user = await getAuthenticatedUserSafe();
 
@@ -1320,10 +1241,11 @@ export default function ElectronicsModal({
   // ARCHIVE CUSTOM ELECTRONICS (Layer 1 -> Layer 2)
   // ============================================================
   //
-  // v7 manual archive: archive_appliance() sets
+  // Manual archive: archive_electronics() sets
   // (selection=false, archive=true) or raises
-  // 'Appliance not found.' Strict RPC-only so a missing v7
-  // migration surfaces loudly instead of silently succeeding.
+  // 'Electronics item not found.' Strict RPC-only so a missing
+  // database migration surfaces loudly instead of silently
+  // succeeding.
   // ============================================================
 
   const handleCustomArchive = async (
@@ -1351,7 +1273,7 @@ export default function ElectronicsModal({
       null;
 
     const { error } = await supabase.rpc(
-      "archive_appliance",
+      "archive_electronics",
       {
         p_app_id: id,
       },
@@ -1364,16 +1286,18 @@ export default function ElectronicsModal({
       );
 
       if (
-        error.message.includes("Appliance not found")
+        error.message.includes(
+          "Electronics item not found",
+        )
       ) {
         setCustomError(
           "Electronics item not found. It may have been deleted.",
         );
       } else if (
-        error.message.includes("archive_appliance")
+        error.message.includes("archive_electronics")
       ) {
         setCustomError(
-          "Archive service is not updated. Please apply the v7 database script.",
+          "Archive service is not updated. Please apply the database migration.",
         );
       } else {
         setCustomError(
@@ -1432,10 +1356,11 @@ export default function ElectronicsModal({
   // UNARCHIVE CUSTOM ELECTRONICS (Layer 2 -> Layer 1, unticked)
   // ============================================================
   //
-  // v7 manual archive: unarchive_appliance() restores
+  // Manual archive: unarchive_electronics() restores
   // (selection=false, archive=false) or raises
-  // 'Appliance not found.' Strict RPC-only so a missing v7
-  // migration surfaces loudly instead of silently succeeding.
+  // 'Electronics item not found.' Strict RPC-only so a missing
+  // database migration surfaces loudly instead of silently
+  // succeeding.
   // ============================================================
 
   const handleCustomUnarchive = async (
@@ -1455,7 +1380,7 @@ export default function ElectronicsModal({
     );
 
     const { error } = await supabase.rpc(
-      "unarchive_appliance",
+      "unarchive_electronics",
       {
         p_app_id: id,
       },
@@ -1468,16 +1393,18 @@ export default function ElectronicsModal({
       );
 
       if (
-        error.message.includes("Appliance not found")
+        error.message.includes(
+          "Electronics item not found",
+        )
       ) {
         setCustomError(
           "Electronics item not found. It may have been deleted.",
         );
       } else if (
-        error.message.includes("unarchive_appliance")
+        error.message.includes("unarchive_electronics")
       ) {
         setCustomError(
-          "Archive service is not updated. Please apply the v7 database script.",
+          "Archive service is not updated. Please apply the database migration.",
         );
       } else {
         setCustomError(
@@ -2301,6 +2228,29 @@ export default function ElectronicsModal({
             />
           </View>
 
+          {customError &&
+          !addModalVisible &&
+          !editModalVisible ? (
+            <View
+              style={styles.errorBanner}
+              accessibilityRole="alert"
+              accessibilityLiveRegion="polite"
+            >
+              <Ionicons
+                name="alert-circle-outline"
+                size={17}
+                color={colors.error}
+              />
+
+              <AppText
+                variant="caption"
+                style={styles.errorBannerText}
+              >
+                {customError}
+              </AppText>
+            </View>
+          ) : null}
+
           {/* Footer: Layer 1 = selection actions, Layer 2 = viewer count + back */}
           {layer === 2 ? (
             <View style={styles.footer}>
@@ -2481,7 +2431,6 @@ export default function ElectronicsModal({
           }}
           onCancel={handleAddCancel}
           onAdd={handleCustomAdd}
-          wattsValid={customWattsValid}
           photoPreview={formPhotoPreview}
           photoBusy={photoBusy}
           onPhotoPress={() =>
@@ -2511,7 +2460,6 @@ export default function ElectronicsModal({
           onCancel={handleEditCancel}
           onAdd={handleCustomAdd}
           onSave={handleCustomUpdate}
-          wattsValid={customWattsValid}
           photoPreview={formPhotoPreview}
           photoBusy={photoBusy}
           onPhotoPress={() =>
@@ -2578,6 +2526,7 @@ const getStyles = (colors: AppColors) =>
 
   contentShell: {
     flex: 1,
+    position: "relative",
   },
 
   contentContainer: {
@@ -2811,6 +2760,23 @@ const getStyles = (colors: AppColors) =>
   successBannerText: {
     flex: 1,
     color: "#14532D",
+    fontWeight: "600",
+  },
+
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: Spacing.lg,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.error,
+  },
+
+  errorBannerText: {
+    flex: 1,
+    color: colors.error,
     fontWeight: "600",
   },
 });
