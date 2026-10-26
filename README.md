@@ -8,7 +8,7 @@
 
 **AdlaWatt** is a transportable off-grid solar power system and IoT energy monitoring platform for households facing electricity interruptions. An ESP32-S3 reads solar, battery, load, and temperature data; an Expo/React Native app turns that data into live monitoring, electronics guidance, and backup-power planning.
 
-[Visit the AdlaWatt project site](https://team-adlawatt.github.io/AdlaWatt/) · [View the source code](https://github.com/Team-AdlaWatt/AdlaWatt) · [Read the user manual](USER-MANUAL.md)
+[Visit the AdlaWatt project site](https://team-adlawatt.github.io/AdlaWatt/) · [View the source code](https://github.com/Team-AdlaWatt/AdlaWatt) · [Read the user manual](docs/USER-MANUAL.md)
 
 > **Project Status:** In Development. The mobile app is fully integrated with Supabase (auth, database, real-time). The ESP32 hardware feed is still being wired up end to end.
 >
@@ -108,7 +108,6 @@ AdlaWatt/
 │   ├── TODO.md
 │   ├── RECOMMENDATIONS.md
 │   ├── tft-ui-ux.md
-│   ├── AGENTS.md
 │   ├── future-css-ideas/    # Historical design ideas
 │   └── implementation-plan/ # Implementation documentation
 ├── src/
@@ -141,6 +140,7 @@ AdlaWatt/
 │   ├── functions/send-alert-email/
 │   └── migrations/
 ├── assets/                   # Images, logos, electronics, components
+├── site/                     # SEO landing page (GitHub Pages)
 ├── skills/                   # Agent skills (DESIGNER.md, DEVELOPER.md)
 ├── scripts/                  # Utility scripts
 ├── android/                  # Native Android project
@@ -269,12 +269,12 @@ Users sign up with a username, email, and password, or sign in with Google. Pass
 
 ## Documentation
 
-- [User Manual](USER-MANUAL.md) — setup, screens, and everyday use.
-- [Build Plan](buildplan.md) — product scope and system plan.
-- [Known Issues](ISSUES.md) — current bugs, fixes, and verification notes.
-- [UI Standards](UI-STANDARDS.md) — visual and interaction rules.
-- [Recommendations](RECOMMENDATIONS.md) — engineering and product follow-ups.
-- [Implementation Notes](implementation%20plan/) — subsystem design documents.
+- [User Manual](docs/USER-MANUAL.md) — setup, screens, and everyday use.
+- [Build Plan](docs/buildplan.md) — product scope and system plan.
+- [Known Issues](docs/ISSUES.md) — current bugs, fixes, and verification notes.
+- [UI Standards](docs/UI-STANDARDS.md) — visual and interaction rules.
+- [Recommendations](docs/RECOMMENDATIONS.md) — engineering and product follow-ups.
+- [Implementation Notes](docs/implementation-plan/) — subsystem design documents.
 
 ---
 
