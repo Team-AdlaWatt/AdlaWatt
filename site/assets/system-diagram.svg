@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-labelledby="diagram-title diagram-desc">
+  <title id="diagram-title">AdlaWatt system architecture</title>
+  <desc id="diagram-desc">Solar power flows from a solar panel through a charge controller into a 12V battery, then through an inverter to an AC outlet. An ESP32-S3 reads solar, battery, load, and temperature sensors, sends the data to Supabase, and the AdlaWatt mobile app displays it.</desc>
+  <defs>
+    <marker id="arrow-power" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#00663F"/>
+    </marker>
+    <marker id="arrow-data" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#B37F00"/>
+    </marker>
+    <style>
+      .box { fill: #F7F2E4; stroke: #1C1B1F; stroke-width: 2.5; }
+      .box-green { fill: #00805A; stroke: #00663F; stroke-width: 2.5; }
+      .label { font-family: "Spline Sans", Arial, sans-serif; font-size: 19px; font-weight: 600; fill: #1C1B1F; }
+      .label-light { font-family: "Spline Sans", Arial, sans-serif; font-size: 19px; font-weight: 600; fill: #FFFDF6; }
+      .note { font-family: "IBM Plex Mono", Consolas, monospace; font-size: 13px; font-weight: 500; fill: #5E5A52; letter-spacing: .04em; }
+      .note-light { font-family: "IBM Plex Mono", Consolas, monospace; font-size: 13px; font-weight: 500; fill: #C9E9DE; letter-spacing: .04em; }
+      .caption { font-family: "IBM Plex Mono", Consolas, monospace; font-size: 12px; font-weight: 600; fill: #00663F; letter-spacing: .12em; }
+      .caption-data { font-family: "IBM Plex Mono", Consolas, monospace; font-size: 12px; font-weight: 600; fill: #8A6200; letter-spacing: .12em; }
+      .power-line { fill: none; stroke: #00663F; stroke-width: 2.5; marker-end: url(#arrow-power); }
+      .data-line { fill: none; stroke: #B37F00; stroke-width: 2; stroke-dasharray: 7 6; marker-end: url(#arrow-data); }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="520" rx="0" fill="#F0EAD6"/>
+  <g opacity=".18" stroke="#00805A" stroke-width="1">
+    <path d="M0 65H1200M0 165H1200M0 265H1200M0 365H1200M0 465H1200"/>
+    <path d="M65 0V520M215 0V520M365 0V520M515 0V520M665 0V520M815 0V520M965 0V520M1115 0V520"/>
+  </g>
+
+  <text x="40" y="42" class="caption">POWER PATH</text>
+
+  <g>
+    <rect x="40" y="72" width="170" height="104" class="box"/>
+    <path d="M70 146L95 102L120 146M78 130H112M88 116H102" fill="none" stroke="#00805A" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="70" y="164" class="note">SOLAR PANEL</text>
+  </g>
+
+  <path d="M214 124H262" class="power-line"/>
+
+  <g>
+    <rect x="266" y="72" width="190" height="104" class="box"/>
+    <rect x="294" y="98" width="54" height="48" rx="3" fill="none" stroke="#00805A" stroke-width="4"/>
+    <path d="M312 110L302 126H312L306 140L324 118H314L320 110Z" fill="#FFBF00"/>
+    <text x="294" y="164" class="note">CHARGE CONTROLLER</text>
+  </g>
+
+  <path d="M460 124H508" class="power-line"/>
+
+  <g>
+    <rect x="512" y="72" width="170" height="104" class="box-green"/>
+    <rect x="540" y="104" width="72" height="42" rx="3" fill="none" stroke="#FFFDF6" stroke-width="4"/>
+    <path d="M558 104V96M594 104V96M540 120H612M574 120V146M558 146H590" fill="none" stroke="#FFBF00" stroke-width="4" stroke-linecap="round"/>
+    <text x="540" y="164" class="note-light">12V BATTERY BANK</text>
+  </g>
+
+  <path d="M686 124H734" class="power-line"/>
+
+  <g>
+    <rect x="738" y="72" width="170" height="104" class="box"/>
+    <path d="M768 104H808L798 126H778L768 104ZM788 126V146M776 146H800" fill="none" stroke="#00805A" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="768" y="164" class="note">INVERTER</text>
+  </g>
+
+  <path d="M912 124H960" class="power-line"/>
+
+  <g>
+    <rect x="964" y="72" width="196" height="104" class="box"/>
+    <path d="M998 110V104M1008 110V104M1032 110H1022M1050 104V118M1050 132V146" fill="none" stroke="#00805A" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="1036" cy="124" r="6" fill="#FFBF00"/>
+    <text x="998" y="164" class="note">AC OUTLET</text>
+  </g>
+
+  <text x="40" y="248" class="caption-data">DATA PATH</text>
+
+  <g>
+    <rect x="40" y="278" width="190" height="96" class="box"/>
+    <text x="62" y="310" class="label">Sensors</text>
+    <text x="62" y="334" class="note">INA228 · INA219</text>
+    <text x="62" y="354" class="note">DS18B20 · DHT22</text>
+  </g>
+
+  <path d="M234 326H278" class="data-line"/>
+
+  <g>
+    <rect x="282" y="278" width="190" height="96" class="box"/>
+    <text x="304" y="310" class="label">ESP32-S3</text>
+    <text x="304" y="334" class="note">EDGE CONTROLLER</text>
+    <text x="304" y="354" class="note">WI-FI TELEMETRY</text>
+  </g>
+
+  <path d="M476 326H520" class="data-line"/>
+
+  <g>
+    <rect x="524" y="278" width="190" height="96" class="box"/>
+    <text x="546" y="310" class="label">Supabase</text>
+    <text x="546" y="334" class="note">POSTGRES · AUTH</text>
+    <text x="546" y="354" class="note">REALTIME · STORAGE</text>
+  </g>
+
+  <path d="M718 326H762" class="data-line"/>
+
+  <g>
+    <rect x="766" y="278" width="220" height="96" class="box-green"/>
+    <text x="788" y="310" class="label-light">AdlaWatt app</text>
+    <text x="788" y="334" class="note-light">EXPO · REACT NATIVE</text>
+    <text x="788" y="354" class="note-light">LIVE ENERGY GUIDANCE</text>
+  </g>
+
+  <g>
+    <rect x="1026" y="278" width="134" height="96" class="box"/>
+    <text x="1048" y="310" class="label">OK to use</text>
+    <text x="1048" y="338" class="note">WITHIN LIMITS</text>
+    <rect x="1048" y="350" width="58" height="8" fill="#00805A"/>
+  </g>
+
+  <path d="M990 326H1022" class="data-line"/>
+
+  <text x="40" y="438" class="note">AdlaWatt is a backup power source, not a replacement for the electrical grid.</text>
+  <text x="40" y="466" class="note">Sensors and thresholds are fixed engineering constants; the app turns them into household guidance.</text>
+</svg>

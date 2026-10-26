@@ -1,25 +1,35 @@
 [![Android Builds](https://github.com/Team-AdlaWatt/AdlaWatt/actions/workflows/android.yml/badge.svg)](https://github.com/Team-AdlaWatt/AdlaWatt/actions/workflows/android.yml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Expo](https://img.shields.io/badge/Expo-57-000020?logo=expo&logoColor=white)](https://expo.dev/)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
+[![ESP32-S3](https://img.shields.io/badge/ESP32--S3-IoT-E7352C?logo=espressif&logoColor=white)](https://www.espressif.com/)
 
-# AdlaWatt
+# AdlaWatt: Off-Grid Solar Power Monitoring & Backup System
 
-A transportable off-grid solar power system with a mobile app for real-time energy monitoring, electronics recommendations, notifications, and backup power management during electricity interruptions.
+**AdlaWatt** is a transportable off-grid solar power system and IoT energy monitoring platform for households facing electricity interruptions. An ESP32-S3 reads solar, battery, load, and temperature data; an Expo/React Native app turns that data into live monitoring, electronics guidance, and backup-power planning.
 
-AdlaWatt harvests solar energy, stores it in a 12V battery, and supplies power through a built-in AC outlet. The mobile app lets households monitor battery status, solar energy, power consumption, temperatures, system health, and energy history — and tells them which electronics are safe to run on the available power.
+[Visit the AdlaWatt project site](https://team-adlawatt.github.io/AdlaWatt/) · [View the source code](https://github.com/Team-AdlaWatt/AdlaWatt) · [Read the user manual](USER-MANUAL.md)
 
 > **Project Status:** In Development. The mobile app is fully integrated with Supabase (auth, database, real-time). The ESP32 hardware feed is still being wired up end to end.
+>
+> AdlaWatt is a backup power source, not a replacement for the electrical grid.
 
 ---
 
 ## Table of Contents
 
-- [Overview](#overview)
+- [What Is AdlaWatt?](#what-is-adlawatt)
+- [System Overview](#system-overview)
+- [How It Works](#how-it-works)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
 - [Project Structure](#project-structure)
 - [Hardware](#hardware)
 - [Backend Setup](#backend-setup)
-- [Installation](#installation)
+- [Getting Started](#getting-started)
 - [User Roles](#user-roles)
+- [Documentation](#documentation)
+- [FAQ](#faq)
 - [Changelog](#changelog)
 - [Academic Context](#academic-context)
 - [Contributors](#contributors)
@@ -27,15 +37,32 @@ AdlaWatt harvests solar energy, stores it in a 12V battery, and supplies power t
 
 ---
 
-## Overview
+## What Is AdlaWatt?
 
-AdlaWatt is a backup power solution for households during outages. A solar panel charges a 12V battery inside a transportable lockable enclosure, and a built-in AC outlet lets compatible electronics use the stored energy.
+AdlaWatt is an off-grid solar power and backup battery system designed for homes that experience frequent electricity interruptions. A solar panel charges a 12V battery inside a transportable lockable enclosure, and a built-in AC outlet lets compatible electronics use the stored energy.
 
-The system also watches itself. An ESP32 reads solar, load, voltage, and temperature sensors, sends the data to the cloud, and the mobile app shows it live. The app's main feature is electronics guidance: pick the electronics you plan to use and it recommends what fits your current battery level.
+The system also watches itself. An ESP32-S3 reads solar, load, voltage, and temperature sensors, sends the data to Supabase, and the AdlaWatt mobile app shows it live. Its main feature is electronics guidance: pick the electronics you plan to use and the app recommends what fits your current battery level.
 
-AdlaWatt is a backup source, not a replacement for the electrical grid.
+The project combines four concerns in one system:
 
----
+- **Off-grid solar harvesting** — collect and store energy without relying on the grid.
+- **IoT energy monitoring** — measure battery, solar, load, and thermal conditions.
+- **Household backup power** — run compatible electronics during outages.
+- **Electronics guidance** — decide what is safe to run before connecting a load.
+
+## System Overview
+
+![AdlaWatt system architecture: solar power flows through a charge controller and battery to an inverter and AC outlet, while an ESP32 sends sensor data through Supabase to the mobile app](site/assets/system-diagram.svg)
+
+The power path and the data path are separate. Solar energy charges the battery and feeds the AC outlet; the ESP32-S3 reads the system sensors and sends telemetry to Supabase, where the mobile app receives live updates and historical data.
+
+## How It Works
+
+1. **Harvest** — A solar panel charges the battery through a charge controller.
+2. **Store** — Two ZENOVA 30Ah batteries hold 756 Wh nominal, with 604.8 Wh usable.
+3. **Convert** — An inverter supplies the built-in AC outlet for compatible electronics.
+4. **Sense** — An ESP32-S3 reads solar, load, voltage, and temperature sensors.
+5. **Guide** — The mobile app shows live status and labels electronics **OK to use** or **Not advisable** based on remaining energy, voltage, and power draw.
 
 ## Features
 
@@ -103,6 +130,7 @@ AdlaWatt/
 │   ├── functions/send-alert-email/
 │   └── migrations/
 ├── assets/images/            (logos, electronics, components, developers)
+├── site/                     (project landing page)
 ├── android/
 ├── app.json
 ├── eas.json
@@ -160,7 +188,7 @@ Data lives in Supabase. Core tables used by the app:
 
 ---
 
-## Installation
+## Getting Started
 
 ### Prerequisites
 
@@ -172,12 +200,14 @@ Data lives in Supabase. Core tables used by the app:
 ### Steps
 
 1. Clone the repository:
-   ```
-   git clone <repository-url>
+
+   ```bash
+   git clone https://github.com/Team-AdlaWatt/AdlaWatt.git
    cd AdlaWatt
    ```
 
 2. Create a `.env.local` file in the project root:
+
    ```text
    EXPO_PUBLIC_SUPABASE_URL=<your-supabase-url>
    EXPO_PUBLIC_SUPABASE_KEY=<your-supabase-anon-key>
@@ -186,21 +216,25 @@ Data lives in Supabase. Core tables used by the app:
    ```
 
 3. Install dependencies:
-   ```
+
+   ```bash
    npm install
    ```
 
 4. Start the development server:
-   ```
+
+   ```bash
    npm start
    ```
 
 5. Run on Android:
-   ```
+
+   ```bash
    npm run android
    ```
 
 For email alerts, set the server-only secrets and deploy the function:
+
 ```bash
 supabase secrets set AGENTMAIL_API_KEY=<agentmail-key>
 supabase functions deploy send-alert-email
@@ -216,6 +250,45 @@ supabase functions deploy send-alert-email
 | Admin | A limited shell (login, log out, exit) — assigned in the database, not through the app |
 
 Users sign up with a username, email, and password, or sign in with Google. Passwords can be reset by email.
+
+---
+
+## Documentation
+
+- [User Manual](USER-MANUAL.md) — setup, screens, and everyday use.
+- [Build Plan](buildplan.md) — product scope and system plan.
+- [Known Issues](ISSUES.md) — current bugs, fixes, and verification notes.
+- [UI Standards](UI-STANDARDS.md) — visual and interaction rules.
+- [Recommendations](RECOMMENDATIONS.md) — engineering and product follow-ups.
+- [Implementation Notes](implementation%20plan/) — subsystem design documents.
+
+---
+
+## FAQ
+
+### What is AdlaWatt?
+
+AdlaWatt is a transportable off-grid solar power and backup system with an ESP32 IoT monitor and a mobile app for real-time energy monitoring, electronics guidance, notifications, and outage planning.
+
+### How does AdlaWatt monitor solar and battery data?
+
+An ESP32-S3 reads voltage, current, and temperature sensors, sends the readings to Supabase, and the AdlaWatt mobile app displays live battery, solar, load, and system-health data.
+
+### What electronics can AdlaWatt power?
+
+AdlaWatt works with compatible household electronics through its built-in AC outlet. The app compares remaining energy, battery voltage, and device power draw to label each item **OK to use** or **Not advisable**.
+
+### Is AdlaWatt available for purchase?
+
+No. AdlaWatt is an academic capstone prototype in development and is not a commercial product.
+
+### Is the AdlaWatt source code open source?
+
+The repository is publicly viewable, but no open-source license is specified. Reuse, redistribution, or modification requires permission from the authors.
+
+### Where was AdlaWatt built?
+
+AdlaWatt was developed by the AdlaWatt Research and Development Team at Northern Bukidnon State College in Bukidnon, Philippines.
 
 ---
 
@@ -239,6 +312,7 @@ Users sign up with a username, email, and password, or sign in with Google. Pass
 - **Sustainable Development Goals** — SDG 7 (Affordable and Clean Energy), SDG 11 (Sustainable Cities and Communities), and SDG 13 (Climate Action).
 - **Evaluation** — Usability measured with the System Usability Scale (SUS).
 - **Purpose** — To provide an affordable backup power solution that combines off-grid solar harvesting, real-time monitoring, and electronics guidance in a single system.
+- **Institution** — Northern Bukidnon State College, Bukidnon, Philippines.
 
 ---
 
