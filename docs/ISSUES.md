@@ -984,6 +984,51 @@ fixed. Verified fixed on-device after OTA group
 
 ---
 
+### 31. [Performance] Electronics images load slowly and scrolling lags
+
+**Summary**
+Electronics images took noticeable time to appear and the Select Electronics
+modal felt heavy while scrolling. The bundled catalog artwork included ten
+large PNGs between 1254×1254 and 2000×2000, and the 29 referenced catalog
+images together shipped about 20.25 MB. Custom photo uploads could also keep
+their original resolution, including a 3048×3048 image already in storage.
+
+**Steps to Reproduce**
+1. Open the Electronics screen on a cold app start.
+2. Scroll through the electronics grid.
+3. Open the Select Electronics modal and scroll through all catalog sections.
+4. Compare the first load with reopening the modal.
+
+**Expected Behavior**
+Images appear quickly, stay sharp at their displayed size, and scrolling stays
+smooth. Reopening the modal should reuse cached images.
+
+**Actual Behavior**
+Large source images took time to decode and scroll, and remote custom photos
+were rendered with a memory-only cache policy instead of a persistent disk
+cache.
+
+**Environment**
+- **Device:** Android and iPhone
+- **App Version:** v1.0.0
+
+**Fixed:** Resized the 29 referenced catalog PNGs to 360×360, preserving
+transparency, which reduced the referenced artwork from 20.25 MB to 2.45 MB.
+Custom photo picks are now always center-cropped and normalized to a 360px
+JPEG before upload, including square images. Electronics images now use the
+disk-backed `memory-disk` cache in the modal, electronics screen, and
+recommendation card, and custom photo URLs are prefetched as soon as the
+electronics data loads. Existing custom photos were not re-encoded, but disk
+caching now keeps their repeat loads immediate. Catalog names, wattages,
+selection behavior, and database data were not changed.
+
+**Verified:** Fixed on-device after OTA group
+`61fb03b7-7612-47c2-8850-a6157722e8f1`. Electronics images now load
+immediately and scrolling is smooth in both the Electronics screen and Select
+Electronics modal.
+
+---
+
 ## Still To Do
 
 - Update the ESP32 firmware so watt_hours is reported on the 756 Wh scale.
