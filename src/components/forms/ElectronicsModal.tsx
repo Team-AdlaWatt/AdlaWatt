@@ -14,10 +14,6 @@ import {
   View,
 } from "react-native";
 
-import {
-  Image as ExpoImage,
-} from "expo-image";
-
 import ElectronicsBox from "@/components/forms/ElectronicsBox";
 import {
   electronicsCardGrid,
@@ -28,6 +24,7 @@ import MediaPickerModal, {
 } from "@/components/forms/MediaPickerModal";
 import {
   deleteElectronicsPhotoByUrl,
+  prefetchElectronicsPhotos,
   uploadElectronicsPhoto,
 } from "@/services/electronicsPhotoService";
 import AppText from "@/components/ui/AppText";
@@ -72,40 +69,6 @@ type Electronics = {
   // bundled adlawatt icon — the default for every custom.
   imageUrl?: string | null;
 };
-
-// Session photo cache: remote custom URLs prefetched once
-// per app session (module lifetime), so reopening the modal
-// never re-downloads them. expo-image's memory cache holds
-// the bitmaps; this set just skips redundant prefetch calls
-// when the same URLs load again (reopen, layer-2 refetch).
-const prefetchedPhotoUrls = new Set<string>();
-
-function prefetchCustomPhotos(
-  items: Electronics[],
-): void {
-  const fresh = items
-    .map((item) => item.imageUrl)
-    .filter(
-      (url): url is string =>
-        typeof url === "string" &&
-        url.length > 0 &&
-        !prefetchedPhotoUrls.has(url),
-    );
-
-  if (fresh.length === 0) {
-    return;
-  }
-
-  for (const url of fresh) {
-    prefetchedPhotoUrls.add(url);
-  }
-
-  // Fire-and-forget: rows render from cache when ready;
-  // a failed prefetch just falls back to per-row loading.
-  void ExpoImage.prefetch(fresh).catch(
-    () => {},
-  );
-}
 
 type ElectronicsModalProps = {
   visible: boolean;
@@ -466,9 +429,13 @@ export default function ElectronicsModal({
     setArchivedCount(archived.length);
     setIsLoadingCustoms(false);
 
-    // Warm the session photo cache the moment URLs are
-    // known — rows then paint from memory, no reload flash.
-    prefetchCustomPhotos([...customs, ...archived]);
+    // Warm the disk-backed photo cache as soon as URLs are
+    // known so rows paint without a reload flash.
+    prefetchElectronicsPhotos(
+      [...customs, ...archived].map(
+        (item) => item.imageUrl,
+      ),
+    );
 
     console.debug(
       `[ElectronicsModal] loaded rows=${rows.length} active=${customs.length} archived=${archived.length}`,
@@ -554,7 +521,9 @@ export default function ElectronicsModal({
     setArchivedCount(archived.length);
     setIsLoadingCustoms(false);
 
-    prefetchCustomPhotos(archived);
+    prefetchElectronicsPhotos(
+      archived.map((item) => item.imageUrl),
+    );
   };
 
   // ============================================================

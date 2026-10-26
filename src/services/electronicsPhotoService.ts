@@ -1,3 +1,5 @@
+import { Image } from "expo-image";
+
 import { supabase } from "@/lib/supabase";
 
 // ============================================================
@@ -15,7 +17,40 @@ import { supabase } from "@/lib/supabase";
 
 const BUCKET = "electronics-images";
 
-export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+const prefetchedPhotoUrls = new Set<string>();
+
+export function prefetchElectronicsPhotos(
+  urls: (string | null | undefined)[],
+): void {
+  const fresh = urls.filter(
+    (url): url is string =>
+      typeof url === "string" &&
+      url.length > 0 &&
+      !prefetchedPhotoUrls.has(url),
+  );
+
+  if (fresh.length === 0) {
+    return;
+  }
+
+  for (const url of fresh) {
+    prefetchedPhotoUrls.add(url);
+  }
+
+  const clear = () => {
+    for (const url of fresh) {
+      prefetchedPhotoUrls.delete(url);
+    }
+  };
+
+  void Image.prefetch(fresh, "memory-disk")
+    .then((ok) => {
+      if (!ok) {
+        clear();
+      }
+    })
+    .catch(clear);
+}
 
 const randomFileId = (): string =>
   `${Date.now().toString(36)}-${Math.random()
