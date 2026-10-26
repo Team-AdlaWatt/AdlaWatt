@@ -82,9 +82,9 @@ export default function ElectronicsStatusBox({
           source={imageSource}
           style={electronicsCardStyles.image}
           contentFit="contain"
-          // Memory-only session cache: decode once, stay
-          // instant while the app is open (see ElectronicsBox).
-          cachePolicy="memory"
+          // Disk-backed cache keeps custom photos warm
+          // across launches (see ElectronicsBox).
+          cachePolicy="memory-disk"
         />
       </View>
 

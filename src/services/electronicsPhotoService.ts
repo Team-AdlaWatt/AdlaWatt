@@ -1,3 +1,5 @@
+import { Image } from "expo-image";
+
 import { supabase } from "@/lib/supabase";
 
 // ============================================================
@@ -5,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 // ============================================================
 //
 // Custom electronics photos live in the public
-// `appliance-images` bucket under <user_id>/ filenames, so
+// `electronics-images` bucket under <user_id>/ filenames, so
 // box/list images load via plain public URLs. Filenames are
 // client-generated (uuid-style), so an upload never depends
 // on the row existing first: Add uploads, then inserts the
@@ -13,9 +15,42 @@ import { supabase } from "@/lib/supabase";
 // the row, then deletes the old object best-effort.
 // ============================================================
 
-const BUCKET = "appliance-images";
+const BUCKET = "electronics-images";
 
-export const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
+const prefetchedPhotoUrls = new Set<string>();
+
+export function prefetchElectronicsPhotos(
+  urls: (string | null | undefined)[],
+): void {
+  const fresh = urls.filter(
+    (url): url is string =>
+      typeof url === "string" &&
+      url.length > 0 &&
+      !prefetchedPhotoUrls.has(url),
+  );
+
+  if (fresh.length === 0) {
+    return;
+  }
+
+  for (const url of fresh) {
+    prefetchedPhotoUrls.add(url);
+  }
+
+  const clear = () => {
+    for (const url of fresh) {
+      prefetchedPhotoUrls.delete(url);
+    }
+  };
+
+  void Image.prefetch(fresh, "memory-disk")
+    .then((ok) => {
+      if (!ok) {
+        clear();
+      }
+    })
+    .catch(clear);
+}
 
 const randomFileId = (): string =>
   `${Date.now().toString(36)}-${Math.random()

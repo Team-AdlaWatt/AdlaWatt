@@ -49,6 +49,10 @@ beforeEach(async () => {
   chain.eq.mockReturnValue(chain);
 
   await AsyncStorage.clear();
+  try {
+    const { memoryCache } = require("@/services/memoryCache");
+    memoryCache.clear();
+  } catch {}
 });
 
 describe("monitoring cache round-trip", () => {

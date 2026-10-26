@@ -2,6 +2,7 @@ import * as ImagePicker from "expo-image-picker";
 import {
   manipulateAsync,
   SaveFormat,
+  type Action,
 } from "expo-image-manipulator";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useMemo, useState } from "react";
@@ -24,7 +25,6 @@ import {
 } from "@/hooks/useAppColors";
 import { Radius } from "@/constants/theme";
 import { Control } from "@/constants/sizing";
-import { MAX_PHOTO_BYTES } from "@/services/electronicsPhotoService";
 import { useTranslation } from "react-i18next";
 
 // ============================================================
@@ -33,15 +33,17 @@ import { useTranslation } from "react-i18next";
 //
 // DropdownModal shell like the rest of the system dialogs.
 // Owns the whole pick flow — permission request, square-crop
-// editor, size/type validation, and center-crop
-// normalization to a 1:1 JPEG (web ignores the editor
-// aspect, so non-square picks are cropped here) — and hands
-// the caller a local uri. Uploading stays with the caller
-// (it owns the row the photo belongs to).
+// editor, type validation, and center-crop normalization to
+// a 1:1 360px JPEG (web ignores the editor aspect, so
+// non-square picks are cropped here) — and hands the caller
+// a local uri. Uploading stays with the caller (it owns the
+// row the photo belongs to).
 //
 // No camera path by design: library-only keeps permissions to
 // photo access and skips device-camera testing entirely.
 // ============================================================
+
+const PHOTO_MAX_EDGE = 360;
 
 export type PickedPhoto = {
   uri: string;
@@ -122,63 +124,57 @@ export default function MediaPickerModal({
         return;
       }
 
-      if (
-        typeof asset.fileSize === "number" &&
-        asset.fileSize > MAX_PHOTO_BYTES
-      ) {
-        setError(t("media.tooBig"));
-        return;
-      }
-
-      // Square normalization: non-1:1 picks (web ignores
-      // the editor aspect) center-crop to a square and
-      // downscale to 1024px so preview and stored object
-      // agree. Square assets pass through untouched.
       const width = asset.width ?? 0;
       const height = asset.height ?? 0;
 
-      if (width > 0 && height > 0 && width !== height) {
-        const side = Math.min(width, height);
+      if (width <= 0 || height <= 0) {
+        setError(t("media.unreadable"));
+        return;
+      }
 
-        const normalized = await manipulateAsync(
-          asset.uri,
-          [
-            {
-              crop: {
-                originX: Math.floor((width - side) / 2),
-                originY: Math.floor((height - side) / 2),
-                width: side,
-                height: side,
-              },
-            },
-            {
-              resize: {
-                width: Math.min(side, 1024),
-                height: Math.min(side, 1024),
-              },
-            },
-          ],
-          {
-            compress: 0.8,
-            format: SaveFormat.JPEG,
+      // Normalize every pick to a square 360px JPEG. The
+      // editor already crops on native; web ignores the
+      // aspect, so non-1:1 assets are center-cropped here.
+      const side = Math.min(width, height);
+      const target = Math.min(side, PHOTO_MAX_EDGE);
+
+      const actions: Action[] = [];
+
+      if (width !== height) {
+        actions.push({
+          crop: {
+            originX: Math.floor((width - side) / 2),
+            originY: Math.floor((height - side) / 2),
+            width: side,
+            height: side,
           },
-        );
-
-        if (!normalized?.uri) {
-          setError(t("media.processFailed"));
-          return;
-        }
-
-        onSelect({
-          uri: normalized.uri,
-          mimeType: "image/jpeg",
         });
+      }
+
+      actions.push({
+        resize: {
+          width: target,
+          height: target,
+        },
+      });
+
+      const normalized = await manipulateAsync(
+        asset.uri,
+        actions,
+        {
+          compress: 0.8,
+          format: SaveFormat.JPEG,
+        },
+      );
+
+      if (!normalized?.uri) {
+        setError(t("media.processFailed"));
         return;
       }
 
       onSelect({
-        uri: asset.uri,
-        mimeType: asset.mimeType ?? undefined,
+        uri: normalized.uri,
+        mimeType: "image/jpeg",
       });
     } catch {
       setError(t("media.libraryFailed"));

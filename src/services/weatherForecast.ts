@@ -1,6 +1,8 @@
 import * as Location from "expo-location";
 
 import weatherJson from "@/data/weather.json";
+import { requestManager } from "@/services/requestManager";
+import { memoryCache, CACHE_TTL } from "@/services/memoryCache";
 import {
   formatApiError,
   formatCoordFallback,
@@ -868,8 +870,26 @@ export function getWeather(options?: {
   // wrong place — and skips its own GPS lookup.
   coordinates?: Coordinates;
 }): Promise<WeatherData> {
+  // Check memory cache for non-fresh requests
+  if (!options?.fresh && !options?.coordinates) {
+    const cacheKey = "weather:today:default";
+    const cached = memoryCache.get<WeatherData>(cacheKey);
+    if (cached) {
+      return Promise.resolve(cached);
+    }
+  }
+
+  const fetcher = async () => {
+    const result = await runWeatherFetch(options);
+    // Cache non-fresh results
+    if (!options?.fresh && !options?.coordinates) {
+      memoryCache.set("weather:today:default", result, CACHE_TTL.WEATHER);
+    }
+    return result;
+  };
+
   if (options?.fresh || options?.coordinates) {
-    inflightToday = runWeatherFetch(options).finally(
+    inflightToday = fetcher().finally(
       () => {
         inflightToday = null;
       },
@@ -879,7 +899,7 @@ export function getWeather(options?: {
   }
 
   if (!inflightToday) {
-    inflightToday = runWeatherFetch().finally(
+    inflightToday = fetcher().finally(
       () => {
         inflightToday = null;
       },
@@ -887,6 +907,10 @@ export function getWeather(options?: {
   }
 
   return inflightToday;
+}
+
+export function __clearInFlightTodayForTests() {
+  inflightToday = null;
 }
 
 async function runWeatherFetch(options?: {

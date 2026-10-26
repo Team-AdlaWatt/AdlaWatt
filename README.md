@@ -100,6 +100,17 @@ The weather card uses the device's live GPS fix. Within 10 km of one of the 24 c
 
 ```text
 AdlaWatt/
+├── docs/                    # Project documentation
+│   ├── buildplan.md
+│   ├── UI-STANDARDS.md
+│   ├── USER-MANUAL.md
+│   ├── ISSUES.md
+│   ├── TODO.md
+│   ├── RECOMMENDATIONS.md
+│   ├── tft-ui-ux.md
+│   ├── AGENTS.md
+│   ├── future-css-ideas/    # Historical design ideas
+│   └── implementation-plan/ # Implementation documentation
 ├── src/
 │   ├── app/
 │   │   ├── (opening)/splash.tsx
@@ -129,12 +140,15 @@ AdlaWatt/
 ├── supabase/
 │   ├── functions/send-alert-email/
 │   └── migrations/
-├── assets/images/            (logos, electronics, components, developers)
-├── site/                     (project landing page)
-├── android/
-├── app.json
-├── eas.json
-└── package.json
+├── assets/                   # Images, logos, electronics, components
+├── skills/                   # Agent skills (DESIGNER.md, DEVELOPER.md)
+├── scripts/                  # Utility scripts
+├── android/                  # Native Android project
+├── app.json                  # Expo config
+├── eas.json                  # EAS build/config
+├── package.json
+├── AGENTS.md                 # Agent instructions (kept at root)
+└── README.md                 # This file (kept at root)
 ```
 
 ---
