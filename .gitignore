@@ -49,6 +49,9 @@ web.err
 web.log
 wizard.log
 src/services/sentry.ts.bak.*
+ota-*.txt
+out.txt
+run-ota.bat
 
 # Firebase secrets — NEVER commit service-account keys.
 # google-services.json is intentionally NOT ignored: EAS reads

@@ -1,2 +1,0 @@
-Environment variables with visibility "Plain text" and "Sensitive" loaded from the "preview" environment on EAS: EXPO_PUBLIC_AGENTMAIL_LOGO_URL, EXPO_PUBLIC_OWM_KEY, EXPO_PUBLIC_SENTRY_DSN, EXPO_PUBLIC_SUPABASE_KEY, EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY, EXPO_PUBLIC_SUPABASE_URL.
-
