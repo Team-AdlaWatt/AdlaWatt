@@ -18,6 +18,7 @@
 
 ## Table of Contents
 
+- [Get the Android App](#get-the-android-app)
 - [What Is AdlaWatt?](#what-is-adlawatt)
 - [System Overview](#system-overview)
 - [How It Works](#how-it-works)
@@ -34,6 +35,26 @@
 - [Academic Context](#academic-context)
 - [Contributors](#contributors)
 - [License](#license)
+
+---
+
+## Get the Android App
+
+Using AdlaWatt requires an AdlaWatt account. Download the Android app, then sign in or create an account.
+
+<p align="center">
+  <a href="https://expo.dev/accounts/fadrians-team/projects/ADLAWATT-/builds/f7ac61fb-bdc3-4b2f-aae0-1cdb5eb8eb15">
+    <img src="assets/images/adlawatt-app-qr.png" alt="QR code to download the AdlaWatt Android app" width="220">
+  </a>
+</p>
+
+<p align="center"><a href="https://expo.dev/accounts/fadrians-team/projects/ADLAWATT-/builds/f7ac61fb-bdc3-4b2f-aae0-1cdb5eb8eb15"><strong>Open the download page</strong></a></p>
+
+1. Scan the QR code or open the download page.
+2. Tap **Install**.
+3. If Android blocks the install, allow your browser to install unknown apps:
+   - **Android 8.0+ (API level 26+):** Settings → Apps → Special app access → Install unknown apps → select your browser → allow.
+   - **Android 7.1.1 and lower (API level 25 and lower):** Settings → Security → enable **Unknown sources**.
 
 ---
 
