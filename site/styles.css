@@ -982,6 +982,124 @@ p {
   line-height: 1;
 }
 
+.app-download {
+  background: var(--white);
+  border-top: 2px solid var(--ink);
+}
+
+.app-download-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(240px, 0.85fr);
+  gap: clamp(36px, 7vw, 88px);
+  align-items: center;
+}
+
+.app-download-copy h2 {
+  max-width: 16ch;
+}
+
+.app-download-copy .section-lede {
+  margin-top: 18px;
+}
+
+.app-download-actions {
+  margin: 28px 0 30px;
+}
+
+.install-steps {
+  max-width: 62ch;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: install-step;
+}
+
+.install-steps > li {
+  position: relative;
+  padding-left: 42px;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  counter-increment: install-step;
+}
+
+.install-steps > li + li {
+  margin-top: 14px;
+}
+
+.install-steps > li::before {
+  content: counter(install-step, decimal-leading-zero);
+  position: absolute;
+  top: 1px;
+  left: 0;
+  color: var(--green-deep);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.install-steps ul {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.install-steps ul li {
+  position: relative;
+  padding-left: 16px;
+}
+
+.install-steps ul li + li {
+  margin-top: 8px;
+}
+
+.install-steps ul li::before {
+  content: "";
+  position: absolute;
+  top: 0.62em;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  background: var(--amber);
+  border: 1px solid var(--ink);
+}
+
+.install-steps strong {
+  color: var(--ink);
+}
+
+.app-qr {
+  max-width: 300px;
+  margin: 0 auto;
+  padding: 16px 16px 14px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow: 10px 10px 0 var(--green);
+  text-align: center;
+}
+
+.app-qr-link {
+  display: block;
+  padding: 10px;
+  background: #fff;
+  border: 1px solid var(--line);
+}
+
+.app-qr img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.app-qr figcaption {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 0.62rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
 .status-section {
   padding: clamp(70px, 9vw, 104px) 0;
   color: var(--ink);
@@ -1351,7 +1469,8 @@ p {
   .hero-grid,
   .guidance-grid,
   .status-grid,
-  .faq-wrap {
+  .faq-wrap,
+  .app-download-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1362,6 +1481,10 @@ p {
 
   .system-panel {
     max-width: 560px;
+  }
+
+  .app-qr {
+    max-width: 280px;
   }
 
   .section-heading {
@@ -1480,6 +1603,19 @@ p {
 
   .button {
     width: 100%;
+  }
+
+  .app-download-actions {
+    margin-bottom: 26px;
+  }
+
+  .install-steps > li {
+    padding-left: 34px;
+  }
+
+  .app-qr {
+    max-width: 240px;
+    box-shadow: 7px 7px 0 var(--green);
   }
 
   .system-panel {
