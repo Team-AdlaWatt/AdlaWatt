@@ -473,6 +473,7 @@
               <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 8h9M8.5 3.5 13 8l-4.5 4.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </a>
           </div>
+          <p class="mono install-label">Install sequence</p>
           <ol class="install-steps">
             <li>Tap <strong>Install</strong> on the download page.</li>
             <li>If Android blocks the install, allow your browser to install unknown apps:
@@ -484,10 +485,13 @@
           </ol>
         </div>
         <figure class="app-qr">
-          <a class="app-qr-link" href="https://drive.google.com/file/d/12auCzAkhCYNv_5iDn2_eoy-XgYcXLrAW/view?usp=sharing">
-            <img src="./assets/adlawatt-app-qr.png" alt="QR code for the AdlaWatt Android app download page" width="1148" height="1148" loading="lazy">
-          </a>
+          <div class="app-qr-frame">
+            <a class="app-qr-link" href="https://drive.google.com/file/d/12auCzAkhCYNv_5iDn2_eoy-XgYcXLrAW/view?usp=sharing">
+              <img src="./assets/adlawatt-app-qr.png" alt="QR code for the AdlaWatt Android app download page" width="1148" height="1148" loading="lazy">
+            </a>
+          </div>
           <figcaption class="mono">Scan to install · Android</figcaption>
+          <p class="app-qr-note mono">Direct APK · Google Drive</p>
         </figure>
       </div>
     </section>
@@ -501,7 +505,10 @@
           <a class="text-link text-link-dark" href="https://github.com/Team-AdlaWatt/AdlaWatt">Follow the build on GitHub <span aria-hidden="true">→</span></a>
         </div>
         <div class="status-card">
-          <span class="status-badge">In development</span>
+          <div class="status-card-top">
+            <span class="status-badge">In development</span>
+            <span class="mono status-ref">Capstone · 2026</span>
+          </div>
           <dl class="status-facts">
             <div><dt>Mobile app</dt><dd>Integrated with Supabase</dd></div>
             <div><dt>Hardware feed</dt><dd>Being wired end to end</dd></div>

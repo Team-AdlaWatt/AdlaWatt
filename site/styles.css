@@ -1314,17 +1314,23 @@ p {
   margin: 28px 0 30px;
 }
 
+.install-label {
+  margin: 0 0 14px;
+  color: var(--green-text);
+}
+
 .install-steps {
   max-width: 62ch;
   margin: 0;
-  padding: 0;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--line);
   list-style: none;
   counter-reset: install-step;
 }
 
 .install-steps > li {
   position: relative;
-  padding-left: 42px;
+  padding-left: 44px;
   color: var(--muted);
   font-size: 0.95rem;
   line-height: 1.6;
@@ -1332,7 +1338,7 @@ p {
 }
 
 .install-steps > li + li {
-  margin-top: 14px;
+  margin-top: 16px;
 }
 
 .install-steps > li::before {
@@ -1340,11 +1346,17 @@ p {
   position: absolute;
   top: 1px;
   left: 0;
-  color: var(--green-deep);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: var(--green-text);
+  background: var(--cream);
+  border: 1px solid var(--line);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: var(--text-xs);
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
 }
 
 .install-steps ul {
@@ -1380,18 +1392,44 @@ p {
 .app-qr {
   max-width: 300px;
   margin: 0 auto;
-  padding: 16px 16px 14px;
+  padding: 18px;
   background: var(--paper);
   border: 2px solid var(--ink);
   box-shadow: 10px 10px 0 var(--green);
   text-align: center;
 }
 
-.app-qr-link {
-  display: block;
-  padding: 10px;
+.app-qr-frame {
+  position: relative;
+  padding: 12px;
   background: #fff;
   border: 1px solid var(--line);
+}
+
+.app-qr-frame::before,
+.app-qr-frame::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-color: var(--amber);
+  border-style: solid;
+}
+
+.app-qr-frame::before {
+  top: -1px;
+  left: -1px;
+  border-width: 3px 0 0 3px;
+}
+
+.app-qr-frame::after {
+  right: -1px;
+  bottom: -1px;
+  border-width: 0 3px 3px 0;
+}
+
+.app-qr-link {
+  display: block;
 }
 
 .app-qr img {
@@ -1403,25 +1441,32 @@ p {
 .app-qr figcaption {
   margin-top: 14px;
   color: var(--muted);
-  font-size: 0.62rem;
-  letter-spacing: 0.1em;
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.app-qr-note {
+  margin: 6px 0 0;
+  color: var(--green-text);
+  font-size: var(--text-xs);
 }
 
 .status-section {
   padding: clamp(70px, 9vw, 104px) 0;
-  color: var(--ink);
-  background: var(--amber);
+  color: var(--paper);
+  background: var(--green-dark);
   border-top: 2px solid var(--ink);
   border-bottom: 2px solid var(--ink);
 }
 
 .status-section .eyebrow {
-  color: var(--green-dark);
+  color: var(--amber);
 }
 
 .status-section h2 {
   max-width: 14ch;
+  color: var(--paper);
 }
 
 .status-grid {
@@ -1434,39 +1479,53 @@ p {
 .status-lede {
   max-width: 58ch;
   margin-bottom: 20px;
+  color: rgba(247, 242, 228, 0.76);
   font-size: 1.01rem;
 }
 
 .text-link-dark {
-  color: var(--ink);
-  text-decoration-color: var(--green-dark);
+  color: var(--paper);
+  text-decoration-color: var(--amber);
 }
 
 .text-link-dark:hover {
-  color: var(--green-dark);
-  text-decoration-color: var(--ink);
+  color: var(--amber);
+  text-decoration-color: var(--paper);
 }
 
 .status-card {
   padding: 26px;
-  color: var(--paper);
-  background: var(--green-dark);
+  color: var(--ink);
+  background: var(--paper);
   border: 2px solid var(--ink);
-  box-shadow: 10px 10px 0 rgba(28, 27, 31, 0.18);
+  box-shadow: 10px 10px 0 var(--amber);
+}
+
+.status-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
 .status-badge {
   display: inline-block;
-  margin-bottom: 22px;
   padding: 7px 10px;
   color: var(--ink);
   background: var(--amber);
   border: 1px solid var(--ink);
   font-family: var(--font-mono);
-  font-size: 0.64rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.status-ref {
+  color: var(--muted);
+  font-size: var(--text-xs);
+  text-align: right;
 }
 
 .status-facts {
@@ -1478,24 +1537,24 @@ p {
   justify-content: space-between;
   gap: 18px;
   padding: 12px 0;
-  border-top: 1px solid rgba(247, 242, 228, 0.2);
+  border-top: 1px solid var(--line);
 }
 
 .status-facts div:last-child {
-  border-bottom: 1px solid rgba(247, 242, 228, 0.2);
+  border-bottom: 1px solid var(--line);
 }
 
 .status-facts dt {
-  color: rgba(247, 242, 228, 0.64);
+  color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 0.59rem;
-  letter-spacing: 0.1em;
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .status-facts dd {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 600;
   text-align: right;
 }
