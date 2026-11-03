@@ -739,11 +739,23 @@ p {
   padding: clamp(62px, 8vw, 94px) 0;
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
-  background: rgba(255, 253, 246, 0.34);
+  background: var(--paper);
+}
+
+.value-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.2fr);
+  gap: clamp(36px, 7vw, 96px);
+  align-items: start;
+}
+
+.value-intro {
+  position: sticky;
+  top: calc(var(--header-h) + var(--space-6));
 }
 
 .value h2 {
-  max-width: 16ch;
+  max-width: 14ch;
 }
 
 .section-lede {
@@ -753,43 +765,44 @@ p {
   font-size: 1.04rem;
 }
 
-.value-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0;
-  margin-top: 52px;
+.value-note {
+  margin: 28px 0 0;
+  color: var(--green-text);
 }
 
-.value-item {
-  padding: 26px 30px 0 0;
+.value-notes {
+  display: grid;
   border-top: 2px solid var(--ink);
 }
 
-.value-item + .value-item {
-  padding-left: 30px;
-  border-left: 1px solid var(--line);
+.value-item {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 24px;
+  padding: 26px 0;
+  border-bottom: 1px solid var(--line);
 }
 
 .value-item .index {
   display: block;
-  margin-bottom: 24px;
-  color: var(--green-deep);
+  padding-top: 4px;
+  color: var(--green-text);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   letter-spacing: 0.12em;
 }
 
 .value-item h3 {
   max-width: 17ch;
-  font-size: clamp(1.35rem, 2vw, 1.7rem);
+  font-size: var(--text-xl);
 }
 
 .value-item p {
-  max-width: 36ch;
+  max-width: 42ch;
   margin-bottom: 0;
   color: var(--muted);
-  font-size: 0.94rem;
+  font-size: 0.98rem;
 }
 
 .section {
@@ -1719,22 +1732,23 @@ p {
     margin-top: 18px;
   }
 
-  .value-grid {
+  .value-layout {
     grid-template-columns: 1fr;
-    margin-top: 36px;
+    gap: 32px;
+  }
+
+  .value-intro {
+    position: static;
   }
 
   .value-item {
-    padding: 22px 0 28px;
-  }
-
-  .value-item + .value-item {
-    padding-left: 0;
-    border-left: 0;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 16px;
+    padding: 22px 0;
   }
 
   .value-item .index {
-    margin-bottom: 14px;
+    padding-top: 2px;
   }
 
   .flow {
