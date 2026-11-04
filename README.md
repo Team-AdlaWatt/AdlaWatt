@@ -4,13 +4,13 @@
 [![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com/)
 [![ESP32-S3](https://img.shields.io/badge/ESP32--S3-IoT-E7352C?logo=espressif&logoColor=white)](https://www.espressif.com/)
 
-# AdlaWatt: Off-Grid Solar Power Monitoring & Backup System
+# AdlaWatt: An IoT-Based Off-Grid Solar Backup Power System with Real-Time Energy Monitoring and Appliance Recommendation
 
-**AdlaWatt** is a transportable off-grid solar power system and IoT energy monitoring platform for households facing electricity interruptions. An ESP32-S3 reads solar, battery, load, and temperature data; an Expo/React Native app turns that data into live monitoring, electronics guidance, and backup-power planning.
+**AdlaWatt** is a transportable, IoT-based off-grid solar energy harvesting system for households facing electricity interruptions. A solar panel charges a 12 V battery bank inside a lockable enclosure, and a built-in AC outlet supplies compatible appliances up to 600 W. An ESP32-S3 reads solar, battery, load, and temperature data; an Expo/React Native app provides live monitoring, appliance recommendations, notifications, activity logs, and historical data.
 
 [Visit the AdlaWatt project site](https://team-adlawatt.github.io/AdlaWatt/) · [View the source code](https://github.com/Team-AdlaWatt/AdlaWatt) · [Read the user manual](docs/USER-MANUAL.md)
 
-> **Project Status:** In Development. The mobile app is fully integrated with Supabase (auth, database, real-time). The ESP32 hardware feed is still being wired up end to end.
+> **Project Status:** In Development. The mobile app is integrated with Supabase. The ESP32 hardware feed is still being wired up end to end. A web-based admin dashboard for researchers is planned.
 >
 > AdlaWatt is a backup power source, not a replacement for the electrical grid.
 
@@ -43,12 +43,12 @@
 Using AdlaWatt requires an AdlaWatt account. Download the Android app, then sign in or create an account.
 
 <p align="center">
-  <a href="https://expo.dev/accounts/fadrians-team/projects/ADLAWATT-/builds/f7ac61fb-bdc3-4b2f-aae0-1cdb5eb8eb15">
+  <a href="https://drive.google.com/file/d/12auCzAkhCYNv_5iDn2_eoy-XgYcXLrAW/view?usp=sharing">
     <img src="assets/images/adlawatt-app-qr.png" alt="QR code to download the AdlaWatt Android app" width="220">
   </a>
 </p>
 
-<p align="center"><a href="https://expo.dev/accounts/fadrians-team/projects/ADLAWATT-/builds/f7ac61fb-bdc3-4b2f-aae0-1cdb5eb8eb15"><strong>Open the download page</strong></a></p>
+<p align="center"><a href="https://drive.google.com/file/d/12auCzAkhCYNv_5iDn2_eoy-XgYcXLrAW/view?usp=sharing"><strong>Open the download page</strong></a></p>
 
 1. Scan the QR code or open the download page.
 2. Tap **Install**.
@@ -60,16 +60,16 @@ Using AdlaWatt requires an AdlaWatt account. Download the Android app, then sign
 
 ## What Is AdlaWatt?
 
-AdlaWatt is an off-grid solar power and backup battery system designed for homes that experience frequent electricity interruptions. A solar panel charges a 12V battery inside a transportable lockable enclosure, and a built-in AC outlet lets compatible electronics use the stored energy.
+AdlaWatt is an IoT-based transportable off-grid solar energy harvesting system designed for homes that experience frequent electricity interruptions. A solar panel charges a 12 V battery bank inside a lockable enclosure, and a built-in AC outlet supplies compatible appliances up to 600 W.
 
-The system also watches itself. An ESP32-S3 reads solar, load, voltage, and temperature sensors, sends the data to Supabase, and the AdlaWatt mobile app shows it live. Its main feature is electronics guidance: pick the electronics you plan to use and the app recommends what fits your current battery level.
+The system also watches itself. An ESP32-S3 reads solar, battery, load, and temperature sensors, sends the data to Supabase, and the AdlaWatt mobile app shows it live. Its main feature is appliance recommendation: pick the appliances you plan to use and the app recommends what fits your current battery level.
 
 The project combines four concerns in one system:
 
 - **Off-grid solar harvesting** — collect and store energy without relying on the grid.
 - **IoT energy monitoring** — measure battery, solar, load, and thermal conditions.
-- **Household backup power** — run compatible electronics during outages.
-- **Electronics guidance** — decide what is safe to run before connecting a load.
+- **Household backup power** — run compatible appliances during outages.
+- **Appliance recommendation** — decide what is safe to run before connecting a load.
 
 ## System Overview
 
@@ -80,30 +80,35 @@ The power path and the data path are separate. Solar energy charges the battery 
 ## How It Works
 
 1. **Harvest** — A solar panel charges the battery through a charge controller.
-2. **Store** — Two ZENOVA 30Ah batteries hold 756 Wh nominal, with 604.8 Wh usable.
-3. **Convert** — An inverter supplies the built-in AC outlet for compatible electronics.
+2. **Store** — Two ZENOVA 30Ah batteries are connected in parallel for a 12 V, 60 Ah bank.
+3. **Convert** — An inverter supplies the built-in AC outlet for compatible appliances.
 4. **Sense** — An ESP32-S3 reads solar, load, voltage, and temperature sensors.
-5. **Guide** — The mobile app shows live status and labels electronics **OK to use** or **Not advisable** based on remaining energy, voltage, and power draw.
+5. **Guide** — The mobile app shows live status and labels appliances **OK to use** or **Not advisable** based on remaining energy, voltage, and power draw.
 
 ## Features
 
-- **Real-Time Monitoring** — Battery percentage, voltage, watt-hours, time remaining, charge/discharge status, load, depth of discharge, solar input, and battery/solar/interior temperatures, all updating live.
-- **Electronics Recommendations** — Each electronics item is labeled **OK to use** or **Not advisable** based on the remaining battery energy, voltage, and power draw.
-- **Weather & 5-Day Solar Forecast** — Current temperature, condition, and location, plus a 5-day outlook that flags the best day to charge.
-- **Notifications** — Automatic alerts for battery, temperature, solar, load, and device status. Delivered in-app, by email for alerts, with an alert vibration, plus daily local reminders.
-- **Analytics & Reports** — 17 charts across Battery, Solar, Energy, Health, and Usage, with CSV and PDF export.
-- **Component Health** — Live status for each IoT and power component (ESP32, sensors, relay, fan, display).
-- **Activity Logs** — A paginated history of system events, separate from notifications.
-- **Personalization** — Dark mode, font size and family, language (English, Filipino, Cebuano), vibration, and email notifications.
-- **Offline Support** — The dashboard shows the last cached readings with an offline banner when there is no connection.
+> **Scope note:** The manuscript defines the core scope. Features marked **(implementation addition)** are present in the app but extend beyond the manuscript's stated scope.
 
-### Weather Location
+- **Real-Time Monitoring** — Battery status, voltage, energy, current load, depth of discharge, solar input, solar voltage/current, temperature readings, and device status, all updating live.
+- **Appliance Recommendations** — Each appliance is labeled **OK to use** or **Not advisable** based on the remaining battery energy, voltage, and power draw.
+- **Weather Information** — Current temperature, condition, and location. *(The 5-day solar forecast and Bukidnon location snapping are implementation additions.)*
+- **Notifications** — Push notifications for critical battery, temperature, solar, load, and device-status alerts. *(Email delivery, vibration, and daily reminders are implementation additions.)*
+- **Historical Data & Reports** — Charts and reports over selected date ranges and frequencies. *(The 17-chart layout and CSV/PDF export are implementation additions.)*
+- **Device Status** — Live status for the ESP32, sensors, relay, fan, and display.
+- **Activity Logs** — A history of system events, separate from notifications.
+- **Admin Dashboard (planned)** — A web-based dashboard for researchers to monitor system data, manage records, and configure alert thresholds.
+- **Personalization (implementation addition)** — Dark mode, font size and family, language (English, Filipino, Cebuano), vibration, and email notifications.
+- **Offline Support (implementation addition)** — The dashboard shows the last cached readings with an offline banner when there is no connection.
 
-The weather card uses the device's live GPS fix. Within 10 km of one of the 24 configured Bukidnon points (22 Manolo Fortich barangays plus Lingi-on and Balubal), the app requests OpenWeather at that sample's exact coordinates for both current weather and forecast, then displays the resolved location label. Outside coverage, it keeps the raw GPS fix and shows a non-blocking notice. The 4-day forecast shows condition, high temperature with Celsius units, daily max feels-like temperature, and solar outlook without rain-chance percentages.
+### Weather Location (implementation addition)
+
+The weather card uses the device's live GPS fix. Within 10 km of one of the 24 configured Bukidnon points (22 Manolo Fortich barangays plus Lingi-on and Balubal), the app requests OpenWeather at that sample's exact coordinates for both current weather and forecast, then displays the resolved location label. Outside coverage, it keeps the raw GPS fix and shows a non-blocking notice. The forecast rows show condition, high temperature with Celsius units, daily max feels-like temperature, and solar outlook without rain-chance percentages.
 
 ---
 
 ## Tech Stack
+
+> **Scope note:** The manuscript's software specification lists Arduino IDE, Visual Studio Code, C++, JavaScript, CSS, React.js (JSX), Supabase, Expo EAS, GitHub, and Canva. The table below reflects the current implementation, including additions beyond that list.
 
 | Layer | Technology |
 |---|---|
@@ -149,7 +154,7 @@ AdlaWatt/
 │   │   │   ├── menu.tsx
 │   │   │   ├── about-us.tsx
 │   │   │   └── user-manual.tsx
-│   │   └── admin/            (role-gated shell)
+│   │   └── admin/            (role-gated shell; web dashboard planned)
 │   ├── components/           (charts, forms, layout, ui)
 │   ├── constants/            (routes, catalog, colors, theme, sizing)
 │   ├── context/              (auth, settings, theme)
@@ -180,30 +185,32 @@ AdlaWatt/
 
 | Component | Purpose |
 |---|---|
-| Solar Panel | Collects solar energy |
-| Charge Controller | Regulates battery charging |
-| 12V Battery (ZENOVA 30Ah ×2) | Stores energy — 756 Wh nominal, 604.8 Wh usable |
-| Inverter | Converts DC to AC |
-| AC Outlet | Powers compatible electronics |
+| 100 W Jinko Monocrystalline Solar Panel | Collects solar energy |
+| 30 A PWM Charge Controller | Regulates battery charging |
+| 12 V Battery Bank (ZENOVA 30Ah ×2, parallel) | Stores energy — 12 V, 60 Ah |
+| 1500 W Inverter | Converts DC to AC |
+| AC Outlet | Powers compatible appliances up to 600 W |
 
 **IoT**
 
 | Component | Purpose |
 |---|---|
 | ESP32-S3 | Main controller and Wi-Fi communication |
-| INA228 (Input / Output) | Monitors solar and load voltage/current |
+| INA228 (Solar / Load) | Monitors solar and load voltage/current |
 | DS18B20 (Battery / Solar) | Monitors temperatures |
 | DHT22 | Monitors interior temperature and humidity |
-| INA219 | Measures system voltage |
-| Relay Module | Controls load and cooling fan |
+| INA219 | Monitors battery voltage and current |
+| Relay Module | Controls load and cooling fans |
 | SPI TFT Display | Shows local real-time info |
-| 5V DC Fan | Cooling |
+| 2× 5V DC Fan | Cooling |
 
-Safety thresholds are fixed engineering constants: **800 W** high load, **11.6 V** minimum, **14.6 V** maximum.
+The manuscript limits compatible appliances to **600 W total** and excludes high-power appliances such as air-conditioners, washing machines, and electric stoves.
 
 ---
 
 ## Backend Setup
+
+> **Scope note:** The tables, Edge Function, and storage buckets below describe the current implementation beyond the manuscript's stated scope.
 
 Data lives in Supabase. Core tables used by the app:
 
@@ -281,10 +288,10 @@ supabase functions deploy send-alert-email
 
 | Role | Access |
 |---|---|
-| Household User | Full app: dashboard, electronics, analytics, components, notifications, activity logs, and settings |
-| Admin | A limited shell (login, log out, exit) — assigned in the database, not through the app |
+| Household User | Mobile app: dashboard, appliance recommendations, historical data, device status, notifications, activity logs, and settings |
+| Admin (planned) | A web-based dashboard for researchers to monitor system data, manage records, and configure alert thresholds. A limited in-app admin shell (login, log out, exit) is the current implementation. |
 
-Users sign up with a username, email, and password, or sign in with Google. Passwords can be reset by email.
+Users sign up with a username, email, and password, or sign in with Google. Passwords can be reset by email. *(Authentication is an implementation addition beyond the manuscript.)*
 
 ---
 
@@ -303,15 +310,15 @@ Users sign up with a username, email, and password, or sign in with Google. Pass
 
 ### What is AdlaWatt?
 
-AdlaWatt is a transportable off-grid solar power and backup system with an ESP32 IoT monitor and a mobile app for real-time energy monitoring, electronics guidance, notifications, and outage planning.
+AdlaWatt is an IoT-based transportable off-grid solar backup power system with an ESP32 monitor and a mobile app for real-time energy monitoring, appliance recommendations, notifications, and outage planning.
 
 ### How does AdlaWatt monitor solar and battery data?
 
 An ESP32-S3 reads voltage, current, and temperature sensors, sends the readings to Supabase, and the AdlaWatt mobile app displays live battery, solar, load, and system-health data.
 
-### What electronics can AdlaWatt power?
+### What appliances can AdlaWatt power?
 
-AdlaWatt works with compatible household electronics through its built-in AC outlet. The app compares remaining energy, battery voltage, and device power draw to label each item **OK to use** or **Not advisable**.
+AdlaWatt works with compatible household appliances up to **600 W total** through its built-in AC outlet. High-power appliances such as air-conditioners, washing machines, and electric stoves are excluded. The app compares remaining energy, battery voltage, and appliance power draw to label each item **OK to use** or **Not advisable**.
 
 ### Is AdlaWatt available for purchase?
 
@@ -323,7 +330,7 @@ The repository is publicly viewable, but no open-source license is specified. Re
 
 ### Where was AdlaWatt built?
 
-AdlaWatt was developed by the AdlaWatt Research and Development Team at Northern Bukidnon State College in Bukidnon, Philippines.
+AdlaWatt was developed by the AdlaWatt Research and Development Team at Northern Bukidnon State College in Bukidnon, Philippines. The prototype was evaluated in Sto. Niño, Manolo Fortich, Bukidnon.
 
 ---
 
@@ -331,11 +338,13 @@ AdlaWatt was developed by the AdlaWatt Research and Development Team at Northern
 
 ### Latest Changes
 
+> Changelog entries describe implementation changes, including additions beyond the manuscript scope.
+
 - **Bukidnon weather snapping** — live GPS snaps to the nearest configured sample within 10 km for current weather and forecast, displays the resolved location, and warns outside coverage.
 - **4-day forecast** — daily rows now show high temperature in Celsius plus feels-like temperature, with rain-chance percentages removed.
 - **5-day solar forecast** — daily solar outlook with a "best day to charge" summary and hot/cold flags.
-- **Electronics catalog refresh** — updated to the current electronics list with corrected wattage ranges and new images.
-- **Battery figures** — standardized to 756 Wh nominal / 151.2 Wh reserve / 604.8 Wh usable.
+- **Appliance catalog refresh** — updated to the current appliance list with corrected wattage ranges and new images.
+- **Battery model** — the app uses 756 Wh nominal / 151.2 Wh reserve / 604.8 Wh usable for its calculations; the manuscript specifies a 12 V, 60 Ah battery bank.
 - **Self-hosted auth links** — confirmation and recovery emails now route back into the app, with clearer create-account copy.
 - **Language support** — English, Filipino, and Cebuano.
 - **Analytics** — 17 charts across five sections with CSV and PDF export.
@@ -344,10 +353,12 @@ AdlaWatt was developed by the AdlaWatt Research and Development Team at Northern
 
 ## Academic Context
 
-- **Sustainable Development Goals** — SDG 7 (Affordable and Clean Energy), SDG 11 (Sustainable Cities and Communities), and SDG 13 (Climate Action).
+- **Sustainable Development Goal** — SDG 7 (Affordable and Clean Energy).
 - **Evaluation** — Usability measured with the System Usability Scale (SUS).
-- **Purpose** — To provide an affordable backup power solution that combines off-grid solar harvesting, real-time monitoring, and electronics guidance in a single system.
+- **Purpose** — To provide an affordable backup power solution that combines off-grid solar harvesting, real-time monitoring, and appliance recommendations in a single system.
 - **Institution** — Northern Bukidnon State College, Bukidnon, Philippines.
+- **Deployment** — Single prototype evaluated in selected households in Sto. Niño, Manolo Fortich, Bukidnon.
+- **Manuscript date** — July 2025.
 
 ---
 
@@ -355,8 +366,8 @@ AdlaWatt was developed by the AdlaWatt Research and Development Team at Northern
 
 **AdlaWatt Research and Development Team**
 
-- Francis Adrian Idul — Programmer
 - Rhics T. Geonzon — Documenter
+- Francis Adrian Idul — Programmer
 - Troy M. Rojo — Data Analyst
 
 Northern Bukidnon State College, Bukidnon, Philippines. Developed as an academic capstone project.
@@ -367,4 +378,4 @@ Northern Bukidnon State College, Bukidnon, Philippines. Developed as an academic
 
 This project is an academic capstone project with **no open-source license specified**. Please do not assume the code is available for commercial use, redistribution, or modification without permission from the authors.
 
-Copyright © 2026 AdlaWatt Research and Development Team.
+Copyright © 2025 AdlaWatt Research and Development Team.

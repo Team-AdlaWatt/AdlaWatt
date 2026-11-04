@@ -1029,6 +1029,315 @@ Electronics modal.
 
 ---
 
+## Site UI/UX Redesign
+
+These entries document the public GitHub Pages redesign. They are grouped to
+match the implementation commits on `design/site-ui-ux`.
+
+---
+
+### 32. [Feat] Establish 60-30-10 design tokens and type scale
+
+**Summary**
+The site already used the app's cream, green, and amber palette, but it did not
+document or enforce the app's 60-30-10 ratio. Several mono labels were also only
+`0.59rem`–`0.69rem` (roughly 9–11px), which made metadata and install notes hard
+to read, especially on phones.
+
+**Steps to Reproduce**
+1. Open `site/styles.css`.
+2. Compare the color variables with `src/constants/colors.ts`.
+3. Inspect the mono labels in the hero panel, hardware list, and footer.
+
+**Expected Behavior**
+The site has one documented token system for the 60% cream surfaces, 30% green
+brand areas, and 10% amber accents. Type sizes have a readable floor, and anchor
+targets clear the sticky header.
+
+**Actual Behavior**
+The palette was present but not expressed as a ratio, several labels were below a
+comfortable reading size, and anchored sections could land under the header.
+
+**Environment**
+- **Device:** Desktop and mobile browser
+- **Page:** GitHub Pages landing page
+- **App Version:** v1.0.0
+
+**Fixed:** Added the 60-30-10 color tokens, spacing and type scales, readable mono
+label sizes, focus tokens, and `scroll-margin-top` for anchored sections.
+
+---
+
+### 33. [Feat] Add accessible responsive navigation
+
+**Summary**
+Below `820px`, the site hid every navigation link except the GitHub call to
+action. There was no menu button or alternate way to reach Features, Hardware,
+Get the app, or FAQ, so mobile users lost the primary navigation.
+
+**Steps to Reproduce**
+1. Open the site at a width below `820px`.
+2. Look at the header.
+3. Try to reach the Features, Hardware, Get the app, or FAQ sections from the
+   navigation.
+
+**Expected Behavior**
+A visible menu button opens the same navigation links, works with a keyboard,
+closes on Escape or after choosing a link, and keeps touch targets at least
+44×44px.
+
+**Actual Behavior**
+All non-CTA links disappeared and no replacement menu was provided.
+
+**Environment**
+- **Device:** Mobile browser
+- **Page:** GitHub Pages landing page
+- **App Version:** v1.0.0
+
+**Fixed:** Added a progressive-enhancement `site.js` menu with
+`aria-expanded`, Escape/link close behavior, 44px targets, and a Get app primary
+action in the header.
+
+---
+
+### 34. [Feat] Rebuild hero as a solar console
+
+**Summary**
+The hero used a conventional text-left, panel-right split, and its primary call
+to action sent visitors to GitHub instead of the Android app. The most important
+product action was visually secondary.
+
+**Steps to Reproduce**
+1. Open the site home page.
+2. Look at the first screen on desktop and mobile.
+3. Note the primary button and the system panel.
+
+**Expected Behavior**
+The hero reads like an AdlaWatt instrument console: a strong editorial headline,
+Get the Android app as the primary action, repository as a secondary link, and a
+telemetry panel that makes capacity and system status immediately legible.
+
+**Actual Behavior**
+The hero looked like a generic split layout and promoted the repository first.
+
+**Environment**
+- **Device:** Desktop and mobile browser
+- **Page:** GitHub Pages landing page
+- **App Version:** v1.0.0
+
+**Fixed:** Rebuilt the hero as a 7/5 solar-console layout with a solar arc,
+capacity gauge, status readout, and Get the Android app primary action.
+
+---
+
+### 35. [Feat] Replace value grid with field notes
+
+**Summary**
+The "Why it exists" section used three equal cards. Equal weight made the three
+ideas interchangeable and contributed to the page's template-like feel.
+
+**Steps to Reproduce**
+1. Open the "Why it exists" section.
+2. Compare the three value items.
+3. Check how quickly the eye can find the main idea.
+
+**Expected Behavior**
+The section uses an asymmetric field-note layout with large index markers, a
+clear reading order, and room for a side annotation.
+
+**Actual Behavior**
+The three equal columns flattened the hierarchy and repeated the same card shape.
+
+**Environment**
+- **Device:** Desktop and mobile browser
+- **Page:** GitHub Pages landing page
+- **App Version:** v1.0.0
+
+**Fixed:** Replaced the card grid with an asymmetric field-note layout and large
+`01/02/03` index markers.
+
+---
+
+### 36. [Feat] Turn system flow into an energy rail
+
+**Summary**
+The five-step system flow used five equal columns. It communicated sequence, but
+the equal grid looked generic and did not feel connected to the physical energy
+path.
+
+**Steps to Reproduce**
+1. Open the "From sunlight to a decision" section.
+2. Read the five flow steps.
+3. Compare the layout with a real connected energy path.
+
+**Expected Behavior**
+The steps read as one connected rail with visible flow, staggered nodes on
+desktop, and a clear vertical timeline on mobile.
+
+**Actual Behavior**
+The steps were separate equal columns with no visual connection.
+
+**Environment**
+- **Device:** Desktop and mobile browser
+- **Page:** GitHub Pages landing page
+- **App Version:** v1.0.0
+
+**Fixed:** Rebuilt the flow as a connected energy rail with staggered nodes and
+a mobile timeline, keeping the system diagram.
+
+---
+
+### 37. [Feat] Reorganize features into a capability ledger
+
+**Summary**
+The app features were presented as six equal cards. Six equal choices increase
+scanning effort and hide the three jobs the app actually performs: monitoring,
+deciding, and staying useful offline.
+
+**Steps to Reproduce**
+1. Open the "What the app does" section.
+2. Count the equal feature cards.
+3. Try to tell which capabilities belong together.
+
+**Expected Behavior**
+The features are grouped into clear jobs, presented as a ledger with stronger
+hierarchy and less card repetition.
+
+**Actual Behavior**
+Six equal cards made the section feel like a feature dump.
+
+**Environment**
+- **Device:** Desktop and mobile browser
+- **Page:** GitHub Pages landing page
+- **App Version:** v1.0.0
+
+**Fixed:** Reorganized the six features into Monitor, Decide, and Stay online
+groups using a capability-ledger layout.
+
+---
+
+### 38. [Feat] Rebuild guidance and hardware panels
+
+**Summary**
+The electronics guidance and hardware sections used ordinary two-column splits.
+They worked, but they did not carry the instrument-panel language established by
+the new hero.
+
+**Steps to Reproduce**
+1. Open the electronics guidance section.
+2. Continue to the hardware section.
+3. Compare both with the hero's console treatment.
+
+**Expected Behavior**
+Guidance uses the 30% green band with a decision panel and sparse amber accents.
+Hardware reads like a technical spec sheet with grouped power and sensing data.
+
+**Actual Behavior**
+Both sections looked like generic content blocks.
+
+**Environment**
+- **Device:** Desktop and mobile browser
+- **Page:** GitHub Pages landing page
+- **App Version:** v1.0.0
+
+**Fixed:** Rebuilt guidance as a green instrument band with a decision panel and
+restyled hardware as a technical spec sheet.
+
+---
+
+### 39. [Feat] Redesign app download and project status
+
+**Summary**
+The Google Drive link was correct, but the surrounding copy still told users to
+tap Install on a download page. The status section was also a full-width amber
+band, which overused the 10% accent.
+
+**Steps to Reproduce**
+1. Open the "Get the app" section and read the install steps.
+2. Open the Google Drive link.
+3. Continue to the project status section and compare the amber area with the
+   app's 60-30-10 palette.
+
+**Expected Behavior**
+The copy explains the Google Drive flow accurately, the QR reads as a distinct
+download ticket, and the status section uses green as the brand surface with
+amber limited to a small badge.
+
+**Actual Behavior**
+The instructions described an Install button that Google Drive does not show,
+and the status section used amber as a large surface.
+
+**Environment**
+- **Device:** Desktop and mobile browser
+- **Page:** GitHub Pages landing page
+- **App Version:** v1.0.0
+
+**Fixed:** Updated the download copy and steps for Google Drive, rebuilt the QR as
+a ticket-style panel, and replaced the amber status band with a green telemetry
+panel and amber badge.
+
+---
+
+### 40. [Feat] Refine FAQ and final CTA
+
+**Summary**
+The FAQ and final call to action were functional, but the FAQ heading did not
+stay useful while reading long answers, and the final CTA could carry the new
+hierarchy more clearly.
+
+**Steps to Reproduce**
+1. Open the FAQ section and expand several answers.
+2. Continue to the final call to action.
+3. Compare the visual weight of the two sections with the rest of the page.
+
+**Expected Behavior**
+The FAQ heading stays visible on desktop while answers are read, disclosures have
+a clear open/close affordance, and the final CTA uses the green brand band with
+only a small amber marker.
+
+**Actual Behavior**
+The FAQ heading scrolled away and the final CTA repeated the old hierarchy.
+
+**Environment**
+- **Device:** Desktop and mobile browser
+- **Page:** GitHub Pages landing page
+- **App Version:** v1.0.0
+
+**Fixed:** Added a sticky FAQ heading, clearer disclosure affordance, and a
+refined final CTA with the new color balance and action hierarchy.
+
+---
+
+### 41. [Chore] Polish responsive, accessibility, and metadata
+
+**Summary**
+The redesign needed a final pass across mobile widths, keyboard navigation,
+contrast, reduced motion, image dimensions, and page metadata.
+
+**Steps to Reproduce**
+1. Open the site at 360, 768, 1024, and 1440px widths.
+2. Tab through the header, menu, links, and FAQ.
+3. Check the page source for image dimensions, metadata dates, and leftover
+   unused styles.
+
+**Expected Behavior**
+The page has no horizontal overflow, all interactive targets are reachable and
+large enough, focus remains visible, motion respects user preferences, images
+have explicit dimensions, and metadata reflects the redesign.
+
+**Actual Behavior**
+The final cross-device and metadata pass had not been completed.
+
+**Environment**
+- **Device:** Desktop and mobile browser
+- **Page:** GitHub Pages landing page
+- **App Version:** v1.0.0
+
+**Fixed:** Completed the responsive, keyboard, contrast, reduced-motion, image
+dimension, metadata, and unused-CSS checks.
+
+---
+
 ## Still To Do
 
 - Update the ESP32 firmware so watt_hours is reported on the 756 Wh scale.
