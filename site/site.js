@@ -46,4 +46,33 @@
   mobile.addEventListener("change", (event) => {
     if (!event.matches) setOpen(false);
   });
+
+  const sectionLinks = [...nav.querySelectorAll('a[href^="#"]')].filter((link) => {
+    const target = document.querySelector(link.hash);
+    return target && link.hash.length > 1;
+  });
+
+  if (sectionLinks.length && "IntersectionObserver" in window) {
+    const sections = sectionLinks.map((link) => document.querySelector(link.hash));
+    const setCurrent = (id) => {
+      sectionLinks.forEach((link) => {
+        if (link.hash === `#${id}`) {
+          link.setAttribute("aria-current", "location");
+        } else {
+          link.removeAttribute("aria-current");
+        }
+      });
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) setCurrent(entry.target.id);
+        });
+      },
+      { rootMargin: "-45% 0px -50% 0px" }
+    );
+
+    sections.forEach((section) => observer.observe(section));
+  }
 })();

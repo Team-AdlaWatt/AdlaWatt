@@ -299,7 +299,8 @@ p {
   text-transform: uppercase;
 }
 
-.site-nav a:not(.nav-cta):hover {
+.site-nav a:not(.nav-cta):hover,
+.site-nav a[aria-current="location"]:not(.nav-cta) {
   color: var(--green-text);
   text-decoration: underline;
   text-decoration-color: var(--amber);
@@ -1636,6 +1637,7 @@ p {
 
 .faq-list details[open] summary::after {
   content: "−";
+  color: var(--ink);
   background: var(--amber);
 }
 
@@ -1800,7 +1802,7 @@ p {
   margin-bottom: 10px;
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1808,7 +1810,7 @@ p {
 
 .footer-links a {
   color: var(--ink);
-  font-size: 0.84rem;
+  font-size: var(--text-sm);
   text-decoration-color: transparent;
 }
 
@@ -1826,7 +1828,7 @@ p {
   color: var(--muted);
   border-top: 1px solid var(--line);
   font-family: var(--font-mono);
-  font-size: 0.59rem;
+  font-size: var(--text-xs);
   letter-spacing: 0.05em;
   line-height: 1.5;
   text-transform: uppercase;
@@ -1875,7 +1877,7 @@ p {
     flex-wrap: wrap;
   }
 
-  .nav-toggle {
+  .js .nav-toggle {
     display: inline-flex;
   }
 
@@ -1935,8 +1937,9 @@ p {
   }
 
   .hero::after {
-    top: 18vw;
-    right: -180px;
+    top: 8px;
+    right: -40px;
+    opacity: 0.35;
   }
 
   .system-panel {
@@ -2084,6 +2087,21 @@ p {
 
   .system-panel {
     box-shadow: 7px 7px 0 var(--green);
+  }
+
+  .panel-readout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .solar-arc {
+    width: 100%;
+    max-width: 150px;
+    justify-self: center;
+  }
+
+  .capacity-value {
+    font-size: clamp(2.8rem, 14vw, 3.8rem);
   }
 
   .specs {
