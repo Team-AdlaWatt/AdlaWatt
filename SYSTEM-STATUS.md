@@ -47,7 +47,7 @@ Status values: `Working`, `In progress`, `Limited`, `Available`, `Pending`.
 |---|---|---|
 | Data and security | Seven core tables, row-level security on electronics and photos, server-side role lock, storage for email assets and electronics photos, server-side email key. | `supabase/migrations/`, `supabase/functions/` |
 | Live data | Supabase Realtime with memory and AsyncStorage cache, request coalescing, and retry. | `src/services/monitoringService.ts` |
-| Recommendation engine | Uses 756 Wh nominal, 151.2 Wh reserve, 604.8 Wh usable, 800 W warning, 1000 W cap, and 11.6 V / 14.6 V limits. | `src/services/recommendation.ts` |
+| Recommendation engine | Uses 720 Wh nominal, 144 Wh reserve, 576 Wh usable, 480 W warning, 600 W cap, and 11.6 V / 14.6 V limits. | `src/services/recommendation.ts` |
 | Load stack | Checks a group of electronics together and blocks stacks over the inverter limit. | `src/services/recommendation.ts` |
 | Analytics | Five sections, 17 charts, 7/30/90-day ranges, lazy loading, CSV and PDF export. | `src/services/analyticsService.ts` |
 | Alerts | Threshold rules, cooldowns, in-app records, email, vibration, and daily reminders. | `src/services/notificationService.ts` |
@@ -63,8 +63,8 @@ Status values: `Working`, `In progress`, `Limited`, `Available`, `Pending`.
 | Paper | Current system | Note |
 |---|---|---|
 | Appliance | Electronics | Renamed across app, database, and docs. |
-| Inverter and scope values: 220 W, 1000 W, 1500 W, 600 W | 800 W warning, 1000 W cap | The paper values conflict. The code uses one model. |
-| 640.8 Wh usable | 604.8 Wh usable | Corrected usable energy. |
+| Inverter and scope values: 220 W, 1000 W, 1500 W, 600 W | 480 W warning, 600 W cap | Aligned: the app caps appliance loads at the manuscript's 600 W. |
+| 640.8 Wh usable (never in the manuscript) | 576 Wh usable | Aligned: 20% reserve on a 12 V, 60 Ah bank (720 Wh). |
 | Basic dashboard | 17 charts and reports | Analytics scope grew. |
 | Manual catalog | Catalog plus custom items, photos, and archive | More user control. |
 | Basic alerts | In-app, email, vibration, and reminders | More delivery paths. |
