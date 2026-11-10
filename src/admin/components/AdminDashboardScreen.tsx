@@ -5,7 +5,6 @@ import {
 } from "react-native";
 
 import Copyright from "@/components/ui/Copyright";
-import AdminMenuSection from "@/admin/components/AdminMenuSection";
 import AdminNavBarTop from "@/admin/components/AdminNavBarTop";
 import AdminScreenContainer from "@/admin/components/AdminScreenContainer";
 import AdminOverviewTab from "@/admin/components/AdminOverviewTab";
@@ -55,8 +54,6 @@ export default function AdminDashboardScreen() {
         {activeTab === "reports" ? (
           <AdminReportsTab />
         ) : null}
-
-        <AdminMenuSection />
 
         <Copyright />
       </ScrollView>
