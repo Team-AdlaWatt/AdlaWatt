@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
+  Pressable,
   StyleSheet,
   View,
 } from "react-native";
@@ -11,9 +13,9 @@ import {
   type AppColors,
 } from "@/hooks/useAppColors";
 import {
-  ADMIN_HOUSEHOLDS,
-  countByBand,
-} from "@/admin/mockData";
+  getAdminFleetHealth,
+  type AdminFleetHealth,
+} from "@/services/adminService";
 
 interface StatCardProps {
   label: string;
@@ -41,19 +43,62 @@ export default function AdminReportsTab() {
   const colors = useAppColors();
   const styles = useMemo(() => getStyles(colors), [colors]);
 
-  const households = ADMIN_HOUSEHOLDS;
-  const bandCounts = countByBand(households);
-  const totalSolar = households.reduce(
-    (sum, household) => sum + household.solarKwhPerDay,
-    0,
-  );
-  const totalLoad = households.reduce(
-    (sum, household) => sum + household.loadKwhPerDay,
-    0,
-  );
-  const unsafeCount = households.filter(
-    (household) => household.batteryHealth <= 20,
-  ).length;
+  const [fleet, setFleet] = useState<AdminFleetHealth | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    const result = await getAdminFleetHealth();
+
+    if (result.error || !result.data) {
+      setError(result.error || "Failed to load fleet health");
+      setFleet(null);
+    } else {
+      setFleet(result.data);
+    }
+
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial Supabase fetch on mount
+    void load();
+  }, [load]);
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (error || !fleet) {
+    return (
+      <View style={styles.center}>
+        <AppText variant="body" style={styles.errorText}>
+          {error || "No report data available"}
+        </AppText>
+
+        <Pressable
+          onPress={() => void load()}
+          style={({ pressed }) => [
+            styles.retryButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          <AppText variant="body" style={styles.retryText}>
+            Retry
+          </AppText>
+        </Pressable>
+      </View>
+    );
+  }
+
+  const totalSolarKwh = fleet.total_solar_wh_24h / 1000;
 
   return (
     <View style={styles.container}>
@@ -63,32 +108,52 @@ export default function AdminReportsTab() {
         </AppText>
 
         <AppText variant="caption" style={styles.headerSub}>
-          Fleet aggregates and pseudonymous per-household summary.
+          Fleet aggregates from the last 24 hours.
         </AppText>
       </View>
 
       <View style={styles.statGrid}>
         <StatCard
           label="Households"
-          value={String(households.length)}
+          value={String(fleet.device_count)}
           colors={colors}
         />
 
         <StatCard
-          label="Solar / day"
-          value={`${totalSolar.toFixed(1)} kWh`}
+          label="Online"
+          value={String(fleet.online_count)}
           colors={colors}
         />
 
         <StatCard
-          label="Load / day"
-          value={`${totalLoad.toFixed(1)} kWh`}
+          label="Solar / 24h"
+          value={`${totalSolarKwh.toFixed(1)} kWh`}
           colors={colors}
         />
 
         <StatCard
           label="Unsafe battery"
-          value={String(unsafeCount)}
+          value={String(fleet.low_battery_count)}
+          colors={colors}
+        />
+
+        <StatCard
+          label="Avg battery"
+          value={
+            fleet.avg_battery == null
+              ? "—"
+              : `${Math.round(fleet.avg_battery)}%`
+          }
+          colors={colors}
+        />
+
+        <StatCard
+          label="Avg voltage"
+          value={
+            fleet.avg_voltage == null
+              ? "—"
+              : `${fleet.avg_voltage.toFixed(2)} V`
+          }
           colors={colors}
         />
       </View>
@@ -96,80 +161,25 @@ export default function AdminReportsTab() {
       <View style={styles.sectionCard}>
         <View style={styles.sectionHeader}>
           <Ionicons
-            name="pie-chart-outline"
+            name="information-circle-outline"
             size={20}
             color={colors.primary}
           />
 
           <AppText variant="body" style={styles.sectionTitle}>
-            Battery health bands
+            Privacy note
           </AppText>
         </View>
 
-        {Object.entries(bandCounts).map(([band, count]) => (
-          <View key={band} style={styles.bandRow}>
-            <AppText variant="caption" style={styles.bandLabel}>
-              {band}%
-            </AppText>
-
-            <View style={styles.bandTrack}>
-              <View
-                style={[
-                  styles.bandFill,
-                  {
-                    width: `${(count / households.length) * 100}%`,
-                  },
-                ]}
-              />
-            </View>
-
-            <AppText variant="caption" style={styles.bandValue}>
-              {count}
-            </AppText>
-          </View>
-        ))}
+        <AppText variant="caption" style={styles.note}>
+          Aggregates and fleet-wide summaries only. No raw rows,
+          activity logs, or personal identifiers are shown. Last
+          updated:{" "}
+          {fleet.last_updated
+            ? new Date(fleet.last_updated).toLocaleString()
+            : "—"}
+        </AppText>
       </View>
-
-      <View style={styles.sectionCard}>
-        <View style={styles.sectionHeader}>
-          <Ionicons
-            name="list-outline"
-            size={20}
-            color={colors.primary}
-          />
-
-          <AppText variant="body" style={styles.sectionTitle}>
-            Per-household summary
-          </AppText>
-        </View>
-
-        <View style={styles.list}>
-          {households.map((household) => (
-            <View key={household.alias} style={styles.summaryRow}>
-              <View style={styles.summaryBody}>
-                <AppText variant="body" style={styles.summaryTitle}>
-                  {household.alias}
-                </AppText>
-
-                <AppText variant="caption" style={styles.summaryMeta}>
-                  Battery {household.batteryHealth}% · Solar{" "}
-                  {household.solarKwhPerDay.toFixed(1)} · Load{" "}
-                  {household.loadKwhPerDay.toFixed(1)} kWh/day
-                </AppText>
-              </View>
-
-              <AppText variant="caption" style={styles.summaryBand}>
-                {household.band}
-              </AppText>
-            </View>
-          ))}
-        </View>
-      </View>
-
-      <AppText variant="caption" style={styles.note}>
-        Aggregates and pseudonymous summaries only. No raw rows,
-        activity logs, or personal identifiers are shown.
-      </AppText>
     </View>
   );
 }
@@ -253,77 +263,36 @@ const getStyles = (colors: AppColors) =>
       fontWeight: "700",
     },
 
-    bandRow: {
-      width: "100%",
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-    },
-
-    bandLabel: {
-      width: 64,
-      color: colors.text,
-      fontWeight: "600",
-    },
-
-    bandTrack: {
-      flex: 1,
-      height: 10,
-      borderRadius: 5,
-      backgroundColor: colors.border,
-      overflow: "hidden",
-    },
-
-    bandFill: {
-      height: "100%",
-      borderRadius: 5,
-      backgroundColor: colors.primary,
-      minWidth: 2,
-    },
-
-    bandValue: {
-      width: 32,
-      textAlign: "right",
-      color: colors.text,
-      fontWeight: "700",
-    },
-
-    list: {
-      width: "100%",
-      gap: 10,
-    },
-
-    summaryRow: {
-      width: "100%",
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
-      paddingVertical: 8,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-    },
-
-    summaryBody: {
-      flex: 1,
-      gap: 2,
-    },
-
-    summaryTitle: {
-      color: colors.text,
-      fontWeight: "700",
-    },
-
-    summaryMeta: {
-      color: colors.textSecondary,
-    },
-
-    summaryBand: {
-      color: colors.primary,
-      fontWeight: "700",
-    },
-
     note: {
       color: colors.textSecondary,
+    },
+
+    center: {
+      width: "100%",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 48,
+      gap: 12,
+    },
+
+    errorText: {
+      color: colors.textSecondary,
       textAlign: "center",
+    },
+
+    retryButton: {
+      paddingHorizontal: 18,
+      paddingVertical: 10,
+      borderRadius: 12,
+      backgroundColor: colors.primary,
+    },
+
+    retryText: {
+      color: colors.onPrimary,
+      fontWeight: "700",
+    },
+
+    pressed: {
+      opacity: 0.7,
     },
   });

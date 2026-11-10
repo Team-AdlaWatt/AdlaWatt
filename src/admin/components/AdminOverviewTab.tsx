@@ -1,25 +1,24 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ActivityIndicator,
+  Pressable,
   StyleSheet,
   View,
 } from "react-native";
-import { PieChart } from "react-native-gifted-charts";
 
 import AnalyticsChartCard from "@/components/AnalyticsChartCard";
 import AppText from "@/components/ui/AppText";
+import { Radius } from "@/constants/theme";
 import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
 import { SlidingToggle } from "@/components/ui/SlidingToggle";
 import {
-  ADMIN_HOUSEHOLDS,
-  BATTERY_HEALTH_BANDS,
-  countByBand,
-} from "@/admin/mockData";
-
-type EnergyMode = "solar" | "load";
+  getAdminFleetHealth,
+  type AdminFleetHealth,
+} from "@/services/adminService";
 
 interface KpiCardProps {
   label: string;
@@ -50,63 +49,64 @@ function KpiCard({ label, value, icon, colors }: KpiCardProps) {
 
 export default function AdminOverviewTab() {
   const colors = useAppColors();
-  const [mode, setMode] = useState<EnergyMode>("solar");
+  const [fleet, setFleet] = useState<AdminFleetHealth | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const styles = useMemo(() => getStyles(colors), [colors]);
 
-  const households = ADMIN_HOUSEHOLDS;
-  const totalHouseholds = households.length;
-  const bandCounts = countByBand(households);
-  const totalSolar = households.reduce(
-    (sum, household) => sum + household.solarKwhPerDay,
-    0,
-  );
-  const totalLoad = households.reduce(
-    (sum, household) => sum + household.loadKwhPerDay,
-    0,
-  );
-  const averageBattery =
-    households.reduce(
-      (sum, household) => sum + household.batteryHealth,
-      0,
-    ) / totalHouseholds;
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-  const pieColors = [
-    colors.error,
-    colors.warning,
-    colors.primarySoft,
-    colors.primary,
-  ];
+    const result = await getAdminFleetHealth();
 
-  const pieData = BATTERY_HEALTH_BANDS.map((band, index) => ({
-    value: bandCounts[band],
-    color: pieColors[index],
-    text: band,
-  }));
+    if (result.error || !result.data) {
+      setError(result.error || "Failed to load fleet health");
+      setFleet(null);
+    } else {
+      setFleet(result.data);
+    }
 
-  const barMax = Math.max(
-    ...households.map((household) =>
-      mode === "solar"
-        ? household.solarKwhPerDay
-        : household.loadKwhPerDay,
-    ),
-    1,
-  );
+    setLoading(false);
+  }, []);
 
-  const toggleOptions = [
-    {
-      value: "solar" as EnergyMode,
-      label: "Solar",
-      activeColor: colors.warning,
-      accessibilityLabel: "Show solar energy",
-    },
-    {
-      value: "load" as EnergyMode,
-      label: "Load",
-      activeColor: colors.primary,
-      accessibilityLabel: "Show load energy",
-    },
-  ];
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial Supabase fetch on mount
+    void load();
+  }, [load]);
+
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (error || !fleet) {
+    return (
+      <View style={styles.center}>
+        <AppText variant="body" style={styles.errorText}>
+          {error || "No fleet data available"}
+        </AppText>
+
+        <Pressable
+          onPress={() => void load()}
+          style={({ pressed }) => [
+            styles.retryButton,
+            pressed && styles.pressed,
+          ]}
+        >
+          <AppText variant="body" style={styles.retryText}>
+            Retry
+          </AppText>
+        </Pressable>
+      </View>
+    );
+  }
+
+  const totalSolarKwh = fleet.total_solar_wh_24h / 1000;
 
   return (
     <View style={styles.container}>
@@ -123,131 +123,67 @@ export default function AdminOverviewTab() {
       <View style={styles.kpiGrid}>
         <KpiCard
           label="Households"
-          value={String(totalHouseholds)}
+          value={String(fleet.device_count)}
           icon="people"
           colors={colors}
         />
 
         <KpiCard
+          label="Online"
+          value={String(fleet.online_count)}
+          icon="wifi"
+          colors={colors}
+        />
+
+        <KpiCard
           label="Avg battery"
-          value={`${Math.round(averageBattery)}%`}
+          value={
+            fleet.avg_battery == null
+              ? "—"
+              : `${Math.round(fleet.avg_battery)}%`
+          }
           icon="battery-half-outline"
           colors={colors}
         />
 
         <KpiCard
-          label="Solar / day"
-          value={`${totalSolar.toFixed(1)} kWh`}
+          label="Solar / 24h"
+          value={`${totalSolarKwh.toFixed(1)} kWh`}
           icon="sunny-outline"
           colors={colors}
         />
 
         <KpiCard
-          label="Load / day"
-          value={`${totalLoad.toFixed(1)} kWh`}
+          label="Unsafe battery"
+          value={String(fleet.low_battery_count)}
+          icon="warning-outline"
+          colors={colors}
+        />
+
+        <KpiCard
+          label="Avg voltage"
+          value={
+            fleet.avg_voltage == null
+              ? "—"
+              : `${fleet.avg_voltage.toFixed(2)} V`
+          }
           icon="flash-outline"
           colors={colors}
         />
       </View>
 
       <AnalyticsChartCard
-        title="Battery Health"
-        subtitle="Households by battery health band."
-        icon="battery-half-outline"
+        title="Fleet Status"
+        subtitle="Live aggregates from the last 24 hours."
+        icon="stats-chart-outline"
       >
         <View style={styles.chartBody}>
-          <View style={styles.donutWrap}>
-            <PieChart
-              data={pieData}
-              donut
-              radius={82}
-              innerRadius={52}
-              strokeWidth={2}
-              strokeColor={colors.background}
-              backgroundColor="transparent"
-              innerCircleColor={colors.isDark ? "#252525" : "white"}
-              showText={false}
-              isAnimated={false}
-              centerLabelComponent={() => (
-                <View style={styles.centerLabel}>
-                  <AppText variant="heading" style={styles.centerValue}>
-                    {totalHouseholds}
-                  </AppText>
-
-                  <AppText variant="caption" style={styles.centerCaption}>
-                    homes
-                  </AppText>
-                </View>
-              )}
-            />
-          </View>
-
-          <View style={styles.legend}>
-            {BATTERY_HEALTH_BANDS.map((band, index) => (
-              <View key={band} style={styles.legendItem}>
-                <View
-                  style={[
-                    styles.legendSwatch,
-                    { backgroundColor: pieColors[index] },
-                  ]}
-                />
-
-                <AppText variant="caption" style={styles.legendText}>
-                  {band}% ({bandCounts[band]})
-                </AppText>
-              </View>
-            ))}
-          </View>
-        </View>
-      </AnalyticsChartCard>
-
-      <AnalyticsChartCard
-        title="Fleet Energy / Day"
-        subtitle="Solar or load energy by household."
-        icon="flash-outline"
-      >
-        <View style={styles.chartBody}>
-          <SlidingToggle<EnergyMode>
-            options={toggleOptions}
-            value={mode}
-            onChange={setMode}
-          />
-
-          <View style={styles.barList}>
-            {households.map((household) => {
-              const value =
-                mode === "solar"
-                  ? household.solarKwhPerDay
-                  : household.loadKwhPerDay;
-
-              return (
-                <View key={household.alias} style={styles.barRow}>
-                  <AppText variant="caption" style={styles.barLabel}>
-                    {household.alias}
-                  </AppText>
-
-                  <View style={styles.barTrack}>
-                    <View
-                      style={[
-                        styles.barFill,
-                        {
-                          width: `${(value / barMax) * 100}%`,
-                          backgroundColor:
-                            mode === "solar"
-                              ? colors.warning
-                              : colors.primary,
-                        },
-                      ]}
-                    />
-                  </View>
-
-                  <AppText variant="caption" style={styles.barValue}>
-                    {value.toFixed(1)}
-                  </AppText>
-                </View>
-              );
-            })}
-          </View>
+          <AppText variant="caption" style={styles.metaText}>
+            Last updated:{" "}
+            {fleet.last_updated
+              ? new Date(fleet.last_updated).toLocaleString()
+              : "—"}
+          </AppText>
         </View>
       </AnalyticsChartCard>
     </View>
@@ -289,6 +225,11 @@ const getKpiStyles = (colors: AppColors) =>
 
 const getStyles = (colors: AppColors) =>
   StyleSheet.create({
+    container: {
+      width: "100%",
+      gap: 18,
+    },
+
     headerCard: {
       width: "100%",
       backgroundColor: colors.glass.white,
@@ -308,11 +249,6 @@ const getStyles = (colors: AppColors) =>
       color: colors.textSecondary,
     },
 
-    container: {
-      width: "100%",
-      gap: 18,
-    },
-
     kpiGrid: {
       width: "100%",
       flexDirection: "row",
@@ -326,85 +262,36 @@ const getStyles = (colors: AppColors) =>
       gap: 16,
     },
 
-    donutWrap: {
-      alignItems: "center",
-      justifyContent: "center",
-    },
-
-    centerLabel: {
-      alignItems: "center",
-      justifyContent: "center",
-    },
-
-    centerValue: {
-      color: colors.text,
-      fontWeight: "700",
-    },
-
-    centerCaption: {
+    metaText: {
       color: colors.textSecondary,
     },
 
-    legend: {
-      flexDirection: "row",
-      flexWrap: "wrap",
+    center: {
+      width: "100%",
+      alignItems: "center",
       justifyContent: "center",
+      paddingVertical: 48,
       gap: 12,
     },
 
-    legendItem: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-    },
-
-    legendSwatch: {
-      width: 14,
-      height: 14,
-      borderRadius: 4,
-    },
-
-    legendText: {
+    errorText: {
       color: colors.textSecondary,
-      fontWeight: "600",
+      textAlign: "center",
     },
 
-    barList: {
-      width: "100%",
-      gap: 10,
+    retryButton: {
+      paddingHorizontal: 18,
+      paddingVertical: 10,
+      borderRadius: 12,
+      backgroundColor: colors.primary,
     },
 
-    barRow: {
-      width: "100%",
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 8,
-    },
-
-    barLabel: {
-      width: 118,
-      color: colors.text,
-      fontWeight: "600",
-    },
-
-    barTrack: {
-      flex: 1,
-      height: 12,
-      borderRadius: 6,
-      backgroundColor: colors.border,
-      overflow: "hidden",
-    },
-
-    barFill: {
-      height: "100%",
-      borderRadius: 6,
-      minWidth: 2,
-    },
-
-    barValue: {
-      width: 42,
-      textAlign: "right",
-      color: colors.text,
+    retryText: {
+      color: colors.onPrimary,
       fontWeight: "700",
+    },
+
+    pressed: {
+      opacity: 0.7,
     },
   });
