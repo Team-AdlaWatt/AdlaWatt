@@ -152,7 +152,7 @@ afterAll(async () => {
 
 describe("fixed safety thresholds", () => {
   test("constants pin the engineering values", () => {
-    expect(HIGH_LOAD_WATTS).toBe(800);
+    expect(HIGH_LOAD_WATTS).toBe(480);
     expect(BATTERY_VOLTAGE_MIN).toBe(11.6);
     expect(BATTERY_VOLTAGE_MAX).toBe(14.6);
   });
@@ -176,7 +176,7 @@ describe("safety rules with injected thresholds", () => {
       USER_ID,
       mon({ current_load: 900 }),
       mon({ current_load: 100 }),
-      800,
+      480,
     );
 
     expect(inserts).toHaveLength(1);
@@ -187,7 +187,7 @@ describe("safety rules with injected thresholds", () => {
     });
     expect(
       String(inserts[0].description),
-    ).toMatch(/800W/);
+    ).toMatch(/480W/);
   });
 
   test("high load without re-crossing does not refire", async () => {
@@ -195,7 +195,7 @@ describe("safety rules with injected thresholds", () => {
       USER_ID,
       mon({ current_load: 900 }),
       mon({ current_load: 850 }),
-      800,
+      480,
     );
 
     expect(inserts).toHaveLength(0);
@@ -206,7 +206,7 @@ describe("safety rules with injected thresholds", () => {
       USER_ID,
       mon({ current_load: 100 }),
       mon({ current_load: 50 }),
-      800,
+      480,
     );
 
     expect(inserts).toHaveLength(0);

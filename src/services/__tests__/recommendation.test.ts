@@ -1,6 +1,6 @@
 // Recommendation engine unit tests (pure module — no mocks).
 //
-// Locks the battery safety contract: 20% SoC cutoff, 151.2 Wh
+// Locks the battery safety contract: 20% SoC cutoff, 144 Wh
 // reserve floor, voltage guards, and the budget verdict bands
 // the Electronics UI and notification rules both depend on.
 
@@ -153,8 +153,8 @@ describe("classifyBatteryState", () => {
   });
 
   test("respects nominal capacity constant", () => {
-    expect(BATTERY_NOMINAL_WH).toBe(756);
-    expect(RESERVE_WH).toBe(151.2);
+    expect(BATTERY_NOMINAL_WH).toBe(720);
+    expect(RESERVE_WH).toBe(144);
   });
 
   test("missing reading fails safe to Unsafe blocked", () => {
@@ -223,13 +223,13 @@ describe("parseWattageRange", () => {
 describe("runtime helpers", () => {
   test("estimateRuntime divides usable energy by watts", () => {
     expect(
-      estimateRuntime(604.8, 100),
-    ).toBeCloseTo(6.048);
+      estimateRuntime(576, 100),
+    ).toBeCloseTo(5.76);
   });
 
   test("estimateRuntime rejects non-positive inputs", () => {
     expect(estimateRuntime(0, 100)).toBe(0);
-    expect(estimateRuntime(604.8, 0)).toBe(0);
+    expect(estimateRuntime(576, 0)).toBe(0);
     expect(
       estimateRuntime(NaN, 100),
     ).toBe(0);
@@ -333,7 +333,7 @@ describe("recommendElectronics", () => {
   });
 
   test("moderate draw lands in care band", () => {
-    // usableWh 448.8; mid 60W -> ratio ~0.13 (10-25% band).
+    // usableWh 456; mid 60W -> ratio ~0.13 (10-25% band).
     const result = recommendElectronics(
       healthyBattery,
       {
@@ -416,7 +416,7 @@ describe("recommendElectronics", () => {
   });
 
   test("peak draw over the charge cap is blocked", () => {
-    // SoC 20% -> 200W cap (Caution tier but not blocked);
+    // SoC 20% -> 120W cap (Caution tier but not blocked);
     // 250W peak exceeds it, and the cap check runs before
     // the drain-ratio and caution checks.
     const result = recommendElectronics(
@@ -466,14 +466,14 @@ describe("recommendElectronics", () => {
       },
     );
 
-    // usableWh 448.8, inverter efficiency 0.9 -> effective 403.92:
-    // 403.92/80=5.05 min, 403.92/30=13.46 max.
+    // usableWh 456, inverter efficiency 0.9 -> effective 410.4:
+    // 410.4/80=5.13 min, 410.4/30=13.68 max.
     expect(
       result.runtime.minHours,
-    ).toBeCloseTo(5.05, 1);
+    ).toBeCloseTo(5.13, 1);
     expect(
       result.runtime.maxHours,
-    ).toBeCloseTo(13.46, 1);
+    ).toBeCloseTo(13.68, 1);
     expect(result.displayRuntime).toMatch(
       /hrs/,
     );
@@ -526,7 +526,7 @@ describe("recommendElectronicsBatch + computeLoadStack", () => {
     );
     expect(
       stack.runtimeMidHours,
-    ).toBeCloseTo(448.8 / 411, 2);
+    ).toBeCloseTo(456 / 411, 2);
   });
 
   test("load stack flags stacks over the inverter", () => {

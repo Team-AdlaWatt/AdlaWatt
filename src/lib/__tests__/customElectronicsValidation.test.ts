@@ -71,10 +71,10 @@ describe("custom electronics validation", () => {
     );
   });
 
-  test("accepts the 1W and 756W boundaries", () => {
-    expect(parseCustomWattInterval("1-756")).toEqual({
+  test("accepts the 1W and 600W boundaries", () => {
+    expect(parseCustomWattInterval("1-600")).toEqual({
       min: 1,
-      max: 756,
+      max: 600,
     });
   });
 
@@ -149,14 +149,14 @@ describe("custom electronics validation", () => {
       validateCustomElectronics("Fan", "0-15"),
     ).toMatchObject({
       valid: false,
-      message: "Wattage must be between 1W and 756W.",
+      message: "Wattage must be between 1W and 600W.",
     });
 
     expect(
       validateCustomElectronics("Fan", "15-757"),
     ).toMatchObject({
       valid: false,
-      message: "Wattage must be between 1W and 756W.",
+      message: "Wattage must be between 1W and 600W.",
     });
   });
 
