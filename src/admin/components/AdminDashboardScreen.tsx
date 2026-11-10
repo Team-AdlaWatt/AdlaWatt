@@ -1,37 +1,30 @@
-import React, { useMemo } from "react";
+import React, { useState } from "react";
 import {
   ScrollView,
   StyleSheet,
-  View,
 } from "react-native";
 
 import Copyright from "@/components/ui/Copyright";
 import AdminMenuSection from "@/admin/components/AdminMenuSection";
 import AdminNavBarTop from "@/admin/components/AdminNavBarTop";
 import AdminScreenContainer from "@/admin/components/AdminScreenContainer";
-import AppText from "@/components/ui/AppText";
+import AdminOverviewTab from "@/admin/components/AdminOverviewTab";
+import AdminUsersTab from "@/admin/components/AdminUsersTab";
+import AdminReportsTab from "@/admin/components/AdminReportsTab";
 import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
-import { Radius, Spacing } from "@/constants/theme";
+import { useScreenPadding } from "@/constants/sizing";
 import { useAdminGuard } from "@/admin/hooks/useAdminGuard";
-
-// ============================================================
-// ADMIN DASHBOARD SCREEN (English-only, pinned light)
-//
-// Blank starting shell for role-based login verification.
-// Login gate (useAdminGuard) and Log Out / Exit
-// (AdminMenuSection) are the only live functions. Fixed
-// light palette + default type (no Theme/Settings providers
-// in app/admin/_layout) and hardcoded English so household
-// theme/font/language changes never affect admin.
-// ============================================================
+import type { AdminTab } from "@/admin/constants";
 
 export default function AdminDashboardScreen() {
   const colors = useAppColors();
-  const styles = useMemo(() => getStyles(colors), [colors]);
+  const styles = getStyles(colors);
+  const screenPadding = useScreenPadding();
   const { canRender } = useAdminGuard();
+  const [activeTab, setActiveTab] = useState<AdminTab>("overview");
 
   if (!canRender) {
     return null;
@@ -39,28 +32,29 @@ export default function AdminDashboardScreen() {
 
   return (
     <AdminScreenContainer
-      activeTab="menu"
-      onTabChange={() => {}}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
     >
-      {/* Same green header + yellow accent as the household
-          upper navbar, admin name only: no online/offline
-          capsule, no notification bell. */}
       <AdminNavBarTop />
 
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingHorizontal: screenPadding },
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.headerCard}>
-          <AppText variant="title" style={styles.headerTitle}>
-            Admin Dashboard
-          </AppText>
+        {activeTab === "overview" ? (
+          <AdminOverviewTab />
+        ) : null}
 
-          <AppText variant="body" style={styles.headerSub}>
-            Admin access confirmed. Dashboard modules are
-            coming next.
-          </AppText>
-        </View>
+        {activeTab === "users" ? (
+          <AdminUsersTab />
+        ) : null}
+
+        {activeTab === "reports" ? (
+          <AdminReportsTab />
+        ) : null}
 
         <AdminMenuSection />
 
@@ -73,27 +67,8 @@ export default function AdminDashboardScreen() {
 const getStyles = (colors: AppColors) =>
   StyleSheet.create({
     scroll: {
-      gap: Spacing.md,
-      padding: Spacing.md,
-      paddingBottom: Spacing.xl,
-    },
-
-    headerCard: {
-      width: "100%",
-      backgroundColor: colors.headerBackground,
-      borderRadius: Radius.lg,
-      borderWidth: 3,
-      borderColor: colors.cardBorder,
-      padding: Spacing.md,
-      gap: 4,
-    },
-
-    headerTitle: {
-      color: colors.headerContent,
-    },
-
-    headerSub: {
-      color: colors.headerContent,
-      opacity: 0.85,
+      gap: 18,
+      paddingTop: 18,
+      paddingBottom: 24,
     },
   });
