@@ -11,6 +11,7 @@ import {
   useWindowDimensions,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppText from "@/components/ui/AppText";
 import {
@@ -45,6 +46,8 @@ export default function AdminNavBarTop() {
 
   const { width: screenWidth } =
     useWindowDimensions();
+
+  const insets = useSafeAreaInsets();
 
   const [menuVisible, setMenuVisible] = useState(false);
 
@@ -142,6 +145,7 @@ export default function AdminNavBarTop() {
           {
             width: screenWidth,
             alignSelf: "center",
+            paddingTop: insets.top,
           },
         ]}
       >
