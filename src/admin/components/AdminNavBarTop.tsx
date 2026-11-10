@@ -27,7 +27,7 @@ import { useAuth } from "@/context/AuthContext";
 // ============================================================
 // ADMIN NAV BAR TOP (English-only, pinned light)
 //
-// Green header + yellow accent shell. Admin name centered;
+// Green header + yellow accent shell. Admin name on the left;
 // a hamburger button on the right opens an account menu with
 // Log Out and Exit (Exit hidden on iOS). All strings hardcoded
 // English so household language switches cannot affect admin.
@@ -150,8 +150,6 @@ export default function AdminNavBarTop() {
         ]}
       >
         <View style={styles.container}>
-          <View style={styles.sideSlot} />
-
           {adminName ? (
             <View
               style={styles.nameSlot}
@@ -198,7 +196,13 @@ export default function AdminNavBarTop() {
         onRequestClose={closeMenu}
       >
         <Pressable
-          style={styles.overlay}
+          style={[
+            styles.overlay,
+            {
+              paddingTop:
+                insets.top + Bar.appBar + 4,
+            },
+          ]}
           onPress={closeMenu}
         >
           <View style={styles.menuCard}>
@@ -279,13 +283,9 @@ const getStyles = (colors: AppColors) =>
       backgroundColor: colors.bar.background,
     },
 
-    sideSlot: {
-      width: 48,
-    },
-
     nameSlot: {
       flex: 1,
-      alignItems: "center",
+      alignItems: "flex-start",
       justifyContent: "center",
       paddingHorizontal: 8,
       minWidth: 0,
@@ -295,7 +295,7 @@ const getStyles = (colors: AppColors) =>
       color: colors.bar.text,
       fontSize: 14,
       fontWeight: "600",
-      textAlign: "center",
+      textAlign: "left",
     },
 
     menuButton: {
@@ -321,13 +321,12 @@ const getStyles = (colors: AppColors) =>
       backgroundColor: "rgba(0,0,0,0.4)",
       justifyContent: "flex-start",
       alignItems: "flex-end",
-      paddingTop: 60,
       paddingRight: 16,
     },
 
     menuCard: {
       width: 220,
-      backgroundColor: colors.glass.white,
+      backgroundColor: colors.surface,
       borderRadius: Radius.lg,
       borderWidth: 2,
       borderColor: colors.cardBorder,
