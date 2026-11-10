@@ -82,7 +82,9 @@ describe("custom electronics validation", () => {
     expect(sanitizeWattSide("15.25")).toBe("15.25");
     expect(sanitizeWattSide("")).toBe("");
     expect(sanitizeWattSide("15.255")).toBe(null);
-    expect(sanitizeWattSide("757")).toBe(null);
+    expect(sanitizeWattSide("757")).toBe("757");
+    expect(sanitizeWattSide("1000")).toBe("1000");
+    expect(sanitizeWattSide("10000")).toBe(null);
     expect(sanitizeWattSide("12-")).toBe("12");
   });
 

@@ -18,6 +18,9 @@ export const CUSTOM_ELECTRONICS_INCOMPLETE_WATTS_MESSAGE =
 export const CUSTOM_ELECTRONICS_WATTS_ORDER_MESSAGE =
   "Maximum wattage must be greater than minimum wattage.";
 
+export const CUSTOM_ELECTRONICS_WATTS_RANGE_MESSAGE =
+  `Wattage must be between 1W and ${BATTERY_MAX_ELECTRONICS_W}W.`;
+
 export type CustomWattInterval = {
   min: number;
   max: number;
@@ -40,16 +43,7 @@ export const sanitizeWattSide = (
     return "";
   }
 
-  if (!/^\d{0,3}(\.\d{0,2})?$/.test(clean)) {
-    return null;
-  }
-
-  const intPart = clean.split(".")[0] ?? "";
-
-  if (
-    intPart !== "" &&
-    Number(intPart) > BATTERY_MAX_ELECTRONICS_W
-  ) {
+  if (!/^\d{0,4}(\.\d{0,2})?$/.test(clean)) {
     return null;
   }
 
@@ -152,7 +146,7 @@ export const validateCustomElectronics = (
         min < 1 ||
         max > BATTERY_MAX_ELECTRONICS_W
       ) {
-        message = `Wattage must be between 1W and ${BATTERY_MAX_ELECTRONICS_W}W.`;
+        message = CUSTOM_ELECTRONICS_WATTS_RANGE_MESSAGE;
       } else if (min >= max) {
         message =
           CUSTOM_ELECTRONICS_WATTS_ORDER_MESSAGE;

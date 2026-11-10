@@ -30,9 +30,13 @@ import {
 import {
   CUSTOM_ELECTRONICS_HINT,
   CUSTOM_ELECTRONICS_NAME_MAX_LENGTH,
+  CUSTOM_ELECTRONICS_WATTS_RANGE_MESSAGE,
   sanitizeWattSide,
   validateCustomElectronics,
 } from "@/lib/customElectronicsValidation";
+import {
+  BATTERY_MAX_ELECTRONICS_W,
+} from "@/constants/battery";
 import {
   Radius,
 } from "@/constants/theme";
@@ -140,9 +144,20 @@ export default function CustomElectronicsModal({
     : onAdd;
 
   const [wattMin, wattMax] = splitWatts(watts);
-  const validation = useMemo(
-    () => validateCustomElectronics(name, watts),
-    [name, watts],
+  const validation = validateCustomElectronics(
+    name,
+    watts,
+  );
+  const wattsBeyondCap = [wattMin, wattMax].some(
+    (side) => {
+      const value = Number(side);
+
+      return (
+        side.trim() !== "" &&
+        Number.isFinite(value) &&
+        value > BATTERY_MAX_ELECTRONICS_W
+      );
+    },
   );
   const hasFieldContent =
     name.trim().length > 0 || watts.trim().length > 0;
@@ -155,7 +170,9 @@ export default function CustomElectronicsModal({
   const message = error
     ? error
     : !validation.valid && (attemptedSubmit || hasFieldContent)
-      ? CUSTOM_ELECTRONICS_HINT
+      ? wattsBeyondCap
+        ? CUSTOM_ELECTRONICS_WATTS_RANGE_MESSAGE
+        : CUSTOM_ELECTRONICS_HINT
       : "";
 
   const scrollRef = useRef<ScrollView>(null);
