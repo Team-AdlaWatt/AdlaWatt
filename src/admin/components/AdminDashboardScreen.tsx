@@ -20,14 +20,12 @@ import { useAdminGuard } from "@/admin/hooks/useAdminGuard";
 // ============================================================
 // ADMIN DASHBOARD SCREEN (English-only, pinned light)
 //
-// Starting UI only: role-gated shell with account actions.
-// No live function — overview aggregates, threshold publish,
-// and audit reads were removed by design (admin has no
-// operational role for now). Login gate (useAdminGuard) and
-// Log Out / Exit (AdminMenuSection) remain fully functional.
-// Fixed light palette + default type (no Theme/Settings
-// providers in app/admin/_layout) and hardcoded English so
-// household theme/font/language changes never affect admin.
+// Blank starting shell for role-based login verification.
+// Login gate (useAdminGuard) and Log Out / Exit
+// (AdminMenuSection) are the only live functions. Fixed
+// light palette + default type (no Theme/Settings providers
+// in app/admin/_layout) and hardcoded English so household
+// theme/font/language changes never affect admin.
 // ============================================================
 
 export default function AdminDashboardScreen() {
@@ -59,7 +57,8 @@ export default function AdminDashboardScreen() {
           </AppText>
 
           <AppText variant="body" style={styles.headerSub}>
-            Starting UI — account actions only.
+            Admin access confirmed. Dashboard modules are
+            coming next.
           </AppText>
         </View>
 
