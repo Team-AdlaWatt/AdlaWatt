@@ -224,6 +224,13 @@ Rules:
 - **Offline snapshots are ignored** for averages, min, max, status counts and alerts. They hold stale values.
 - **Energy totals use all snapshots.** The counters stay correct while offline.
 - **Periods follow the timezone**, so a day means a Manila day.
+- **DoD comes from `dod_status`.** The client falls back to `battery_level < 20` only when `dod_status` is NULL, which keeps legacy history working.
+
+> **Client-side implementation.** The mobile app currently reads
+> `monitoring_history` directly instead of calling the RPCs, and
+> applies these rules in `src/services/analyticsService.ts`
+> (`getOnlineRows`, `isUnsafeDischarge`). Keep the two paths in
+> sync when changing either one.
 
 Output columns:
 
