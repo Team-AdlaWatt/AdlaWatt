@@ -344,7 +344,7 @@ AdlaWatt was developed by the AdlaWatt Research and Development Team at Northern
 - **4-day forecast** — daily rows now show high temperature in Celsius plus feels-like temperature, with rain-chance percentages removed.
 - **5-day solar forecast** — daily solar outlook with a "best day to charge" summary and hot/cold flags.
 - **Appliance catalog refresh** — updated to the current appliance list with corrected wattage ranges and new images.
-- **Battery model** — the app uses 756 Wh nominal / 151.2 Wh reserve / 604.8 Wh usable for its calculations; the manuscript specifies a 12 V, 60 Ah battery bank.
+- **Battery model** — the app uses 720 Wh nominal / 144 Wh reserve / 576 Wh usable for its calculations, matching the manuscript's 12 V, 60 Ah battery bank.
 - **Self-hosted auth links** — confirmation and recovery emails now route back into the app, with clearer create-account copy.
 - **Language support** — English, Filipino, and Cebuano.
 - **Analytics** — 17 charts across five sections with CSV and PDF export.

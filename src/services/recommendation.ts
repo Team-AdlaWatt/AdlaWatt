@@ -5,9 +5,9 @@
 // Native imports, so it can be verified anywhere.
 //
 // Battery capacity reference (ZENOVA 12V 30Ah x2 parallel):
-//   - Nominal energy             : 756 Wh
-//   - 20% SoC reserve floor      : 151.2 Wh
-//   - 80% depth of discharge     : 604.8 Wh usable window
+//   - Nominal energy             : 720 Wh
+//   - 20% SoC reserve floor      : 144 Wh
+//   - 80% depth of discharge     : 576 Wh usable window
 //
 // The engine performs the full analysis:
 //   - Battery tier classification
@@ -149,7 +149,7 @@ export const CAUTION_VOLTAGE = 10.65;
 
 export const UNSAFE_VOLTAGE = 10.6;
 
-export const MAX_SAFE_LOAD_W = 1000;
+export const MAX_SAFE_LOAD_W = 600;
 
 export const ALL_DAY_HOURS_LIMIT = 72;
 
@@ -180,7 +180,7 @@ export const RUNTIME_CARE_MIN_HOURS =
 // DEFAULT_RECOMMENDATION_CONFIG). Thresholds are NOT admin
 // published — this object is the single place to tune them.
 // Shared with the TFT firmware to avoid drift: unsafe
-// 10.6V, caution 10.75V, 151.2Wh reserve, 800W warn, 1000W
+// 10.6V, caution 10.75V, 144Wh reserve, 480W warn, 600W
 // cap (see the firmware notes in zenova_battery.md).
 // ============================================================
 
@@ -228,7 +228,7 @@ export const DEFAULT_RECOMMENDATION_CONFIG: RecommendationConfig =
     cautionVoltage: 10.75,
     unsafeVoltage: UNSAFE_VOLTAGE,
     recoveryVoltage: 10.85,
-    warnLoadW: 800,
+    warnLoadW: 480,
     maxSafeLoadW: MAX_SAFE_LOAD_W,
     budgetRecommendedMax:
       BUDGET_RECOMMENDED_MAX_RATIO,
@@ -245,7 +245,7 @@ export const DEFAULT_RECOMMENDATION_CONFIG: RecommendationConfig =
   };
 
 // No-data state: never "OK". Supersedes the old optimistic
-// DEFAULT_BATTERY_STATE (100%/12.6V/756Wh with no reading),
+// DEFAULT_BATTERY_STATE (100%/12.6V/720Wh with no reading),
 // which made everything advisable on missing data. A missing
 // or stale lastUpdated blocks via classifyBatteryState.
 export const NO_BATTERY_DATA: BatteryStateInput =
@@ -608,7 +608,7 @@ export const parseWattageRange = (
 // ============================================================
 // 3. RUNTIME CALCULATION
 //
-// usable_Wh = remaining_Wh - 151.2  (the 20% reserve floor).
+// usable_Wh = remaining_Wh - 144  (the 20% reserve floor).
 //
 // Higher wattage consumes energy faster, so:
 //   runtime_min = usable_Wh / max_wattage  (safety floor)

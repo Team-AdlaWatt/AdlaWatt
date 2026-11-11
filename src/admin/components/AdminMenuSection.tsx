@@ -10,64 +10,24 @@ import {
   View,
 } from "react-native";
 
-import AnalyticsChartCard from "@/components/AnalyticsChartCard";
 import AppText from "@/components/ui/AppText";
 import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
-import { Radius, Spacing } from "@/constants/theme";
+import { Radius } from "@/constants/theme";
 import { Routes } from "@/constants/routes";
 import { performSignOut } from "@/services/signOut";
 
 // ============================================================
-// ADMIN MENU SECTION (English-only, pinned light)
+// ADMIN ACCOUNT ACTIONS (English-only, pinned light)
 //
-// Mirrors the household Menu boxes (2x2 grid, 60px icons)
-// plus Log Out + Exit row below. Temporary boxes are
-// presentational no-ops marked TEMP. Log Out routes to Login
-// immediately and runs teardown in the background via the
+// Blank starting shell: Log Out + Exit only. Log Out routes to
+// Login immediately and runs teardown in the background via the
 // shared performSignOut() (same as household). All strings
 // hardcoded English so household language switches cannot
 // affect admin.
 // ============================================================
-
-const TEMP_BOXES: {
-  key: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  subtitle: string;
-  accessibilityLabel: string;
-}[] = [
-  {
-    key: "users",
-    icon: "people-outline",
-    title: "Users",
-    subtitle: "Manage admin and household accounts. (TEMP)",
-    accessibilityLabel: "Open Users",
-  },
-  {
-    key: "devices",
-    icon: "hardware-chip-outline",
-    title: "Devices",
-    subtitle: "Review registered ESP32 devices. (TEMP)",
-    accessibilityLabel: "Open Devices",
-  },
-  {
-    key: "reports",
-    icon: "document-text-outline",
-    title: "Reports",
-    subtitle: "Export fleet summaries. (TEMP)",
-    accessibilityLabel: "Open Reports",
-  },
-  {
-    key: "settings",
-    icon: "settings-outline",
-    title: "Settings",
-    subtitle: "Admin preferences (upcoming). (TEMP)",
-    accessibilityLabel: "Open Settings",
-  },
-];
 
 export default function AdminMenuSection() {
   const colors = useAppColors();
@@ -159,139 +119,62 @@ export default function AdminMenuSection() {
   };
 
   return (
-    <>
-      <AnalyticsChartCard
-        title="Menu"
-        subtitle="Browse and manage admin functions."
-        icon="grid-outline"
+    <View style={styles.authActionRow}>
+      <Pressable
+        onPress={handleLogout}
+        accessibilityRole="button"
+        accessibilityLabel="Log out"
+        style={({ pressed }) => [
+          styles.authActionButton,
+          styles.logOutButton,
+          pressed && styles.pressed,
+        ]}
       >
-        <View style={styles.grid}>
-          {TEMP_BOXES.map((box) => (
-            <Pressable
-              key={box.key}
-              accessibilityRole="button"
-              accessibilityLabel={box.accessibilityLabel}
-              accessibilityHint="Temporary admin section"
-              style={({ pressed }) => [
-                styles.box,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Ionicons
-                name={box.icon}
-                size={60}
-                color={colors.accentContent}
-              />
+        <Ionicons
+          name="log-out-outline"
+          size={22}
+          color={colors.error}
+        />
 
-              <AppText
-                variant="body"
-                style={styles.boxTitle}
-              >
-                {box.title}
-              </AppText>
+        <AppText
+          variant="body"
+          style={styles.logOutButtonText}
+        >
+          Log Out
+        </AppText>
+      </Pressable>
 
-              <AppText
-                variant="caption"
-                style={styles.boxSubtitle}
-              >
-                {box.subtitle}
-              </AppText>
-            </Pressable>
-          ))}
-        </View>
-      </AnalyticsChartCard>
-
-      <View style={styles.authActionRow}>
+      {Platform.OS !== "ios" && (
         <Pressable
-          onPress={handleLogout}
+          onPress={handleExit}
           accessibilityRole="button"
-          accessibilityLabel="Log out"
+          accessibilityLabel="Exit app"
           style={({ pressed }) => [
             styles.authActionButton,
-            styles.logOutButton,
+            styles.exitButton,
             pressed && styles.pressed,
           ]}
         >
           <Ionicons
-            name="log-out-outline"
+            name="exit-outline"
             size={22}
-            color={colors.error}
+            color={colors.text}
           />
 
           <AppText
             variant="body"
-            style={styles.logOutButtonText}
+            style={styles.exitButtonText}
           >
-            Log Out
+            Exit
           </AppText>
         </Pressable>
-
-        {Platform.OS !== "ios" && (
-          <Pressable
-            onPress={handleExit}
-            accessibilityRole="button"
-            accessibilityLabel="Exit app"
-            style={({ pressed }) => [
-              styles.authActionButton,
-              styles.exitButton,
-              pressed && styles.pressed,
-            ]}
-          >
-            <Ionicons
-              name="exit-outline"
-              size={22}
-              color={colors.text}
-            />
-
-            <AppText
-              variant="body"
-              style={styles.exitButtonText}
-            >
-              Exit
-            </AppText>
-          </Pressable>
-        )}
-      </View>
-    </>
+      )}
+    </View>
   );
 }
 
 const getStyles = (colors: AppColors) =>
   StyleSheet.create({
-    grid: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      justifyContent: "center",
-      gap: 12,
-      padding: Spacing.md,
-    },
-
-    box: {
-      width: "46%",
-      maxWidth: 150,
-      minHeight: 150,
-      backgroundColor: colors.surface,
-      borderWidth: 2,
-      borderColor: colors.cardBorder,
-      borderRadius: Radius.md,
-      padding: 12,
-      alignItems: "center",
-      justifyContent: "center",
-      gap: 8,
-    },
-
-    boxTitle: {
-      color: colors.text,
-      fontWeight: "600",
-      fontSize: 16,
-      textAlign: "center",
-    },
-
-    boxSubtitle: {
-      color: colors.textSecondary,
-      textAlign: "center",
-    },
-
     pressed: {
       opacity: 0.7,
     },

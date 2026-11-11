@@ -79,7 +79,7 @@ const STALE_MONITORING_INTERVAL_MS =
 // ------------------------------------------------------------
 //
 // Frozen engineering values (from the former admin defaults:
-// 11.6 V / 14.6 V window, 800 W high-load trip). The admin
+// 11.6 V / 14.6 V window, 480 W high-load trip). The admin
 // dashboard is a non-functional shell — nobody publishes
 // thresholds at runtime — so the rules consume these
 // constants directly. To retune, change the literals below
@@ -99,7 +99,7 @@ const STALE_MONITORING_INTERVAL_MS =
 // See implementation plan/notification_catalog.md.
 // ------------------------------------------------------------
 
-export const HIGH_LOAD_WATTS = 800;
+export const HIGH_LOAD_WATTS = 480;
 
 export const BATTERY_VOLTAGE_MIN = 11.6;
 

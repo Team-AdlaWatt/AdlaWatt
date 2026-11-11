@@ -1,22 +1,37 @@
 // ============================================================
 // ADMIN CONSTANTS (UI-first)
 //
-// Admin shell only: the dashboard is a starting UI with
-// account actions (Log Out / Exit). No operational tabs.
+// Three read-only admin tabs: Overview, Users, Reports. Static
+// mock data only for now; no backend/RPC wiring. Pinned
+// light mode + English-only are enforced by app/admin/_layout.
 // ============================================================
 
-export type AdminTab = "menu";
+import { Ionicons } from "@expo/vector-icons";
+
+export type AdminTab = "overview" | "users" | "reports";
 
 export const ADMIN_TABS: readonly {
   value: AdminTab;
   label: string;
-  icon: "grid";
+  icon: keyof typeof Ionicons.glyphMap;
   accessibilityLabel: string;
 }[] = [
   {
-    value: "menu",
-    label: "Menu",
-    icon: "grid",
-    accessibilityLabel: "Admin menu",
+    value: "overview",
+    label: "Overview",
+    icon: "home",
+    accessibilityLabel: "Admin overview",
+  },
+  {
+    value: "users",
+    label: "Users",
+    icon: "people",
+    accessibilityLabel: "Admin users",
+  },
+  {
+    value: "reports",
+    label: "Reports",
+    icon: "bar-chart",
+    accessibilityLabel: "Admin reports",
   },
 ] as const;

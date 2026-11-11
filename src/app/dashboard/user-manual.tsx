@@ -419,8 +419,8 @@ export default function UserManualScreen() {
 
             <ManualCallout kind="warning">
               The 20% rule: treat 20%
-              battery as empty. A 151.2 Wh
-              reserve (20% of 756 Wh) is
+              battery as empty. A 144 Wh
+              reserve (20% of 720 Wh) is
               never counted as usable —
               advice, alerts, and DoD all
               follow it.
@@ -917,7 +917,7 @@ export default function UserManualScreen() {
             />
             <Term
               term="Watt-hour (Wh)"
-              def="Energy unit. 756 Wh total, 151.2 Wh locked reserve, 604.8 Wh usable."
+              def="Energy unit. 720 Wh total, 144 Wh locked reserve, 576 Wh usable."
             />
             <Term
               term="Reserve floor"
@@ -966,7 +966,7 @@ export default function UserManualScreen() {
           >
             <Bullet>
               Backup only — never exceed
-              the 1000 W inverter ceiling.
+              the 600 W appliance ceiling.
             </Bullet>
             <Bullet>
               Sunlight dependent — plan

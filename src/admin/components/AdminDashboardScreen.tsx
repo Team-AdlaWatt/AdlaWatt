@@ -1,39 +1,86 @@
-import React, { useMemo } from "react";
-import {
-  ScrollView,
-  StyleSheet,
-  View,
-} from "react-native";
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { StyleSheet } from "react-native";
 
 import Copyright from "@/components/ui/Copyright";
-import AdminMenuSection from "@/admin/components/AdminMenuSection";
+import PullRefreshScroll from "@/components/PullRefreshScroll";
 import AdminNavBarTop from "@/admin/components/AdminNavBarTop";
 import AdminScreenContainer from "@/admin/components/AdminScreenContainer";
-import AppText from "@/components/ui/AppText";
+import AdminOverviewTab from "@/admin/components/AdminOverviewTab";
+import AdminUsersTab from "@/admin/components/AdminUsersTab";
+import AdminReportsTab from "@/admin/components/AdminReportsTab";
 import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
-import { Radius, Spacing } from "@/constants/theme";
+import { useScreenPadding } from "@/constants/sizing";
 import { useAdminGuard } from "@/admin/hooks/useAdminGuard";
-
-// ============================================================
-// ADMIN DASHBOARD SCREEN (English-only, pinned light)
-//
-// Starting UI only: role-gated shell with account actions.
-// No live function — overview aggregates, threshold publish,
-// and audit reads were removed by design (admin has no
-// operational role for now). Login gate (useAdminGuard) and
-// Log Out / Exit (AdminMenuSection) remain fully functional.
-// Fixed light palette + default type (no Theme/Settings
-// providers in app/admin/_layout) and hardcoded English so
-// household theme/font/language changes never affect admin.
-// ============================================================
+import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import {
+  getAdminFleetHealth,
+  type AdminFleetHealth,
+} from "@/services/adminService";
+import type { AdminTab } from "@/admin/constants";
 
 export default function AdminDashboardScreen() {
   const colors = useAppColors();
-  const styles = useMemo(() => getStyles(colors), [colors]);
+  const styles = getStyles(colors);
+  const screenPadding = useScreenPadding();
   const { canRender } = useAdminGuard();
+  const [activeTab, setActiveTab] = useState<AdminTab>("overview");
+
+  // One shared fleet fetch for all three tabs: pull-to-refresh
+  // and tab switches reuse it instead of refetching per tab.
+  const [fleet, setFleet] = useState<AdminFleetHealth | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Ref mirror of the latest fleet snapshot so `load` stays
+  // stable: with data on screen, a pull refreshes in place
+  // (last-known values stay up) instead of flipping back to
+  // the full-screen loader.
+  const fleetRef = useRef<AdminFleetHealth | null>(null);
+
+  const load = useCallback(async () => {
+    if (fleetRef.current === null) {
+      setLoading(true);
+    }
+
+    setError(null);
+
+    const result = await getAdminFleetHealth();
+
+    if (result.error || !result.data) {
+      setError(result.error || "Failed to load fleet health");
+
+      // Keep last-known values on a failed refresh (same
+      // loader contract as the household dashboard); the
+      // error card only takes over with nothing to show.
+      if (fleetRef.current === null) {
+        setFleet(null);
+      }
+    } else {
+      setFleet(result.data);
+      fleetRef.current = result.data;
+    }
+
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (!canRender) {
+      return;
+    }
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial Supabase fetch once the admin guard clears
+    void load();
+  }, [canRender, load]);
+
+  const { refreshing, onRefresh } = usePullToRefresh(load);
 
   if (!canRender) {
     return null;
@@ -41,60 +88,66 @@ export default function AdminDashboardScreen() {
 
   return (
     <AdminScreenContainer
-      activeTab="menu"
-      onTabChange={() => {}}
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
     >
-      {/* Same green header + yellow accent as the household
-          upper navbar, admin name only: no online/offline
-          capsule, no notification bell. */}
       <AdminNavBarTop />
 
-      <ScrollView
-        contentContainerStyle={styles.scroll}
+      <PullRefreshScroll
+        style={styles.scrollView}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingHorizontal: screenPadding },
+        ]}
         showsVerticalScrollIndicator={false}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        refreshLabel="Pull down to refresh"
+        refreshTint={colors.primary}
+        testID="admin-pull-scroll"
       >
-        <View style={styles.headerCard}>
-          <AppText variant="title" style={styles.headerTitle}>
-            Admin Dashboard
-          </AppText>
+        {activeTab === "overview" ? (
+          <AdminOverviewTab
+            fleet={fleet}
+            loading={loading}
+            error={error}
+            onRetry={() => void load()}
+          />
+        ) : null}
 
-          <AppText variant="body" style={styles.headerSub}>
-            Starting UI — account actions only.
-          </AppText>
-        </View>
+        {activeTab === "users" ? (
+          <AdminUsersTab
+            fleet={fleet}
+            loading={loading}
+            error={error}
+            onRetry={() => void load()}
+          />
+        ) : null}
 
-        <AdminMenuSection />
+        {activeTab === "reports" ? (
+          <AdminReportsTab
+            fleet={fleet}
+            loading={loading}
+            error={error}
+            onRetry={() => void load()}
+          />
+        ) : null}
 
         <Copyright />
-      </ScrollView>
+      </PullRefreshScroll>
     </AdminScreenContainer>
   );
 }
 
 const getStyles = (colors: AppColors) =>
   StyleSheet.create({
-    scroll: {
-      gap: Spacing.md,
-      padding: Spacing.md,
-      paddingBottom: Spacing.xl,
+    scrollView: {
+      flex: 1,
     },
 
-    headerCard: {
-      width: "100%",
-      backgroundColor: colors.headerBackground,
-      borderRadius: Radius.lg,
-      borderWidth: 3,
-      borderColor: colors.cardBorder,
-      padding: Spacing.md,
-      gap: 4,
-    },
-
-    headerTitle: {
-      color: colors.headerContent,
-    },
-
-    headerSub: {
-      color: colors.headerContent,
-      opacity: 0.85,
+    scrollContent: {
+      gap: 18,
+      paddingTop: 18,
+      paddingBottom: 24,
     },
   });
