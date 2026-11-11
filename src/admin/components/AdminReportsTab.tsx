@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -13,10 +13,7 @@ import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
-import {
-  getAdminFleetHealth,
-  type AdminFleetHealth,
-} from "@/services/adminService";
+import type { AdminFleetHealth } from "@/services/adminService";
 
 interface StatCardProps {
   label: string;
@@ -40,34 +37,21 @@ function StatCard({ label, value, colors }: StatCardProps) {
   );
 }
 
-export default function AdminReportsTab() {
+interface AdminTabDataProps {
+  fleet: AdminFleetHealth | null;
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+}
+
+export default function AdminReportsTab({
+  fleet,
+  loading,
+  error,
+  onRetry,
+}: AdminTabDataProps) {
   const colors = useAppColors();
   const styles = useMemo(() => getStyles(colors), [colors]);
-
-  const [fleet, setFleet] = useState<AdminFleetHealth | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    const result = await getAdminFleetHealth();
-
-    if (result.error || !result.data) {
-      setError(result.error || "Failed to load fleet health");
-      setFleet(null);
-    } else {
-      setFleet(result.data);
-    }
-
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial Supabase fetch on mount
-    void load();
-  }, [load]);
 
   if (loading) {
     return (
@@ -77,7 +61,7 @@ export default function AdminReportsTab() {
     );
   }
 
-  if (error || !fleet) {
+  if (!fleet) {
     return (
       <View style={styles.center}>
         <AppText variant="body" style={styles.errorText}>
@@ -85,7 +69,7 @@ export default function AdminReportsTab() {
         </AppText>
 
         <Pressable
-          onPress={() => void load()}
+          onPress={onRetry}
           style={({ pressed }) => [
             styles.retryButton,
             pressed && styles.pressed,

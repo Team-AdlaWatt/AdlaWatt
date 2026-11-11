@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -10,16 +10,11 @@ import {
 import AnalyticsChartCard from "@/components/AnalyticsChartCard";
 import AppText from "@/components/ui/AppText";
 import EmptyState from "@/components/ui/EmptyState";
-import { Radius } from "@/constants/theme";
 import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
-import { SlidingToggle } from "@/components/ui/SlidingToggle";
-import {
-  getAdminFleetHealth,
-  type AdminFleetHealth,
-} from "@/services/adminService";
+import type { AdminFleetHealth } from "@/services/adminService";
 
 interface KpiCardProps {
   label: string;
@@ -48,34 +43,22 @@ function KpiCard({ label, value, icon, colors }: KpiCardProps) {
   );
 }
 
-export default function AdminOverviewTab() {
+interface AdminTabDataProps {
+  fleet: AdminFleetHealth | null;
+  loading: boolean;
+  error: string | null;
+  onRetry: () => void;
+}
+
+export default function AdminOverviewTab({
+  fleet,
+  loading,
+  error,
+  onRetry,
+}: AdminTabDataProps) {
   const colors = useAppColors();
-  const [fleet, setFleet] = useState<AdminFleetHealth | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const styles = useMemo(() => getStyles(colors), [colors]);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    const result = await getAdminFleetHealth();
-
-    if (result.error || !result.data) {
-      setError(result.error || "Failed to load fleet health");
-      setFleet(null);
-    } else {
-      setFleet(result.data);
-    }
-
-    setLoading(false);
-  }, []);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial Supabase fetch on mount
-    void load();
-  }, [load]);
 
   if (loading) {
     return (
@@ -85,7 +68,7 @@ export default function AdminOverviewTab() {
     );
   }
 
-  if (error || !fleet) {
+  if (!fleet) {
     return (
       <View style={styles.center}>
         <AppText variant="body" style={styles.errorText}>
@@ -93,7 +76,7 @@ export default function AdminOverviewTab() {
         </AppText>
 
         <Pressable
-          onPress={() => void load()}
+          onPress={onRetry}
           style={({ pressed }) => [
             styles.retryButton,
             pressed && styles.pressed,
