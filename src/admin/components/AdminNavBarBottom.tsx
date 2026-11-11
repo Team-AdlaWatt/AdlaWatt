@@ -22,9 +22,9 @@ import {
 //
 // Same shell + tokens as household NavBarBottom (accent line,
 // bar background, 24px+ targets) but admin tabs only —
-// currently Menu alone (starting UI). Controlled by the admin
-// screen so UI-first needs no extra routes. Strictly no
-// cross-role switch: role guards own all routing.
+// Overview, Users, Reports. Controlled by the admin screen
+// via useState (no extra routes). Strictly no cross-role
+// switch: role guards own all routing.
 // ============================================================
 
 interface AdminNavBarBottomProps {

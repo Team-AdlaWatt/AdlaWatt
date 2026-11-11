@@ -29,6 +29,7 @@
 - [Backend Setup](#backend-setup)
 - [Getting Started](#getting-started)
 - [User Roles](#user-roles)
+- [Admin Dashboard](#admin-dashboard)
 - [Documentation](#documentation)
 - [FAQ](#faq)
 - [Changelog](#changelog)
@@ -96,7 +97,7 @@ The power path and the data path are separate. Solar energy charges the battery 
 - **Historical Data & Reports** — Charts and reports over selected date ranges and frequencies. *(The 17-chart layout and CSV/PDF export are implementation additions.)*
 - **Device Status** — Live status for the ESP32, sensors, relay, fan, and display.
 - **Activity Logs** — A history of system events, separate from notifications.
-- **Admin Dashboard (planned)** — A web-based dashboard for researchers to monitor system data, manage records, and configure alert thresholds.
+- **Admin Dashboard (implementation addition)** — Role-gated in-app admin view with fleet-wide aggregates across Overview, Users, and Reports tabs, plus pull-to-refresh. A web-based dashboard for researchers is planned.
 - **Personalization (implementation addition)** — Dark mode, font size and family, language (English, Filipino, Cebuano), vibration, and email notifications.
 - **Offline Support (implementation addition)** — The dashboard shows the last cached readings with an offline banner when there is no connection.
 
@@ -154,7 +155,8 @@ AdlaWatt/
 │   │   │   ├── menu.tsx
 │   │   │   ├── about-us.tsx
 │   │   │   └── user-manual.tsx
-│   │   └── admin/            (role-gated shell; web dashboard planned)
+│   │   └── admin/            (role-gated admin dashboard)
+│   ├── admin/               (admin UI: tabs, guards, formatters)
 │   ├── components/           (charts, forms, layout, ui)
 │   ├── constants/            (routes, catalog, colors, theme, sizing)
 │   ├── context/              (auth, settings, theme)
@@ -289,9 +291,36 @@ supabase functions deploy send-alert-email
 | Role | Access |
 |---|---|
 | Household User | Mobile app: dashboard, appliance recommendations, historical data, device status, notifications, activity logs, and settings |
-| Admin (planned) | A web-based dashboard for researchers to monitor system data, manage records, and configure alert thresholds. A limited in-app admin shell (login, log out, exit) is the current implementation. |
+| Admin | In-app dashboard (role-gated): fleet-wide aggregates across Overview, Users, and Reports tabs; pseudonymous summaries only. A web-based dashboard for researchers is planned. |
 
 Users sign up with a username, email, and password, or sign in with Google. Passwords can be reset by email. *(Authentication is an implementation addition beyond the manuscript.)*
+
+---
+
+## Admin Dashboard
+
+The in-app admin dashboard lives in `src/admin/` behind the role gate in `src/app/admin/`. Signing in with an `admin` account lands on it automatically; household users are bounced to `/dashboard`, signed-out users to `/login`.
+
+```text
+src/admin/
+├── components/
+│   ├── AdminDashboardScreen.tsx   # One fleet fetch, tab state, pull-to-refresh
+│   ├── AdminScreenContainer.tsx   # Layout shell + bottom tab bar
+│   ├── AdminNavBarTop.tsx         # Top bar + account menu (log out, exit)
+│   ├── AdminNavBarBottom.tsx      # Overview / Users / Reports tabs
+│   ├── AdminOverviewTab.tsx       # KPI cards + fleet status
+│   ├── AdminUsersTab.tsx          # Fleet aggregate detail rows
+│   ├── AdminReportsTab.tsx        # Fleet aggregate stat cards
+│   └── AdminTabShared.tsx         # Shared loading/error/header pieces
+├── hooks/
+│   └── useAdminGuard.ts           # Client role gate + redirects
+├── __tests__/
+│   └── format.test.ts             # Shared formatter tests
+├── constants.ts                   # Tab definitions
+└── format.ts                      # Shared value formatters
+```
+
+All data comes only from the `get_admin_fleet_health` SECURITY DEFINER RPC (see `src/services/adminService.ts`): fleet-wide, pseudonymous aggregates — no user IDs, emails, or raw monitoring rows. The admin area is pinned to light mode and English-only, so household theme and language settings never restyle it.
 
 ---
 

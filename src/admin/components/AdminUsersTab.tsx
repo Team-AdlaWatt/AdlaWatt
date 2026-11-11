@@ -1,18 +1,23 @@
 import React, { useMemo } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  View,
-} from "react-native";
+import { StyleSheet, View } from "react-native";
 
+import {
+  AdminTabDataProps,
+  AdminTabError,
+  AdminTabHeader,
+  AdminTabLoading,
+} from "@/admin/components/AdminTabShared";
+import {
+  formatBatteryPercent,
+  formatLastUpdated,
+  formatVoltage,
+} from "@/admin/format";
 import AppText from "@/components/ui/AppText";
 import EmptyState from "@/components/ui/EmptyState";
 import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
-import type { AdminFleetHealth } from "@/services/adminService";
 
 function DetailRow({
   label,
@@ -38,13 +43,6 @@ function DetailRow({
   );
 }
 
-interface AdminTabDataProps {
-  fleet: AdminFleetHealth | null;
-  loading: boolean;
-  error: string | null;
-  onRetry: () => void;
-}
-
 export default function AdminUsersTab({
   fleet,
   loading,
@@ -55,32 +53,15 @@ export default function AdminUsersTab({
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
+    return <AdminTabLoading />;
   }
 
   if (!fleet) {
     return (
-      <View style={styles.center}>
-        <AppText variant="body" style={styles.errorText}>
-          {error || "No user data available"}
-        </AppText>
-
-        <Pressable
-          onPress={onRetry}
-          style={({ pressed }) => [
-            styles.retryButton,
-            pressed && styles.pressed,
-          ]}
-        >
-          <AppText variant="body" style={styles.retryText}>
-            Retry
-          </AppText>
-        </Pressable>
-      </View>
+      <AdminTabError
+        message={error || "No user data available"}
+        onRetry={onRetry}
+      />
     );
   }
 
@@ -96,16 +77,10 @@ export default function AdminUsersTab({
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerCard}>
-        <AppText variant="title" style={styles.headerTitle}>
-          Users
-        </AppText>
-
-        <AppText variant="caption" style={styles.headerSub}>
-          {fleet.device_count} households connected. Pseudonymous
-          fleet aggregates only.
-        </AppText>
-      </View>
+      <AdminTabHeader
+        title="Users"
+        subtitle={`${fleet.device_count} households connected. Pseudonymous fleet aggregates only.`}
+      />
 
       <View style={styles.detailCard}>
         <DetailRow
@@ -122,21 +97,13 @@ export default function AdminUsersTab({
 
         <DetailRow
           label="Avg battery"
-          value={
-            fleet.avg_battery == null
-              ? "—"
-              : `${Math.round(fleet.avg_battery)}%`
-          }
+          value={formatBatteryPercent(fleet.avg_battery)}
           colors={colors}
         />
 
         <DetailRow
           label="Avg voltage"
-          value={
-            fleet.avg_voltage == null
-              ? "—"
-              : `${fleet.avg_voltage.toFixed(2)} V`
-          }
+          value={formatVoltage(fleet.avg_voltage)}
           colors={colors}
         />
 
@@ -148,11 +115,7 @@ export default function AdminUsersTab({
 
         <DetailRow
           label="Last updated"
-          value={
-            fleet.last_updated
-              ? new Date(fleet.last_updated).toLocaleString()
-              : "—"
-          }
+          value={formatLastUpdated(fleet.last_updated)}
           colors={colors}
         />
       </View>
@@ -193,25 +156,6 @@ const getStyles = (colors: AppColors) =>
       gap: 18,
     },
 
-    headerCard: {
-      width: "100%",
-      backgroundColor: colors.glass.white,
-      borderWidth: 3,
-      borderColor: colors.cardBorder,
-      borderRadius: 15,
-      padding: 18,
-      gap: 6,
-    },
-
-    headerTitle: {
-      color: colors.text,
-      fontWeight: "700",
-    },
-
-    headerSub: {
-      color: colors.textSecondary,
-    },
-
     detailCard: {
       width: "100%",
       backgroundColor: colors.glass.white,
@@ -225,34 +169,5 @@ const getStyles = (colors: AppColors) =>
     note: {
       color: colors.textSecondary,
       textAlign: "center",
-    },
-
-    center: {
-      width: "100%",
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: 48,
-      gap: 12,
-    },
-
-    errorText: {
-      color: colors.textSecondary,
-      textAlign: "center",
-    },
-
-    retryButton: {
-      paddingHorizontal: 18,
-      paddingVertical: 10,
-      borderRadius: 12,
-      backgroundColor: colors.primary,
-    },
-
-    retryText: {
-      color: colors.onPrimary,
-      fontWeight: "700",
-    },
-
-    pressed: {
-      opacity: 0.7,
     },
   });

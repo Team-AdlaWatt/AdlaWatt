@@ -82,6 +82,11 @@ export default function AdminDashboardScreen() {
 
   const { refreshing, onRefresh } = usePullToRefresh(load);
 
+  // Same retry action for all three tabs' error states.
+  const handleRetry = () => {
+    void load();
+  };
+
   if (!canRender) {
     return null;
   }
@@ -111,7 +116,7 @@ export default function AdminDashboardScreen() {
             fleet={fleet}
             loading={loading}
             error={error}
-            onRetry={() => void load()}
+            onRetry={handleRetry}
           />
         ) : null}
 
@@ -120,7 +125,7 @@ export default function AdminDashboardScreen() {
             fleet={fleet}
             loading={loading}
             error={error}
-            onRetry={() => void load()}
+            onRetry={handleRetry}
           />
         ) : null}
 
@@ -129,7 +134,7 @@ export default function AdminDashboardScreen() {
             fleet={fleet}
             loading={loading}
             error={error}
-            onRetry={() => void load()}
+            onRetry={handleRetry}
           />
         ) : null}
 
