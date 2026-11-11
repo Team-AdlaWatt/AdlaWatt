@@ -22,7 +22,9 @@ import { useAdminGuard } from "@/admin/hooks/useAdminGuard";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import {
   getAdminFleetHealth,
+  getAdminFleetUsers,
   type AdminFleetHealth,
+  type AdminFleetUser,
 } from "@/services/adminService";
 import type { AdminTab } from "@/admin/constants";
 
@@ -33,17 +35,21 @@ export default function AdminDashboardScreen() {
   const { canRender } = useAdminGuard();
   const [activeTab, setActiveTab] = useState<AdminTab>("overview");
 
-  // One shared fleet fetch for all three tabs: pull-to-refresh
+  // One shared admin fetch for all three tabs: pull-to-refresh
   // and tab switches reuse it instead of refetching per tab.
+  // Fleet health feeds Overview/Reports; fleet users feed the
+  // pseudonymized household list on the Users tab.
   const [fleet, setFleet] = useState<AdminFleetHealth | null>(null);
+  const [users, setUsers] = useState<AdminFleetUser[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Ref mirror of the latest fleet snapshot so `load` stays
+  // Ref mirrors of the latest snapshots so `load` stays
   // stable: with data on screen, a pull refreshes in place
   // (last-known values stay up) instead of flipping back to
   // the full-screen loader.
   const fleetRef = useRef<AdminFleetHealth | null>(null);
+  const usersRef = useRef<AdminFleetUser[] | null>(null);
 
   const load = useCallback(async () => {
     if (fleetRef.current === null) {
@@ -52,21 +58,37 @@ export default function AdminDashboardScreen() {
 
     setError(null);
 
-    const result = await getAdminFleetHealth();
+    const [fleetResult, usersResult] = await Promise.all([
+      getAdminFleetHealth(),
+      getAdminFleetUsers(),
+    ]);
 
-    if (result.error || !result.data) {
-      setError(result.error || "Failed to load fleet health");
-
-      // Keep last-known values on a failed refresh (same
-      // loader contract as the household dashboard); the
-      // error card only takes over with nothing to show.
+    // Same loader contract as the household dashboard: keep
+    // last-known values on a failed refresh; the error card
+    // only takes over with nothing to show.
+    if (fleetResult.error || !fleetResult.data) {
       if (fleetRef.current === null) {
         setFleet(null);
       }
     } else {
-      setFleet(result.data);
-      fleetRef.current = result.data;
+      setFleet(fleetResult.data);
+      fleetRef.current = fleetResult.data;
     }
+
+    if (usersResult.error || !usersResult.data) {
+      if (usersRef.current === null) {
+        setUsers(null);
+      }
+    } else {
+      setUsers(usersResult.data);
+      usersRef.current = usersResult.data;
+    }
+
+    setError(
+      fleetResult.error ||
+        usersResult.error ||
+        null,
+    );
 
     setLoading(false);
   }, []);
@@ -123,6 +145,7 @@ export default function AdminDashboardScreen() {
         {activeTab === "users" ? (
           <AdminUsersTab
             fleet={fleet}
+            users={users}
             loading={loading}
             error={error}
             onRetry={handleRetry}

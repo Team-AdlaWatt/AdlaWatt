@@ -291,7 +291,7 @@ supabase functions deploy send-alert-email
 | Role | Access |
 |---|---|
 | Household User | Mobile app: dashboard, appliance recommendations, historical data, device status, notifications, activity logs, and settings |
-| Admin | In-app dashboard (role-gated): fleet-wide aggregates across Overview, Users, and Reports tabs; pseudonymous summaries only. A web-based dashboard for researchers is planned. |
+| Admin | In-app dashboard (role-gated): fleet-wide aggregates across Overview, Users, and Reports tabs; the Users tab also lists households under sequential pseudonyms (Household 01…) — no usernames, emails, or raw rows. A web-based dashboard for researchers is planned. |
 
 Users sign up with a username, email, and password, or sign in with Google. Passwords can be reset by email. *(Authentication is an implementation addition beyond the manuscript.)*
 
@@ -304,12 +304,12 @@ The in-app admin dashboard lives in `src/admin/` behind the role gate in `src/ap
 ```text
 src/admin/
 ├── components/
-│   ├── AdminDashboardScreen.tsx   # One fleet fetch, tab state, pull-to-refresh
+│   ├── AdminDashboardScreen.tsx   # One shared admin fetch, tab state, pull-to-refresh
 │   ├── AdminScreenContainer.tsx   # Layout shell + bottom tab bar
 │   ├── AdminNavBarTop.tsx         # Top bar + account menu (log out, exit)
 │   ├── AdminNavBarBottom.tsx      # Overview / Users / Reports tabs
 │   ├── AdminOverviewTab.tsx       # KPI cards + fleet status
-│   ├── AdminUsersTab.tsx          # Fleet aggregate detail rows
+│   ├── AdminUsersTab.tsx          # Fleet aggregates + pseudonymized household cards
 │   ├── AdminReportsTab.tsx        # Fleet aggregate stat cards
 │   └── AdminTabShared.tsx         # Shared loading/error/header pieces
 ├── hooks/
@@ -320,7 +320,7 @@ src/admin/
 └── format.ts                      # Shared value formatters
 ```
 
-All data comes only from the `get_admin_fleet_health` SECURITY DEFINER RPC (see `src/services/adminService.ts`): fleet-wide, pseudonymous aggregates — no user IDs, emails, or raw monitoring rows. The admin area is pinned to light mode and English-only, so household theme and language settings never restyle it.
+All data comes only from the `get_admin_fleet_health` and `get_admin_fleet_users` SECURITY DEFINER RPCs (see `src/services/adminService.ts`): fleet-wide aggregates plus per-household rows labeled with sequential pseudonyms — no user IDs, emails, usernames, or raw monitoring rows. Pseudonyms are assigned by first-seen order within the 24-hour window, so labels may renumber between days. The admin area is pinned to light mode and English-only, so household theme and language settings never restyle it.
 
 ---
 
