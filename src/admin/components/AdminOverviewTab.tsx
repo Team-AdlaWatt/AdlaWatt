@@ -9,6 +9,7 @@ import {
 
 import AnalyticsChartCard from "@/components/AnalyticsChartCard";
 import AppText from "@/components/ui/AppText";
+import EmptyState from "@/components/ui/EmptyState";
 import { Radius } from "@/constants/theme";
 import {
   useAppColors,
@@ -103,6 +104,16 @@ export default function AdminOverviewTab() {
           </AppText>
         </Pressable>
       </View>
+    );
+  }
+
+  if (fleet.device_count === 0) {
+    return (
+      <EmptyState
+        icon="analytics-outline"
+        title="No fleet data yet"
+        description="Once households connect their devices, fleet metrics will appear here."
+      />
     );
   }
 

@@ -8,6 +8,7 @@ import {
 } from "react-native";
 
 import AppText from "@/components/ui/AppText";
+import EmptyState from "@/components/ui/EmptyState";
 import {
   useAppColors,
   type AppColors,
@@ -97,6 +98,16 @@ export default function AdminUsersTab() {
           </AppText>
         </Pressable>
       </View>
+    );
+  }
+
+  if (fleet.device_count === 0) {
+    return (
+      <EmptyState
+        icon="people-outline"
+        title="No users yet"
+        description="No households are connected yet. Fleet aggregates will appear once devices come online."
+      />
     );
   }
 
