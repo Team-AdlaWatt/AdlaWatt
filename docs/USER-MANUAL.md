@@ -131,7 +131,7 @@ The Dashboard is the home screen. It updates in real time whenever the AdlaWatt 
 
 - **Current load** — what connected electronics are drawing right now, in watts.
 - **Temperatures** — battery, solar panel, and interior, each rated *Nominal*, *Elevated*, *High*, or *Critical*, including *Critical (rapid rise)* and *Critical (sensor fault)*. *Critical* triggers an alert — check the unit when safe. A failed sensor shows **Sensor fault**; other unavailable readings show `--`.
-- **Device status** — *Online* (fresh reading within the last minute) or *Offline* (no heartbeat for over a minute — see troubleshooting).
+- **Device status** — *Online* (fresh heartbeat within the last 10 seconds) or *Offline* (no heartbeat for over 10 seconds — see troubleshooting).
 
 ### Quick navigation
 
@@ -297,7 +297,7 @@ Theme, fonts, language, vibration, and the email toggle survive restarts and hol
 ## 13. Troubleshooting and FAQs
 
 **Dashboard data is frozen or the device shows Offline.**
-First look for the offline banner: if your *phone* has no connection, the Dashboard shows your last readings with their time — reconnect and it goes live by itself. If the phone is online but the device reads Offline, the unit has likely lost Wi-Fi or power — confirm the unit is powered and within Wi-Fi range, then wait a few minutes for it to reconnect. A *Monitoring Data Stale* alert (fires after 60 seconds without fresh data) confirms the app side is working and the unit side is silent.
+First look for the offline banner: if your *phone* has no connection, the Dashboard shows your last readings with their time — reconnect and it goes live by itself. If the phone is online but the device reads Offline, the unit has likely lost Wi-Fi or power — confirm the unit is powered and within Wi-Fi range; the status updates within about 10 seconds of the heartbeat returning. A *Monitoring Data Stale* alert (fires after 60 seconds without fresh data) confirms the app side is working and the unit side is silent.
 
 **My electronics item says Not advisable but I need it.**
 That badge means the battery cannot safely cover it right now (low charge, over the safe draw limit, or too costly per hour). Options: recharge via solar, switch to a lighter electronics item, or run it briefly and watch the battery gauge. Do not repeatedly override the warning below 20%.

@@ -66,7 +66,10 @@ describe("metric display", () => {
 
 describe("device online", () => {
   test("requires a fresh last_seen and a non-Offline status", () => {
-    const fresh = new Date(NOW - 10_000).toISOString();
+    const fresh = new Date(NOW - 9_000).toISOString();
+    const boundary = new Date(
+      NOW - DEVICE_ONLINE_WINDOW_MS,
+    ).toISOString();
     const stale = new Date(
       NOW - DEVICE_ONLINE_WINDOW_MS - 1,
     ).toISOString();
@@ -76,6 +79,9 @@ describe("device online", () => {
     );
     expect(isDeviceOnline(fresh, null, NOW)).toBe(true);
     expect(isDeviceOnline(fresh, "Offline", NOW)).toBe(
+      false,
+    );
+    expect(isDeviceOnline(boundary, "Online", NOW)).toBe(
       false,
     );
     expect(isDeviceOnline(stale, "Online", NOW)).toBe(
@@ -97,10 +103,24 @@ describe("last seen display", () => {
   test("formats recent timestamps relatively", () => {
     expect(
       formatLastSeen(
-        new Date(NOW - 30_000).toISOString(),
+        new Date(NOW - 9_000).toISOString(),
         NOW,
       ),
     ).toBe("just now");
+
+    expect(
+      formatLastSeen(
+        new Date(NOW - 10_000).toISOString(),
+        NOW,
+      ),
+    ).toBe("10s ago");
+
+    expect(
+      formatLastSeen(
+        new Date(NOW - 30_000).toISOString(),
+        NOW,
+      ),
+    ).toBe("30s ago");
 
     expect(
       formatLastSeen(

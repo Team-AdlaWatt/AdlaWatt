@@ -172,7 +172,7 @@ All non-key columns are nullable. A null temperature with a status still display
 | `solar_temperature_status`, `interior_temp_status` | Nominal, Elevated, High, Critical, Critical (rapid rise), Critical (sensor fault) |
 | `solar_input`, `solar_voltage`, `solar_current`, `total_energy`, `current_load`, `interior_temp`, `voltage`, `watt_hours`, `interval_seconds`, `energy_input_wh`, `energy_output_wh` | 0 or higher |
 
-The app treats any status starting with `Critical` as critical for alerts and badge colours. A device counts as online only when `last_seen` is within 60 seconds and `device_status` is not `Offline`.
+The app treats any status starting with `Critical` as critical for alerts and badge colours. A device counts as online only when `last_seen` is within 10 seconds and `device_status` is not `Offline`. The separate "Monitoring Data Stale" alert still fires at 60 seconds so a single missed heartbeat does not spam alerts.
 
 ---
 
@@ -205,7 +205,7 @@ The app treats any status starting with `Critical` as critical for alerts and ba
 
 | Job | Schedule | Action |
 |---|---|---|
-| `adlawatt-monitoring-heartbeat-check` | Every 1 second | Marks stale devices Offline (live table) |
+| `adlawatt-monitoring-heartbeat-check` | Every 1 second | Marks devices Offline after the 10s heartbeat window (live table) |
 | `adlawatt-monitoring-history-snapshot` | Every 5 minutes | Records snapshots into history |
 | `adlawatt-monitoring-history-retention` | Monthly (optional, commented out) | Deletes old history |
 

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import type { DeviceStatus } from "@/services/monitoringSchema";
 import { isDeviceOnline } from "@/utils/monitoringDisplay";
 
-const TICK_MS = 30 * 1000;
+const TICK_MS = 2 * 1000;
 
 export const useDeviceOnline = (
   lastSeen: string | null | undefined,

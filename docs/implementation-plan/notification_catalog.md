@@ -100,7 +100,7 @@ Alert: Battery Normal-Use Cutoff Reached (≤ 20%), Battery Critically Low (< 20
 | Monitoring Data Updated | `normal` | Row payload changed (5-min cooldown) |
 | Monitoring Record Missing | `alert` | No `monitoring` row (also checked on init) |
 | Missing Last-Seen Timestamp | `alert` | `last_seen` is null |
-| Monitoring Data Stale | `alert` | `last_seen` invalid or older than 60 s |
+| Monitoring Data Stale | `alert` | `last_seen` invalid or older than 60 s (alert cooldown; the dashboard online gate is 10 s) |
 
 ## Components Rules
 

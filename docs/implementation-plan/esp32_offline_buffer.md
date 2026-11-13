@@ -1,9 +1,9 @@
 # ESP32 Offline Buffer — Firmware Handoff Spec
 
 Hardware-teammate contract for surviving Wi-Fi outages on the
-unit side. The mobile app cannot implement this (no firmware
-sources live in this repo); the app side is already done
-(`monitoringService` last-reading cache + 60s stale tripwire
+unit side. The heartbeat sketch lives at
+`firmware/esp32_heartbeat/esp32_heartbeat.ino`; the app side is
+done (`monitoringService` last-reading cache + 10s online gate
 + offline banner). This document states what the firmware
 must guarantee so both sides agree on offline semantics.
 
@@ -48,16 +48,19 @@ spec keeps the gap data flowing once connectivity returns.
 
 ## 4. Server contract (already true — do not break)
 
-- The heartbeat cron marks stale devices Offline and owns
-  the `device_status` flip; firmware must not write
-  `device_status` itself to paper over outages.
+- The heartbeat cron marks devices Offline after the stale
+  window and owns the Offline flip. Firmware writes `Online`
+  as its liveness signal, but must never write `Offline` to
+  paper over an outage or fake a heartbeat while offline.
 - `monitoring_history` ignores offline snapshots for
   averages/min/max/status counts and alerts, but counts
   them for energy totals — backfilled rows must carry true
   `recorded_at` values so they land in the right buckets.
-- The app's client stale gate is 60s on `last_seen`
-  (`STALE_MONITORING_INTERVAL_MS`); the unit should post
-  at least every ~10s while online so jitter never trips it.
+- The app's client online gate is 10s on `last_seen`
+  (`DEVICE_ONLINE_WINDOW_MS`); the unit heartbeats every 5s
+  so one missed beat does not flip it Offline. The separate
+  "Monitoring Data Stale" alert still uses a 60s threshold
+  (`STALE_MONITORING_INTERVAL_MS`) to avoid alert spam.
 
 ## 5. Acceptance
 

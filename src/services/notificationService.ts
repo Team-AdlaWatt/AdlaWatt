@@ -69,13 +69,13 @@ const SOLAR_INPUT_MILESTONE_WATTS =
 const CURRENT_LOAD_MILESTONE_WATTS =
   50;
 
-// Freshness tripwire for last_seen: the ESP32 posts every
-// few seconds and phone-side WiFi jitter rarely exceeds half
-// a minute, so 60s absorbs jitter without crying wolf while
-// still catching genuinely silent units within the minute.
-// (Server-side, the heartbeat cron owns the Online/Offline
-// device_status flip on its own cadence — this gate only
-// drives the client "Monitoring Data Stale" alert.)
+// Freshness tripwire for last_seen. This only controls the
+// "Monitoring Data Stale" alert cadence; the dashboard's
+// online/offline gate uses the 10s DEVICE_ONLINE_WINDOW_MS.
+// The ESP32 heartbeats every 5s, so 60s avoids alert spam
+// while still catching a genuinely silent unit within a minute.
+// (Server-side, the heartbeat cron owns the Offline
+// device_status flip on its own cadence.)
 const STALE_MONITORING_INTERVAL_MS =
   60 * 1000;
 
