@@ -27,7 +27,7 @@ Status values: `Working`, `In progress`, `Limited`, `Available`, `Pending`.
 | 17 analytics charts | Shows Battery, Solar, Energy, Usage, and Health data. | `src/app/dashboard/analytics.tsx` |
 | CSV and PDF reports | Exports the same data shown in the app. | `src/services/analyticsService.ts` |
 | Weather and 5-day solar forecast | Shows current weather, daily forecast, and the best day to charge. | `src/services/weatherForecast.ts` |
-| GPS snapping to Bukidnon points | Snaps to the nearest of 24 sample points within 10 km. | `src/services/weatherConfig.ts` |
+| GPS snapping to Bukidnon points | Snaps to the nearest of 467 sample points within 10 km. | `src/services/weatherConfig.ts` |
 | Custom electronics with photos | Adds user items and lets users upload a photo. | `src/components/forms/ElectronicsModal.tsx` |
 | Archive, delete, filter, and sort | Keeps the electronics list organized and recoverable. | `src/app/dashboard/electronics.tsx` |
 | In-app, email, vibration, and reminder alerts | Sends alerts through several paths, not just one. | `src/services/notificationService.ts` |
@@ -51,7 +51,7 @@ Status values: `Working`, `In progress`, `Limited`, `Available`, `Pending`.
 | Load stack | Checks a group of electronics together and blocks stacks over the inverter limit. | `src/services/recommendation.ts` |
 | Analytics | Five sections, 17 charts, 7/30/90-day ranges, lazy loading, CSV and PDF export. | `src/services/analyticsService.ts` |
 | Alerts | Threshold rules, cooldowns, in-app records, email, vibration, and daily reminders. | `src/services/notificationService.ts` |
-| Weather | OpenWeather current and forecast data, live GPS, 24 sample points, and solar outlook. | `src/services/forecast.ts` |
+| Weather | OpenWeather current and forecast data, live GPS, 467 sample points, and solar outlook. | `src/services/forecast.ts` |
 | Auth lifecycle | Supabase Auth, Google PKCE flow, username RPC, recovery links, and session checks. | `src/services/auth.ts` |
 | Localization | i18next with EN, FIL, and CEB locales and a saved preference. | `src/services/i18n.ts`, `src/locales/` |
 | Delivery | EAS build, Expo Updates OTA, runtime version, and an installable APK. | `app.json`, `eas.json` |

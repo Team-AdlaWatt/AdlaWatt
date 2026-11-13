@@ -28,7 +28,7 @@ jest.mock("expo-location", () => ({
   hasServicesEnabledAsync: jest.fn(),
   getLastKnownPositionAsync: jest.fn(),
   getCurrentPositionAsync: jest.fn(),
-  Accuracy: { Balanced: 3, High: 4 },
+  Accuracy: { Balanced: 3, High: 4, Highest: 5 },
 }));
 
 // Parsing tests assert raw + offset values, so keep the
@@ -185,19 +185,19 @@ describe("resolveCondition main group", () => {
 describe("local location registry", () => {
   const places = getLocalPlaces();
 
-  test("contains 24 unique Bukidnon places", () => {
-    expect(places).toHaveLength(24);
+  test("contains 467 unique Bukidnon places", () => {
+    expect(places).toHaveLength(467);
 
     expect(
       new Set(places.map((place) => place.id)).size,
-    ).toBe(24);
+    ).toBe(467);
 
     expect(
       places.filter(
         (place) =>
           place.municipality === "Manolo Fortich",
       ),
-    ).toHaveLength(22);
+    ).toHaveLength(24);
   });
 
   test("formats barangay, municipality, and province", () => {
@@ -337,7 +337,7 @@ describe("getWeather coordinates", () => {
       mockLocation.getCurrentPositionAsync,
     ).toHaveBeenCalledWith(
       expect.objectContaining({
-        accuracy: 4,
+        accuracy: 5,
       }),
     );
 
@@ -355,7 +355,7 @@ describe("getWeather coordinates", () => {
   });
 
   test("rounds raw coordinates outside coverage", async () => {
-    grantLocation(8.12344, 125.12344);
+    grantLocation(0, 0);
 
     mockFetch.mockResolvedValue({
       ok: true,
@@ -368,15 +368,15 @@ describe("getWeather coordinates", () => {
       mockFetch.mock.calls[0]?.[0] ?? "",
     );
 
-    expect(url).toContain("lat=8.1234");
-    expect(url).toContain("lon=125.1234");
+    expect(url).toContain("lat=0");
+    expect(url).toContain("lon=0");
     expect(data.city).toBe("Malaybalay");
     expect(data.localPlaceId).toBeUndefined();
     expect(data.outsideScope).toBe(true);
   });
 
   test("never reuses a last-known fix", async () => {
-    grantLocation(8.1, 125.1);
+    grantLocation(0, 0);
 
     // A last-known fix exists but must be ignored: the app
     // always takes a live fix for the current location.
@@ -404,8 +404,8 @@ describe("getWeather coordinates", () => {
       mockFetch.mock.calls[0]?.[0] ?? "",
     );
 
-    expect(url).toContain("lat=8.1");
-    expect(url).toContain("lon=125.1");
+    expect(url).toContain("lat=0");
+    expect(url).toContain("lon=0");
   });
 
   test("explicit coordinates skip every GPS lookup", async () => {

@@ -235,7 +235,7 @@ Section tally: 1 Match · 1 Extra
 
 | Manuscript claim | In the app | Status |
 |---|---|---|
-| "Weather information" in the mobile application (Definition of Terms) | OpenWeather current conditions + forecast, live GPS snapped to 24 Bukidnon sample points (aligned with the Sto. Nino, Manolo Fortich deployment area) — `src/services/forecast.ts`, `src/services/weatherForecast.ts`, `src/data/weather.json` | Match |
+| "Weather information" in the mobile application (Definition of Terms) | OpenWeather current conditions + forecast, live GPS snapped to 467 Bukidnon sample points (aligned with the Sto. Nino, Manolo Fortich deployment area) — `src/services/forecast.ts`, `src/services/weatherForecast.ts`, `src/data/weather.json` | Match |
 | — | Solar outlook charts (sun hours, best sun days, hourly solar curve) | Extra |
 
 Section tally: 1 Match · 1 Extra
@@ -308,7 +308,7 @@ checklist, rather than removed from the app.
 | 7 | Daily reminders | `src/services/reminderService.ts` |
 | 8 | CSV / PDF report export | `src/services/reportPrint.ts`, `src/services/reportStorage.ts` |
 | 9 | Predefined appliance catalog (29 items) plus custom items, photos, archive | `src/constants/electronicsCatalog.ts`, `src/services/electronicsService.ts` |
-| 10 | GPS weather snapping to 24 Bukidnon sample points (10 km radius) | `src/services/weatherConfig.ts` |
+| 10 | GPS weather snapping to 467 Bukidnon sample points (10 km radius) | `src/services/weatherConfig.ts` |
 | 11 | OTA updates (Expo Updates) and EAS build pipeline | `app.json`, `eas.json` |
 | 12 | Sentry crash reporting | `src/services/sentry.ts` |
 | 13 | Public website + QR code | `site/` |

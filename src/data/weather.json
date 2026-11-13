@@ -17,30 +17,3275 @@
     "coverageRadiusKm": 10,
     "province": "Bukidnon",
     "places": [
-      { "id": "agusan-canyon", "name": "Agusan Canyon", "municipality": "Manolo Fortich", "lat": 8.33, "lon": 124.81 },
-      { "id": "alae", "name": "Alae", "municipality": "Manolo Fortich", "lat": 8.42, "lon": 124.81 },
-      { "id": "dahilayan", "name": "Dahilayan", "municipality": "Manolo Fortich", "lat": 8.22, "lon": 124.87 },
-      { "id": "dalirig", "name": "Dalirig", "municipality": "Manolo Fortich", "lat": 8.38, "lon": 124.90 },
-      { "id": "damilag", "name": "Damilag", "municipality": "Manolo Fortich", "lat": 8.35, "lon": 124.81 },
-      { "id": "diclum", "name": "Diclum", "municipality": "Manolo Fortich", "lat": 8.37, "lon": 124.85 },
-      { "id": "guilang-guilang", "name": "Guilang-guilang", "municipality": "Manolo Fortich", "lat": 8.46, "lon": 125.04 },
-      { "id": "kalugmanan", "name": "Kalugmanan", "municipality": "Manolo Fortich", "lat": 8.28, "lon": 124.86 },
-      { "id": "lindaban", "name": "Lindaban", "municipality": "Manolo Fortich", "lat": 8.29, "lon": 124.85 },
-      { "id": "lingion", "name": "Lingion", "municipality": "Manolo Fortich", "lat": 8.40, "lon": 124.89 },
-      { "id": "lunocan", "name": "Lunocan", "municipality": "Manolo Fortich", "lat": 8.41, "lon": 124.82 },
-      { "id": "maluko", "name": "Maluko", "municipality": "Manolo Fortich", "lat": 8.37, "lon": 124.95 },
-      { "id": "mampayag", "name": "Mampayag", "municipality": "Manolo Fortich", "lat": 8.26, "lon": 124.83 },
-      { "id": "mantibugao", "name": "Mantibugao", "municipality": "Manolo Fortich", "lat": 8.46, "lon": 124.82 },
-      { "id": "minsuro", "name": "Minsuro", "municipality": "Manolo Fortich", "lat": 8.51, "lon": 124.83 },
-      { "id": "san-jose", "name": "San Jose", "municipality": "Manolo Fortich", "lat": 8.43, "lon": 124.80 },
-      { "id": "san-miguel", "name": "San Miguel", "municipality": "Manolo Fortich", "lat": 8.39, "lon": 124.83 },
-      { "id": "sankanan", "name": "Sankanan", "municipality": "Manolo Fortich", "lat": 8.32, "lon": 124.86 },
-      { "id": "santiago", "name": "Santiago", "municipality": "Manolo Fortich", "lat": 8.44, "lon": 124.99 },
-      { "id": "santo-nino", "name": "Santo Niño", "municipality": "Manolo Fortich", "lat": 8.40, "lon": 124.85 },
-      { "id": "tankulan", "name": "Tankulan", "municipality": "Manolo Fortich", "label": "Manolo Fortich", "lat": 8.37, "lon": 124.86 },
-      { "id": "ticala", "name": "Ticala", "municipality": "Manolo Fortich", "lat": 8.34, "lon": 124.89 },
-      { "id": "lingi-on", "name": "Lingi-on", "municipality": "Talakag", "lat": 8.19, "lon": 124.61 },
-      { "id": "balubal", "name": "Balubal", "lat": 8.27, "lon": 124.78 }
+      {
+        "id": "agusan-canyon",
+        "name": "Agusan Canyon",
+        "municipality": "Manolo Fortich",
+        "lat": 8.33,
+        "lon": 124.81
+      },
+      {
+        "id": "alae",
+        "name": "Alae",
+        "municipality": "Manolo Fortich",
+        "lat": 8.42,
+        "lon": 124.81
+      },
+      {
+        "id": "dahilayan",
+        "name": "Dahilayan",
+        "municipality": "Manolo Fortich",
+        "lat": 8.22,
+        "lon": 124.87
+      },
+      {
+        "id": "dalirig",
+        "name": "Dalirig",
+        "municipality": "Manolo Fortich",
+        "lat": 8.38,
+        "lon": 124.9
+      },
+      {
+        "id": "damilag",
+        "name": "Damilag",
+        "municipality": "Manolo Fortich",
+        "lat": 8.35,
+        "lon": 124.81
+      },
+      {
+        "id": "diclum",
+        "name": "Diclum",
+        "municipality": "Manolo Fortich",
+        "lat": 8.37,
+        "lon": 124.85
+      },
+      {
+        "id": "guilang-guilang",
+        "name": "Guilang-guilang",
+        "municipality": "Manolo Fortich",
+        "lat": 8.46,
+        "lon": 125.04
+      },
+      {
+        "id": "kalugmanan",
+        "name": "Kalugmanan",
+        "municipality": "Manolo Fortich",
+        "lat": 8.28,
+        "lon": 124.86
+      },
+      {
+        "id": "lindaban",
+        "name": "Lindaban",
+        "municipality": "Manolo Fortich",
+        "lat": 8.29,
+        "lon": 124.85
+      },
+      {
+        "id": "lingion",
+        "name": "Lingion",
+        "municipality": "Manolo Fortich",
+        "lat": 8.4,
+        "lon": 124.89
+      },
+      {
+        "id": "lunocan",
+        "name": "Lunocan",
+        "municipality": "Manolo Fortich",
+        "lat": 8.41,
+        "lon": 124.82
+      },
+      {
+        "id": "maluko",
+        "name": "Maluko",
+        "municipality": "Manolo Fortich",
+        "lat": 8.37,
+        "lon": 124.95
+      },
+      {
+        "id": "mampayag",
+        "name": "Mampayag",
+        "municipality": "Manolo Fortich",
+        "lat": 8.26,
+        "lon": 124.83
+      },
+      {
+        "id": "mantibugao",
+        "name": "Mantibugao",
+        "municipality": "Manolo Fortich",
+        "lat": 8.46,
+        "lon": 124.82
+      },
+      {
+        "id": "minsuro",
+        "name": "Minsuro",
+        "municipality": "Manolo Fortich",
+        "lat": 8.51,
+        "lon": 124.83
+      },
+      {
+        "id": "san-jose",
+        "name": "San Jose",
+        "municipality": "Manolo Fortich",
+        "lat": 8.43,
+        "lon": 124.8
+      },
+      {
+        "id": "san-miguel",
+        "name": "San Miguel",
+        "municipality": "Manolo Fortich",
+        "lat": 8.39,
+        "lon": 124.83
+      },
+      {
+        "id": "sankanan",
+        "name": "Sankanan",
+        "municipality": "Manolo Fortich",
+        "lat": 8.32,
+        "lon": 124.86
+      },
+      {
+        "id": "santiago",
+        "name": "Santiago",
+        "municipality": "Manolo Fortich",
+        "lat": 8.44,
+        "lon": 124.99
+      },
+      {
+        "id": "santo-nino",
+        "name": "Santo Niño",
+        "municipality": "Manolo Fortich",
+        "lat": 8.4,
+        "lon": 124.85
+      },
+      {
+        "id": "tankulan",
+        "name": "Tankulan",
+        "municipality": "Manolo Fortich",
+        "label": "Manolo Fortich",
+        "lat": 8.37,
+        "lon": 124.86
+      },
+      {
+        "id": "ticala",
+        "name": "Ticala",
+        "municipality": "Manolo Fortich",
+        "lat": 8.34,
+        "lon": 124.89
+      },
+      {
+        "id": "lingi-on",
+        "name": "Lingi-on",
+        "municipality": "Talakag",
+        "lat": 8.19,
+        "lon": 124.61
+      },
+      {
+        "id": "balubal",
+        "name": "Balubal",
+        "lat": 8.27,
+        "lon": 124.78
+      },
+      {
+        "id": "1001301001",
+        "name": "Balintad",
+        "municipality": "Baungon",
+        "lat": 8.249799,
+        "lon": 124.702896
+      },
+      {
+        "id": "1001301002",
+        "name": "Buenavista",
+        "municipality": "Baungon",
+        "lat": 8.290431,
+        "lon": 124.670517
+      },
+      {
+        "id": "1001301003",
+        "name": "Danatag",
+        "municipality": "Baungon",
+        "lat": 8.301558,
+        "lon": 124.620601
+      },
+      {
+        "id": "1001301012",
+        "name": "Imbatug",
+        "municipality": "Baungon",
+        "lat": 8.319907,
+        "lon": 124.682037
+      },
+      {
+        "id": "1001301004",
+        "name": "Kalilangan",
+        "municipality": "Baungon",
+        "lat": 8.224374,
+        "lon": 124.67862
+      },
+      {
+        "id": "1001301005",
+        "name": "Lacolac",
+        "municipality": "Baungon",
+        "lat": 8.203652,
+        "lon": 124.658937
+      },
+      {
+        "id": "1001301006",
+        "name": "Langaon",
+        "municipality": "Baungon",
+        "lat": 8.258095,
+        "lon": 124.618025
+      },
+      {
+        "id": "1001301007",
+        "name": "Liboran",
+        "municipality": "Baungon",
+        "lat": 8.363812,
+        "lon": 124.648587
+      },
+      {
+        "id": "1001301008",
+        "name": "Lingating",
+        "municipality": "Baungon",
+        "lat": 8.326785,
+        "lon": 124.639668
+      },
+      {
+        "id": "1001301009",
+        "name": "Mabuhay",
+        "municipality": "Baungon",
+        "lat": 8.250689,
+        "lon": 124.690008
+      },
+      {
+        "id": "1001301010",
+        "name": "Mabunga",
+        "municipality": "Baungon",
+        "lat": 8.271324,
+        "lon": 124.702075
+      },
+      {
+        "id": "1001301011",
+        "name": "Nicdao",
+        "municipality": "Baungon",
+        "lat": 8.382543,
+        "lon": 124.622862
+      },
+      {
+        "id": "1001301013",
+        "name": "Pualas",
+        "municipality": "Baungon",
+        "lat": 8.40365,
+        "lon": 124.643727
+      },
+      {
+        "id": "1001301014",
+        "name": "Salimbalan",
+        "municipality": "Baungon",
+        "lat": 8.273784,
+        "lon": 124.718578
+      },
+      {
+        "id": "1001301016",
+        "name": "San Miguel",
+        "municipality": "Baungon",
+        "lat": 8.262896,
+        "lon": 124.655027
+      },
+      {
+        "id": "1001301015",
+        "name": "San Vicente",
+        "municipality": "Baungon",
+        "lat": 8.186313,
+        "lon": 124.784391
+      },
+      {
+        "id": "1001322009",
+        "name": "Anlogan",
+        "municipality": "Cabanglasan",
+        "lat": 8.046912,
+        "lon": 125.31104
+      },
+      {
+        "id": "1001322001",
+        "name": "Cabulohan",
+        "municipality": "Cabanglasan",
+        "lat": 8.025714,
+        "lon": 125.291843
+      },
+      {
+        "id": "1001322002",
+        "name": "Canangaan",
+        "municipality": "Cabanglasan",
+        "lat": 8.087141,
+        "lon": 125.378696
+      },
+      {
+        "id": "1001322010",
+        "name": "Capinonan",
+        "municipality": "Cabanglasan",
+        "lat": 8.083351,
+        "lon": 125.259183
+      },
+      {
+        "id": "1001322011",
+        "name": "Dalacutan",
+        "municipality": "Cabanglasan",
+        "lat": 8.135881,
+        "lon": 125.273303
+      },
+      {
+        "id": "1001322012",
+        "name": "Freedom",
+        "municipality": "Cabanglasan",
+        "lat": 8.119719,
+        "lon": 125.249997
+      },
+      {
+        "id": "1001322003",
+        "name": "Iba",
+        "municipality": "Cabanglasan",
+        "lat": 8.116806,
+        "lon": 125.357089
+      },
+      {
+        "id": "1001322004",
+        "name": "Imbatug",
+        "municipality": "Cabanglasan",
+        "lat": 8.019211,
+        "lon": 125.277569
+      },
+      {
+        "id": "1001322015",
+        "name": "Jasaan",
+        "municipality": "Cabanglasan",
+        "lat": 7.98223,
+        "lon": 125.296583
+      },
+      {
+        "id": "1001322005",
+        "name": "Lambangan",
+        "municipality": "Cabanglasan",
+        "lat": 8.060159,
+        "lon": 125.264379
+      },
+      {
+        "id": "1001322013",
+        "name": "Mandahikan",
+        "municipality": "Cabanglasan",
+        "lat": 8.052563,
+        "lon": 125.362473
+      },
+      {
+        "id": "1001322006",
+        "name": "Mandaing",
+        "municipality": "Cabanglasan",
+        "lat": 8.05206,
+        "lon": 125.293051
+      },
+      {
+        "id": "1001322014",
+        "name": "Mauswagon",
+        "municipality": "Cabanglasan",
+        "lat": 8.104455,
+        "lon": 125.258538
+      },
+      {
+        "id": "1001322007",
+        "name": "Paradise",
+        "municipality": "Cabanglasan",
+        "lat": 8.014683,
+        "lon": 125.34129
+      },
+      {
+        "id": "1001322008",
+        "name": "Poblacion",
+        "municipality": "Cabanglasan",
+        "lat": 8.107427,
+        "lon": 125.299489
+      },
+      {
+        "id": "1001302001",
+        "name": "Aludas",
+        "municipality": "Damulog",
+        "lat": 7.457291,
+        "lon": 124.954275
+      },
+      {
+        "id": "1001302002",
+        "name": "Angga-an",
+        "municipality": "Damulog",
+        "lat": 7.423776,
+        "lon": 124.95371
+      },
+      {
+        "id": "1001302004",
+        "name": "Kinapat",
+        "municipality": "Damulog",
+        "lat": 7.472516,
+        "lon": 124.957442
+      },
+      {
+        "id": "1001302005",
+        "name": "Kiraon",
+        "municipality": "Damulog",
+        "lat": 7.474436,
+        "lon": 124.978513
+      },
+      {
+        "id": "1001302006",
+        "name": "Kitingting",
+        "municipality": "Damulog",
+        "lat": 7.447617,
+        "lon": 124.945944
+      },
+      {
+        "id": "1001302007",
+        "name": "Lagandang",
+        "municipality": "Damulog",
+        "lat": 7.447489,
+        "lon": 124.993676
+      },
+      {
+        "id": "1001302008",
+        "name": "Macapari",
+        "municipality": "Damulog",
+        "lat": 7.46188,
+        "lon": 124.89557
+      },
+      {
+        "id": "1001302009",
+        "name": "Maican",
+        "municipality": "Damulog",
+        "lat": 7.484099,
+        "lon": 124.914734
+      },
+      {
+        "id": "1001302010",
+        "name": "Migcawayan",
+        "municipality": "Damulog",
+        "lat": 7.478345,
+        "lon": 125.004286
+      },
+      {
+        "id": "1001302011",
+        "name": "New Compostela",
+        "municipality": "Damulog",
+        "lat": 7.503502,
+        "lon": 124.925745
+      },
+      {
+        "id": "1001302013",
+        "name": "Old Damulog",
+        "municipality": "Damulog",
+        "lat": 7.493956,
+        "lon": 124.963739
+      },
+      {
+        "id": "1001302014",
+        "name": "Omonay",
+        "municipality": "Damulog",
+        "lat": 7.433763,
+        "lon": 124.898904
+      },
+      {
+        "id": "1001302015",
+        "name": "Poblacion",
+        "municipality": "Damulog",
+        "lat": 7.483398,
+        "lon": 124.939601
+      },
+      {
+        "id": "1001302016",
+        "name": "Pocopoco",
+        "municipality": "Damulog",
+        "lat": 7.468791,
+        "lon": 124.928985
+      },
+      {
+        "id": "1001302017",
+        "name": "Sampagar",
+        "municipality": "Damulog",
+        "lat": 7.51459,
+        "lon": 124.957952
+      },
+      {
+        "id": "1001302019",
+        "name": "San Isidro",
+        "municipality": "Damulog",
+        "lat": 7.449174,
+        "lon": 124.919493
+      },
+      {
+        "id": "1001302003",
+        "name": "Tangkulan",
+        "municipality": "Damulog",
+        "lat": 7.420143,
+        "lon": 125.007668
+      },
+      {
+        "id": "1001303001",
+        "name": "Barongcot",
+        "municipality": "Dangcagan",
+        "lat": 7.582177,
+        "lon": 125.004065
+      },
+      {
+        "id": "1001303002",
+        "name": "Bugwak",
+        "municipality": "Dangcagan",
+        "lat": 7.60354,
+        "lon": 124.956686
+      },
+      {
+        "id": "1001303003",
+        "name": "Dolorosa",
+        "municipality": "Dangcagan",
+        "lat": 7.554038,
+        "lon": 125.052173
+      },
+      {
+        "id": "1001303004",
+        "name": "Kapalaran",
+        "municipality": "Dangcagan",
+        "lat": 7.621951,
+        "lon": 124.960567
+      },
+      {
+        "id": "1001303005",
+        "name": "Kianggat",
+        "municipality": "Dangcagan",
+        "lat": 7.604398,
+        "lon": 125.03574
+      },
+      {
+        "id": "1001303006",
+        "name": "Lourdes",
+        "municipality": "Dangcagan",
+        "lat": 7.620805,
+        "lon": 125.007668
+      },
+      {
+        "id": "1001303007",
+        "name": "Macarthur",
+        "municipality": "Dangcagan",
+        "lat": 7.617249,
+        "lon": 125.041744
+      },
+      {
+        "id": "1001303008",
+        "name": "Miaray",
+        "municipality": "Dangcagan",
+        "lat": 7.578991,
+        "lon": 125.042439
+      },
+      {
+        "id": "1001303009",
+        "name": "Migcuya",
+        "municipality": "Dangcagan",
+        "lat": 7.565764,
+        "lon": 125.029244
+      },
+      {
+        "id": "1001303010",
+        "name": "New Visayas",
+        "municipality": "Dangcagan",
+        "lat": 7.593028,
+        "lon": 124.980704
+      },
+      {
+        "id": "1001303011",
+        "name": "Osmeña",
+        "municipality": "Dangcagan",
+        "lat": 7.619029,
+        "lon": 124.983863
+      },
+      {
+        "id": "1001303012",
+        "name": "Poblacion",
+        "municipality": "Dangcagan",
+        "lat": 7.602403,
+        "lon": 125.010149
+      },
+      {
+        "id": "1001303013",
+        "name": "Sagbayan",
+        "municipality": "Dangcagan",
+        "lat": 7.603681,
+        "lon": 124.988042
+      },
+      {
+        "id": "1001303014",
+        "name": "San Vicente",
+        "municipality": "Dangcagan",
+        "lat": 7.603737,
+        "lon": 125.055631
+      },
+      {
+        "id": "1001304030",
+        "name": "Bismartz",
+        "municipality": "Don Carlos",
+        "lat": 7.697516,
+        "lon": 124.880131
+      },
+      {
+        "id": "1001304002",
+        "name": "Bocboc",
+        "municipality": "Don Carlos",
+        "lat": 7.63946,
+        "lon": 124.903298
+      },
+      {
+        "id": "1001304003",
+        "name": "Buyot",
+        "municipality": "Don Carlos",
+        "lat": 7.72713,
+        "lon": 124.864953
+      },
+      {
+        "id": "1001304001",
+        "name": "Cabadiangan",
+        "municipality": "Don Carlos",
+        "lat": 7.667716,
+        "lon": 124.918849
+      },
+      {
+        "id": "1001304004",
+        "name": "Calaocalao",
+        "municipality": "Don Carlos",
+        "lat": 7.688281,
+        "lon": 124.926883
+      },
+      {
+        "id": "1001304005",
+        "name": "Don Carlos Norte",
+        "municipality": "Don Carlos",
+        "lat": 7.687092,
+        "lon": 124.994975
+      },
+      {
+        "id": "1001304022",
+        "name": "Don Carlos Sur",
+        "municipality": "Don Carlos",
+        "lat": 7.676147,
+        "lon": 124.992928
+      },
+      {
+        "id": "1001304006",
+        "name": "Embayao",
+        "municipality": "Don Carlos",
+        "lat": 7.755525,
+        "lon": 124.887824
+      },
+      {
+        "id": "1001304008",
+        "name": "Kalubihon",
+        "municipality": "Don Carlos",
+        "lat": 7.664705,
+        "lon": 124.900766
+      },
+      {
+        "id": "1001304009",
+        "name": "Kasigkot",
+        "municipality": "Don Carlos",
+        "lat": 7.735154,
+        "lon": 124.895659
+      },
+      {
+        "id": "1001304010",
+        "name": "Kawilihan",
+        "municipality": "Don Carlos",
+        "lat": 7.659993,
+        "lon": 124.85313
+      },
+      {
+        "id": "1001304011",
+        "name": "Kiara",
+        "municipality": "Don Carlos",
+        "lat": 7.650105,
+        "lon": 124.879254
+      },
+      {
+        "id": "1001304012",
+        "name": "Kibatang",
+        "municipality": "Don Carlos",
+        "lat": 7.685089,
+        "lon": 125.037133
+      },
+      {
+        "id": "1001304013",
+        "name": "Mahayahay",
+        "municipality": "Don Carlos",
+        "lat": 7.70803,
+        "lon": 124.850697
+      },
+      {
+        "id": "1001304014",
+        "name": "Manlamonay",
+        "municipality": "Don Carlos",
+        "lat": 7.670483,
+        "lon": 125.016716
+      },
+      {
+        "id": "1001304015",
+        "name": "Maraymaray",
+        "municipality": "Don Carlos",
+        "lat": 7.718397,
+        "lon": 124.939783
+      },
+      {
+        "id": "1001304016",
+        "name": "Mauswagon",
+        "municipality": "Don Carlos",
+        "lat": 7.67994,
+        "lon": 124.840304
+      },
+      {
+        "id": "1001304017",
+        "name": "Minsalagan",
+        "municipality": "Don Carlos",
+        "lat": 7.69003,
+        "lon": 125.015054
+      },
+      {
+        "id": "1001304018",
+        "name": "New Nongnongan",
+        "municipality": "Don Carlos",
+        "lat": 7.686748,
+        "lon": 124.899666
+      },
+      {
+        "id": "1001304019",
+        "name": "New Visayas",
+        "municipality": "Don Carlos",
+        "lat": 7.637517,
+        "lon": 124.926981
+      },
+      {
+        "id": "1001304020",
+        "name": "Old Nongnongan",
+        "municipality": "Don Carlos",
+        "lat": 7.708696,
+        "lon": 124.908512
+      },
+      {
+        "id": "1001304021",
+        "name": "Pinamaloy",
+        "municipality": "Don Carlos",
+        "lat": 7.660132,
+        "lon": 124.988446
+      },
+      {
+        "id": "1001304023",
+        "name": "Pualas",
+        "municipality": "Don Carlos",
+        "lat": 7.720325,
+        "lon": 124.885626
+      },
+      {
+        "id": "1001304024",
+        "name": "San Antonio East",
+        "municipality": "Don Carlos",
+        "lat": 7.667714,
+        "lon": 125.042185
+      },
+      {
+        "id": "1001304025",
+        "name": "San Antonio West",
+        "municipality": "Don Carlos",
+        "lat": 7.682725,
+        "lon": 124.864734
+      },
+      {
+        "id": "1001304026",
+        "name": "San Francisco",
+        "municipality": "Don Carlos",
+        "lat": 7.651803,
+        "lon": 124.922589
+      },
+      {
+        "id": "1001304027",
+        "name": "San Nicolas",
+        "municipality": "Don Carlos",
+        "lat": 7.684907,
+        "lon": 124.967576
+      },
+      {
+        "id": "1001304028",
+        "name": "San Roque",
+        "municipality": "Don Carlos",
+        "lat": 7.751239,
+        "lon": 124.868072
+      },
+      {
+        "id": "1001304029",
+        "name": "Sinangguyan",
+        "municipality": "Don Carlos",
+        "lat": 7.710638,
+        "lon": 124.986366
+      },
+      {
+        "id": "1001305001",
+        "name": "Bontongon",
+        "municipality": "Impasug-ong",
+        "lat": 8.338262,
+        "lon": 125.118554
+      },
+      {
+        "id": "1001305002",
+        "name": "Bulonay",
+        "municipality": "Impasug-ong",
+        "lat": 8.363018,
+        "lon": 125.227595
+      },
+      {
+        "id": "1001305003",
+        "name": "Capitan Bayong",
+        "municipality": "Impasug-ong",
+        "lat": 8.291754,
+        "lon": 125.024841
+      },
+      {
+        "id": "1001305004",
+        "name": "Cawayan",
+        "municipality": "Impasug-ong",
+        "lat": 8.234099,
+        "lon": 124.997023
+      },
+      {
+        "id": "1001305005",
+        "name": "Dumalaguing",
+        "municipality": "Impasug-ong",
+        "lat": 8.359926,
+        "lon": 125.07137
+      },
+      {
+        "id": "1001305006",
+        "name": "Guihean",
+        "municipality": "Impasug-ong",
+        "lat": 8.426735,
+        "lon": 125.068745
+      },
+      {
+        "id": "1001305007",
+        "name": "Hagpa",
+        "municipality": "Impasug-ong",
+        "lat": 8.533895,
+        "lon": 125.161535
+      },
+      {
+        "id": "1001305008",
+        "name": "Impalutao",
+        "municipality": "Impasug-ong",
+        "lat": 8.246744,
+        "lon": 125.043114
+      },
+      {
+        "id": "1001305010",
+        "name": "Kalabugao",
+        "municipality": "Impasug-ong",
+        "lat": 8.454097,
+        "lon": 125.184814
+      },
+      {
+        "id": "1001305011",
+        "name": "Kibenton",
+        "municipality": "Impasug-ong",
+        "lat": 8.182226,
+        "lon": 124.971924
+      },
+      {
+        "id": "1001305012",
+        "name": "La Fortuna",
+        "municipality": "Impasug-ong",
+        "lat": 8.220595,
+        "lon": 124.961838
+      },
+      {
+        "id": "1001305013",
+        "name": "Poblacion",
+        "municipality": "Impasug-ong",
+        "lat": 8.310189,
+        "lon": 124.997451
+      },
+      {
+        "id": "1001305015",
+        "name": "Sayawan",
+        "municipality": "Impasug-ong",
+        "lat": 8.383116,
+        "lon": 125.034059
+      },
+      {
+        "id": "1001306001",
+        "name": "Bagongbayan",
+        "municipality": "Kadingilan",
+        "lat": 7.458207,
+        "lon": 124.856497
+      },
+      {
+        "id": "1001306002",
+        "name": "Bagor",
+        "municipality": "Kadingilan",
+        "lat": 7.563188,
+        "lon": 124.889813
+      },
+      {
+        "id": "1001306003",
+        "name": "Balaoro",
+        "municipality": "Kadingilan",
+        "lat": 7.508079,
+        "lon": 124.894944
+      },
+      {
+        "id": "1001306004",
+        "name": "Baroy",
+        "municipality": "Kadingilan",
+        "lat": 7.620279,
+        "lon": 124.883998
+      },
+      {
+        "id": "1001306005",
+        "name": "Cabadiangan",
+        "municipality": "Kadingilan",
+        "lat": 7.506908,
+        "lon": 124.840395
+      },
+      {
+        "id": "1001306006",
+        "name": "Husayan",
+        "municipality": "Kadingilan",
+        "lat": 7.606563,
+        "lon": 124.937924
+      },
+      {
+        "id": "1001306007",
+        "name": "Kibalagon",
+        "municipality": "Kadingilan",
+        "lat": 7.544035,
+        "lon": 124.841282
+      },
+      {
+        "id": "1001306017",
+        "name": "Kibogtok",
+        "municipality": "Kadingilan",
+        "lat": 7.577083,
+        "lon": 124.876569
+      },
+      {
+        "id": "1001306008",
+        "name": "Mabuhay",
+        "municipality": "Kadingilan",
+        "lat": 7.523223,
+        "lon": 124.867295
+      },
+      {
+        "id": "1001306009",
+        "name": "Malinao",
+        "municipality": "Kadingilan",
+        "lat": 7.591606,
+        "lon": 124.929163
+      },
+      {
+        "id": "1001306010",
+        "name": "Matampay",
+        "municipality": "Kadingilan",
+        "lat": 7.516113,
+        "lon": 124.816202
+      },
+      {
+        "id": "1001306012",
+        "name": "Pay-as",
+        "municipality": "Kadingilan",
+        "lat": 7.579001,
+        "lon": 124.910816
+      },
+      {
+        "id": "1001306013",
+        "name": "Pinamanguhan",
+        "municipality": "Kadingilan",
+        "lat": 7.481418,
+        "lon": 124.868097
+      },
+      {
+        "id": "1001306014",
+        "name": "Poblacion",
+        "municipality": "Kadingilan",
+        "lat": 7.605177,
+        "lon": 124.904942
+      },
+      {
+        "id": "1001306015",
+        "name": "Salvacion",
+        "municipality": "Kadingilan",
+        "lat": 7.620539,
+        "lon": 124.929168
+      },
+      {
+        "id": "1001306016",
+        "name": "San Andres",
+        "municipality": "Kadingilan",
+        "lat": 7.540255,
+        "lon": 124.882217
+      },
+      {
+        "id": "1001306011",
+        "name": "Sibonga",
+        "municipality": "Kadingilan",
+        "lat": 7.602198,
+        "lon": 124.872806
+      },
+      {
+        "id": "1001307002",
+        "name": "Baborawon",
+        "municipality": "Kalilangan",
+        "lat": 7.830331,
+        "lon": 124.737959
+      },
+      {
+        "id": "1001307001",
+        "name": "Bangbang",
+        "municipality": "Kalilangan",
+        "lat": 7.799567,
+        "lon": 124.76256
+      },
+      {
+        "id": "1001307003",
+        "name": "Canituan",
+        "municipality": "Kalilangan",
+        "lat": 7.779673,
+        "lon": 124.731179
+      },
+      {
+        "id": "1001307004",
+        "name": "Kibaning",
+        "municipality": "Kalilangan",
+        "lat": 7.798675,
+        "lon": 124.737283
+      },
+      {
+        "id": "1001307005",
+        "name": "Kinura",
+        "municipality": "Kalilangan",
+        "lat": 7.773557,
+        "lon": 124.763341
+      },
+      {
+        "id": "1001307006",
+        "name": "Lampanusan",
+        "municipality": "Kalilangan",
+        "lat": 7.655266,
+        "lon": 124.780638
+      },
+      {
+        "id": "1001307007",
+        "name": "Maca-opao",
+        "municipality": "Kalilangan",
+        "lat": 7.706587,
+        "lon": 124.74929
+      },
+      {
+        "id": "1001307008",
+        "name": "Malinao",
+        "municipality": "Kalilangan",
+        "lat": 7.822912,
+        "lon": 124.69887
+      },
+      {
+        "id": "1001307013",
+        "name": "Ninoy Aquino",
+        "municipality": "Kalilangan",
+        "lat": 7.744296,
+        "lon": 124.770682
+      },
+      {
+        "id": "1001307009",
+        "name": "Pamotolon",
+        "municipality": "Kalilangan",
+        "lat": 7.75402,
+        "lon": 124.72584
+      },
+      {
+        "id": "1001307010",
+        "name": "Poblacion",
+        "municipality": "Kalilangan",
+        "lat": 7.742579,
+        "lon": 124.74808
+      },
+      {
+        "id": "1001307012",
+        "name": "Public",
+        "municipality": "Kalilangan",
+        "lat": 7.701756,
+        "lon": 124.780406
+      },
+      {
+        "id": "1001307014",
+        "name": "San Vicente Ferrer",
+        "municipality": "Kalilangan",
+        "lat": 7.867592,
+        "lon": 124.665211
+      },
+      {
+        "id": "1001307015",
+        "name": "West Poblacion",
+        "municipality": "Kalilangan",
+        "lat": 7.753188,
+        "lon": 124.740034
+      },
+      {
+        "id": "1001308003",
+        "name": "Balintawak",
+        "municipality": "Kibawe",
+        "lat": 7.528154,
+        "lon": 125.005317
+      },
+      {
+        "id": "1001308036",
+        "name": "Bukang Liwayway",
+        "municipality": "Kibawe",
+        "lat": 7.491722,
+        "lon": 125.025413
+      },
+      {
+        "id": "1001308006",
+        "name": "Cagawasan",
+        "municipality": "Kibawe",
+        "lat": 7.496637,
+        "lon": 125.041334
+      },
+      {
+        "id": "1001308007",
+        "name": "East Kibawe",
+        "municipality": "Kibawe",
+        "lat": 7.560817,
+        "lon": 124.987832
+      },
+      {
+        "id": "1001308008",
+        "name": "Gutapol",
+        "municipality": "Kibawe",
+        "lat": 7.552086,
+        "lon": 124.943204
+      },
+      {
+        "id": "1001308013",
+        "name": "Kiorao",
+        "municipality": "Kibawe",
+        "lat": 7.528852,
+        "lon": 124.922864
+      },
+      {
+        "id": "1001308014",
+        "name": "Kisawa",
+        "municipality": "Kibawe",
+        "lat": 7.464906,
+        "lon": 125.078178
+      },
+      {
+        "id": "1001308015",
+        "name": "Labuagon",
+        "municipality": "Kibawe",
+        "lat": 7.550092,
+        "lon": 124.968009
+      },
+      {
+        "id": "1001308016",
+        "name": "Magsaysay",
+        "municipality": "Kibawe",
+        "lat": 7.517669,
+        "lon": 125.063267
+      },
+      {
+        "id": "1001308018",
+        "name": "Marapangi",
+        "municipality": "Kibawe",
+        "lat": 7.532283,
+        "lon": 124.987485
+      },
+      {
+        "id": "1001308019",
+        "name": "Mascariñas",
+        "municipality": "Kibawe",
+        "lat": 7.467907,
+        "lon": 125.024746
+      },
+      {
+        "id": "1001308020",
+        "name": "Natulongan",
+        "municipality": "Kibawe",
+        "lat": 7.521739,
+        "lon": 125.025784
+      },
+      {
+        "id": "1001308021",
+        "name": "New Kidapawan",
+        "municipality": "Kibawe",
+        "lat": 7.555786,
+        "lon": 124.922111
+      },
+      {
+        "id": "1001308023",
+        "name": "Old Kibawe",
+        "municipality": "Kibawe",
+        "lat": 7.576642,
+        "lon": 124.96785
+      },
+      {
+        "id": "1001308037",
+        "name": "Palma",
+        "municipality": "Kibawe",
+        "lat": 7.573692,
+        "lon": 124.994601
+      },
+      {
+        "id": "1001308011",
+        "name": "Pinamula",
+        "municipality": "Kibawe",
+        "lat": 7.454562,
+        "lon": 125.057469
+      },
+      {
+        "id": "1001308028",
+        "name": "Romagooc",
+        "municipality": "Kibawe",
+        "lat": 7.58439,
+        "lon": 124.947568
+      },
+      {
+        "id": "1001308030",
+        "name": "Sampaguita",
+        "municipality": "Kibawe",
+        "lat": 7.495361,
+        "lon": 125.069396
+      },
+      {
+        "id": "1001308031",
+        "name": "Sanipon",
+        "municipality": "Kibawe",
+        "lat": 7.458175,
+        "lon": 125.041187
+      },
+      {
+        "id": "1001308032",
+        "name": "Spring",
+        "municipality": "Kibawe",
+        "lat": 7.534324,
+        "lon": 124.957818
+      },
+      {
+        "id": "1001308033",
+        "name": "Talahiron",
+        "municipality": "Kibawe",
+        "lat": 7.550988,
+        "lon": 125.020507
+      },
+      {
+        "id": "1001308034",
+        "name": "Tumaras",
+        "municipality": "Kibawe",
+        "lat": 7.491051,
+        "lon": 125.011913
+      },
+      {
+        "id": "1001308035",
+        "name": "West Kibawe",
+        "municipality": "Kibawe",
+        "lat": 7.575002,
+        "lon": 124.983119
+      },
+      {
+        "id": "1001309001",
+        "name": "Balangigay",
+        "municipality": "Kitaotao",
+        "lat": 7.607837,
+        "lon": 125.086201
+      },
+      {
+        "id": "1001309002",
+        "name": "Balukbukan",
+        "municipality": "Kitaotao",
+        "lat": 7.561366,
+        "lon": 125.07585
+      },
+      {
+        "id": "1001309003",
+        "name": "Bershiba",
+        "municipality": "Kitaotao",
+        "lat": 7.671589,
+        "lon": 124.940896
+      },
+      {
+        "id": "1001309039",
+        "name": "Binoongan",
+        "municipality": "Kitaotao",
+        "lat": 7.48505,
+        "lon": 125.145085
+      },
+      {
+        "id": "1001309004",
+        "name": "Bobong",
+        "municipality": "Kitaotao",
+        "lat": 7.648564,
+        "lon": 124.943731
+      },
+      {
+        "id": "1001309005",
+        "name": "Bolocaon",
+        "municipality": "Kitaotao",
+        "lat": 7.637344,
+        "lon": 125.024143
+      },
+      {
+        "id": "1001309006",
+        "name": "Cabalantian",
+        "municipality": "Kitaotao",
+        "lat": 7.467757,
+        "lon": 125.097418
+      },
+      {
+        "id": "1001309007",
+        "name": "Calapaton",
+        "municipality": "Kitaotao",
+        "lat": 7.504243,
+        "lon": 125.101547
+      },
+      {
+        "id": "1001309037",
+        "name": "Digongan",
+        "municipality": "Kitaotao",
+        "lat": 7.605893,
+        "lon": 125.291461
+      },
+      {
+        "id": "1001309041",
+        "name": "East Dalurong",
+        "municipality": "Kitaotao",
+        "lat": 7.599867,
+        "lon": 125.126895
+      },
+      {
+        "id": "1001309010",
+        "name": "Kahusayan",
+        "municipality": "Kitaotao",
+        "lat": 7.597273,
+        "lon": 125.231248
+      },
+      {
+        "id": "1001309011",
+        "name": "Kalumihan",
+        "municipality": "Kitaotao",
+        "lat": 7.643087,
+        "lon": 124.990337
+      },
+      {
+        "id": "1001309012",
+        "name": "Kauyonan",
+        "municipality": "Kitaotao",
+        "lat": 7.65074,
+        "lon": 124.965211
+      },
+      {
+        "id": "1001309013",
+        "name": "Kimolong",
+        "municipality": "Kitaotao",
+        "lat": 7.63637,
+        "lon": 125.041088
+      },
+      {
+        "id": "1001309040",
+        "name": "Kipilas",
+        "municipality": "Kitaotao",
+        "lat": 7.519916,
+        "lon": 125.233239
+      },
+      {
+        "id": "1001309014",
+        "name": "Kitaihon",
+        "municipality": "Kitaotao",
+        "lat": 7.625163,
+        "lon": 125.039912
+      },
+      {
+        "id": "1001309015",
+        "name": "Kitobo",
+        "municipality": "Kitaotao",
+        "lat": 7.570806,
+        "lon": 125.10259
+      },
+      {
+        "id": "1001309038",
+        "name": "Kiulom",
+        "municipality": "Kitaotao",
+        "lat": 7.516157,
+        "lon": 125.243857
+      },
+      {
+        "id": "1001309019",
+        "name": "Magsaysay",
+        "municipality": "Kitaotao",
+        "lat": 7.626239,
+        "lon": 125.012276
+      },
+      {
+        "id": "1001309020",
+        "name": "Malobalo",
+        "municipality": "Kitaotao",
+        "lat": 7.646002,
+        "lon": 124.978611
+      },
+      {
+        "id": "1001309021",
+        "name": "Metebagao",
+        "municipality": "Kitaotao",
+        "lat": 7.534631,
+        "lon": 125.075658
+      },
+      {
+        "id": "1001309035",
+        "name": "Napalico",
+        "municipality": "Kitaotao",
+        "lat": 7.51229,
+        "lon": 125.189427
+      },
+      {
+        "id": "1001309023",
+        "name": "Pagan",
+        "municipality": "Kitaotao",
+        "lat": 7.543138,
+        "lon": 125.116079
+      },
+      {
+        "id": "1001309025",
+        "name": "Panganan",
+        "municipality": "Kitaotao",
+        "lat": 7.574885,
+        "lon": 125.297687
+      },
+      {
+        "id": "1001309026",
+        "name": "Poblacion",
+        "municipality": "Kitaotao",
+        "lat": 7.639966,
+        "lon": 125.006411
+      },
+      {
+        "id": "1001309022",
+        "name": "Sagundanon",
+        "municipality": "Kitaotao",
+        "lat": 7.524509,
+        "lon": 125.160943
+      },
+      {
+        "id": "1001309028",
+        "name": "San Isidro",
+        "municipality": "Kitaotao",
+        "lat": 7.653663,
+        "lon": 125.034429
+      },
+      {
+        "id": "1001309029",
+        "name": "San Lorenzo",
+        "municipality": "Kitaotao",
+        "lat": 7.617993,
+        "lon": 125.069926
+      },
+      {
+        "id": "1001309009",
+        "name": "Sinaysayan",
+        "municipality": "Kitaotao",
+        "lat": 7.561017,
+        "lon": 125.160364
+      },
+      {
+        "id": "1001309031",
+        "name": "Sinuda",
+        "municipality": "Kitaotao",
+        "lat": 7.557119,
+        "lon": 125.223566
+      },
+      {
+        "id": "1001309030",
+        "name": "Sto. Rosario",
+        "municipality": "Kitaotao",
+        "lat": 7.633506,
+        "lon": 124.976946
+      },
+      {
+        "id": "1001309032",
+        "name": "Tandong",
+        "municipality": "Kitaotao",
+        "lat": 7.589132,
+        "lon": 125.074378
+      },
+      {
+        "id": "1001309033",
+        "name": "Tawas",
+        "municipality": "Kitaotao",
+        "lat": 7.527574,
+        "lon": 125.195827
+      },
+      {
+        "id": "1001309042",
+        "name": "West Dalurong",
+        "municipality": "Kitaotao",
+        "lat": 7.57798,
+        "lon": 125.137247
+      },
+      {
+        "id": "1001309034",
+        "name": "White Kulaman",
+        "municipality": "Kitaotao",
+        "lat": 7.499166,
+        "lon": 125.128045
+      },
+      {
+        "id": "1001310001",
+        "name": "Alanib",
+        "municipality": "Lantapan",
+        "lat": 8.029828,
+        "lon": 124.976254
+      },
+      {
+        "id": "1001310002",
+        "name": "Baclayon",
+        "municipality": "Lantapan",
+        "lat": 8.019384,
+        "lon": 125.007593
+      },
+      {
+        "id": "1001310003",
+        "name": "Balila",
+        "municipality": "Lantapan",
+        "lat": 8.003438,
+        "lon": 125.00995
+      },
+      {
+        "id": "1001310004",
+        "name": "Bantuanon",
+        "municipality": "Lantapan",
+        "lat": 8.019583,
+        "lon": 125.060922
+      },
+      {
+        "id": "1001310005",
+        "name": "Basak",
+        "municipality": "Lantapan",
+        "lat": 8.04542,
+        "lon": 124.870364
+      },
+      {
+        "id": "1001310006",
+        "name": "Bugcaon",
+        "municipality": "Lantapan",
+        "lat": 8.045427,
+        "lon": 125.09526
+      },
+      {
+        "id": "1001310008",
+        "name": "Capitan Juan",
+        "municipality": "Lantapan",
+        "lat": 8.071836,
+        "lon": 125.038957
+      },
+      {
+        "id": "1001310009",
+        "name": "Cawayan",
+        "municipality": "Lantapan",
+        "lat": 8.077289,
+        "lon": 124.930767
+      },
+      {
+        "id": "1001310007",
+        "name": "Ka-atoan",
+        "municipality": "Lantapan",
+        "lat": 8.082756,
+        "lon": 124.991682
+      },
+      {
+        "id": "1001310011",
+        "name": "Kibangay",
+        "municipality": "Lantapan",
+        "lat": 8.088885,
+        "lon": 124.895352
+      },
+      {
+        "id": "1001310010",
+        "name": "Kulasihan",
+        "municipality": "Lantapan",
+        "lat": 8.012655,
+        "lon": 125.094415
+      },
+      {
+        "id": "1001310012",
+        "name": "Poblacion",
+        "municipality": "Lantapan",
+        "lat": 8.005343,
+        "lon": 125.035318
+      },
+      {
+        "id": "1001310013",
+        "name": "Songco",
+        "municipality": "Lantapan",
+        "lat": 8.086311,
+        "lon": 124.94548
+      },
+      {
+        "id": "1001310014",
+        "name": "Victory",
+        "municipality": "Lantapan",
+        "lat": 8.095982,
+        "lon": 124.91537
+      },
+      {
+        "id": "1001311001",
+        "name": "Capihan",
+        "municipality": "Libona",
+        "lat": 8.247847,
+        "lon": 124.771097
+      },
+      {
+        "id": "1001311002",
+        "name": "Crossing",
+        "municipality": "Libona",
+        "lat": 8.326185,
+        "lon": 124.789762
+      },
+      {
+        "id": "1001311003",
+        "name": "Gango",
+        "municipality": "Libona",
+        "lat": 8.402299,
+        "lon": 124.690695
+      },
+      {
+        "id": "1001311004",
+        "name": "Kiliog",
+        "municipality": "Libona",
+        "lat": 8.334071,
+        "lon": 124.701393
+      },
+      {
+        "id": "1001311005",
+        "name": "Kinawe",
+        "municipality": "Libona",
+        "lat": 8.370557,
+        "lon": 124.693001
+      },
+      {
+        "id": "1001311006",
+        "name": "Laturan",
+        "municipality": "Libona",
+        "lat": 8.300898,
+        "lon": 124.771347
+      },
+      {
+        "id": "1001311007",
+        "name": "Maambong",
+        "municipality": "Libona",
+        "lat": 8.265606,
+        "lon": 124.804976
+      },
+      {
+        "id": "1001311008",
+        "name": "Nangka",
+        "municipality": "Libona",
+        "lat": 8.305745,
+        "lon": 124.729614
+      },
+      {
+        "id": "1001311009",
+        "name": "Palabucan",
+        "municipality": "Libona",
+        "lat": 8.40402,
+        "lon": 124.765058
+      },
+      {
+        "id": "1001311010",
+        "name": "Poblacion",
+        "municipality": "Libona",
+        "lat": 8.351189,
+        "lon": 124.737129
+      },
+      {
+        "id": "1001311011",
+        "name": "Pongol",
+        "municipality": "Libona",
+        "lat": 8.274176,
+        "lon": 124.75432
+      },
+      {
+        "id": "1001311012",
+        "name": "San Jose",
+        "municipality": "Libona",
+        "lat": 8.296269,
+        "lon": 124.803727
+      },
+      {
+        "id": "1001311013",
+        "name": "Santa Fe",
+        "municipality": "Libona",
+        "lat": 8.363089,
+        "lon": 124.780253
+      },
+      {
+        "id": "1001311014",
+        "name": "Sil-ipon",
+        "municipality": "Libona",
+        "lat": 8.229154,
+        "lon": 124.825259
+      },
+      {
+        "id": "1001312001",
+        "name": "Aglayan",
+        "municipality": "Malaybalay City",
+        "lat": 8.059214,
+        "lon": 125.120913
+      },
+      {
+        "id": "1001312027",
+        "name": "Apo Macote",
+        "municipality": "Malaybalay City",
+        "lat": 7.971796,
+        "lon": 125.2251
+      },
+      {
+        "id": "1001312002",
+        "name": "Bangcud",
+        "municipality": "Malaybalay City",
+        "lat": 7.9966,
+        "lon": 125.13587
+      },
+      {
+        "id": "1001312038",
+        "name": "Barangay 1",
+        "municipality": "Malaybalay City",
+        "lat": 8.16638,
+        "lon": 125.132297
+      },
+      {
+        "id": "1001312053",
+        "name": "Barangay 10",
+        "municipality": "Malaybalay City",
+        "lat": 8.153505,
+        "lon": 125.102459
+      },
+      {
+        "id": "1001312054",
+        "name": "Barangay 11",
+        "municipality": "Malaybalay City",
+        "lat": 8.144343,
+        "lon": 125.102305
+      },
+      {
+        "id": "1001312045",
+        "name": "Barangay 2",
+        "municipality": "Malaybalay City",
+        "lat": 8.158328,
+        "lon": 125.12549
+      },
+      {
+        "id": "1001312046",
+        "name": "Barangay 3",
+        "municipality": "Malaybalay City",
+        "lat": 8.156379,
+        "lon": 125.123564
+      },
+      {
+        "id": "1001312047",
+        "name": "Barangay 4",
+        "municipality": "Malaybalay City",
+        "lat": 8.153836,
+        "lon": 125.126723
+      },
+      {
+        "id": "1001312048",
+        "name": "Barangay 5",
+        "municipality": "Malaybalay City",
+        "lat": 8.155455,
+        "lon": 125.128061
+      },
+      {
+        "id": "1001312049",
+        "name": "Barangay 6",
+        "municipality": "Malaybalay City",
+        "lat": 8.155254,
+        "lon": 125.13004
+      },
+      {
+        "id": "1001312050",
+        "name": "Barangay 7",
+        "municipality": "Malaybalay City",
+        "lat": 8.149481,
+        "lon": 125.12965
+      },
+      {
+        "id": "1001312051",
+        "name": "Barangay 8",
+        "municipality": "Malaybalay City",
+        "lat": 8.153205,
+        "lon": 125.129878
+      },
+      {
+        "id": "1001312052",
+        "name": "Barangay 9",
+        "municipality": "Malaybalay City",
+        "lat": 8.148417,
+        "lon": 125.141003
+      },
+      {
+        "id": "1001312003",
+        "name": "Busdi",
+        "municipality": "Malaybalay City",
+        "lat": 8.282766,
+        "lon": 125.276387
+      },
+      {
+        "id": "1001312004",
+        "name": "Cabangahan",
+        "municipality": "Malaybalay City",
+        "lat": 8.020938,
+        "lon": 125.136624
+      },
+      {
+        "id": "1001312007",
+        "name": "Caburacanan",
+        "municipality": "Malaybalay City",
+        "lat": 8.210052,
+        "lon": 125.253295
+      },
+      {
+        "id": "1001312009",
+        "name": "Canayan",
+        "municipality": "Malaybalay City",
+        "lat": 8.159504,
+        "lon": 125.197566
+      },
+      {
+        "id": "1001312010",
+        "name": "Capitan Angel",
+        "municipality": "Malaybalay City",
+        "lat": 8.151117,
+        "lon": 125.016264
+      },
+      {
+        "id": "1001312012",
+        "name": "Casisang",
+        "municipality": "Malaybalay City",
+        "lat": 8.124102,
+        "lon": 125.106861
+      },
+      {
+        "id": "1001312014",
+        "name": "Dalwangan",
+        "municipality": "Malaybalay City",
+        "lat": 8.205617,
+        "lon": 125.038392
+      },
+      {
+        "id": "1001312017",
+        "name": "Imbayao",
+        "municipality": "Malaybalay City",
+        "lat": 8.122361,
+        "lon": 125.03188
+      },
+      {
+        "id": "1001312018",
+        "name": "Indalaza",
+        "municipality": "Malaybalay City",
+        "lat": 8.190406,
+        "lon": 125.339225
+      },
+      {
+        "id": "1001312021",
+        "name": "Kabalabag",
+        "municipality": "Malaybalay City",
+        "lat": 8.236156,
+        "lon": 125.174264
+      },
+      {
+        "id": "1001312019",
+        "name": "Kalasungay",
+        "municipality": "Malaybalay City",
+        "lat": 8.184089,
+        "lon": 125.091221
+      },
+      {
+        "id": "1001312022",
+        "name": "Kulaman",
+        "municipality": "Malaybalay City",
+        "lat": 8.240411,
+        "lon": 125.24554
+      },
+      {
+        "id": "1001312023",
+        "name": "Laguitas",
+        "municipality": "Malaybalay City",
+        "lat": 8.084339,
+        "lon": 125.143679
+      },
+      {
+        "id": "1001312026",
+        "name": "Linabo",
+        "municipality": "Malaybalay City",
+        "lat": 8.060962,
+        "lon": 125.168413
+      },
+      {
+        "id": "1001312029",
+        "name": "Magsaysay",
+        "municipality": "Malaybalay City",
+        "lat": 8.088929,
+        "lon": 125.092538
+      },
+      {
+        "id": "1001312030",
+        "name": "Maligaya",
+        "municipality": "Malaybalay City",
+        "lat": 8.059482,
+        "lon": 125.206549
+      },
+      {
+        "id": "1001312031",
+        "name": "Managok",
+        "municipality": "Malaybalay City",
+        "lat": 8.029872,
+        "lon": 125.198708
+      },
+      {
+        "id": "1001312032",
+        "name": "Manalog",
+        "municipality": "Malaybalay City",
+        "lat": 8.281072,
+        "lon": 125.160504
+      },
+      {
+        "id": "1001312034",
+        "name": "Mapayag",
+        "municipality": "Malaybalay City",
+        "lat": 8.093071,
+        "lon": 125.041776
+      },
+      {
+        "id": "1001312035",
+        "name": "Mapulo",
+        "municipality": "Malaybalay City",
+        "lat": 8.18727,
+        "lon": 125.278734
+      },
+      {
+        "id": "1001312028",
+        "name": "Miglamin",
+        "municipality": "Malaybalay City",
+        "lat": 8.032961,
+        "lon": 125.246464
+      },
+      {
+        "id": "1001312025",
+        "name": "Patpat",
+        "municipality": "Malaybalay City",
+        "lat": 8.204345,
+        "lon": 125.075241
+      },
+      {
+        "id": "1001312059",
+        "name": "San Jose",
+        "municipality": "Malaybalay City",
+        "lat": 8.104094,
+        "lon": 125.161073
+      },
+      {
+        "id": "1001312060",
+        "name": "San Martin",
+        "municipality": "Malaybalay City",
+        "lat": 8.007002,
+        "lon": 125.212937
+      },
+      {
+        "id": "1001312062",
+        "name": "Silae",
+        "municipality": "Malaybalay City",
+        "lat": 8.16138,
+        "lon": 125.322392
+      },
+      {
+        "id": "1001312063",
+        "name": "Simaya",
+        "municipality": "Malaybalay City",
+        "lat": 8.004349,
+        "lon": 125.160816
+      },
+      {
+        "id": "1001312064",
+        "name": "Sinanglanan",
+        "municipality": "Malaybalay City",
+        "lat": 7.992236,
+        "lon": 125.224685
+      },
+      {
+        "id": "1001312058",
+        "name": "St. Peter",
+        "municipality": "Malaybalay City",
+        "lat": 8.23682,
+        "lon": 125.305711
+      },
+      {
+        "id": "1001312061",
+        "name": "Sto. Niño",
+        "municipality": "Malaybalay City",
+        "lat": 7.978993,
+        "lon": 125.171527
+      },
+      {
+        "id": "1001312065",
+        "name": "Sumpong",
+        "municipality": "Malaybalay City",
+        "lat": 8.195097,
+        "lon": 125.123426
+      },
+      {
+        "id": "1001312066",
+        "name": "Violeta",
+        "municipality": "Malaybalay City",
+        "lat": 8.032057,
+        "lon": 125.15774
+      },
+      {
+        "id": "1001312067",
+        "name": "Zamboanguita",
+        "municipality": "Malaybalay City",
+        "lat": 8.212485,
+        "lon": 125.326812
+      },
+      {
+        "id": "1001313001",
+        "name": "Kalingking",
+        "municipality": "Malitbog",
+        "lat": 8.514539,
+        "lon": 124.905433
+      },
+      {
+        "id": "1001313002",
+        "name": "Kiabo",
+        "municipality": "Malitbog",
+        "lat": 8.579463,
+        "lon": 124.935782
+      },
+      {
+        "id": "1001313003",
+        "name": "Mindagat",
+        "municipality": "Malitbog",
+        "lat": 8.576222,
+        "lon": 124.8818
+      },
+      {
+        "id": "1001313004",
+        "name": "Omagling",
+        "municipality": "Malitbog",
+        "lat": 8.546671,
+        "lon": 124.915502
+      },
+      {
+        "id": "1001313005",
+        "name": "Patpat",
+        "municipality": "Malitbog",
+        "lat": 8.520158,
+        "lon": 124.874135
+      },
+      {
+        "id": "1001313006",
+        "name": "Poblacion",
+        "municipality": "Malitbog",
+        "lat": 8.545983,
+        "lon": 124.887954
+      },
+      {
+        "id": "1001313007",
+        "name": "Sampiano",
+        "municipality": "Malitbog",
+        "lat": 8.475108,
+        "lon": 124.882833
+      },
+      {
+        "id": "1001313008",
+        "name": "San Luis",
+        "municipality": "Malitbog",
+        "lat": 8.548203,
+        "lon": 125.010487
+      },
+      {
+        "id": "1001313009",
+        "name": "Santa Ines",
+        "municipality": "Malitbog",
+        "lat": 8.52307,
+        "lon": 124.848858
+      },
+      {
+        "id": "1001313010",
+        "name": "Silo-o",
+        "municipality": "Malitbog",
+        "lat": 8.477353,
+        "lon": 124.956177
+      },
+      {
+        "id": "1001313011",
+        "name": "Sumalsag",
+        "municipality": "Malitbog",
+        "lat": 8.554356,
+        "lon": 124.855106
+      },
+      {
+        "id": "1001314013",
+        "name": "Mambatangan",
+        "municipality": "Manolo Fortich",
+        "lat": 8.479313,
+        "lon": 124.803262
+      },
+      {
+        "id": "1001314021",
+        "name": "Sto. Niño",
+        "municipality": "Manolo Fortich",
+        "lat": 8.433482,
+        "lon": 124.865234
+      },
+      {
+        "id": "1001315001",
+        "name": "Anahawon",
+        "municipality": "Maramag",
+        "lat": 7.783647,
+        "lon": 125.005591
+      },
+      {
+        "id": "1001315019",
+        "name": "Bagongsilang",
+        "municipality": "Maramag",
+        "lat": 7.880917,
+        "lon": 124.907192
+      },
+      {
+        "id": "1001315002",
+        "name": "Base Camp",
+        "municipality": "Maramag",
+        "lat": 7.764287,
+        "lon": 124.970278
+      },
+      {
+        "id": "1001315003",
+        "name": "Bayabason",
+        "municipality": "Maramag",
+        "lat": 7.828737,
+        "lon": 125.014082
+      },
+      {
+        "id": "1001315004",
+        "name": "Camp I",
+        "municipality": "Maramag",
+        "lat": 7.722406,
+        "lon": 125.010612
+      },
+      {
+        "id": "1001315005",
+        "name": "Colambugan",
+        "municipality": "Maramag",
+        "lat": 7.811578,
+        "lon": 124.918948
+      },
+      {
+        "id": "1001315006",
+        "name": "Dagumba-an",
+        "municipality": "Maramag",
+        "lat": 7.855891,
+        "lon": 124.933884
+      },
+      {
+        "id": "1001315007",
+        "name": "Danggawan",
+        "municipality": "Maramag",
+        "lat": 7.775939,
+        "lon": 124.906179
+      },
+      {
+        "id": "1001315008",
+        "name": "Dologon",
+        "municipality": "Maramag",
+        "lat": 7.848941,
+        "lon": 125.055174
+      },
+      {
+        "id": "1001315020",
+        "name": "Kiharong",
+        "municipality": "Maramag",
+        "lat": 7.860698,
+        "lon": 124.995341
+      },
+      {
+        "id": "1001315009",
+        "name": "Kisanday",
+        "municipality": "Maramag",
+        "lat": 7.862042,
+        "lon": 125.023576
+      },
+      {
+        "id": "1001315010",
+        "name": "Kuya",
+        "municipality": "Maramag",
+        "lat": 7.810132,
+        "lon": 124.883283
+      },
+      {
+        "id": "1001315011",
+        "name": "La Roxas",
+        "municipality": "Maramag",
+        "lat": 7.863924,
+        "lon": 124.888537
+      },
+      {
+        "id": "1001315014",
+        "name": "North Poblacion",
+        "municipality": "Maramag",
+        "lat": 7.764561,
+        "lon": 125.01279
+      },
+      {
+        "id": "1001315012",
+        "name": "Panadtalan",
+        "municipality": "Maramag",
+        "lat": 7.80258,
+        "lon": 125.013101
+      },
+      {
+        "id": "1001315013",
+        "name": "Panalsalan",
+        "municipality": "Maramag",
+        "lat": 7.862248,
+        "lon": 124.969172
+      },
+      {
+        "id": "1001315016",
+        "name": "San Miguel",
+        "municipality": "Maramag",
+        "lat": 7.783347,
+        "lon": 124.938785
+      },
+      {
+        "id": "1001315017",
+        "name": "San Roque",
+        "municipality": "Maramag",
+        "lat": 7.824148,
+        "lon": 124.981249
+      },
+      {
+        "id": "1001315015",
+        "name": "South Poblacion",
+        "municipality": "Maramag",
+        "lat": 7.747631,
+        "lon": 125.003361
+      },
+      {
+        "id": "1001315018",
+        "name": "Tubigon",
+        "municipality": "Maramag",
+        "lat": 7.83767,
+        "lon": 125.02509
+      },
+      {
+        "id": "1001316001",
+        "name": "Adtuyon",
+        "municipality": "Pangantucan",
+        "lat": 7.804026,
+        "lon": 124.843249
+      },
+      {
+        "id": "1001316002",
+        "name": "Bacusanon",
+        "municipality": "Pangantucan",
+        "lat": 7.89982,
+        "lon": 124.715453
+      },
+      {
+        "id": "1001316003",
+        "name": "Bangahan",
+        "municipality": "Pangantucan",
+        "lat": 7.6867,
+        "lon": 124.809913
+      },
+      {
+        "id": "1001316004",
+        "name": "Barandias",
+        "municipality": "Pangantucan",
+        "lat": 7.801805,
+        "lon": 124.790297
+      },
+      {
+        "id": "1001316005",
+        "name": "Concepcion",
+        "municipality": "Pangantucan",
+        "lat": 7.90678,
+        "lon": 124.816517
+      },
+      {
+        "id": "1001316006",
+        "name": "Gandingan",
+        "municipality": "Pangantucan",
+        "lat": 7.743713,
+        "lon": 124.831895
+      },
+      {
+        "id": "1001316007",
+        "name": "Kimanait",
+        "municipality": "Pangantucan",
+        "lat": 7.580664,
+        "lon": 124.841692
+      },
+      {
+        "id": "1001316008",
+        "name": "Kipadukan",
+        "municipality": "Pangantucan",
+        "lat": 7.672165,
+        "lon": 124.830679
+      },
+      {
+        "id": "1001316009",
+        "name": "Langcataon",
+        "municipality": "Pangantucan",
+        "lat": 7.618495,
+        "lon": 124.858564
+      },
+      {
+        "id": "1001316010",
+        "name": "Lantay",
+        "municipality": "Pangantucan",
+        "lat": 7.829359,
+        "lon": 124.807965
+      },
+      {
+        "id": "1001316011",
+        "name": "Madaya",
+        "municipality": "Pangantucan",
+        "lat": 7.843092,
+        "lon": 124.760432
+      },
+      {
+        "id": "1001316012",
+        "name": "Malipayon",
+        "municipality": "Pangantucan",
+        "lat": 7.619719,
+        "lon": 124.825132
+      },
+      {
+        "id": "1001316013",
+        "name": "Mendis",
+        "municipality": "Pangantucan",
+        "lat": 7.893558,
+        "lon": 124.805488
+      },
+      {
+        "id": "1001316014",
+        "name": "Nabaliwa",
+        "municipality": "Pangantucan",
+        "lat": 7.898697,
+        "lon": 124.747723
+      },
+      {
+        "id": "1001316015",
+        "name": "New Eden",
+        "municipality": "Pangantucan",
+        "lat": 7.892734,
+        "lon": 124.836742
+      },
+      {
+        "id": "1001316016",
+        "name": "Payad",
+        "municipality": "Pangantucan",
+        "lat": 7.558484,
+        "lon": 124.846508
+      },
+      {
+        "id": "1001316017",
+        "name": "Pigtauranan",
+        "municipality": "Pangantucan",
+        "lat": 7.893765,
+        "lon": 124.781443
+      },
+      {
+        "id": "1001316018",
+        "name": "Poblacion",
+        "municipality": "Pangantucan",
+        "lat": 7.832669,
+        "lon": 124.823801
+      },
+      {
+        "id": "1001316019",
+        "name": "Portulin",
+        "municipality": "Pangantucan",
+        "lat": 7.904108,
+        "lon": 124.856671
+      },
+      {
+        "id": "1001317001",
+        "name": "Butong",
+        "municipality": "Quezon",
+        "lat": 7.787288,
+        "lon": 125.065658
+      },
+      {
+        "id": "1001317006",
+        "name": "C-Handumanan",
+        "municipality": "Quezon",
+        "lat": 7.635287,
+        "lon": 125.070002
+      },
+      {
+        "id": "1001317007",
+        "name": "Cawayan",
+        "municipality": "Quezon",
+        "lat": 7.693801,
+        "lon": 125.180403
+      },
+      {
+        "id": "1001317002",
+        "name": "Cebole",
+        "municipality": "Quezon",
+        "lat": 7.665526,
+        "lon": 125.096001
+      },
+      {
+        "id": "1001317003",
+        "name": "Delapa",
+        "municipality": "Quezon",
+        "lat": 7.665948,
+        "lon": 125.139686
+      },
+      {
+        "id": "1001317004",
+        "name": "Dumalama",
+        "municipality": "Quezon",
+        "lat": 7.756134,
+        "lon": 125.13908
+      },
+      {
+        "id": "1001317008",
+        "name": "Kiburiao",
+        "municipality": "Quezon",
+        "lat": 7.635886,
+        "lon": 125.096388
+      },
+      {
+        "id": "1001317009",
+        "name": "Kipaypayon",
+        "municipality": "Quezon",
+        "lat": 7.777202,
+        "lon": 125.169544
+      },
+      {
+        "id": "1001317010",
+        "name": "Libertad",
+        "municipality": "Quezon",
+        "lat": 7.719938,
+        "lon": 125.120316
+      },
+      {
+        "id": "1001317012",
+        "name": "Linabo",
+        "municipality": "Quezon",
+        "lat": 7.654755,
+        "lon": 125.187538
+      },
+      {
+        "id": "1001317013",
+        "name": "Lipa",
+        "municipality": "Quezon",
+        "lat": 7.62921,
+        "lon": 125.161768
+      },
+      {
+        "id": "1001317014",
+        "name": "Lumintao",
+        "municipality": "Quezon",
+        "lat": 7.786943,
+        "lon": 125.235257
+      },
+      {
+        "id": "1001317016",
+        "name": "Magsaysay",
+        "municipality": "Quezon",
+        "lat": 7.751149,
+        "lon": 125.171939
+      },
+      {
+        "id": "1001317017",
+        "name": "Mahayag",
+        "municipality": "Quezon",
+        "lat": 7.735865,
+        "lon": 125.14982
+      },
+      {
+        "id": "1001317018",
+        "name": "Manuto",
+        "municipality": "Quezon",
+        "lat": 7.68638,
+        "lon": 125.081512
+      },
+      {
+        "id": "1001317019",
+        "name": "Merangerang",
+        "municipality": "Quezon",
+        "lat": 7.753534,
+        "lon": 125.116825
+      },
+      {
+        "id": "1001317020",
+        "name": "Mibantang",
+        "municipality": "Quezon",
+        "lat": 7.668289,
+        "lon": 125.115934
+      },
+      {
+        "id": "1001317021",
+        "name": "Minongan",
+        "municipality": "Quezon",
+        "lat": 7.715398,
+        "lon": 125.149781
+      },
+      {
+        "id": "1001317036",
+        "name": "Minsalirak",
+        "municipality": "Quezon",
+        "lat": 7.704692,
+        "lon": 125.061582
+      },
+      {
+        "id": "1001317022",
+        "name": "Minsamongan",
+        "municipality": "Quezon",
+        "lat": 7.655869,
+        "lon": 125.070043
+      },
+      {
+        "id": "1001317025",
+        "name": "Paitan",
+        "municipality": "Quezon",
+        "lat": 7.815663,
+        "lon": 125.10809
+      },
+      {
+        "id": "1001317026",
+        "name": "Palacapao",
+        "municipality": "Quezon",
+        "lat": 7.606362,
+        "lon": 125.175228
+      },
+      {
+        "id": "1001317027",
+        "name": "Pinilayan",
+        "municipality": "Quezon",
+        "lat": 7.651071,
+        "lon": 125.118101
+      },
+      {
+        "id": "1001317028",
+        "name": "Poblacion",
+        "municipality": "Quezon",
+        "lat": 7.728791,
+        "lon": 125.095401
+      },
+      {
+        "id": "1001317029",
+        "name": "Puntian",
+        "municipality": "Quezon",
+        "lat": 7.609058,
+        "lon": 125.108979
+      },
+      {
+        "id": "1001317030",
+        "name": "Salawagan",
+        "municipality": "Quezon",
+        "lat": 7.692469,
+        "lon": 125.117634
+      },
+      {
+        "id": "1001317031",
+        "name": "San Isidro",
+        "municipality": "Quezon",
+        "lat": 7.687624,
+        "lon": 125.0611
+      },
+      {
+        "id": "1001317032",
+        "name": "San Jose",
+        "municipality": "Quezon",
+        "lat": 7.735441,
+        "lon": 125.052367
+      },
+      {
+        "id": "1001317033",
+        "name": "San Roque",
+        "municipality": "Quezon",
+        "lat": 7.683043,
+        "lon": 125.166172
+      },
+      {
+        "id": "1001317034",
+        "name": "Santa Cruz",
+        "municipality": "Quezon",
+        "lat": 7.63749,
+        "lon": 125.124926
+      },
+      {
+        "id": "1001317035",
+        "name": "Santa Filomena",
+        "municipality": "Quezon",
+        "lat": 7.70065,
+        "lon": 125.247636
+      },
+      {
+        "id": "1001318001",
+        "name": "Bonacao",
+        "municipality": "San Fernando",
+        "lat": 7.800091,
+        "lon": 125.401604
+      },
+      {
+        "id": "1001318027",
+        "name": "Bulalang",
+        "municipality": "San Fernando",
+        "lat": 7.75019,
+        "lon": 125.343919
+      },
+      {
+        "id": "1001318002",
+        "name": "Cabuling",
+        "municipality": "San Fernando",
+        "lat": 7.668904,
+        "lon": 125.358899
+      },
+      {
+        "id": "1001318028",
+        "name": "Candelaria",
+        "municipality": "San Fernando",
+        "lat": 7.93271,
+        "lon": 125.382242
+      },
+      {
+        "id": "1001318004",
+        "name": "Cayaga",
+        "municipality": "San Fernando",
+        "lat": 7.729658,
+        "lon": 125.404927
+      },
+      {
+        "id": "1001318005",
+        "name": "Dao",
+        "municipality": "San Fernando",
+        "lat": 7.786265,
+        "lon": 125.333469
+      },
+      {
+        "id": "1001318007",
+        "name": "Durian",
+        "municipality": "San Fernando",
+        "lat": 7.644683,
+        "lon": 125.347021
+      },
+      {
+        "id": "1001318022",
+        "name": "Halapitan",
+        "municipality": "San Fernando",
+        "lat": 7.914235,
+        "lon": 125.328958
+      },
+      {
+        "id": "1001318009",
+        "name": "Iglugsad",
+        "municipality": "San Fernando",
+        "lat": 7.825638,
+        "lon": 125.359106
+      },
+      {
+        "id": "1001318010",
+        "name": "Kalagangan",
+        "municipality": "San Fernando",
+        "lat": 7.70236,
+        "lon": 125.363169
+      },
+      {
+        "id": "1001318003",
+        "name": "Kawayan",
+        "municipality": "San Fernando",
+        "lat": 7.89685,
+        "lon": 125.388966
+      },
+      {
+        "id": "1001318014",
+        "name": "Kibongcog",
+        "municipality": "San Fernando",
+        "lat": 7.845552,
+        "lon": 125.30874
+      },
+      {
+        "id": "1001318016",
+        "name": "Little Baguio",
+        "municipality": "San Fernando",
+        "lat": 7.901897,
+        "lon": 125.285222
+      },
+      {
+        "id": "1001318029",
+        "name": "Mabuhay",
+        "municipality": "San Fernando",
+        "lat": 7.888579,
+        "lon": 125.350935
+      },
+      {
+        "id": "1001318030",
+        "name": "Magkalungay",
+        "municipality": "San Fernando",
+        "lat": 7.867241,
+        "lon": 125.376947
+      },
+      {
+        "id": "1001318031",
+        "name": "Malayanan",
+        "municipality": "San Fernando",
+        "lat": 7.962309,
+        "lon": 125.281377
+      },
+      {
+        "id": "1001318026",
+        "name": "Matupe",
+        "municipality": "San Fernando",
+        "lat": 7.639678,
+        "lon": 125.404594
+      },
+      {
+        "id": "1001318019",
+        "name": "Nacabuklad",
+        "municipality": "San Fernando",
+        "lat": 7.966276,
+        "lon": 125.3505
+      },
+      {
+        "id": "1001318020",
+        "name": "Namnam",
+        "municipality": "San Fernando",
+        "lat": 7.834423,
+        "lon": 125.393939
+      },
+      {
+        "id": "1001318021",
+        "name": "Palacpacan",
+        "municipality": "San Fernando",
+        "lat": 7.789643,
+        "lon": 125.370513
+      },
+      {
+        "id": "1001318032",
+        "name": "Sacramento Valley",
+        "municipality": "San Fernando",
+        "lat": 7.923815,
+        "lon": 125.265678
+      },
+      {
+        "id": "1001318023",
+        "name": "San Jose",
+        "municipality": "San Fernando",
+        "lat": 7.749529,
+        "lon": 125.406459
+      },
+      {
+        "id": "1001318024",
+        "name": "Santo Domingo",
+        "municipality": "San Fernando",
+        "lat": 7.775774,
+        "lon": 125.406004
+      },
+      {
+        "id": "1001318025",
+        "name": "Tugop",
+        "municipality": "San Fernando",
+        "lat": 7.972792,
+        "lon": 125.318139
+      },
+      {
+        "id": "1001319002",
+        "name": "Culasi",
+        "municipality": "Sumilao",
+        "lat": 8.279202,
+        "lon": 124.926584
+      },
+      {
+        "id": "1001319001",
+        "name": "Kisolon",
+        "municipality": "Sumilao",
+        "lat": 8.300713,
+        "lon": 124.972694
+      },
+      {
+        "id": "1001319003",
+        "name": "Licoan",
+        "municipality": "Sumilao",
+        "lat": 8.218934,
+        "lon": 124.906376
+      },
+      {
+        "id": "1001319004",
+        "name": "Lupiagan",
+        "municipality": "Sumilao",
+        "lat": 8.217495,
+        "lon": 124.929426
+      },
+      {
+        "id": "1001319005",
+        "name": "Ocasion",
+        "municipality": "Sumilao",
+        "lat": 8.246533,
+        "lon": 124.901097
+      },
+      {
+        "id": "1001319009",
+        "name": "Poblacion",
+        "municipality": "Sumilao",
+        "lat": 8.270637,
+        "lon": 124.95063
+      },
+      {
+        "id": "1001319006",
+        "name": "Puntian",
+        "municipality": "Sumilao",
+        "lat": 8.293091,
+        "lon": 124.900747
+      },
+      {
+        "id": "1001319007",
+        "name": "San Roque",
+        "municipality": "Sumilao",
+        "lat": 8.337235,
+        "lon": 124.94595
+      },
+      {
+        "id": "1001319008",
+        "name": "San Vicente",
+        "municipality": "Sumilao",
+        "lat": 8.367313,
+        "lon": 124.972495
+      },
+      {
+        "id": "1001319010",
+        "name": "Vista Villa",
+        "municipality": "Sumilao",
+        "lat": 8.326355,
+        "lon": 124.918323
+      },
+      {
+        "id": "1001320019",
+        "name": "Barangay 1",
+        "municipality": "Talakag",
+        "lat": 8.238949,
+        "lon": 124.607587
+      },
+      {
+        "id": "1001320020",
+        "name": "Barangay 2",
+        "municipality": "Talakag",
+        "lat": 8.233511,
+        "lon": 124.605844
+      },
+      {
+        "id": "1001320021",
+        "name": "Barangay 3",
+        "municipality": "Talakag",
+        "lat": 8.235321,
+        "lon": 124.598025
+      },
+      {
+        "id": "1001320022",
+        "name": "Barangay 4",
+        "municipality": "Talakag",
+        "lat": 8.228992,
+        "lon": 124.602378
+      },
+      {
+        "id": "1001320023",
+        "name": "Barangay 5",
+        "municipality": "Talakag",
+        "lat": 8.224352,
+        "lon": 124.582563
+      },
+      {
+        "id": "1001320001",
+        "name": "Basak",
+        "municipality": "Talakag",
+        "lat": 8.147967,
+        "lon": 124.577109
+      },
+      {
+        "id": "1001320002",
+        "name": "Baylanan",
+        "municipality": "Talakag",
+        "lat": 8.106306,
+        "lon": 124.749141
+      },
+      {
+        "id": "1001320003",
+        "name": "Cacaon",
+        "municipality": "Talakag",
+        "lat": 8.140126,
+        "lon": 124.612796
+      },
+      {
+        "id": "1001320004",
+        "name": "Colawingon",
+        "municipality": "Talakag",
+        "lat": 8.092511,
+        "lon": 124.612993
+      },
+      {
+        "id": "1001320005",
+        "name": "Cosina",
+        "municipality": "Talakag",
+        "lat": 8.105496,
+        "lon": 124.639993
+      },
+      {
+        "id": "1001320006",
+        "name": "Dagumbaan",
+        "municipality": "Talakag",
+        "lat": 8.16052,
+        "lon": 124.588695
+      },
+      {
+        "id": "1001320007",
+        "name": "Dagundalahon",
+        "municipality": "Talakag",
+        "lat": 8.137396,
+        "lon": 124.657755
+      },
+      {
+        "id": "1001320008",
+        "name": "Dominorog",
+        "municipality": "Talakag",
+        "lat": 7.926662,
+        "lon": 124.659054
+      },
+      {
+        "id": "1001320010",
+        "name": "Indulang",
+        "municipality": "Talakag",
+        "lat": 8.090615,
+        "lon": 124.56267
+      },
+      {
+        "id": "1001320011",
+        "name": "Lantud",
+        "municipality": "Talakag",
+        "lat": 8.126948,
+        "lon": 124.55223
+      },
+      {
+        "id": "1001320009",
+        "name": "Lapok",
+        "municipality": "Talakag",
+        "lat": 7.991895,
+        "lon": 124.787321
+      },
+      {
+        "id": "1001320013",
+        "name": "Liguron",
+        "municipality": "Talakag",
+        "lat": 8.172369,
+        "lon": 124.629035
+      },
+      {
+        "id": "1001320015",
+        "name": "Lirongan",
+        "municipality": "Talakag",
+        "lat": 8.054429,
+        "lon": 124.841344
+      },
+      {
+        "id": "1001320018",
+        "name": "Miarayon",
+        "municipality": "Talakag",
+        "lat": 7.992182,
+        "lon": 124.814363
+      },
+      {
+        "id": "1001320024",
+        "name": "Sagaran",
+        "municipality": "Talakag",
+        "lat": 8.164412,
+        "lon": 124.670828
+      },
+      {
+        "id": "1001320025",
+        "name": "Salucot",
+        "municipality": "Talakag",
+        "lat": 8.052279,
+        "lon": 124.664118
+      },
+      {
+        "id": "1001320026",
+        "name": "San Antonio",
+        "municipality": "Talakag",
+        "lat": 8.216786,
+        "lon": 124.608036
+      },
+      {
+        "id": "1001320027",
+        "name": "San Isidro",
+        "municipality": "Talakag",
+        "lat": 8.255676,
+        "lon": 124.591427
+      },
+      {
+        "id": "1001320028",
+        "name": "San Miguel",
+        "municipality": "Talakag",
+        "lat": 8.006811,
+        "lon": 124.754579
+      },
+      {
+        "id": "1001320029",
+        "name": "San Rafael",
+        "municipality": "Talakag",
+        "lat": 8.05241,
+        "lon": 124.581299
+      },
+      {
+        "id": "1001320016",
+        "name": "Santo Niño",
+        "municipality": "Talakag",
+        "lat": 8.195805,
+        "lon": 124.587027
+      },
+      {
+        "id": "1001320030",
+        "name": "Tagbak",
+        "municipality": "Talakag",
+        "lat": 7.996615,
+        "lon": 124.717158
+      },
+      {
+        "id": "1001320031",
+        "name": "Tikalaan",
+        "municipality": "Talakag",
+        "lat": 7.989967,
+        "lon": 124.618488
+      },
+      {
+        "id": "1001321001",
+        "name": "Bagontaas",
+        "municipality": "Valencia City",
+        "lat": 7.948286,
+        "lon": 125.100663
+      },
+      {
+        "id": "1001321002",
+        "name": "Banlag",
+        "municipality": "Valencia City",
+        "lat": 7.828096,
+        "lon": 125.201152
+      },
+      {
+        "id": "1001321003",
+        "name": "Barobo",
+        "municipality": "Valencia City",
+        "lat": 7.911029,
+        "lon": 125.047213
+      },
+      {
+        "id": "1001321004",
+        "name": "Batangan",
+        "municipality": "Valencia City",
+        "lat": 7.910336,
+        "lon": 125.1195
+      },
+      {
+        "id": "1001321005",
+        "name": "Catumbalon",
+        "municipality": "Valencia City",
+        "lat": 7.84198,
+        "lon": 125.091843
+      },
+      {
+        "id": "1001321006",
+        "name": "Colonia",
+        "municipality": "Valencia City",
+        "lat": 7.985689,
+        "lon": 125.120532
+      },
+      {
+        "id": "1001321007",
+        "name": "Concepcion",
+        "municipality": "Valencia City",
+        "lat": 7.87178,
+        "lon": 125.236966
+      },
+      {
+        "id": "1001321008",
+        "name": "Dagat-Kidavao",
+        "municipality": "Valencia City",
+        "lat": 7.815605,
+        "lon": 125.139327
+      },
+      {
+        "id": "1001321010",
+        "name": "Guinoyuran",
+        "municipality": "Valencia City",
+        "lat": 7.920314,
+        "lon": 124.949392
+      },
+      {
+        "id": "1001321011",
+        "name": "Kahapunan",
+        "municipality": "Valencia City",
+        "lat": 7.9323,
+        "lon": 125.150832
+      },
+      {
+        "id": "1001321012",
+        "name": "Laligan",
+        "municipality": "Valencia City",
+        "lat": 7.880208,
+        "lon": 125.189049
+      },
+      {
+        "id": "1001321013",
+        "name": "Lilingayon",
+        "municipality": "Valencia City",
+        "lat": 7.996593,
+        "lon": 124.931264
+      },
+      {
+        "id": "1001321014",
+        "name": "Lourdes",
+        "municipality": "Valencia City",
+        "lat": 7.904331,
+        "lon": 124.920967
+      },
+      {
+        "id": "1001321015",
+        "name": "Lumbayao",
+        "municipality": "Valencia City",
+        "lat": 7.946951,
+        "lon": 125.247004
+      },
+      {
+        "id": "1001321016",
+        "name": "Lumbo",
+        "municipality": "Valencia City",
+        "lat": 7.872673,
+        "lon": 125.07907
+      },
+      {
+        "id": "1001321017",
+        "name": "Lurogan",
+        "municipality": "Valencia City",
+        "lat": 7.961266,
+        "lon": 125.024917
+      },
+      {
+        "id": "1001321018",
+        "name": "Maapag",
+        "municipality": "Valencia City",
+        "lat": 7.864124,
+        "lon": 125.104613
+      },
+      {
+        "id": "1001321019",
+        "name": "Mabuhay",
+        "municipality": "Valencia City",
+        "lat": 7.847969,
+        "lon": 125.131312
+      },
+      {
+        "id": "1001321020",
+        "name": "Mailag",
+        "municipality": "Valencia City",
+        "lat": 7.970335,
+        "lon": 125.123459
+      },
+      {
+        "id": "1001321021",
+        "name": "Mt. Nebo",
+        "municipality": "Valencia City",
+        "lat": 7.96662,
+        "lon": 124.931514
+      },
+      {
+        "id": "1001321022",
+        "name": "Nabago",
+        "municipality": "Valencia City",
+        "lat": 7.960951,
+        "lon": 125.159363
+      },
+      {
+        "id": "1001321023",
+        "name": "Pinatilan",
+        "municipality": "Valencia City",
+        "lat": 7.882853,
+        "lon": 125.110266
+      },
+      {
+        "id": "1001321024",
+        "name": "Poblacion",
+        "municipality": "Valencia City",
+        "lat": 7.917863,
+        "lon": 125.085014
+      },
+      {
+        "id": "1001321025",
+        "name": "San Carlos",
+        "municipality": "Valencia City",
+        "lat": 7.963697,
+        "lon": 125.078835
+      },
+      {
+        "id": "1001321026",
+        "name": "San Isidro",
+        "municipality": "Valencia City",
+        "lat": 7.957791,
+        "lon": 125.189642
+      },
+      {
+        "id": "1001321028",
+        "name": "Sinabuagan",
+        "municipality": "Valencia City",
+        "lat": 7.940616,
+        "lon": 125.213483
+      },
+      {
+        "id": "1001321029",
+        "name": "Sinayawan",
+        "municipality": "Valencia City",
+        "lat": 7.878087,
+        "lon": 125.15242
+      },
+      {
+        "id": "1001321030",
+        "name": "Sugod",
+        "municipality": "Valencia City",
+        "lat": 7.940271,
+        "lon": 125.119632
+      },
+      {
+        "id": "1001321033",
+        "name": "Tongantongan",
+        "municipality": "Valencia City",
+        "lat": 7.909465,
+        "lon": 125.17577
+      },
+      {
+        "id": "1001321034",
+        "name": "Tugaya",
+        "municipality": "Valencia City",
+        "lat": 7.922542,
+        "lon": 125.014255
+      },
+      {
+        "id": "1001321035",
+        "name": "Vintar",
+        "municipality": "Valencia City",
+        "lat": 7.939121,
+        "lon": 125.187054
+      }
     ]
   },
   "cache": {
@@ -62,45 +3307,247 @@
   },
   "classification": {
     "ranges": [
-      { "id": 200, "label": "Thunderstorm with light rain", "severity": "severe", "icon": "thunderstorm-outline" },
-      { "id": 201, "label": "Thunderstorm with rain", "severity": "severe", "icon": "thunderstorm-outline" },
-      { "id": 202, "label": "Thunderstorm with heavy rain", "severity": "severe", "icon": "thunderstorm-outline" },
-      { "id": 210, "label": "Light thunderstorm", "severity": "severe", "icon": "thunderstorm-outline" },
-      { "id": 211, "label": "Thunderstorm", "severity": "severe", "icon": "thunderstorm-outline" },
-      { "id": 212, "label": "Heavy thunderstorm", "severity": "severe", "icon": "thunderstorm-outline" },
-      { "id": 221, "label": "Ragged thunderstorm", "severity": "severe", "icon": "thunderstorm-outline" },
-      { "id": 230, "label": "Thunderstorm with light drizzle", "severity": "severe", "icon": "thunderstorm-outline" },
-      { "id": 231, "label": "Thunderstorm with drizzle", "severity": "severe", "icon": "thunderstorm-outline" },
-      { "id": 232, "label": "Thunderstorm with heavy drizzle", "severity": "severe", "icon": "thunderstorm-outline" },
-      { "min": 200, "max": 299, "label": "Thunderstorm", "severity": "severe", "icon": "thunderstorm-outline" },
-      { "min": 300, "max": 399, "label": "Drizzle", "severity": "light", "icon": "rainy-outline" },
-      { "min": 500, "max": 500, "label": "Light rain", "severity": "light", "icon": "rainy-outline" },
-      { "min": 501, "max": 501, "label": "Moderate rain", "severity": "moderate", "icon": "rainy-outline" },
-      { "min": 502, "max": 510, "label": "Heavy rain", "severity": "severe", "icon": "rainy-outline" },
-      { "id": 511, "label": "Freezing rain", "severity": "severe", "icon": "rainy-outline" },
-      { "min": 512, "max": 519, "label": "Heavy rain", "severity": "severe", "icon": "rainy-outline" },
-      { "id": 520, "label": "Light shower rain", "severity": "light", "icon": "rainy-outline" },
-      { "id": 521, "label": "Shower rain", "severity": "moderate", "icon": "rainy-outline" },
-      { "id": 522, "label": "Heavy shower rain", "severity": "severe", "icon": "rainy-outline" },
-      { "id": 531, "label": "Ragged shower rain", "severity": "moderate", "icon": "rainy-outline" },
-      { "min": 600, "max": 699, "label": "Snow", "severity": "severe", "icon": "snow-outline" },
-      { "id": 701, "label": "Mist", "severity": "fog", "icon": "cloud-outline" },
-      { "id": 711, "label": "Smoke", "severity": "fog", "icon": "cloud-outline" },
-      { "id": 721, "label": "Haze", "severity": "fog", "icon": "cloud-outline" },
-      { "id": 731, "label": "Dust", "severity": "fog", "icon": "cloud-outline" },
-      { "id": 741, "label": "Fog", "severity": "fog", "icon": "cloud-outline" },
-      { "id": 751, "label": "Sand", "severity": "fog", "icon": "cloud-outline" },
-      { "id": 761, "label": "Dust", "severity": "fog", "icon": "cloud-outline" },
-      { "id": 762, "label": "Volcanic ash", "severity": "fog", "icon": "cloud-outline" },
-      { "id": 771, "label": "Squalls", "severity": "severe", "icon": "rainy-outline" },
-      { "id": 781, "label": "Tornado", "severity": "severe", "icon": "thunderstorm-outline" },
-      { "id": 800, "day": "Sunny", "night": "Clear", "severity": "clear", "icon": "sunny-outline", "iconNight": "moon-outline" },
-      { "id": 801, "day": "Partly sunny", "night": "Partly cloudy", "severity": "cloudy", "icon": "partly-sunny-outline", "iconNight": "cloudy-night-outline" },
-      { "id": 802, "label": "Partly Cloudy", "severity": "cloudy", "icon": "partly-sunny-outline", "iconNight": "cloudy-night-outline" },
-      { "id": 803, "label": "Mostly Cloudy", "severity": "cloudy", "icon": "cloud-outline" },
-      { "id": 804, "label": "Overcast", "severity": "cloudy", "icon": "cloud-outline" }
+      {
+        "id": 200,
+        "label": "Thunderstorm with light rain",
+        "severity": "severe",
+        "icon": "thunderstorm-outline"
+      },
+      {
+        "id": 201,
+        "label": "Thunderstorm with rain",
+        "severity": "severe",
+        "icon": "thunderstorm-outline"
+      },
+      {
+        "id": 202,
+        "label": "Thunderstorm with heavy rain",
+        "severity": "severe",
+        "icon": "thunderstorm-outline"
+      },
+      {
+        "id": 210,
+        "label": "Light thunderstorm",
+        "severity": "severe",
+        "icon": "thunderstorm-outline"
+      },
+      {
+        "id": 211,
+        "label": "Thunderstorm",
+        "severity": "severe",
+        "icon": "thunderstorm-outline"
+      },
+      {
+        "id": 212,
+        "label": "Heavy thunderstorm",
+        "severity": "severe",
+        "icon": "thunderstorm-outline"
+      },
+      {
+        "id": 221,
+        "label": "Ragged thunderstorm",
+        "severity": "severe",
+        "icon": "thunderstorm-outline"
+      },
+      {
+        "id": 230,
+        "label": "Thunderstorm with light drizzle",
+        "severity": "severe",
+        "icon": "thunderstorm-outline"
+      },
+      {
+        "id": 231,
+        "label": "Thunderstorm with drizzle",
+        "severity": "severe",
+        "icon": "thunderstorm-outline"
+      },
+      {
+        "id": 232,
+        "label": "Thunderstorm with heavy drizzle",
+        "severity": "severe",
+        "icon": "thunderstorm-outline"
+      },
+      {
+        "min": 200,
+        "max": 299,
+        "label": "Thunderstorm",
+        "severity": "severe",
+        "icon": "thunderstorm-outline"
+      },
+      {
+        "min": 300,
+        "max": 399,
+        "label": "Drizzle",
+        "severity": "light",
+        "icon": "rainy-outline"
+      },
+      {
+        "min": 500,
+        "max": 500,
+        "label": "Light rain",
+        "severity": "light",
+        "icon": "rainy-outline"
+      },
+      {
+        "min": 501,
+        "max": 501,
+        "label": "Moderate rain",
+        "severity": "moderate",
+        "icon": "rainy-outline"
+      },
+      {
+        "min": 502,
+        "max": 510,
+        "label": "Heavy rain",
+        "severity": "severe",
+        "icon": "rainy-outline"
+      },
+      {
+        "id": 511,
+        "label": "Freezing rain",
+        "severity": "severe",
+        "icon": "rainy-outline"
+      },
+      {
+        "min": 512,
+        "max": 519,
+        "label": "Heavy rain",
+        "severity": "severe",
+        "icon": "rainy-outline"
+      },
+      {
+        "id": 520,
+        "label": "Light shower rain",
+        "severity": "light",
+        "icon": "rainy-outline"
+      },
+      {
+        "id": 521,
+        "label": "Shower rain",
+        "severity": "moderate",
+        "icon": "rainy-outline"
+      },
+      {
+        "id": 522,
+        "label": "Heavy shower rain",
+        "severity": "severe",
+        "icon": "rainy-outline"
+      },
+      {
+        "id": 531,
+        "label": "Ragged shower rain",
+        "severity": "moderate",
+        "icon": "rainy-outline"
+      },
+      {
+        "min": 600,
+        "max": 699,
+        "label": "Snow",
+        "severity": "severe",
+        "icon": "snow-outline"
+      },
+      {
+        "id": 701,
+        "label": "Mist",
+        "severity": "fog",
+        "icon": "cloud-outline"
+      },
+      {
+        "id": 711,
+        "label": "Smoke",
+        "severity": "fog",
+        "icon": "cloud-outline"
+      },
+      {
+        "id": 721,
+        "label": "Haze",
+        "severity": "fog",
+        "icon": "cloud-outline"
+      },
+      {
+        "id": 731,
+        "label": "Dust",
+        "severity": "fog",
+        "icon": "cloud-outline"
+      },
+      {
+        "id": 741,
+        "label": "Fog",
+        "severity": "fog",
+        "icon": "cloud-outline"
+      },
+      {
+        "id": 751,
+        "label": "Sand",
+        "severity": "fog",
+        "icon": "cloud-outline"
+      },
+      {
+        "id": 761,
+        "label": "Dust",
+        "severity": "fog",
+        "icon": "cloud-outline"
+      },
+      {
+        "id": 762,
+        "label": "Volcanic ash",
+        "severity": "fog",
+        "icon": "cloud-outline"
+      },
+      {
+        "id": 771,
+        "label": "Squalls",
+        "severity": "severe",
+        "icon": "rainy-outline"
+      },
+      {
+        "id": 781,
+        "label": "Tornado",
+        "severity": "severe",
+        "icon": "thunderstorm-outline"
+      },
+      {
+        "id": 800,
+        "day": "Sunny",
+        "night": "Clear",
+        "severity": "clear",
+        "icon": "sunny-outline",
+        "iconNight": "moon-outline"
+      },
+      {
+        "id": 801,
+        "day": "Partly sunny",
+        "night": "Partly cloudy",
+        "severity": "cloudy",
+        "icon": "partly-sunny-outline",
+        "iconNight": "cloudy-night-outline"
+      },
+      {
+        "id": 802,
+        "label": "Partly Cloudy",
+        "severity": "cloudy",
+        "icon": "partly-sunny-outline",
+        "iconNight": "cloudy-night-outline"
+      },
+      {
+        "id": 803,
+        "label": "Mostly Cloudy",
+        "severity": "cloudy",
+        "icon": "cloud-outline"
+      },
+      {
+        "id": 804,
+        "label": "Overcast",
+        "severity": "cloudy",
+        "icon": "cloud-outline"
+      }
     ],
-    "confirmRange": { "min": 300, "max": 531, "drizzleMax": 399, "confirmMinMm": 0.2 },
+    "confirmRange": {
+      "min": 300,
+      "max": 531,
+      "drizzleMax": 399,
+      "confirmMinMm": 0.2
+    },
     "rainPossibleLabel": "Rain possible",
     "drizzlePossibleLabel": "Drizzle possible",
     "unconfirmedSubtext": "Not confirmed nearby",
@@ -135,47 +3582,89 @@
     },
     "rules": [
       {
-        "match": ["thunder", "storm"],
+        "match": [
+          "thunder",
+          "storm"
+        ],
         "icon": "thunderstorm-outline",
         "severity": "severe"
       },
       {
-        "match": ["snow", "sleet", "ice", "freezing"],
+        "match": [
+          "snow",
+          "sleet",
+          "ice",
+          "freezing"
+        ],
         "icon": "snow-outline",
         "severity": "severe"
       },
       {
-        "match": ["heavy", "violent", "torrential", "extreme", "hail"],
+        "match": [
+          "heavy",
+          "violent",
+          "torrential",
+          "extreme",
+          "hail"
+        ],
         "icon": "rainy-outline",
         "severity": "severe"
       },
       {
-        "match": ["moderate"],
+        "match": [
+          "moderate"
+        ],
         "icon": "rainy-outline",
         "severity": "moderate"
       },
       {
-        "match": ["drizzle", "light", "slight", "patchy", "shower", "rain"],
+        "match": [
+          "drizzle",
+          "light",
+          "slight",
+          "patchy",
+          "shower",
+          "rain"
+        ],
         "icon": "rainy-outline",
         "severity": "light"
       },
       {
-        "match": ["fog", "mist", "haze", "smoke", "dust", "sand", "ash"],
+        "match": [
+          "fog",
+          "mist",
+          "haze",
+          "smoke",
+          "dust",
+          "sand",
+          "ash"
+        ],
         "icon": "cloud-outline",
         "severity": "fog"
       },
       {
-        "match": ["partly", "few", "scattered", "broken"],
+        "match": [
+          "partly",
+          "few",
+          "scattered",
+          "broken"
+        ],
         "icon": "partly-sunny-outline",
         "severity": "cloudy"
       },
       {
-        "match": ["cloud", "overcast"],
+        "match": [
+          "cloud",
+          "overcast"
+        ],
         "icon": "cloud-outline",
         "severity": "cloudy"
       },
       {
-        "match": ["clear", "sunny"],
+        "match": [
+          "clear",
+          "sunny"
+        ],
         "icon": "sunny-outline",
         "severity": "clear"
       }
