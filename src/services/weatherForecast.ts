@@ -2,7 +2,6 @@ import * as Location from "expo-location";
 
 import weatherJson from "@/data/weather.json";
 import { requestManager } from "@/services/requestManager";
-import { memoryCache, CACHE_TTL } from "@/services/memoryCache";
 import {
   formatApiError,
   formatCoordFallback,
@@ -277,10 +276,7 @@ export function resolveWeatherLocation(
   if (nearest && nearestKm <= radiusKm) {
     return {
       fix,
-      coordinates: {
-        lat: nearest.lat,
-        lon: nearest.lon,
-      },
+      coordinates: fix,
       place: nearest,
       label: formatLocalPlaceLabel(nearest),
       outsideScope: false,
@@ -715,11 +711,11 @@ function parseWeatherResponse(
   }
 
   const city =
-    location.label ??
-    (typeof payload.name === "string" &&
+    typeof payload.name === "string" &&
     payload.name.trim().length > 0
       ? payload.name.trim()
-      : formatCoordFallback(
+      : (location.label ??
+        formatCoordFallback(
           location.coordinates.lat,
           location.coordinates.lon
         ));
@@ -927,24 +923,9 @@ export function getWeather(options?: {
   // wrong place — and skips its own GPS lookup.
   coordinates?: Coordinates;
 }): Promise<WeatherData> {
-  // Check memory cache for non-fresh requests
-  if (!options?.fresh && !options?.coordinates) {
-    const cacheKey = "weather:today:default";
-    const cached = memoryCache.get<WeatherData>(cacheKey);
-    if (cached) {
-      return Promise.resolve(cached);
-    }
-  }
-
   const fetcher = async () => {
-    const result = await runWeatherFetch(options);
-    // Cache non-fresh results
-    if (!options?.fresh && !options?.coordinates) {
-      memoryCache.set("weather:today:default", result, CACHE_TTL.WEATHER);
-    }
-    return result;
+    return runWeatherFetch(options);
   };
-
   if (options?.fresh || options?.coordinates) {
     inflightToday = fetcher().finally(
       () => {
@@ -1025,3 +1006,7 @@ export async function getCurrentCoordinates(options?: {
 
   return getCoordinates(options);
 }
+
+
+
+

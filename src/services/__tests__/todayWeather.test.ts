@@ -289,8 +289,8 @@ describe("resolveWeatherLocation", () => {
 
     expect(result.place?.id).toBe("tankulan");
     expect(result.coordinates).toEqual({
-      lat: 8.37,
-      lon: 124.86,
+      lat: 8.3679,
+      lon: 124.8732,
     });
     expect(result.label).toBe(
       "Manolo Fortich, Bukidnon",
@@ -345,10 +345,10 @@ describe("getWeather coordinates", () => {
       mockFetch.mock.calls[0]?.[0] ?? "",
     );
 
-    expect(url).toContain("lat=8.37");
-    expect(url).toContain("lon=124.86");
+    expect(url).toContain("lat=8.3679");
+    expect(url).toContain("lon=124.8732");
     expect(data.city).toBe(
-      "Manolo Fortich, Bukidnon",
+      "Malaybalay",
     );
     expect(data.localPlaceId).toBe("tankulan");
     expect(data.outsideScope).toBe(false);
@@ -911,7 +911,7 @@ describe("fetch retry", () => {
 
     expect(mockFetch).toHaveBeenCalledTimes(3);
     expect(data.city).toBe(
-      "Manolo Fortich, Bukidnon",
+      "Malaybalay",
     );
   });
 
@@ -984,3 +984,5 @@ describe("WeatherError", () => {
     expect(error.message).toBe("nope");
   });
 });
+
+
