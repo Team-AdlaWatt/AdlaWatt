@@ -4,7 +4,7 @@ import {
 } from "@/lib/supabase";
 
 import {
-  fetchMonitoringRow,
+  getMonitoringData,
 } from "@/services/monitoringService";
 import {
   isMonitoringRow,
@@ -376,22 +376,7 @@ const isStaleLogoutWrite =
 const getCurrentMonitoringNotificationData =
   async (): Promise<MonitoringData | null> => {
 
-    const user =
-      await getAuthenticatedUser();
-
-    if (!user) {
-      return null;
-    }
-
-    const row = await fetchMonitoringRow(
-      user.id,
-    );
-
-    if (!row) {
-      return null;
-    }
-
-    return normalizeMonitoringRow(row);
+    return getMonitoringData();
   };
 
 

@@ -7,7 +7,7 @@
 //   row in public.monitoring. Sensor columns are untouched.
 //
 // Contract:
-//   - PATCH /rest/v1/monitoring?user_id=eq.<UUID>
+//   - PATCH /rest/v1/monitoring?monitor_id=eq.<MONITOR_ID>
 //   - heartbeat every 5 seconds
 //   - the app considers the device Offline after 10 seconds
 //     without a fresh `last_seen` (or when device_status is
@@ -41,8 +41,8 @@ const char *SUPABASE_URL =
     "https://nxdabgvbwunyeffzrzta.supabase.co";
 const char *SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
 
-// The account UUID that owns this device's monitoring row.
-const char *SUPABASE_USER_ID = "YOUR_ACCOUNT_UUID";
+// The monitor_id that owns this device's monitoring row.
+const long SUPABASE_MONITOR_ID = 1100;
 
 // ------------------------------------------------------------
 // TIMING
@@ -150,8 +150,8 @@ void sendHeartbeat() {
   }
 
   String endpoint = String(SUPABASE_URL) +
-                    "/rest/v1/monitoring?user_id=eq." +
-                    String(SUPABASE_USER_ID);
+                    "/rest/v1/monitoring?monitor_id=eq." +
+                    String(SUPABASE_MONITOR_ID);
 
   String payload = String("{\"device_status\":\"Online\",") +
                    "\"last_seen\":\"" + timestamp + "\"}";

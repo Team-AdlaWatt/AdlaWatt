@@ -147,12 +147,50 @@ export const loadCachedMonitoring = async (
   }
 };
 
+export const getMonitorIdForUser = async (
+  userId: string,
+): Promise<number | null> => {
+
+  const {
+    data,
+    error,
+  } = await supabase
+    .from("users")
+    .select(
+      "monitor_id",
+    )
+    .eq(
+      "id",
+      userId,
+    )
+    .maybeSingle();
+
+  if (error) {
+
+    console.error(
+      "Error loading monitor id:",
+      error.message,
+    );
+
+    return null;
+  }
+
+  if (
+    data?.monitor_id == null
+  ) {
+
+    return null;
+  }
+
+  return Number(data.monitor_id);
+};
+
 // ============================================================
 // FETCH MONITORING ROW
 // ============================================================
 
 export const fetchMonitoringRow = async (
-  userId: string,
+  monitorId: number,
 ): Promise<MonitoringRow | null> => {
 
   const {
@@ -162,8 +200,8 @@ export const fetchMonitoringRow = async (
     .from("monitoring")
     .select(MONITORING_SELECT)
     .eq(
-      "user_id",
-      userId,
+      "monitor_id",
+      monitorId,
     )
     .maybeSingle();
 
@@ -213,6 +251,14 @@ export const getMonitoringData =
       return null;
     }
 
+    const monitorId =
+      await getMonitorIdForUser(user.id);
+
+    if (monitorId == null) {
+
+      return null;
+    }
+
     const cacheKey = monitoringMemoryKey(user.id);
 
     // Check memory cache first for fast response. Pull-to-
@@ -233,7 +279,7 @@ export const getMonitoringData =
       RequestManager.userKey(user.id, "monitoring"),
       async () => {
         const row = await fetchMonitoringRow(
-          user.id,
+          monitorId,
         );
 
         if (!row) {
@@ -277,6 +323,14 @@ export const getDeviceStatus =
       return "Offline";
     }
 
+    const monitorId =
+      await getMonitorIdForUser(user.id);
+
+    if (monitorId == null) {
+
+      return "Offline";
+    }
+
     const {
       data,
       error,
@@ -286,8 +340,8 @@ export const getDeviceStatus =
         "device_status,last_seen",
       )
       .eq(
-        "user_id",
-        user.id,
+        "monitor_id",
+        monitorId,
       )
       .maybeSingle();
 
@@ -327,7 +381,15 @@ export const subscribeToMonitoring =
       return null;
     }
 
-    const topic = `monitoring-hook-${user.id}`;
+    const monitorId =
+      await getMonitorIdForUser(user.id);
+
+    if (monitorId == null) {
+
+      return null;
+    }
+
+    const topic = `monitoring-hook-${monitorId}`;
 
     const reused = supabase
       .getChannels()
@@ -354,7 +416,7 @@ export const subscribeToMonitoring =
             event: "*",
             schema: "public",
             table: "monitoring",
-            filter: `user_id=eq.${user.id}`,
+            filter: `monitor_id=eq.${monitorId}`,
           },
           (payload) => {
 

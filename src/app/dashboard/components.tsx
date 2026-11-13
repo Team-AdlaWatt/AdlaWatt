@@ -40,6 +40,7 @@ import type {
   DeviceStatus as MonitoringDeviceStatus,
 } from "@/services/monitoringSchema";
 import { useDeviceOnline } from "@/hooks/useDeviceOnline";
+import { getMonitorIdForUser } from "@/services/monitoringService";
 import {
   subscribeResilientChannel,
   type ResilientSubscription,
@@ -312,13 +313,19 @@ export default function ComponentsScreen() {
     // ==========================================
 
     const loadDeviceStatus = async (
-      userId: string,
+      monitorId: number | null,
     ) => {
+      if (monitorId == null) {
+        setDeviceStatus(null);
+        setLastSeen(null);
+        return;
+      }
+
       const { data, error } =
         await supabase
           .from("monitoring")
           .select("device_status,last_seen")
-          .eq("user_id", userId)
+          .eq("monitor_id", monitorId)
           .maybeSingle();
 
       if (cancelled) return;
@@ -361,9 +368,12 @@ export default function ComponentsScreen() {
       // LOAD INITIAL DATA
       // ========================================
 
+      const monitorId =
+        await getMonitorIdForUser(user.id);
+
       await Promise.all([
         loadComponents(user.id),
-        loadDeviceStatus(user.id),
+        loadDeviceStatus(monitorId),
       ]);
 
       if (cancelled) return;
@@ -401,39 +411,41 @@ export default function ComponentsScreen() {
       // MONITORING REALTIME (same shared recovery)
       // ========================================
 
-      monitoringSubscription = subscribeResilientChannel({
-        topic: `monitoring-${user.id}`,
-        label: `monitoring-${user.id}`,
-        build: (ch) =>
-          ch.on(
-            "postgres_changes",
-            {
-              event: "UPDATE",
-              schema: "public",
-              table: "monitoring",
-              filter: `user_id=eq.${user.id}`,
-            },
-            (payload) => {
-              if (cancelled) return;
+      if (monitorId != null) {
+        monitoringSubscription = subscribeResilientChannel({
+          topic: `monitoring-${monitorId}`,
+          label: `monitoring-${monitorId}`,
+          build: (ch) =>
+            ch.on(
+              "postgres_changes",
+              {
+                event: "UPDATE",
+                schema: "public",
+                table: "monitoring",
+                filter: `monitor_id=eq.${monitorId}`,
+              },
+              (payload) => {
+                if (cancelled) return;
 
-              setDeviceStatus(
-                (payload.new
-                  .device_status as DeviceStatus) ??
-                  null,
-              );
+                setDeviceStatus(
+                  (payload.new
+                    .device_status as DeviceStatus) ??
+                    null,
+                );
 
-              setLastSeen(
-                (payload.new.last_seen as
-                  | string
-                  | null) ?? null,
-              );
-            },
-          ),
-        isAlive: () => !cancelled,
-        onChannel: (next) => {
-          monitoringChannel = next;
-        },
-      });
+                setLastSeen(
+                  (payload.new.last_seen as
+                    | string
+                    | null) ?? null,
+                );
+              },
+            ),
+          isAlive: () => !cancelled,
+          onChannel: (next) => {
+            monitoringChannel = next;
+          },
+        });
+      }
     };
 
     setup();
