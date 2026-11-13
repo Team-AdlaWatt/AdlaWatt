@@ -419,11 +419,11 @@ export default function ElectronicsScreen() {
     }
 
     const battery: BatteryStateInput = {
-      soc: monitoring.battery_level,
-      voltage: monitoring.voltage,
+      soc: monitoring.battery_level ?? 0,
+      voltage: monitoring.voltage ?? 0,
       remainingWh:
-        monitoring.watt_hours,
-      dod: monitoring.dod_status,
+        monitoring.watt_hours ?? 0,
+      dod: monitoring.dod_status ?? undefined,
     };
 
     const recommendation =

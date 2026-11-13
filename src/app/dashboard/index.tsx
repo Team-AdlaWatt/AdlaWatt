@@ -55,6 +55,8 @@ import {
 import {
   useMonitoring,
 } from "@/services/monitoringService";
+import { formatLastSeen } from "@/utils/monitoringDisplay";
+import { useDeviceOnline } from "@/hooks/useDeviceOnline";
 import { useConnectivity } from "@/hooks/useConnectivity";
 import { maybeScheduleLowSunAdvisory } from "@/services/reminderService";
 import { useTranslation } from "react-i18next";
@@ -145,14 +147,52 @@ export default function DashboardScreen() {
   // on first paint while NetInfo still resolves.
   const { connected } = useConnectivity();
 
-  const showOfflineBanner =
+  const phoneOffline =
     connected === false;
+
+  const deviceOnline = useDeviceOnline(
+    monitoring?.last_seen,
+    monitoring?.device_status,
+  );
+
+  // Only flag the device offline once a row exists; a null
+  // row is "no data yet", not a stale device.
+  const deviceOffline =
+    monitoring !== null && !deviceOnline;
+
+  const showStatusBanner =
+    phoneOffline || deviceOffline;
 
   const lastUpdatedLabel =
     cachedAt !== null
       ? new Date(
           cachedAt,
         ).toLocaleTimeString()
+      : null;
+
+  const lastSeenLabel =
+    formatLastSeen(monitoring?.last_seen);
+
+  const statusBannerTitle = phoneOffline
+    ? t("dashboard.home.offlineBanner")
+    : t(
+        "dashboard.home.deviceOfflineBanner",
+      );
+
+  const statusBannerSubtitle = deviceOffline
+    ? lastSeenLabel
+      ? t(
+          "dashboard.home.deviceLastSeen",
+          { time: lastSeenLabel },
+        )
+      : t(
+          "dashboard.home.deviceLastSeenUnavailable",
+        )
+    : phoneOffline && stale && lastUpdatedLabel
+      ? t(
+          "dashboard.home.lastUpdated",
+          { time: lastUpdatedLabel },
+        )
       : null;
 
   // ==========================================================
@@ -617,7 +657,7 @@ export default function DashboardScreen() {
 
       <NavBar
         deviceStatus={
-          monitoring?.device_status === "Online"
+          deviceOnline
             ? "Online"
             : "Offline"
         }
@@ -711,19 +751,21 @@ export default function DashboardScreen() {
         </View>
 
         {/* ==================================================
-            OFFLINE BANNER (phone offline, cached readings)
+            STATUS BANNER (phone or device offline)
             ================================================== */}
 
-        {showOfflineBanner ? (
+        {showStatusBanner ? (
           <View
             style={styles.offlineBanner}
             accessibilityRole="text"
-            accessibilityLabel={t(
-              "dashboard.home.offlineBanner",
-            )}
+            accessibilityLabel={statusBannerTitle}
           >
             <Ionicons
-              name="cloud-offline-outline"
+              name={
+                phoneOffline
+                  ? "cloud-offline-outline"
+                  : "hardware-chip-outline"
+              }
               size={20}
               color={colors.severity.elevated.text}
             />
@@ -733,20 +775,15 @@ export default function DashboardScreen() {
                 variant="body"
                 style={styles.offlineTitle}
               >
-                {t(
-                  "dashboard.home.offlineBanner",
-                )}
+                {statusBannerTitle}
               </AppText>
 
-              {stale && lastUpdatedLabel ? (
+              {statusBannerSubtitle ? (
                 <AppText
                   variant="caption"
                   style={styles.offlineSubtitle}
                 >
-                  {t(
-                    "dashboard.home.lastUpdated",
-                    { time: lastUpdatedLabel },
-                  )}
+                  {statusBannerSubtitle}
                 </AppText>
               ) : null}
             </View>
@@ -891,13 +928,14 @@ export default function DashboardScreen() {
               monitoring
                 ? {
                     soc:
-                      monitoring.battery_level,
+                      monitoring.battery_level ?? 0,
                     voltage:
-                      monitoring.voltage,
+                      monitoring.voltage ?? 0,
                     remainingWh:
-                      monitoring.watt_hours,
+                      monitoring.watt_hours ?? 0,
                     dod:
-                      monitoring.dod_status,
+                      monitoring.dod_status ??
+                      undefined,
                   }
                 : undefined
             }

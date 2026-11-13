@@ -369,8 +369,14 @@ const ceb = {
       goToElectronicsRecommendation: "Adto sa Electronics Recommendation",
       offlineBanner:
         "Wala kay koneksyon — katapusang readings ang gipakita.",
+      deviceOfflineBanner:
+        "Offline ang device — katapusang readings ang gipakita.",
       lastUpdated:
         "Katapusang na-update {{time}}.",
+      deviceLastSeen:
+        "Katapusang nakita {{time}}.",
+      deviceLastSeenUnavailable:
+        "Dili available ang katapusang nakita.",
       forecastFailed: "Dili ma-load ang forecast.",
     },
     about: {

@@ -36,6 +36,10 @@ import {
   SlidingToggle,
 } from "@/components/ui/SlidingToggle";
 import { getAuthenticatedUserSafe, supabase } from "@/lib/supabase";
+import type {
+  DeviceStatus as MonitoringDeviceStatus,
+} from "@/services/monitoringSchema";
+import { useDeviceOnline } from "@/hooks/useDeviceOnline";
 import {
   subscribeResilientChannel,
   type ResilientSubscription,
@@ -124,10 +128,8 @@ type ComponentData = {
 };
 
 type DeviceStatus =
-  | "Online"
-  | "Offline"
-  | "online"
-  | "offline"
+  | MonitoringDeviceStatus
+  | Lowercase<MonitoringDeviceStatus>
   | null;
 
 // ============================================
@@ -164,6 +166,15 @@ export default function ComponentsScreen() {
   const [deviceStatus, setDeviceStatus] =
     useState<DeviceStatus>(null);
 
+  const [lastSeen, setLastSeen] =
+    useState<string | null>(null);
+
+  // Freshness-aware online flag shared with the dashboard.
+  const deviceOnline = useDeviceOnline(
+    lastSeen,
+    deviceStatus,
+  );
+
   // ============================================
   // CONTENT-AWARE STATUS SEGMENTS
   //
@@ -176,15 +187,12 @@ export default function ComponentsScreen() {
   const isComponentActive = useCallback(
     (component: ComponentData): boolean => {
       if (isESP32Name(component.component_name)) {
-        return (
-          String(deviceStatus).toLowerCase() ===
-          "online"
-        );
+        return deviceOnline;
       }
 
       return component.status;
     },
-    [deviceStatus],
+    [deviceOnline],
   );
 
   const componentCounts = useMemo(() => {
@@ -309,7 +317,7 @@ export default function ComponentsScreen() {
       const { data, error } =
         await supabase
           .from("monitoring")
-          .select("device_status")
+          .select("device_status,last_seen")
           .eq("user_id", userId)
           .maybeSingle();
 
@@ -322,12 +330,15 @@ export default function ComponentsScreen() {
         );
 
         setDeviceStatus(null);
+        setLastSeen(null);
         return;
       }
 
       setDeviceStatus(
         data?.device_status ?? null,
       );
+
+      setLastSeen(data?.last_seen ?? null);
     };
 
     // ==========================================
@@ -342,6 +353,7 @@ export default function ComponentsScreen() {
       if (!user) {
         setComponents([]);
         setDeviceStatus(null);
+        setLastSeen(null);
         return;
       }
 
@@ -404,11 +416,16 @@ export default function ComponentsScreen() {
             (payload) => {
               if (cancelled) return;
 
-              const updatedStatus =
-                payload.new.device_status;
-
               setDeviceStatus(
-                updatedStatus as DeviceStatus,
+                (payload.new
+                  .device_status as DeviceStatus) ??
+                  null,
+              );
+
+              setLastSeen(
+                (payload.new.last_seen as
+                  | string
+                  | null) ?? null,
               );
             },
           ),
@@ -583,11 +600,7 @@ export default function ComponentsScreen() {
 
                 // ESP32 connection status
                 // comes from monitoring table.
-                const isConnected =
-                  String(
-                    deviceStatus,
-                  ).toLowerCase() ===
-                  "online";
+                const isConnected = deviceOnline;
 
                 const status = isESP32
                   ? isConnected

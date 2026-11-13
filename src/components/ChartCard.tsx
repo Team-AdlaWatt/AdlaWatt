@@ -35,7 +35,16 @@ import {
 
 import type { ForecastResult } from "@/services/forecast";
 
-import { MonitoringData } from "@/services/monitoringService";
+import type {
+  MonitoringData,
+  TemperatureStatus,
+} from "@/services/monitoringSchema";
+import {
+  MISSING_VALUE,
+  formatMetric,
+  formatTemperature,
+  hasValue,
+} from "@/utils/monitoringDisplay";
 
 import {
   formatBestSunSummary,
@@ -67,12 +76,6 @@ type ChartType =
   | "temperature"
   | "solar_temperature"
   | "dod";
-
-type TemperatureStatus =
-  | "Nominal"
-  | "Elevated"
-  | "High"
-  | "Critical";
 
 interface WeatherData {
   city: string;
@@ -336,7 +339,7 @@ export default function ChartCard({
 
   const solarTarget =
     getSolarIntensity(
-      monitoring?.solar_status,
+      monitoring?.solar_status ?? undefined,
     );
 
   // ==========================================================
@@ -600,9 +603,10 @@ export default function ChartCard({
   if (type === "voltage") {
 
     const level =
-      monitoring?.battery_level ?? 0;
+      monitoring?.battery_level ?? null;
 
     const isLowBattery =
+      hasValue(level) &&
       level <=
       LOW_BATTERY_THRESHOLD;
 
@@ -634,14 +638,14 @@ export default function ChartCard({
 
     const batteryStatus =
       monitoring?.battery_status ??
-      "Idle";
+      null;
 
     const isIdle =
       batteryStatus === "Idle";
 
     const dodStatus =
       monitoring?.dod_status ??
-      "Safe";
+      null;
 
     const isDodUnsafe =
       dodStatus === "Unsafe";
@@ -655,9 +659,11 @@ export default function ChartCard({
       isDodUnsafe || isLowBattery;
 
     const dodLabel =
-      isDodBadgeRed
-        ? "DoD Unsafe"
-        : "DoD Safe";
+      dodStatus == null
+        ? "DoD --"
+        : isDodBadgeRed
+          ? "DoD Unsafe"
+          : "DoD Safe";
 
     const voltageData =
       getCardData(
@@ -678,11 +684,13 @@ export default function ChartCard({
       );
 
     const isLowWattHours =
-      (monitoring?.watt_hours ?? 0) <=
+      hasValue(monitoring?.watt_hours) &&
+      monitoring.watt_hours <=
       LOW_WATT_HOURS_THRESHOLD;
 
     const isLowVoltage =
-      (monitoring?.voltage ?? 0) <=
+      hasValue(monitoring?.voltage) &&
+      monitoring.voltage <=
       LOW_VOLTAGE_THRESHOLD;
 
     const loadData =
@@ -694,26 +702,10 @@ export default function ChartCard({
         styles,
       );
 
-    /*
-     * The monitoring service data is extended here with the
-     * interior temperature fields so both temperatures can be
-     * surfaced inside this card without changing the shared
-     * MonitoringData import.
-     */
-
-    const temperatureMonitoring =
-      monitoring as (
-        MonitoringData & {
-          interior_temp: number;
-          interior_temp_status:
-            TemperatureStatus;
-        }
-      ) | null;
-
     const interiorTemperatureStatus =
-      temperatureMonitoring
+      monitoring
         ?.interior_temp_status ??
-      "Nominal";
+      null;
 
     const batteryTemperatureData =
       getCardData(
@@ -727,21 +719,25 @@ export default function ChartCard({
     const interiorTemperatureValue =
       loading
         ? "—"
-        : `${temperatureMonitoring
-            ?.interior_temp ??
-          0}°C`;
+        : formatTemperature(
+            monitoring?.interior_temp,
+          );
 
     const interiorTemperatureBadge =
-      getTemperatureBadgeStyle(
-        interiorTemperatureStatus,
-        styles,
-      );
+      interiorTemperatureStatus
+        ? getTemperatureBadgeStyle(
+            interiorTemperatureStatus,
+            styles,
+          )
+        : null;
 
     const interiorTemperatureBadgeText =
-      getTemperatureBadgeTextStyle(
-        interiorTemperatureStatus,
-        styles,
-      );
+      interiorTemperatureStatus
+        ? getTemperatureBadgeTextStyle(
+            interiorTemperatureStatus,
+            styles,
+          )
+        : null;
 
     return (
       <View
@@ -907,7 +903,11 @@ export default function ChartCard({
                   >
                     {loading
                       ? "—"
-                      : `${Math.round(ringLevel)}%`}
+                      : hasValue(
+                            monitoring?.battery_level,
+                          )
+                        ? `${Math.round(ringLevel)}%`
+                        : MISSING_VALUE}
                   </AppText>
 
                 </View>
@@ -963,7 +963,8 @@ export default function ChartCard({
                     styles.batteryStatusText
                   }
                 >
-                  {batteryStatus}
+                  {batteryStatus ??
+                    MISSING_VALUE}
                 </AppText>
 
               </View>
@@ -1191,24 +1192,26 @@ export default function ChartCard({
                 {interiorTemperatureValue}
               </AppText>
 
-              <View
-                style={[
-                  styles.statusBadge,
-                  interiorTemperatureBadge,
-                ]}
-              >
-
-                <AppText
-                  variant="caption"
+              {interiorTemperatureStatus && (
+                <View
                   style={[
-                    styles.statusBadgeText,
-                    interiorTemperatureBadgeText,
+                    styles.statusBadge,
+                    interiorTemperatureBadge,
                   ]}
                 >
-                  {interiorTemperatureStatus}
-                </AppText>
 
-              </View>
+                  <AppText
+                    variant="caption"
+                    style={[
+                      styles.statusBadgeText,
+                      interiorTemperatureBadgeText,
+                    ]}
+                  >
+                    {interiorTemperatureStatus}
+                  </AppText>
+
+                </View>
+              )}
 
             </View>
 
@@ -1233,31 +1236,43 @@ export default function ChartCard({
 
     const solarStatus =
       monitoring?.solar_status ??
-      "Low";
+      null;
 
     const solarTimer =
       monitoring?.solar_timer ??
-      "00:00:00";
+      null;
 
     const solarInput =
       loading
         ? "—"
-        : `${monitoring?.solar_input ?? 0}W`;
+        : formatMetric(
+            monitoring?.solar_input,
+            "W",
+          );
 
     const solarVoltage =
       loading
         ? "—"
-        : `${monitoring?.solar_voltage ?? 0}V`;
+        : formatMetric(
+            monitoring?.solar_voltage,
+            "V",
+          );
 
     const solarCurrent =
       loading
         ? "—"
-        : `${monitoring?.solar_current ?? 0}A`;
+        : formatMetric(
+            monitoring?.solar_current,
+            "A",
+          );
 
     const totalEnergy =
       loading
         ? "—"
-        : `${monitoring?.total_energy ?? 0}Wh`;
+        : formatMetric(
+            monitoring?.total_energy,
+            "Wh",
+          );
 
     const solarTemperatureData =
       getCardData(
@@ -1419,44 +1434,48 @@ export default function ChartCard({
               Timer:{" "}
               {loading
                 ? "—"
-                : formatSolarTimer(
-                    solarTimer,
-                  )}
+                : solarTimer
+                  ? formatSolarTimer(
+                      solarTimer,
+                    )
+                  : MISSING_VALUE}
             </AppText>
 
             {/* ==============================================
                 SOLAR STATUS BADGE
                 ============================================== */}
 
-            <View
-              style={[
-                styles.batteryStatusRow,
-                styles.solarStatusRow,
-              ]}
-            >
-
+            {solarStatus && (
               <View
                 style={[
-                  styles.batteryStatus,
-                  solarBadgeStyle,
+                  styles.batteryStatusRow,
+                  styles.solarStatusRow,
                 ]}
               >
 
-                <AppText
-                  variant="caption"
+                <View
                   style={[
-                    styles.batteryStatusText,
-                    solarStatus === "Moderate"
-                      ? styles.solarModerateText
-                      : null,
+                    styles.batteryStatus,
+                    solarBadgeStyle,
                   ]}
                 >
-                  {solarStatus}
-                </AppText>
+
+                  <AppText
+                    variant="caption"
+                    style={[
+                      styles.batteryStatusText,
+                      solarStatus === "Moderate"
+                        ? styles.solarModerateText
+                        : null,
+                    ]}
+                  >
+                    {solarStatus}
+                  </AppText>
+
+                </View>
 
               </View>
-
-            </View>
+            )}
 
           </View>
 
@@ -2548,14 +2567,14 @@ function getCardData(
 
     case "voltage": {
 
-      const clamped =
-        Math.max(
-          VOLTAGE_MIN,
-          Math.min(
-            VOLTAGE_MAX,
-            monitoring?.voltage ?? 0,
-          ),
-        );
+      const raw = monitoring?.voltage ?? null;
+
+      const clamped = hasValue(raw)
+        ? Math.max(
+            VOLTAGE_MIN,
+            Math.min(VOLTAGE_MAX, raw),
+          )
+        : null;
 
       return {
         icon:
@@ -2567,7 +2586,7 @@ function getCardData(
         value:
           loading
             ? "—"
-            : `${clamped}V`,
+            : formatMetric(clamped, "V"),
       };
     }
 
@@ -2577,14 +2596,14 @@ function getCardData(
 
     case "watt_hour": {
 
-      const clamped =
-        Math.max(
-          WATT_HOURS_MIN,
-          Math.min(
-            WATT_HOURS_MAX,
-            monitoring?.watt_hours ?? 0,
-          ),
-        );
+      const raw = monitoring?.watt_hours ?? null;
+
+      const clamped = hasValue(raw)
+        ? Math.max(
+            WATT_HOURS_MIN,
+            Math.min(WATT_HOURS_MAX, raw),
+          )
+        : null;
 
       return {
         icon:
@@ -2596,7 +2615,7 @@ function getCardData(
         value:
           loading
             ? "—"
-            : `${clamped}Wh`,
+            : formatMetric(clamped, "Wh"),
       };
     }
 
@@ -2607,8 +2626,7 @@ function getCardData(
     case "solar": {
 
       const solarStatus =
-        monitoring?.solar_status ??
-        "Low";
+        monitoring?.solar_status ?? null;
 
       return {
         icon:
@@ -2620,24 +2638,31 @@ function getCardData(
         value:
           loading
             ? "—"
-            : `${monitoring?.solar_input ?? 0}W`,
+            : formatMetric(
+                monitoring?.solar_input,
+                "W",
+              ),
 
-        badge:
-          solarStatus,
+        ...(solarStatus
+          ? {
+              badge:
+                solarStatus,
 
-        badgeStyle:
-          solarStatus === "High"
-            ? themedStyles.normalBadge
-            : solarStatus ===
+              badgeStyle:
+                solarStatus === "High"
+                  ? themedStyles.normalBadge
+                  : solarStatus ===
+                      "Moderate"
+                    ? themedStyles.moderateBadge
+                    : themedStyles.lowBadge,
+
+              badgeTextStyle:
+                solarStatus ===
                 "Moderate"
-              ? themedStyles.moderateBadge
-              : themedStyles.lowBadge,
-
-        badgeTextStyle:
-          solarStatus ===
-          "Moderate"
-            ? themedStyles.darkBadgeText
-            : themedStyles.lightBadgeText,
+                  ? themedStyles.darkBadgeText
+                  : themedStyles.lightBadgeText,
+            }
+          : {}),
       };
     }
 
@@ -2657,7 +2682,10 @@ function getCardData(
         value:
           loading
             ? "—"
-            : `${monitoring?.solar_voltage ?? 0}V`,
+            : formatMetric(
+                monitoring?.solar_voltage,
+                "V",
+              ),
       };
 
     // ========================================================
@@ -2676,7 +2704,10 @@ function getCardData(
         value:
           loading
             ? "—"
-            : `${monitoring?.solar_current ?? 0}A`,
+            : formatMetric(
+                monitoring?.solar_current,
+                "A",
+              ),
       };
 
     // ========================================================
@@ -2695,7 +2726,10 @@ function getCardData(
         value:
           loading
             ? "—"
-            : `${monitoring?.total_energy ?? 0}Wh`,
+            : formatMetric(
+                monitoring?.total_energy,
+                "Wh",
+              ),
       };
 
     // ========================================================
@@ -2714,10 +2748,11 @@ function getCardData(
         value:
           loading
             ? "—"
-            : formatSolarTimer(
-                monitoring?.solar_timer ??
-                  "00:00:00",
-              ),
+            : monitoring?.solar_timer
+              ? formatSolarTimer(
+                  monitoring.solar_timer,
+                )
+              : MISSING_VALUE,
       };
 
     // ========================================================
@@ -2736,7 +2771,10 @@ function getCardData(
         value:
           loading
             ? "—"
-            : `${monitoring?.current_load ?? 0}W`,
+            : formatMetric(
+                monitoring?.current_load,
+                "W",
+              ),
       };
 
     // ========================================================
@@ -2851,7 +2889,7 @@ function getCardData(
 
         value:
           monitoring?.dod_status ??
-          "Safe",
+          MISSING_VALUE,
       };
 
     // ========================================================
@@ -2863,7 +2901,7 @@ function getCardData(
       const status =
         monitoring
           ?.battery_temperature_status ??
-        "Nominal";
+        null;
 
       return {
         icon:
@@ -2875,24 +2913,28 @@ function getCardData(
         value:
           loading
             ? "—"
-            : `${monitoring
-                ?.battery_temperature ??
-              0}°C`,
+            : formatTemperature(
+                monitoring?.battery_temperature,
+              ),
 
-        badge:
-          status,
+        ...(status
+          ? {
+              badge:
+                status,
 
-        badgeStyle:
-          getTemperatureBadgeStyle(
-            status,
-            themedStyles,
-          ),
+              badgeStyle:
+                getTemperatureBadgeStyle(
+                  status,
+                  themedStyles,
+                ),
 
-        badgeTextStyle:
-          getTemperatureBadgeTextStyle(
-            status,
-            themedStyles,
-          ),
+              badgeTextStyle:
+                getTemperatureBadgeTextStyle(
+                  status,
+                  themedStyles,
+                ),
+            }
+          : {}),
       };
     }
 
@@ -2905,7 +2947,7 @@ function getCardData(
       const status =
         monitoring
           ?.solar_temperature_status ??
-        "Nominal";
+        null;
 
       return {
         icon:
@@ -2917,24 +2959,28 @@ function getCardData(
         value:
           loading
             ? "—"
-            : `${monitoring
-                ?.solar_temperature ??
-              0}°C`,
+            : formatTemperature(
+                monitoring?.solar_temperature,
+              ),
 
-        badge:
-          status,
+        ...(status
+          ? {
+              badge:
+                status,
 
-        badgeStyle:
-          getTemperatureBadgeStyle(
-            status,
-            themedStyles,
-          ),
+              badgeStyle:
+                getTemperatureBadgeStyle(
+                  status,
+                  themedStyles,
+                ),
 
-        badgeTextStyle:
-          getTemperatureBadgeTextStyle(
-            status,
-            themedStyles,
-          ),
+              badgeTextStyle:
+                getTemperatureBadgeTextStyle(
+                  status,
+                  themedStyles,
+                ),
+            }
+          : {}),
       };
     }
 
@@ -3139,7 +3185,9 @@ function getTemperatureBadgeStyle(
 
       return themedStyles.highTemperatureBadge;
 
-    case "Critical":
+    // Every Critical variant (plain, rapid rise, sensor
+    // fault) shares the critical styling.
+    default:
 
       return themedStyles.criticalTemperatureBadge;
 
@@ -3169,7 +3217,7 @@ function getTemperatureBadgeTextStyle(
 
       return themedStyles.highTemperatureBadgeText;
 
-    case "Critical":
+    default:
 
       return themedStyles.criticalTemperatureBadgeText;
 
@@ -3293,10 +3341,12 @@ const getStyles = (colors: AppColors) =>
     paddingHorizontal: 15,
     paddingVertical: 3,
     minWidth: 10,
+    maxWidth: "100%",
+    flexShrink: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    height: 25,
+    minHeight: 25,
   },
 
   batteryStatusIdle: {
@@ -3305,9 +3355,12 @@ const getStyles = (colors: AppColors) =>
   },
 
   batteryStatusText: {
+    flexShrink: 1,
     color: colors.onPrimary,
     fontSize: 12,
+    lineHeight: 16,
     fontWeight: "600",
+    textAlign: "center",
     textTransform: "uppercase",
   },
 
@@ -3992,6 +4045,8 @@ const getStyles = (colors: AppColors) =>
     paddingVertical: 3,
     borderRadius: 10,
     minWidth: 42,
+    maxWidth: "100%",
+    flexShrink: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -3999,7 +4054,9 @@ const getStyles = (colors: AppColors) =>
   },
 
   statusBadgeText: {
+    flexShrink: 1,
     fontSize: 12,
+    lineHeight: 16,
     fontWeight: "600",
     textAlign: "center",
     textTransform: "uppercase",

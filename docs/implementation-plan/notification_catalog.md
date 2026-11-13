@@ -83,9 +83,9 @@ Alert: Battery Normal-Use Cutoff Reached (≤ 20%), Battery Critically Low (< 20
 | Title | Type | Trigger |
 |---|---|---|
 | Battery Temperature Nominal / Elevated / High | `normal` | Status transitions |
-| Critical Battery Temperature | `alert` | Status → Critical |
+| Critical Battery Temperature | `alert` | Status → any `Critical…` variant |
 | Solar Temperature Nominal / Elevated / High | `normal` | Status transitions |
-| Critical Solar Temperature | `alert` | Status → Critical |
+| Critical Solar Temperature | `alert` | Status → any `Critical…` variant |
 | Battery / Solar Temperature Reading Zero | `alert` | Sensor reads 0 (disconnected) |
 
 - These cover sensor temperatures only. Forecast-weather alerts (storms, heavy rain from the OpenWeatherMap feed) do not exist — proposed below.
@@ -100,7 +100,7 @@ Alert: Battery Normal-Use Cutoff Reached (≤ 20%), Battery Critically Low (< 20
 | Monitoring Data Updated | `normal` | Row payload changed (5-min cooldown) |
 | Monitoring Record Missing | `alert` | No `monitoring` row (also checked on init) |
 | Missing Last-Seen Timestamp | `alert` | `last_seen` is null |
-| Monitoring Data Stale | `alert` | `last_seen` invalid or older than 10 s |
+| Monitoring Data Stale | `alert` | `last_seen` invalid or older than 60 s |
 
 ## Components Rules
 

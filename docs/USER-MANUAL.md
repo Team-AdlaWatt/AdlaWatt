@@ -130,8 +130,8 @@ The Dashboard is the home screen. It updates in real time whenever the AdlaWatt 
 ### Load, temperature, and device
 
 - **Current load** — what connected electronics are drawing right now, in watts.
-- **Temperatures** — battery, solar panel, and interior, each rated *Nominal*, *Elevated*, *High*, or *Critical*. *Critical* triggers an alert — check the unit when safe.
-- **Device status** — *Online* (unit is reporting) or *Offline* (unit unreachable — see troubleshooting).
+- **Temperatures** — battery, solar panel, and interior, each rated *Nominal*, *Elevated*, *High*, or *Critical*, including *Critical (rapid rise)* and *Critical (sensor fault)*. *Critical* triggers an alert — check the unit when safe. A failed sensor shows **Sensor fault**; other unavailable readings show `--`.
+- **Device status** — *Online* (fresh reading within the last minute) or *Offline* (no heartbeat for over a minute — see troubleshooting).
 
 ### Quick navigation
 

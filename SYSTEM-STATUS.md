@@ -46,7 +46,7 @@ Status values: `Working`, `In progress`, `Limited`, `Available`, `Pending`.
 | Area | How it works | Evidence |
 |---|---|---|
 | Data and security | Seven core tables, row-level security on electronics and photos, server-side role lock, storage for email assets and electronics photos, server-side email key. | `supabase/migrations/`, `supabase/functions/` |
-| Live data | Supabase Realtime with memory and AsyncStorage cache, request coalescing, and retry. | `src/services/monitoringService.ts` |
+| Live data | Supabase Realtime with memory and AsyncStorage cache, request coalescing, retry, nullable sensor readings, and a 60 s heartbeat-based online gate. | `src/services/monitoringService.ts`, `src/services/monitoringSchema.ts`, `src/utils/monitoringDisplay.ts` |
 | Recommendation engine | Uses 720 Wh nominal, 144 Wh reserve, 576 Wh usable, 480 W warning, 600 W cap, and 11.6 V / 14.6 V limits. | `src/services/recommendation.ts` |
 | Load stack | Checks a group of electronics together and blocks stacks over the inverter limit. | `src/services/recommendation.ts` |
 | Analytics | Five sections, 17 charts, 7/30/90-day ranges, lazy loading, CSV and PDF export. | `src/services/analyticsService.ts` |

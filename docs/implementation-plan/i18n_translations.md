@@ -490,7 +490,7 @@ Codes stay backend-bound; labels map for display. Dates localize in format only 
 
 ## Backend-bound (stays English by policy, Phase 1)
 
-- DB status enums: `Online`/`Offline`, `Charging`/`Discharging`/`Idle`, `Safe`/`Unsafe`, solar/temperature statuses — compared with `===` and written by ESP32/cron.
+- DB status enums: `Online`/`Offline`, `Charging`/`Discharging`/`Idle`, `Safe`/`Unsafe`, solar/temperature statuses — compared with `===` and written by ESP32/cron. Temperature critical checks match any status starting with `Critical` (plain, `Critical (rapid rise)`, `Critical (sensor fault)`).
 - Log/notification types: `info`/`warning`/`error`/`critical`, stored activity-log titles, email badge `ALERT`/`NORMAL`.
 - Proper nouns: electronics/catalog names, usernames, emails, brand, units (`W`, `V`, `°C`).
 - Option codes: theme `system`/`light`/`dark`, font-size codes; only display labels translate.

@@ -98,11 +98,13 @@ Related table: **Live Monitoring Table** (`public.monitoring`).
 | Column | Type | Meaning |
 |---|---|---|
 | `battery_temperature` | numeric(5,2) | Battery temperature |
-| `battery_temperature_status` | text | Nominal, Elevated, High, Critical |
+| `battery_temperature_status` | text | Nominal, Elevated, High, Critical, Critical (sensor fault) |
 | `solar_temperature` | numeric(5,2) | Solar panel temperature |
-| `solar_temperature_status` | text | Nominal, Elevated, High, Critical |
+| `solar_temperature_status` | text | Nominal, Elevated, High, Critical, Critical (rapid rise), Critical (sensor fault) |
 | `interior_temp` | numeric(5,2) | Interior temperature |
-| `interior_temp_status` | text | Nominal, Elevated, High, Critical |
+| `interior_temp_status` | text | Nominal, Elevated, High, Critical, Critical (rapid rise), Critical (sensor fault) |
+
+All non-key columns are nullable. A null temperature with a status still displays the status; a null temperature without a status shows *Sensor fault*. Other null metrics display as `--`.
 
 ### 5.5b Device
 
@@ -166,8 +168,11 @@ Related table: **Live Monitoring Table** (`public.monitoring`).
 | `solar_status` | Low, Moderate, High |
 | `device_status` | Online, Offline |
 | `dod_status` | Safe, Unsafe |
-| Temperature statuses | Nominal, Elevated, High, Critical |
+| `battery_temperature_status` | Nominal, Elevated, High, Critical, Critical (sensor fault) |
+| `solar_temperature_status`, `interior_temp_status` | Nominal, Elevated, High, Critical, Critical (rapid rise), Critical (sensor fault) |
 | `solar_input`, `solar_voltage`, `solar_current`, `total_energy`, `current_load`, `interior_temp`, `voltage`, `watt_hours`, `interval_seconds`, `energy_input_wh`, `energy_output_wh` | 0 or higher |
+
+The app treats any status starting with `Critical` as critical for alerts and badge colours. A device counts as online only when `last_seen` is within 60 seconds and `device_status` is not `Offline`.
 
 ---
 

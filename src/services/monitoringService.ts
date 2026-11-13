@@ -13,299 +13,30 @@ import {
 } from "@/lib/supabase";
 import { requestManager, RequestManager } from "@/services/requestManager";
 import { memoryCache, CACHE_TTL } from "@/services/memoryCache";
-
-// ============================================================
-// TYPES
-// ============================================================
-
-export type TemperatureStatus =
-  | "Nominal"
-  | "Elevated"
-  | "High"
-  | "Critical";
-
-export type DeviceStatus =
-  | "Online"
-  | "Offline";
-
-export type BatteryStatus =
-  | "Charging"
-  | "Discharging"
-  | "Idle";
-
-export type SolarStatus =
-  | "Low"
-  | "Moderate"
-  | "High";
-
-export type DoDStatus =
-  | "Safe"
-  | "Unsafe";
-
-// ============================================================
-// MONITORING DATA
-// ============================================================
-
-export interface MonitoringData {
-
-  // ----------------------------------------------------------
-  // BATTERY
-  // ----------------------------------------------------------
-
-  battery_level: number;
-
-  battery_status: BatteryStatus;
-
-  time_remaining: string;
-
-  voltage: number;
-
-  watt_hours: number;
-
-  current_load: number;
-
-  device_status: DeviceStatus;
-
-  // ----------------------------------------------------------
-  // SOLAR
-  // ----------------------------------------------------------
-
-  solar_input: number;
-
-  solar_status: SolarStatus;
-
-  solar_timer: string;
-
-  solar_voltage: number;
-
-  solar_current: number;
-
-  total_energy: number;
-
-  // ----------------------------------------------------------
-  // BATTERY TEMPERATURE
-  // ----------------------------------------------------------
-
-  battery_temperature: number;
-
-  battery_temperature_status: TemperatureStatus;
-
-  // ----------------------------------------------------------
-  // DEPTH OF DISCHARGE
-  // ----------------------------------------------------------
-
-  dod_status: DoDStatus;
-
-  // ----------------------------------------------------------
-  // SOLAR PANEL TEMPERATURE
-  // ----------------------------------------------------------
-
-  solar_temperature: number;
-
-  solar_temperature_status: TemperatureStatus;
-
-  // ----------------------------------------------------------
-  // INTERIOR TEMPERATURE
-  // ----------------------------------------------------------
-
-  interior_temp: number;
-
-  interior_temp_status: TemperatureStatus;
-}
-
-// ============================================================
-// SAFE TEMPERATURE STATUS
-// ============================================================
-
-const normalizeTemperatureStatus = (
-  status: unknown,
-): TemperatureStatus => {
-
-  if (
-    status === "Nominal" ||
-    status === "Elevated" ||
-    status === "High" ||
-    status === "Critical"
-  ) {
-
-    return status;
-  }
-
-  return "Nominal";
-};
-
-// ============================================================
-// SAFE NUMERIC VALUE
-// ============================================================
-
-const normalizeNumber = (
-  value: unknown,
-): number => {
-
-  if (
-    typeof value === "number" &&
-    Number.isFinite(value)
-  ) {
-
-    return value;
-  }
-
-  if (
-    typeof value === "string"
-  ) {
-
-    const parsed =
-      Number(value);
-
-    if (
-      Number.isFinite(parsed)
-    ) {
-
-      return parsed;
-    }
-  }
-
-  return 0;
-};
-
-// ============================================================
-// NORMALIZE MONITORING DATA
-// ============================================================
-
-const normalizeMonitoringData = (
-  data: any,
-): MonitoringData => {
-
-  return {
-
-    // --------------------------------------------------------
-    // BATTERY
-    // --------------------------------------------------------
-
-    battery_level:
-      normalizeNumber(
-        data?.battery_level,
-      ),
-
-    battery_status:
-      data?.battery_status === "Charging" ||
-      data?.battery_status === "Discharging" ||
-      data?.battery_status === "Idle"
-        ? data.battery_status
-        : "Idle",
-
-    time_remaining:
-      typeof data?.time_remaining === "string"
-        ? data.time_remaining
-        : "0h 00m",
-
-    voltage:
-      normalizeNumber(
-        data?.voltage,
-      ),
-
-    watt_hours:
-      normalizeNumber(
-        data?.watt_hours,
-      ),
-
-    current_load:
-      normalizeNumber(
-        data?.current_load,
-      ),
-
-    device_status:
-      data?.device_status === "Online"
-        ? "Online"
-        : "Offline",
-
-    // --------------------------------------------------------
-    // SOLAR
-    // --------------------------------------------------------
-
-    solar_input:
-      normalizeNumber(
-        data?.solar_input,
-      ),
-
-    solar_status:
-      data?.solar_status === "Low" ||
-      data?.solar_status === "Moderate" ||
-      data?.solar_status === "High"
-        ? data.solar_status
-        : "Low",
-
-    solar_timer:
-      typeof data?.solar_timer === "string"
-        ? data.solar_timer
-        : "00:00:00",
-
-    solar_voltage:
-      normalizeNumber(
-        data?.solar_voltage,
-      ),
-
-    solar_current:
-      normalizeNumber(
-        data?.solar_current,
-      ),
-
-    total_energy:
-      normalizeNumber(
-        data?.total_energy,
-      ),
-
-    // --------------------------------------------------------
-    // BATTERY TEMPERATURE
-    // --------------------------------------------------------
-
-    battery_temperature:
-      normalizeNumber(
-        data?.battery_temperature,
-      ),
-
-    battery_temperature_status:
-      normalizeTemperatureStatus(
-        data?.battery_temperature_status,
-      ),
-
-    // --------------------------------------------------------
-    // DEPTH OF DISCHARGE
-    // --------------------------------------------------------
-
-    dod_status:
-      data?.dod_status === "Safe"
-        ? "Safe"
-        : "Unsafe",
-
-    // --------------------------------------------------------
-    // SOLAR PANEL TEMPERATURE
-    // --------------------------------------------------------
-
-    solar_temperature:
-      normalizeNumber(
-        data?.solar_temperature,
-      ),
-
-    solar_temperature_status:
-      normalizeTemperatureStatus(
-        data?.solar_temperature_status,
-      ),
-
-    // --------------------------------------------------------
-    // INTERIOR TEMPERATURE
-    // --------------------------------------------------------
-
-    interior_temp:
-      normalizeNumber(
-        data?.interior_temp,
-      ),
-
-    interior_temp_status:
-      normalizeTemperatureStatus(
-        data?.interior_temp_status,
-      ),
-  };
+import {
+  MONITORING_SCHEMA_VERSION,
+  MONITORING_SELECT,
+  getMissingMonitoringColumns,
+  isMonitoringRow,
+  normalizeMonitoringRow,
+  type BatteryStatus,
+  type DeviceStatus,
+  type DoDStatus,
+  type MonitoringData,
+  type MonitoringRow,
+  type SolarStatus,
+  type TemperatureStatus,
+} from "@/services/monitoringSchema";
+import { isDeviceOnline } from "@/utils/monitoringDisplay";
+
+export type {
+  BatteryStatus,
+  DeviceStatus,
+  DoDStatus,
+  MonitoringData,
+  MonitoringRow,
+  SolarStatus,
+  TemperatureStatus,
 };
 
 // ============================================================
@@ -320,17 +51,35 @@ const normalizeMonitoringData = (
 // ============================================================
 
 const MONITORING_CACHE_KEY =
-  "adlawatt.monitoring.last.v1";
+  "adlawatt.monitoring.last.v3";
 
 const scopedMonitoringKey = (
   userId: string,
 ): string =>
   `${MONITORING_CACHE_KEY}:${userId}`;
 
+const monitoringMemoryKey = (
+  userId: string,
+): string =>
+  `monitoring:v${MONITORING_SCHEMA_VERSION}:${userId}`;
+
 interface CachedMonitoring {
+  schemaVersion: typeof MONITORING_SCHEMA_VERSION;
   data: MonitoringData;
   savedAt: number;
 }
+
+interface StoredCachedMonitoring {
+  schemaVersion?: unknown;
+  data?: unknown;
+  savedAt?: unknown;
+}
+
+const isFiniteNumber = (
+  value: unknown,
+): value is number =>
+  typeof value === "number" &&
+  Number.isFinite(value);
 
 export const saveCachedMonitoring = async (
   data: MonitoringData,
@@ -344,6 +93,7 @@ export const saveCachedMonitoring = async (
     await AsyncStorage.setItem(
       scopedMonitoringKey(userId),
       JSON.stringify({
+        schemaVersion: MONITORING_SCHEMA_VERSION,
         data,
         savedAt: Date.now(),
       }),
@@ -369,29 +119,28 @@ export const loadCachedMonitoring = async (
       return null;
     }
 
-    const parsed = JSON.parse(raw) as {
-      data?: unknown;
-      savedAt?: unknown;
-    };
+    const parsed = JSON.parse(
+      raw,
+    ) as StoredCachedMonitoring;
 
     if (
       !parsed ||
       typeof parsed !== "object" ||
-      !Number.isFinite(
-        (parsed as { savedAt?: unknown })
-          .savedAt,
-      )
+      parsed.schemaVersion !==
+        MONITORING_SCHEMA_VERSION ||
+      !isFiniteNumber(parsed.savedAt)
     ) {
       return null;
     }
 
     return {
+      schemaVersion: MONITORING_SCHEMA_VERSION,
       // Re-normalized on load so corrupt or legacy shapes
       // can never leak untrusted values into the UI.
-      data: normalizeMonitoringData(
+      data: normalizeMonitoringRow(
         parsed.data,
       ),
-      savedAt: Number(parsed.savedAt),
+      savedAt: parsed.savedAt,
     };
   } catch {
     return null;
@@ -399,11 +148,63 @@ export const loadCachedMonitoring = async (
 };
 
 // ============================================================
+// FETCH MONITORING ROW
+// ============================================================
+
+export const fetchMonitoringRow = async (
+  userId: string,
+): Promise<MonitoringRow | null> => {
+
+  const {
+    data,
+    error,
+  } = await supabase
+    .from("monitoring")
+    .select(MONITORING_SELECT)
+    .eq(
+      "user_id",
+      userId,
+    )
+    .maybeSingle();
+
+  if (error) {
+
+    console.error(
+      "Error loading monitoring data:",
+      error.message,
+    );
+
+    return null;
+  }
+
+  if (!data) {
+
+    return null;
+  }
+
+  if (!isMonitoringRow(data)) {
+
+    console.error(
+      "[monitoring] Row is missing columns:",
+      getMissingMonitoringColumns(data),
+    );
+
+    return null;
+  }
+
+  return data;
+};
+
+// ============================================================
 // FETCH MONITORING DATA
 // ============================================================
 
 export const getMonitoringData =
-  async (): Promise<MonitoringData | null> => {
+  async (
+    options: {
+      forceRefresh?: boolean;
+    } = {},
+  ): Promise<MonitoringData | null> => {
 
     const user = await getAuthenticatedUserSafe();
 
@@ -412,73 +213,43 @@ export const getMonitoringData =
       return null;
     }
 
-    const cacheKey = `monitoring:${user.id}`;
-    
-    // Check memory cache first for fast response
-    const cached = memoryCache.get<MonitoringData>(cacheKey);
-    if (cached) {
-      return cached;
+    const cacheKey = monitoringMemoryKey(user.id);
+
+    // Check memory cache first for fast response. Pull-to-
+    // refresh bypasses it and refetches from the database.
+    if (!options.forceRefresh) {
+      const cached =
+        memoryCache.get<MonitoringData>(cacheKey);
+
+      if (cached) {
+        return cached;
+      }
+    } else {
+      memoryCache.delete(cacheKey);
     }
 
     // Use request coalescing to prevent duplicate in-flight requests
     return requestManager.execute(
       RequestManager.userKey(user.id, "monitoring"),
       async () => {
-        const {
-          data,
-          error,
-        } = await supabase
-          .from("monitoring")
-          .select(`
-            battery_level,
-            battery_status,
-            time_remaining,
-            voltage,
-            watt_hours,
-            solar_input,
-            solar_status,
-            solar_timer,
-            solar_voltage,
-            solar_current,
-            total_energy,
-            current_load,
-            device_status,
-            battery_temperature,
-            battery_temperature_status,
-            dod_status,
-            solar_temperature,
-            solar_temperature_status,
-            interior_temp,
-            interior_temp_status
-          `)
-          .eq(
-            "user_id",
-            user.id,
-          )
-          .maybeSingle();
+        const row = await fetchMonitoringRow(
+          user.id,
+        );
 
-        if (error) {
-
-          console.error(
-            "Error loading monitoring data:",
-            error.message,
-          );
-
-          return null;
-        }
-
-        if (!data) {
+        if (!row) {
 
           return null;
         }
 
         const normalized =
-          normalizeMonitoringData(
-            data,
-          );
+          normalizeMonitoringRow(row);
 
         // Cache in memory for fast subsequent access
-        memoryCache.set(cacheKey, normalized, CACHE_TTL.MONITORING);
+        memoryCache.set(
+          cacheKey,
+          normalized,
+          CACHE_TTL.MONITORING,
+        );
 
         // Fire-and-forget: the dashboard must never wait on
         // storage, and a blocked store must not break reads.
@@ -512,7 +283,7 @@ export const getDeviceStatus =
     } = await supabase
       .from("monitoring")
       .select(
-        "device_status",
+        "device_status,last_seen",
       )
       .eq(
         "user_id",
@@ -530,7 +301,10 @@ export const getDeviceStatus =
       return "Offline";
     }
 
-    return data?.device_status === "Online"
+    return isDeviceOnline(
+      data?.last_seen,
+      data?.device_status,
+    )
       ? "Online"
       : "Offline";
   };
@@ -605,12 +379,32 @@ export const subscribeToMonitoring =
               payload.new
             ) {
 
-              const normalized = normalizeMonitoringData(
+              if (!isMonitoringRow(payload.new)) {
+
+                console.error(
+                  "[monitoring] Realtime payload is missing columns; refetching:",
+                  getMissingMonitoringColumns(
+                    payload.new,
+                  ),
+                );
+
+                void getMonitoringData({
+                  forceRefresh: true,
+                }).then((fresh) => {
+                  if (fresh) {
+                    onChange(fresh);
+                  }
+                });
+
+                return;
+              }
+
+              const normalized = normalizeMonitoringRow(
                 payload.new,
               );
               // Update memory cache on realtime updates
               memoryCache.set(
-                `monitoring:${user.id}`,
+                monitoringMemoryKey(user.id),
                 normalized,
                 CACHE_TTL.MONITORING
               );
@@ -701,8 +495,10 @@ export const subscribeToDeviceStatus =
           (payload) => {
 
             onChange(
-              payload.new?.device_status ===
-                "Online"
+              isDeviceOnline(
+                payload.new?.last_seen,
+                payload.new?.device_status,
+              )
                 ? "Online"
                 : "Offline",
             );
@@ -848,9 +644,10 @@ export const useMonitoring =
         refreshInflightRef.current = true;
 
         try {
-          const user = await getAuthenticatedUserSafe();
           const data =
-            await getMonitoringData();
+            await getMonitoringData({
+              forceRefresh: true,
+            });
 
           if (
             !mountedRef.current
@@ -864,10 +661,6 @@ export const useMonitoring =
             setStale(false);
 
             setCachedAt(Date.now());
-            // Update memory cache on manual refresh
-            if (user?.id) {
-              memoryCache.set(`monitoring:${user.id}`, data, CACHE_TTL.MONITORING);
-            }
           }
         } catch (error) {
           console.warn(

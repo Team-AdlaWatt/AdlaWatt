@@ -19,15 +19,15 @@ import {
   HIGH_LOAD_WATTS,
   startMonitoringNotificationWatcher,
   stopMonitoringNotificationWatcher,
+  type MonitoringRuleData,
 } from "@/services/notificationService";
 import * as supabaseLib from "@/lib/supabase";
-import type { MonitoringData } from "@/services/monitoringService";
 
 const USER_ID = "user-1";
 
 const mon = (
-  overrides: Partial<MonitoringData>,
-): MonitoringData =>
+  overrides: Partial<MonitoringRuleData>,
+): MonitoringRuleData =>
   ({
     battery_level: 80,
     battery_status: "Charging",
@@ -49,8 +49,9 @@ const mon = (
     solar_temperature_status: "Nominal",
     interior_temp: 28,
     interior_temp_status: "Nominal",
+    last_seen: "2026-11-12T10:00:00.000Z",
     ...overrides,
-  }) as unknown as MonitoringData;
+  });
 
 // Chainable query-builder stub recording inserts.
 const inserts: Record<string, unknown>[] =
