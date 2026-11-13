@@ -936,6 +936,16 @@ export default function DashboardScreen() {
                     dod:
                       monitoring.dod_status ??
                       undefined,
+                    currentLoadW:
+                      monitoring.current_load ??
+                      undefined,
+                    lastUpdated:
+                      deviceOnline &&
+                      monitoring.last_seen
+                        ? Date.parse(
+                            monitoring.last_seen,
+                          )
+                        : null,
                   }
                 : undefined
             }
