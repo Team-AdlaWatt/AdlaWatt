@@ -3,8 +3,9 @@
 // Locks the contract between the analytics charts and the report
 // exports: buildReportPeriods must reuse the same chart helpers
 // (so numbers can never diverge), and buildReportKpis must apply
-// the documented definitions (CAUTION_SOC=20 for unsafe,
-// "Online" for uptime, High/Critical for temperature alerts,
+// the documented definitions (stored dod_status, falling back to
+// CAUTION_SOC=20 only when it is absent; Online-only averages and
+// counts; High/Critical on any sensor for temperature alerts;
 // per-day max solar_timer for sun hours).
 
 import {
@@ -12,8 +13,10 @@ import {
   buildReportPeriods,
   generateAdlaWattCsv,
   getOnlineShareData,
+  getTemperatureAlertsData,
   getUnsafeDischargeChartData,
   groupMonitoringHistory,
+  isUnsafeDischarge,
   prepareReportData,
   type MonitoringHistoryRow,
 } from "@/services/analyticsService";
@@ -39,8 +42,10 @@ interface RowOverrides {
   device_status?: string | null;
   battery_temperature?: number | null;
   battery_temperature_status?: string | null;
+  dod_status?: string | null;
   solar_temperature?: number | null;
   solar_temperature_status?: string | null;
+  interior_temp_status?: string | null;
   energy_input_wh?: number | null;
   energy_output_wh?: number | null;
 }
@@ -64,10 +69,13 @@ const row = (overrides: RowOverrides): MonitoringHistoryRow =>
       overrides.battery_temperature ?? 0,
     battery_temperature_status:
       overrides.battery_temperature_status ?? null,
+    dod_status: overrides.dod_status ?? null,
     solar_temperature: overrides.solar_temperature ?? 0,
     solar_temperature_status:
       overrides.solar_temperature_status ?? null,
     interior_temp: null,
+    interior_temp_status:
+      overrides.interior_temp_status ?? "Nominal",
     voltage: null,
     watt_hours: null,
     cumulative_energy_input_wh: null,
@@ -158,11 +166,12 @@ describe("buildReportPeriods", () => {
     );
 
     expect(day1.sampleCount).toBe(2);
+    // Offline snapshots hold stale values, so they are excluded.
     expect(day1.avgBatteryLevel).toBeCloseTo(
-      75,
+      80,
       5,
     );
-    expect(day1.minBatteryLevel).toBe(70);
+    expect(day1.minBatteryLevel).toBe(80);
     expect(day1.maxBatteryLevel).toBe(80);
 
     expect(day2.avgBatteryLevel).toBeCloseTo(
@@ -227,11 +236,13 @@ describe("buildReportPeriods", () => {
       "Daily",
     );
 
-    expect(day1.avgLoadW).toBeCloseTo(85, 5);
-    expect(day1.peakLoadW).toBe(120);
+    // The 120 W snapshot is Offline, so Day 1 load stats use
+    // the single 50 W Online snapshot.
+    expect(day1.avgLoadW).toBeCloseTo(50, 5);
+    expect(day1.peakLoadW).toBe(50);
     expect(day1.uptimePct).toBeCloseTo(50, 5);
     expect(day1.unsafeSampleCount).toBe(0);
-    expect(day1.temperatureAlertCount).toBe(1);
+    expect(day1.temperatureAlertCount).toBe(0);
 
     expect(day2.avgLoadW).toBeCloseTo(50, 5);
     expect(day2.peakLoadW).toBe(60);
@@ -297,7 +308,7 @@ describe("buildReportKpis", () => {
         averageSolarInput: 350,
         maximumSolarInput: 500,
         averageCurrentLoad: 67.5,
-        maximumCurrentLoad: 120,
+        maximumCurrentLoad: 60,
         averageBatteryTemperature: 24.25,
         maximumBatteryTemperature: 30,
         averageSolarTemperature: 37.5,
@@ -348,7 +359,7 @@ describe("buildReportKpis", () => {
     expect(kpi(list, "uptime")?.value).toBe("75.0");
   });
 
-  test("unsafe discharge uses CAUTION_SOC (20)", () => {
+  test("unsafe discharge falls back to CAUTION_SOC (20) when dod_status is absent", () => {
     const list = buildList();
 
     expect(
@@ -359,12 +370,14 @@ describe("buildReportKpis", () => {
     ).toBe("50.0% of samples");
   });
 
-  test("temperature alerts count High|Critical on either sensor", () => {
+  test("temperature alerts count High|Critical on any sensor, Online only", () => {
     const list = buildList();
 
+    // The Day 1 High reading is Offline, so only the Day 2
+    // Critical Online sample counts.
     expect(
       kpi(list, "temperatureAlerts")?.value,
-    ).toBe("2");
+    ).toBe("1");
   });
 
   test("sun hours total and best sun day tracked per day", () => {
@@ -381,11 +394,11 @@ describe("buildReportKpis", () => {
     ).toBe("peak 500.0 W");
   });
 
-  test("peak load is the range maximum", () => {
+  test("peak load is the range maximum across Online snapshots", () => {
     const list = buildList();
 
     expect(kpi(list, "peakLoad")?.value).toBe(
-      "120.0",
+      "60.0",
     );
   });
 
@@ -573,7 +586,7 @@ describe("generateAdlaWattCsv", () => {
       lines[start + 1],
     );
 
-    expect(header).toHaveLength(24);
+    expect(header).toHaveLength(26);
     expect(header).toContain("Time Remaining");
     expect(header).toContain("Solar Status");
     expect(header).toContain("Last Seen");
@@ -592,7 +605,7 @@ describe("generateAdlaWattCsv", () => {
     ) {
       expect(
         parseCsvLine(lines[i]),
-      ).toHaveLength(24);
+      ).toHaveLength(26);
     }
   });
 
@@ -653,6 +666,99 @@ describe("generateAdlaWattCsv", () => {
     const out = generateAdlaWattCsv(oversized);
 
     expect(out).toContain("Showing first 20000 of 20005 records");
+  });
+});
+
+describe("stored status precedence", () => {
+  test("isUnsafeDischarge trusts dod_status over battery_level", () => {
+    expect(
+      isUnsafeDischarge(
+        row({
+          recorded_at: "2026-10-01T08:00:00",
+          battery_level: 90,
+          dod_status: "Unsafe",
+        }),
+      ),
+    ).toBe(true);
+
+    expect(
+      isUnsafeDischarge(
+        row({
+          recorded_at: "2026-10-01T09:00:00",
+          battery_level: 5,
+          dod_status: "Safe",
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  test("isUnsafeDischarge falls back to CAUTION_SOC when dod_status is missing", () => {
+    expect(
+      isUnsafeDischarge(
+        row({
+          recorded_at: "2026-10-01T08:00:00",
+          battery_level: 19,
+          dod_status: null,
+        }),
+      ),
+    ).toBe(true);
+
+    expect(
+      isUnsafeDischarge(
+        row({
+          recorded_at: "2026-10-01T09:00:00",
+          battery_level: 21,
+          dod_status: null,
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  test("temperature alerts include interior_temp_status", () => {
+    const rows = [
+      row({
+        recorded_at: "2026-10-01T08:00:00",
+        battery_level: 80,
+        device_status: "Online",
+        interior_temp_status: "Critical",
+      }),
+    ];
+
+    const [bucket] = groupMonitoringHistory(
+      rows,
+      "Daily",
+    );
+
+    expect(
+      getTemperatureAlertsData(
+        [bucket],
+        "Daily",
+      )[0].value,
+    ).toBe(1);
+  });
+
+  test("temperature alerts ignore Offline snapshots", () => {
+    const rows = [
+      row({
+        recorded_at: "2026-10-01T08:00:00",
+        battery_level: 80,
+        device_status: "Offline",
+        battery_temperature_status: "High",
+        solar_temperature_status: "Critical",
+      }),
+    ];
+
+    const [bucket] = groupMonitoringHistory(
+      rows,
+      "Daily",
+    );
+
+    expect(
+      getTemperatureAlertsData(
+        [bucket],
+        "Daily",
+      )[0].value,
+    ).toBe(0);
   });
 });
 

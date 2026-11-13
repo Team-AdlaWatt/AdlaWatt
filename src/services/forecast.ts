@@ -647,11 +647,10 @@ export async function getForecast(
   }
 
   const cityName =
-    location.label ??
-    (typeof response.city?.name === "string" &&
+    typeof response.city?.name === "string" &&
     response.city.name.trim().length > 0
       ? response.city.name.trim()
-      : "");
+      : (location.label ?? "");
 
   return {
     upcoming,
@@ -660,3 +659,4 @@ export async function getForecast(
     fetchedAt: new Date().toISOString(),
   };
 }
+

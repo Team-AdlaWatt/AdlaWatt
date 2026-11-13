@@ -36,6 +36,11 @@ import {
   SlidingToggle,
 } from "@/components/ui/SlidingToggle";
 import { getAuthenticatedUserSafe, supabase } from "@/lib/supabase";
+import type {
+  DeviceStatus as MonitoringDeviceStatus,
+} from "@/services/monitoringSchema";
+import { useDeviceOnline } from "@/hooks/useDeviceOnline";
+import { getMonitorIdForUser } from "@/services/monitoringService";
 import {
   subscribeResilientChannel,
   type ResilientSubscription,
@@ -124,10 +129,8 @@ type ComponentData = {
 };
 
 type DeviceStatus =
-  | "Online"
-  | "Offline"
-  | "online"
-  | "offline"
+  | MonitoringDeviceStatus
+  | Lowercase<MonitoringDeviceStatus>
   | null;
 
 // ============================================
@@ -164,6 +167,15 @@ export default function ComponentsScreen() {
   const [deviceStatus, setDeviceStatus] =
     useState<DeviceStatus>(null);
 
+  const [lastSeen, setLastSeen] =
+    useState<string | null>(null);
+
+  // Freshness-aware online flag shared with the dashboard.
+  const deviceOnline = useDeviceOnline(
+    lastSeen,
+    deviceStatus,
+  );
+
   // ============================================
   // CONTENT-AWARE STATUS SEGMENTS
   //
@@ -176,15 +188,12 @@ export default function ComponentsScreen() {
   const isComponentActive = useCallback(
     (component: ComponentData): boolean => {
       if (isESP32Name(component.component_name)) {
-        return (
-          String(deviceStatus).toLowerCase() ===
-          "online"
-        );
+        return deviceOnline;
       }
 
       return component.status;
     },
-    [deviceStatus],
+    [deviceOnline],
   );
 
   const componentCounts = useMemo(() => {
@@ -304,13 +313,19 @@ export default function ComponentsScreen() {
     // ==========================================
 
     const loadDeviceStatus = async (
-      userId: string,
+      monitorId: number | null,
     ) => {
+      if (monitorId == null) {
+        setDeviceStatus(null);
+        setLastSeen(null);
+        return;
+      }
+
       const { data, error } =
         await supabase
           .from("monitoring")
-          .select("device_status")
-          .eq("user_id", userId)
+          .select("device_status,last_seen")
+          .eq("monitor_id", monitorId)
           .maybeSingle();
 
       if (cancelled) return;
@@ -322,12 +337,15 @@ export default function ComponentsScreen() {
         );
 
         setDeviceStatus(null);
+        setLastSeen(null);
         return;
       }
 
       setDeviceStatus(
         data?.device_status ?? null,
       );
+
+      setLastSeen(data?.last_seen ?? null);
     };
 
     // ==========================================
@@ -342,6 +360,7 @@ export default function ComponentsScreen() {
       if (!user) {
         setComponents([]);
         setDeviceStatus(null);
+        setLastSeen(null);
         return;
       }
 
@@ -349,9 +368,12 @@ export default function ComponentsScreen() {
       // LOAD INITIAL DATA
       // ========================================
 
+      const monitorId =
+        await getMonitorIdForUser(user.id);
+
       await Promise.all([
         loadComponents(user.id),
-        loadDeviceStatus(user.id),
+        loadDeviceStatus(monitorId),
       ]);
 
       if (cancelled) return;
@@ -389,34 +411,41 @@ export default function ComponentsScreen() {
       // MONITORING REALTIME (same shared recovery)
       // ========================================
 
-      monitoringSubscription = subscribeResilientChannel({
-        topic: `monitoring-${user.id}`,
-        label: `monitoring-${user.id}`,
-        build: (ch) =>
-          ch.on(
-            "postgres_changes",
-            {
-              event: "UPDATE",
-              schema: "public",
-              table: "monitoring",
-              filter: `user_id=eq.${user.id}`,
-            },
-            (payload) => {
-              if (cancelled) return;
+      if (monitorId != null) {
+        monitoringSubscription = subscribeResilientChannel({
+          topic: `monitoring-${monitorId}`,
+          label: `monitoring-${monitorId}`,
+          build: (ch) =>
+            ch.on(
+              "postgres_changes",
+              {
+                event: "UPDATE",
+                schema: "public",
+                table: "monitoring",
+                filter: `monitor_id=eq.${monitorId}`,
+              },
+              (payload) => {
+                if (cancelled) return;
 
-              const updatedStatus =
-                payload.new.device_status;
+                setDeviceStatus(
+                  (payload.new
+                    .device_status as DeviceStatus) ??
+                    null,
+                );
 
-              setDeviceStatus(
-                updatedStatus as DeviceStatus,
-              );
-            },
-          ),
-        isAlive: () => !cancelled,
-        onChannel: (next) => {
-          monitoringChannel = next;
-        },
-      });
+                setLastSeen(
+                  (payload.new.last_seen as
+                    | string
+                    | null) ?? null,
+                );
+              },
+            ),
+          isAlive: () => !cancelled,
+          onChannel: (next) => {
+            monitoringChannel = next;
+          },
+        });
+      }
     };
 
     setup();
@@ -583,11 +612,7 @@ export default function ComponentsScreen() {
 
                 // ESP32 connection status
                 // comes from monitoring table.
-                const isConnected =
-                  String(
-                    deviceStatus,
-                  ).toLowerCase() ===
-                  "online";
+                const isConnected = deviceOnline;
 
                 const status = isESP32
                   ? isConnected

@@ -1,19 +1,25 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  View,
-} from "react-native";
+import { StyleSheet, View } from "react-native";
 
+import {
+  AdminTabDataProps,
+  AdminTabError,
+  AdminTabHeader,
+  AdminTabLoading,
+} from "@/admin/components/AdminTabShared";
+import {
+  formatBatteryPercent,
+  formatLastUpdated,
+  formatSolarKwh,
+  formatVoltage,
+} from "@/admin/format";
 import AppText from "@/components/ui/AppText";
 import EmptyState from "@/components/ui/EmptyState";
 import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
-import type { AdminFleetHealth } from "@/services/adminService";
 
 interface StatCardProps {
   label: string;
@@ -37,13 +43,6 @@ function StatCard({ label, value, colors }: StatCardProps) {
   );
 }
 
-interface AdminTabDataProps {
-  fleet: AdminFleetHealth | null;
-  loading: boolean;
-  error: string | null;
-  onRetry: () => void;
-}
-
 export default function AdminReportsTab({
   fleet,
   loading,
@@ -54,32 +53,15 @@ export default function AdminReportsTab({
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
+    return <AdminTabLoading />;
   }
 
   if (!fleet) {
     return (
-      <View style={styles.center}>
-        <AppText variant="body" style={styles.errorText}>
-          {error || "No report data available"}
-        </AppText>
-
-        <Pressable
-          onPress={onRetry}
-          style={({ pressed }) => [
-            styles.retryButton,
-            pressed && styles.pressed,
-          ]}
-        >
-          <AppText variant="body" style={styles.retryText}>
-            Retry
-          </AppText>
-        </Pressable>
-      </View>
+      <AdminTabError
+        message={error || "No report data available"}
+        onRetry={onRetry}
+      />
     );
   }
 
@@ -93,19 +75,12 @@ export default function AdminReportsTab({
     );
   }
 
-  const totalSolarKwh = fleet.total_solar_wh_24h / 1000;
-
   return (
     <View style={styles.container}>
-      <View style={styles.headerCard}>
-        <AppText variant="title" style={styles.headerTitle}>
-          Reports
-        </AppText>
-
-        <AppText variant="caption" style={styles.headerSub}>
-          Fleet aggregates from the last 24 hours.
-        </AppText>
-      </View>
+      <AdminTabHeader
+        title="Reports"
+        subtitle="Fleet aggregates from the last 24 hours."
+      />
 
       <View style={styles.statGrid}>
         <StatCard
@@ -122,7 +97,7 @@ export default function AdminReportsTab({
 
         <StatCard
           label="Solar / 24h"
-          value={`${totalSolarKwh.toFixed(1)} kWh`}
+          value={formatSolarKwh(fleet.total_solar_wh_24h)}
           colors={colors}
         />
 
@@ -134,21 +109,13 @@ export default function AdminReportsTab({
 
         <StatCard
           label="Avg battery"
-          value={
-            fleet.avg_battery == null
-              ? "—"
-              : `${Math.round(fleet.avg_battery)}%`
-          }
+          value={formatBatteryPercent(fleet.avg_battery)}
           colors={colors}
         />
 
         <StatCard
           label="Avg voltage"
-          value={
-            fleet.avg_voltage == null
-              ? "—"
-              : `${fleet.avg_voltage.toFixed(2)} V`
-          }
+          value={formatVoltage(fleet.avg_voltage)}
           colors={colors}
         />
       </View>
@@ -169,10 +136,7 @@ export default function AdminReportsTab({
         <AppText variant="caption" style={styles.note}>
           Aggregates and fleet-wide summaries only. No raw rows,
           activity logs, or personal identifiers are shown. Last
-          updated:{" "}
-          {fleet.last_updated
-            ? new Date(fleet.last_updated).toLocaleString()
-            : "—"}
+          updated: {formatLastUpdated(fleet.last_updated)}
         </AppText>
       </View>
     </View>
@@ -210,25 +174,6 @@ const getStyles = (colors: AppColors) =>
       gap: 18,
     },
 
-    headerCard: {
-      width: "100%",
-      backgroundColor: colors.glass.white,
-      borderWidth: 3,
-      borderColor: colors.cardBorder,
-      borderRadius: 15,
-      padding: 18,
-      gap: 6,
-    },
-
-    headerTitle: {
-      color: colors.text,
-      fontWeight: "700",
-    },
-
-    headerSub: {
-      color: colors.textSecondary,
-    },
-
     statGrid: {
       width: "100%",
       flexDirection: "row",
@@ -260,34 +205,5 @@ const getStyles = (colors: AppColors) =>
 
     note: {
       color: colors.textSecondary,
-    },
-
-    center: {
-      width: "100%",
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: 48,
-      gap: 12,
-    },
-
-    errorText: {
-      color: colors.textSecondary,
-      textAlign: "center",
-    },
-
-    retryButton: {
-      paddingHorizontal: 18,
-      paddingVertical: 10,
-      borderRadius: 12,
-      backgroundColor: colors.primary,
-    },
-
-    retryText: {
-      color: colors.onPrimary,
-      fontWeight: "700",
-    },
-
-    pressed: {
-      opacity: 0.7,
     },
   });

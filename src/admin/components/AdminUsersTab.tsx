@@ -1,18 +1,31 @@
 import React, { useMemo } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  View,
-} from "react-native";
+import { StyleSheet, View } from "react-native";
 
+import {
+  AdminTabDataProps,
+  AdminTabError,
+  AdminTabHeader,
+  AdminTabLoading,
+} from "@/admin/components/AdminTabShared";
+import {
+  formatBatteryPercent,
+  formatLastUpdated,
+  formatSolarKwh,
+  formatVoltage,
+} from "@/admin/format";
 import AppText from "@/components/ui/AppText";
 import EmptyState from "@/components/ui/EmptyState";
 import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
-import type { AdminFleetHealth } from "@/services/adminService";
+import type { AdminFleetUser } from "@/services/adminService";
+
+// Users tab owns one extra prop over the shared tab contract:
+// the pseudonymized household rows from get_admin_fleet_users().
+export interface AdminUsersTabProps extends AdminTabDataProps {
+  users: AdminFleetUser[] | null;
+}
 
 function DetailRow({
   label,
@@ -38,53 +51,112 @@ function DetailRow({
   );
 }
 
-interface AdminTabDataProps {
-  fleet: AdminFleetHealth | null;
-  loading: boolean;
-  error: string | null;
-  onRetry: () => void;
+function OnlineBadge({
+  isOnline,
+  colors,
+}: {
+  isOnline: boolean;
+  colors: AppColors;
+}) {
+  const styles = useMemo(() => getStyles(colors), [colors]);
+
+  return (
+    <View
+      style={[
+        styles.badge,
+        isOnline ? styles.badgeOnline : styles.badgeOffline,
+      ]}
+    >
+      <AppText
+        variant="caption"
+        style={
+          isOnline
+            ? styles.badgeOnlineText
+            : styles.badgeOfflineText
+        }
+      >
+        {isOnline ? "Online" : "Offline"}
+      </AppText>
+    </View>
+  );
+}
+
+function HouseholdCard({
+  user,
+  colors,
+}: {
+  user: AdminFleetUser;
+  colors: AppColors;
+}) {
+  const styles = useMemo(() => getStyles(colors), [colors]);
+
+  return (
+    <View style={styles.detailCard}>
+      <View style={styles.householdHeader}>
+        <AppText variant="body" style={styles.householdName}>
+          {user.pseudonym}
+        </AppText>
+
+        <OnlineBadge isOnline={user.is_online} colors={colors} />
+      </View>
+
+      <DetailRow
+        label="Avg battery"
+        value={formatBatteryPercent(user.avg_battery)}
+        colors={colors}
+      />
+
+      <DetailRow
+        label="Avg voltage"
+        value={formatVoltage(user.avg_voltage)}
+        colors={colors}
+      />
+
+      <DetailRow
+        label="Solar / 24h"
+        value={formatSolarKwh(user.solar_wh_24h)}
+        colors={colors}
+      />
+
+      <DetailRow
+        label="Unsafe battery"
+        value={String(user.low_battery_count)}
+        colors={colors}
+      />
+
+      <DetailRow
+        label="Last updated"
+        value={formatLastUpdated(user.last_updated)}
+        colors={colors}
+      />
+    </View>
+  );
 }
 
 export default function AdminUsersTab({
   fleet,
+  users,
   loading,
   error,
   onRetry,
-}: AdminTabDataProps) {
+}: AdminUsersTabProps) {
   const colors = useAppColors();
   const styles = useMemo(() => getStyles(colors), [colors]);
 
   if (loading) {
+    return <AdminTabLoading />;
+  }
+
+  if (!fleet || !users) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
+      <AdminTabError
+        message={error || "No user data available"}
+        onRetry={onRetry}
+      />
     );
   }
 
-  if (!fleet) {
-    return (
-      <View style={styles.center}>
-        <AppText variant="body" style={styles.errorText}>
-          {error || "No user data available"}
-        </AppText>
-
-        <Pressable
-          onPress={onRetry}
-          style={({ pressed }) => [
-            styles.retryButton,
-            pressed && styles.pressed,
-          ]}
-        >
-          <AppText variant="body" style={styles.retryText}>
-            Retry
-          </AppText>
-        </Pressable>
-      </View>
-    );
-  }
-
-  if (fleet.device_count === 0) {
+  if (fleet.device_count === 0 || users.length === 0) {
     return (
       <EmptyState
         icon="people-outline"
@@ -96,16 +168,10 @@ export default function AdminUsersTab({
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerCard}>
-        <AppText variant="title" style={styles.headerTitle}>
-          Users
-        </AppText>
-
-        <AppText variant="caption" style={styles.headerSub}>
-          {fleet.device_count} households connected. Pseudonymous
-          fleet aggregates only.
-        </AppText>
-      </View>
+      <AdminTabHeader
+        title="Users"
+        subtitle={`${fleet.device_count} households connected. Pseudonymous fleet aggregates only.`}
+      />
 
       <View style={styles.detailCard}>
         <DetailRow
@@ -122,21 +188,13 @@ export default function AdminUsersTab({
 
         <DetailRow
           label="Avg battery"
-          value={
-            fleet.avg_battery == null
-              ? "—"
-              : `${Math.round(fleet.avg_battery)}%`
-          }
+          value={formatBatteryPercent(fleet.avg_battery)}
           colors={colors}
         />
 
         <DetailRow
           label="Avg voltage"
-          value={
-            fleet.avg_voltage == null
-              ? "—"
-              : `${fleet.avg_voltage.toFixed(2)} V`
-          }
+          value={formatVoltage(fleet.avg_voltage)}
           colors={colors}
         />
 
@@ -148,18 +206,23 @@ export default function AdminUsersTab({
 
         <DetailRow
           label="Last updated"
-          value={
-            fleet.last_updated
-              ? new Date(fleet.last_updated).toLocaleString()
-              : "—"
-          }
+          value={formatLastUpdated(fleet.last_updated)}
           colors={colors}
         />
       </View>
 
+      {users.map((user) => (
+        <HouseholdCard
+          key={user.pseudonym}
+          user={user}
+          colors={colors}
+        />
+      ))}
+
       <AppText variant="caption" style={styles.note}>
-        Household-level detail is intentionally withheld. Only
-        fleet-wide, pseudonymous aggregates are shown.
+        Households are listed under sequential pseudonyms
+        assigned by first-seen order. Usernames, emails, and raw
+        readings never leave the server.
       </AppText>
     </View>
   );
@@ -193,25 +256,6 @@ const getStyles = (colors: AppColors) =>
       gap: 18,
     },
 
-    headerCard: {
-      width: "100%",
-      backgroundColor: colors.glass.white,
-      borderWidth: 3,
-      borderColor: colors.cardBorder,
-      borderRadius: 15,
-      padding: 18,
-      gap: 6,
-    },
-
-    headerTitle: {
-      color: colors.text,
-      fontWeight: "700",
-    },
-
-    headerSub: {
-      color: colors.textSecondary,
-    },
-
     detailCard: {
       width: "100%",
       backgroundColor: colors.glass.white,
@@ -222,37 +266,50 @@ const getStyles = (colors: AppColors) =>
       paddingVertical: 6,
     },
 
-    note: {
-      color: colors.textSecondary,
-      textAlign: "center",
-    },
-
-    center: {
+    householdHeader: {
       width: "100%",
+      flexDirection: "row",
       alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: 48,
+      justifyContent: "space-between",
       gap: 12,
+      paddingTop: 12,
+      paddingBottom: 4,
     },
 
-    errorText: {
-      color: colors.textSecondary,
-      textAlign: "center",
-    },
-
-    retryButton: {
-      paddingHorizontal: 18,
-      paddingVertical: 10,
-      borderRadius: 12,
-      backgroundColor: colors.primary,
-    },
-
-    retryText: {
-      color: colors.onPrimary,
+    householdName: {
+      color: colors.text,
       fontWeight: "700",
     },
 
-    pressed: {
-      opacity: 0.7,
+    badge: {
+      borderRadius: 10,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderWidth: 1,
+    },
+
+    badgeOnline: {
+      backgroundColor: colors.primaryWash,
+      borderColor: colors.primarySoft,
+    },
+
+    badgeOffline: {
+      backgroundColor: colors.scrimFaint,
+      borderColor: colors.border,
+    },
+
+    badgeOnlineText: {
+      color: colors.primaryText,
+      fontWeight: "700",
+    },
+
+    badgeOfflineText: {
+      color: colors.textSecondary,
+      fontWeight: "700",
+    },
+
+    note: {
+      color: colors.textSecondary,
+      textAlign: "center",
     },
   });

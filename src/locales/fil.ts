@@ -369,8 +369,14 @@ const fil = {
       goToElectronicsRecommendation: "Pumunta sa Electronics Recommendation",
       offlineBanner:
         "Wala kang koneksyon — huling readings ang ipinapakita.",
+      deviceOfflineBanner:
+        "Offline ang device — huling readings ang ipinapakita.",
       lastUpdated:
         "Huling na-update {{time}}.",
+      deviceLastSeen:
+        "Huling nakita {{time}}.",
+      deviceLastSeenUnavailable:
+        "Hindi available ang huling nakita.",
       forecastFailed: "Hindi ma-load ang forecast.",
     },
     about: {

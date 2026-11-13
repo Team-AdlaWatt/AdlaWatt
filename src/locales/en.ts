@@ -349,8 +349,14 @@ const en = {
       realtimeMonitoring: "Real-Time Monitoring",
       offlineBanner:
         "You're offline — showing last readings.",
+      deviceOfflineBanner:
+        "Device is offline — showing last readings.",
       lastUpdated:
         "Last updated {{time}}.",
+      deviceLastSeen:
+        "Last seen {{time}}.",
+      deviceLastSeenUnavailable:
+        "Last seen unavailable.",
       goToElectronicsRecommendation:
         "Go to Electronics Recommendation",
       forecastFailed: "Could not load the forecast.",

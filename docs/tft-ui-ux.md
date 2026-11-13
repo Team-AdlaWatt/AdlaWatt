@@ -162,7 +162,7 @@ Widgets: Panel V + charge A + W (V×A) + day Wh counter (RTC/millis integrate) +
 +------+--------------------------------+
 ```
 
-`Batt °C + Solar °C + Interior °C` with severity colors (Nominal/Elevated/High/Critical) + relay auto-cut banner. Any Critical → full-width red banner over content, rail stays tappable.
+`Batt °C + Solar °C + Interior °C` with severity colors (Nominal/Elevated/High/Critical, including the `Critical (rapid rise)` and `Critical (sensor fault)` variants) + relay auto-cut banner. Any Critical → full-width red banner over content, rail stays tappable.
 
 ### 3.5 Output (relay control)
 

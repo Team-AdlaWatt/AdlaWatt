@@ -98,11 +98,13 @@ Related table: **Live Monitoring Table** (`public.monitoring`).
 | Column | Type | Meaning |
 |---|---|---|
 | `battery_temperature` | numeric(5,2) | Battery temperature |
-| `battery_temperature_status` | text | Nominal, Elevated, High, Critical |
+| `battery_temperature_status` | text | Nominal, Elevated, High, Critical, Critical (sensor fault) |
 | `solar_temperature` | numeric(5,2) | Solar panel temperature |
-| `solar_temperature_status` | text | Nominal, Elevated, High, Critical |
+| `solar_temperature_status` | text | Nominal, Elevated, High, Critical, Critical (rapid rise), Critical (sensor fault) |
 | `interior_temp` | numeric(5,2) | Interior temperature |
-| `interior_temp_status` | text | Nominal, Elevated, High, Critical |
+| `interior_temp_status` | text | Nominal, Elevated, High, Critical, Critical (rapid rise), Critical (sensor fault) |
+
+All non-key columns are nullable. A null temperature with a status still displays the status; a null temperature without a status shows *Sensor fault*. Other null metrics display as `--`.
 
 ### 5.5b Device
 
@@ -166,8 +168,11 @@ Related table: **Live Monitoring Table** (`public.monitoring`).
 | `solar_status` | Low, Moderate, High |
 | `device_status` | Online, Offline |
 | `dod_status` | Safe, Unsafe |
-| Temperature statuses | Nominal, Elevated, High, Critical |
+| `battery_temperature_status` | Nominal, Elevated, High, Critical, Critical (sensor fault) |
+| `solar_temperature_status`, `interior_temp_status` | Nominal, Elevated, High, Critical, Critical (rapid rise), Critical (sensor fault) |
 | `solar_input`, `solar_voltage`, `solar_current`, `total_energy`, `current_load`, `interior_temp`, `voltage`, `watt_hours`, `interval_seconds`, `energy_input_wh`, `energy_output_wh` | 0 or higher |
+
+The app treats any status starting with `Critical` as critical for alerts and badge colours. A device counts as online only when `last_seen` is within 10 seconds and `device_status` is not `Offline`. The separate "Monitoring Data Stale" alert still fires at 60 seconds so a single missed heartbeat does not spam alerts.
 
 ---
 
@@ -200,7 +205,7 @@ Related table: **Live Monitoring Table** (`public.monitoring`).
 
 | Job | Schedule | Action |
 |---|---|---|
-| `adlawatt-monitoring-heartbeat-check` | Every 1 second | Marks stale devices Offline (live table) |
+| `adlawatt-monitoring-heartbeat-check` | Every 1 second | Marks devices Offline after the 10s heartbeat window (live table) |
 | `adlawatt-monitoring-history-snapshot` | Every 5 minutes | Records snapshots into history |
 | `adlawatt-monitoring-history-retention` | Monthly (optional, commented out) | Deletes old history |
 
@@ -224,6 +229,13 @@ Rules:
 - **Offline snapshots are ignored** for averages, min, max, status counts and alerts. They hold stale values.
 - **Energy totals use all snapshots.** The counters stay correct while offline.
 - **Periods follow the timezone**, so a day means a Manila day.
+- **DoD comes from `dod_status`.** The client falls back to `battery_level < 20` only when `dod_status` is NULL, which keeps legacy history working.
+
+> **Client-side implementation.** The mobile app currently reads
+> `monitoring_history` directly instead of calling the RPCs, and
+> applies these rules in `src/services/analyticsService.ts`
+> (`getOnlineRows`, `isUnsafeDischarge`). Keep the two paths in
+> sync when changing either one.
 
 Output columns:
 
