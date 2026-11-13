@@ -175,11 +175,38 @@ export const getMonitorIdForUser = async (
     return null;
   }
 
-  if (
-    data?.monitor_id == null
-  ) {
+  // Fast path: profile already carries the monitor_id.
+  if (data?.monitor_id != null) {
 
-    return null;
+    return Number(data.monitor_id);
+  }
+
+  // Fallback: resolve monitor_id from the monitoring row itself.
+  // Covers accounts whose profile row was backfilled or created
+  // without monitor_id, and any future monitor_id assignments.
+  if (data == null || data.monitor_id == null) {
+
+    const { data: monitoringRow, error: monitoringError } = await supabase
+      .from("monitoring")
+      .select("monitor_id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (monitoringError) {
+
+      console.error(
+        "Error resolving monitor id from monitoring row:",
+        monitoringError.message,
+      );
+      return null;
+    }
+
+    if (monitoringRow?.monitor_id == null) {
+
+      return null;
+    }
+
+    return Number(monitoringRow.monitor_id);
   }
 
   return Number(data.monitor_id);
