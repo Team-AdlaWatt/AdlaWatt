@@ -41,6 +41,10 @@ interface DropdownModalProps {
   showCloseButton?: boolean;
   dismissOnOverlayPress?: boolean;
   scrollRef?: RefObject<ScrollViewType | null>;
+  onContentSizeChange?: (
+    width: number,
+    height: number,
+  ) => void;
 }
 
 export function DropdownModal({
@@ -52,6 +56,7 @@ export function DropdownModal({
   showCloseButton = true,
   dismissOnOverlayPress = true,
   scrollRef,
+  onContentSizeChange,
 }: DropdownModalProps) {
   const { t } = useTranslation();
   const colors = useAppColors();
@@ -139,6 +144,9 @@ export function DropdownModal({
               }
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
+              onContentSizeChange={
+                onContentSizeChange
+              }
             >
               {children}
             </ScrollView>

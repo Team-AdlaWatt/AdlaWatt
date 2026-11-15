@@ -321,6 +321,9 @@ const ceb = {
     currentFont: "Karon: {{font}}",
     vibration: "Vibration",
     vibrationHint: "Mag-vibrate kung adunay importanteng alerto.",
+    messagePanel: "Mga Giya nga Mensahe",
+    messagePanelHint:
+      "Magpakita ug mugbo nga tip sa app nga nagpasabot kung unsa ang nahitabo, sama sa abiso sa vibration.",
     reminders: "Reminders",
     remindersHint:
       "Adlaw-adlaw nga evening review ug low-sun advisories isip phone banners. Moandar offline.",
@@ -354,6 +357,18 @@ const ceb = {
     exitNo: "Dili",
     exitYes: "Oo",
     englishName: "English",
+  },
+
+  guidance: {
+    vibration: {
+      title: "Naay namatikdan nga babala",
+      body: "Nag-vibrate ang imong phone aron dili nimo malimtan ang babala.",
+      hint: "Mahimo nimong patyon ang vibration sa Preferences.",
+      openPreferences: "Ablihi ang Preferences",
+      dontShowAgain:
+        "Ayaw na ipakita ang mga mensahe nga sama niini",
+      closeA11y: "Isira ang mensahe",
+    },
   },
 
   dashboard: {

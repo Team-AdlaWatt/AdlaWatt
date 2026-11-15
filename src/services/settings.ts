@@ -143,6 +143,75 @@ export async function saveVibrationSetting(
 }
 
 // ============================================================
+// MESSAGE PANEL SWITCH (v1)
+//
+// Device-level preference backing the Menu "Guidance
+// Messages" row. One shared switch for the in-app guidance
+// panels that explain what the app is doing (first one: the
+// vibration notice). Default ON for new and existing installs
+// because an absent key means "not set yet". The intro key
+// records that the one-time first-run notice was consumed, so
+// legacy installs see it once after this feature ships rather
+// than on every launch.
+// ============================================================
+
+const MESSAGE_PANEL_KEY = "adlawatt.messagePanel.v1";
+const MESSAGE_PANEL_INTRO_KEY =
+  "adlawatt.messagePanel.intro.v1";
+
+export async function loadMessagePanelSetting(): Promise<boolean> {
+  try {
+    const raw = await AsyncStorage.getItem(
+      MESSAGE_PANEL_KEY,
+    );
+
+    if (raw === "0" || raw === "false") {
+      return false;
+    }
+
+    return true;
+  } catch {
+    return true;
+  }
+}
+
+export async function saveMessagePanelSetting(
+  value: boolean,
+): Promise<void> {
+  try {
+    await AsyncStorage.setItem(
+      MESSAGE_PANEL_KEY,
+      value ? "1" : "0",
+    );
+  } catch {
+    // Intentionally ignored.
+  }
+}
+
+export async function loadMessagePanelIntroSeen(): Promise<boolean> {
+  try {
+    return (
+      (await AsyncStorage.getItem(
+        MESSAGE_PANEL_INTRO_KEY,
+      )) === "1"
+    );
+  } catch {
+    return false;
+  }
+}
+
+export async function markMessagePanelIntroSeen(): Promise<void> {
+  try {
+    await AsyncStorage.setItem(
+      MESSAGE_PANEL_INTRO_KEY,
+      "1",
+    );
+  } catch {
+    // Intentionally ignored.
+  }
+}
+
+// ============================================================
 // LANGUAGE PREFERENCE (v1)
 //
 // Device-level UI language backing the Menu Language row.

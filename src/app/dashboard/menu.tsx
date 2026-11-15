@@ -1,4 +1,9 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import {
   Alert,
@@ -14,7 +19,10 @@ import {
   useWindowDimensions,
 } from "react-native";
 
-import { router } from "expo-router";
+import {
+  router,
+  useLocalSearchParams,
+} from "expo-router";
 
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
@@ -58,9 +66,11 @@ import {
 import {
   loadCachedEmailNotifications,
   loadLanguageSetting,
+  loadMessagePanelSetting,
   loadRemindersSetting,
   loadVibrationSetting,
   saveCachedEmailNotifications,
+  saveMessagePanelSetting,
   saveRemindersSetting,
   saveVibrationSetting,
 } from "@/services/settings";
@@ -252,6 +262,105 @@ export default function SettingsScreen() {
       void cancelAllReminders();
     }
   };
+
+  // Device-local "Guidance Messages" switch (default ON,
+  // immediate like vibration). Shared by the in-app message
+  // panels that explain what the app is doing.
+  const [messagePanel, setMessagePanel] =
+    useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    loadMessagePanelSetting().then((loaded) => {
+      if (active) {
+        setMessagePanel(loaded);
+      }
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleMessagePanelToggle = (
+    next: boolean,
+  ) => {
+    setMessagePanel(next);
+    void saveMessagePanelSetting(next);
+  };
+
+  // Guidance panel deep-link: /dashboard/menu?focus=vibration
+  // opens Preferences and scrolls to the Vibration row once,
+  // after its real position is measured.
+  const params = useLocalSearchParams<{
+    focus?: string | string[];
+  }>();
+
+  const focusParam = Array.isArray(params.focus)
+    ? params.focus[0]
+    : params.focus;
+
+  const focusHandledRef = useRef(false);
+  const focusScrolledRef = useRef(false);
+  const vibrationRowYRef = useRef(0);
+  const preferencesScrollRef =
+    useRef<ScrollView>(null);
+  const highlightTimerRef = useRef<
+    ReturnType<typeof setTimeout> | null
+  >(null);
+  const [highlightVibration, setHighlightVibration] =
+    useState(false);
+
+  useEffect(() => {
+    if (
+      focusParam !== "vibration" ||
+      focusHandledRef.current
+    ) {
+      return;
+    }
+
+    focusHandledRef.current = true;
+
+    setPreferencesExpanded(true);
+  }, [focusParam]);
+
+  const maybeScrollToVibration = () => {
+    if (
+      focusParam !== "vibration" ||
+      focusScrolledRef.current ||
+      vibrationRowYRef.current <= 0
+    ) {
+      return;
+    }
+
+    focusScrolledRef.current = true;
+
+    preferencesScrollRef.current?.scrollTo({
+      y: Math.max(vibrationRowYRef.current - 12, 0),
+      animated: true,
+    });
+
+    setHighlightVibration(true);
+
+    if (highlightTimerRef.current) {
+      clearTimeout(highlightTimerRef.current);
+    }
+
+    highlightTimerRef.current = setTimeout(() => {
+      setHighlightVibration(false);
+      highlightTimerRef.current = null;
+    }, 1800);
+  };
+
+  useEffect(
+    () => () => {
+      if (highlightTimerRef.current) {
+        clearTimeout(highlightTimerRef.current);
+      }
+    },
+    [],
+  );
 
   // Global per-user alert-email switch (server column,
   // default ON). Drafted like typography: flips instantly,
@@ -1378,6 +1487,10 @@ export default function SettingsScreen() {
           visible={preferencesExpanded}
           title={tMenu("menu.preferences")}
           onClose={handleClosePreferences}
+          scrollRef={preferencesScrollRef}
+          onContentSizeChange={() =>
+            maybeScrollToVibration()
+          }
         >
           <View style={styles.modalBody}>
               {/* Themes: staged System / Light / Dark.
@@ -1565,7 +1678,18 @@ export default function SettingsScreen() {
                 </Pressable>
               </View>
 
-              <View style={styles.preferenceRow}>
+              <View
+                onLayout={(event) => {
+                  vibrationRowYRef.current =
+                    event.nativeEvent.layout.y;
+                  maybeScrollToVibration();
+                }}
+                style={[
+                  styles.preferenceRow,
+                  highlightVibration &&
+                    styles.preferenceRowHighlight,
+                ]}
+              >
                 <View
                   style={styles.preferenceText}
                 >
@@ -1591,6 +1715,35 @@ export default function SettingsScreen() {
                 {renderToggle(
                   vibration,
                   handleVibrationToggle,
+                )}
+              </View>
+
+              <View style={styles.preferenceRow}>
+                <View
+                  style={styles.preferenceText}
+                >
+                  <AppText
+                    variant="body"
+                    style={
+                      styles.preferenceTitle
+                    }
+                  >
+                    {tMenu("menu.messagePanel")}
+                  </AppText>
+
+                  <AppText
+                    variant="caption"
+                    style={
+                      styles.preferenceDescription
+                    }
+                  >
+                    {tMenu("menu.messagePanelHint")}
+                  </AppText>
+                </View>
+
+                {renderToggle(
+                  messagePanel,
+                  handleMessagePanelToggle,
                 )}
               </View>
 
@@ -2129,6 +2282,13 @@ const getStyles = (colors: AppColors) =>
     justifyContent: "space-between",
     paddingVertical: 6,
     marginBottom: 12,
+  },
+
+  preferenceRowHighlight: {
+    backgroundColor: colors.selectedWash,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    marginHorizontal: -10,
   },
 
   preferenceText: {

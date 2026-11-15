@@ -300,6 +300,9 @@ const en = {
     vibration: "Vibration",
     vibrationHint:
       "Vibrate when important alerts are received.",
+    messagePanel: "Guidance Messages",
+    messagePanelHint:
+      "Show short in-app tips that explain what's happening, like the vibration notice.",
     reminders: "Reminders",
     remindersHint:
       "Daily evening review and low-sun advisories as phone banners. Works offline.",
@@ -335,6 +338,18 @@ const en = {
     exitNo: "No",
     exitYes: "Yes",
     englishName: "English",
+  },
+
+  guidance: {
+    vibration: {
+      title: "Warning detected",
+      body: "Your phone is vibrating so you don't miss the warning.",
+      hint: "You can turn vibration off in Preferences.",
+      openPreferences: "Open Preferences",
+      dontShowAgain:
+        "Don't show messages like this again",
+      closeA11y: "Close message",
+    },
   },
 
   dashboard: {
