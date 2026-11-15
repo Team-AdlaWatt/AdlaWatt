@@ -19,35 +19,39 @@ const here = dirname(
 const root = resolve(here, "..");
 
 const NON_NEGATIVE_COLUMNS = [
-  "solar_input",
-  "solar_voltage",
-  "solar_current",
-  "total_energy",
-  "current_load",
-  "interior_temp",
-  "voltage",
-  "watt_hours",
+  "INA228 Solar Side input",
+  "INA228 Solar Side voltage",
+  "INA228 Solar Side current",
+  "INA228 Load Side total energy",
+  "INA228 Load Side battery load",
+  "DHT22 Interior Temp",
+  "INA219 Voltage",
+  "INA228 Load Side battery watt_hour",
   "cumulative_energy_input_wh",
   "cumulative_energy_output_wh",
 ];
 
 const STATUS_COLUMNS = {
-  battery_status: [
+  "INA228 Load Battery status": [
     "Charging",
     "Discharging",
     "Idle",
   ],
-  solar_status: ["Low", "Moderate", "High"],
-  device_status: ["Online", "Offline"],
-  dod_status: ["Safe", "Unsafe"],
-  battery_temperature_status: [
+  "INA228 Solar Side solar status": [
+    "Low",
+    "Moderate",
+    "High",
+  ],
+  "ESP32S3 Status": ["Online", "Offline"],
+  "INA228 Load Side dod_status": ["Safe", "Unsafe"],
+  "DS18B20 1 Battery Temp Status": [
     "Nominal",
     "Elevated",
     "High",
     "Critical",
     "Critical (sensor fault)",
   ],
-  solar_temperature_status: [
+  "DS18B20 2 Solar Temp Status": [
     "Nominal",
     "Elevated",
     "High",
@@ -55,7 +59,7 @@ const STATUS_COLUMNS = {
     "Critical (rapid rise)",
     "Critical (sensor fault)",
   ],
-  interior_temp_status: [
+  "DHT22 Interior Temp Status": [
     "Nominal",
     "Elevated",
     "High",
@@ -266,13 +270,13 @@ for (const [index, row] of rows.entries()) {
   }
 
   if (
-    row.battery_level != null &&
-    (!isFiniteNumber(row.battery_level) ||
-      row.battery_level < 0 ||
-      row.battery_level > 100)
+    row["INA219 Voltage Percentage"] != null &&
+    (!isFiniteNumber(row["INA219 Voltage Percentage"]) ||
+      row["INA219 Voltage Percentage"] < 0 ||
+      row["INA219 Voltage Percentage"] > 100)
   ) {
     fail(
-      `${label}: battery_level is not a number in 0..100 (${row.battery_level}).`,
+      `${label}: INA219 Voltage Percentage is not a number in 0..100 (${row["INA219 Voltage Percentage"]}).`,
     );
   }
 
@@ -305,12 +309,12 @@ for (const [index, row] of rows.entries()) {
   }
 
   if (
-    row.last_seen != null &&
-    (typeof row.last_seen !== "string" ||
-      !Number.isFinite(Date.parse(row.last_seen)))
+    row["ESP32S3 Last seen"] != null &&
+    (typeof row["ESP32S3 Last seen"] !== "string" ||
+      !Number.isFinite(Date.parse(row["ESP32S3 Last seen"])))
   ) {
     fail(
-      `${label}: last_seen is not a parseable timestamp (${row.last_seen}).`,
+      `${label}: ESP32S3 Last seen is not a parseable timestamp (${row["ESP32S3 Last seen"]}).`,
     );
   }
 

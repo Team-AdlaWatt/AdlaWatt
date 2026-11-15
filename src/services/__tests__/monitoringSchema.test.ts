@@ -14,6 +14,7 @@ import {
   MONITORING_COLUMNS,
   MONITORING_CONTRACT_COMPLETE,
   MONITORING_DATA_KEYS_VALID,
+  MONITORING_RAW_TO_UI,
   MONITORING_SCHEMA_VERSION,
   MONITORING_SELECT,
   NON_UI_MONITORING_COLUMNS,
@@ -29,27 +30,27 @@ import {
 const row: MonitoringRow = {
   monitor_id: 1,
   user_id: "user-1",
-  battery_level: 80,
-  battery_status: "Charging",
-  time_remaining: "5h 00m",
-  solar_input: 100,
-  solar_timer: "00:00:00",
-  solar_voltage: 18,
-  solar_current: 5,
-  total_energy: 1200,
-  solar_status: "Moderate",
-  current_load: 50,
-  device_status: "Online",
-  last_seen: "2026-11-12T10:00:00.000Z",
-  battery_temperature: 30,
-  battery_temperature_status: "Nominal",
-  dod_status: "Safe",
-  solar_temperature: 35,
-  solar_temperature_status: "Nominal",
-  interior_temp: 28,
-  interior_temp_status: "Nominal",
-  voltage: 12.6,
-  watt_hours: 500,
+  "INA219 Voltage Percentage": 80,
+  "INA228 Load Battery status": "Charging",
+  "INA228 Load battery time remaining": "5h 00m",
+  "INA228 Solar Side input": 100,
+  "INA228 Solar Side timer": "00:00:00",
+  "INA228 Solar Side voltage": 18,
+  "INA228 Solar Side current": 5,
+  "INA228 Load Side total energy": 1200,
+  "INA228 Solar Side solar status": "Moderate",
+  "INA228 Load Side battery load": 50,
+  "ESP32S3 Status": "Online",
+  "ESP32S3 Last seen": "2026-11-12T10:00:00.000Z",
+  "DS18B20 1 Battery Temp": 30,
+  "DS18B20 1 Battery Temp Status": "Nominal",
+  "INA228 Load Side dod_status": "Safe",
+  "DS18B20 2 Solar Temp": 35,
+  "DS18B20 2 Solar Temp Status": "Nominal",
+  "DHT22 Interior Temp": 28,
+  "DHT22 Interior Temp Status": "Nominal",
+  "INA219 Voltage": 12.6,
+  "INA228 Load Side battery watt_hour": 500,
   cumulative_energy_input_wh: 1000,
   cumulative_energy_output_wh: 900,
 };
@@ -72,7 +73,7 @@ describe("monitoring column contract", () => {
 
   test("every column is displayed or explicitly excluded", () => {
     const accounted = new Set<string>([
-      ...Object.keys(normalizeMonitoringRow(row)),
+      ...Object.keys(MONITORING_RAW_TO_UI),
       ...INTERNAL_MONITORING_COLUMNS,
       ...NON_UI_MONITORING_COLUMNS,
     ]);
@@ -145,7 +146,7 @@ describe("row guard", () => {
 
   test("reports missing columns", () => {
     const {
-      last_seen: _lastSeen,
+      "ESP32S3 Last seen": _lastSeen,
       cumulative_energy_input_wh:
         _input,
       ...partial
@@ -157,7 +158,7 @@ describe("row guard", () => {
     expect(
       getMissingMonitoringColumns(partial),
     ).toEqual([
-      "last_seen",
+      "ESP32S3 Last seen",
       "cumulative_energy_input_wh",
     ]);
   });
@@ -202,8 +203,8 @@ describe("normalization", () => {
     const normalized =
       normalizeMonitoringRow({
         ...row,
-        battery_level: "42",
-        interior_temp: "31.5",
+        "INA219 Voltage Percentage": "42",
+        "DHT22 Interior Temp": "31.5",
       });
 
     expect(normalized.battery_level).toBe(42);
@@ -220,11 +221,11 @@ describe("normalization", () => {
     const normalized =
       normalizeMonitoringRow({
         ...row,
-        battery_temperature_status:
+        "DS18B20 1 Battery Temp Status":
           "Critical (sensor fault)",
-        solar_temperature_status:
+        "DS18B20 2 Solar Temp Status":
           "Critical (rapid rise)",
-        interior_temp_status:
+        "DHT22 Interior Temp Status":
           "Critical (sensor fault)",
       });
 
@@ -247,10 +248,10 @@ describe("normalization", () => {
     const normalized =
       normalizeMonitoringRow({
         ...row,
-        battery_status: "Bogus",
-        device_status: "Unknown",
-        battery_temperature_status: "Hot",
-        last_seen: "not-a-date",
+        "INA228 Load Battery status": "Bogus",
+        "ESP32S3 Status": "Unknown",
+        "DS18B20 1 Battery Temp Status": "Hot",
+        "ESP32S3 Last seen": "not-a-date",
       });
 
     expect(normalized.battery_status).toBeNull();
@@ -265,8 +266,8 @@ describe("normalization", () => {
     expect(
       normalizeMonitoringRow({
         ...row,
-        dod_status: null,
-        battery_level: 10,
+        "INA228 Load Side dod_status": null,
+        "INA219 Voltage Percentage": 10,
       }).dod_status,
     ).toBeNull();
   });

@@ -324,7 +324,7 @@ export default function ComponentsScreen() {
       const { data, error } =
         await supabase
           .from("monitoring")
-          .select("device_status,last_seen")
+          .select('"ESP32S3 Status","ESP32S3 Last seen"')
           .eq("monitor_id", monitorId)
           .maybeSingle();
 
@@ -342,10 +342,12 @@ export default function ComponentsScreen() {
       }
 
       setDeviceStatus(
-        data?.device_status ?? null,
+        (data?.["ESP32S3 Status"] as DeviceStatus | null) ?? null,
       );
 
-      setLastSeen(data?.last_seen ?? null);
+      setLastSeen(
+        (data?.["ESP32S3 Last seen"] as string | null) ?? null,
+      );
     };
 
     // ==========================================
@@ -428,13 +430,13 @@ export default function ComponentsScreen() {
                 if (cancelled) return;
 
                 setDeviceStatus(
-                  (payload.new
-                    .device_status as DeviceStatus) ??
-                    null,
+                  (payload.new["ESP32S3 Status"] as
+                    | DeviceStatus
+                    | null) ?? null,
                 );
 
                 setLastSeen(
-                  (payload.new.last_seen as
+                  (payload.new["ESP32S3 Last seen"] as
                     | string
                     | null) ?? null,
                 );

@@ -18,6 +18,7 @@ import {
   MONITORING_SELECT,
   getMissingMonitoringColumns,
   isMonitoringRow,
+  normalizeMonitoringData,
   normalizeMonitoringRow,
   type BatteryStatus,
   type DeviceStatus,
@@ -137,7 +138,7 @@ export const loadCachedMonitoring = async (
       schemaVersion: MONITORING_SCHEMA_VERSION,
       // Re-normalized on load so corrupt or legacy shapes
       // can never leak untrusted values into the UI.
-      data: normalizeMonitoringRow(
+      data: normalizeMonitoringData(
         parsed.data,
       ),
       savedAt: parsed.savedAt,
@@ -364,7 +365,7 @@ export const getDeviceStatus =
     } = await supabase
       .from("monitoring")
       .select(
-        "device_status,last_seen",
+        '"ESP32S3 Status","ESP32S3 Last seen"',
       )
       .eq(
         "monitor_id",
@@ -383,8 +384,8 @@ export const getDeviceStatus =
     }
 
     return isDeviceOnline(
-      data?.last_seen,
-      data?.device_status,
+      data?.["ESP32S3 Last seen"],
+      data?.["ESP32S3 Status"],
     )
       ? "Online"
       : "Offline";
@@ -585,8 +586,8 @@ export const subscribeToDeviceStatus =
 
             onChange(
               isDeviceOnline(
-                payload.new?.last_seen,
-                payload.new?.device_status,
+                payload.new?.["ESP32S3 Last seen"],
+                payload.new?.["ESP32S3 Status"],
               )
                 ? "Online"
                 : "Offline",

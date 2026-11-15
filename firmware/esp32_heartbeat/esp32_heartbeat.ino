@@ -3,21 +3,22 @@
 // ============================================================
 //
 // Purpose:
-//   Write only `device_status` and `last_seen` to the account's
+//   Write only `ESP32S3 Status` and `ESP32S3 Last seen` to the account's
 //   row in public.monitoring. Sensor columns are untouched.
 //
 // Contract:
 //   - PATCH /rest/v1/monitoring?monitor_id=eq.<MONITOR_ID>
 //   - heartbeat every 5 seconds
 //   - the app considers the device Offline after 10 seconds
-//     without a fresh `last_seen` (or when device_status is
-//     explicitly "Offline")
+  // without a fresh `ESP32S3 Last seen` (or when
+  // `ESP32S3 Status` is explicitly "Offline")
 //
 // Offline after power loss:
 //   The ESP32 cannot update the database once it is powered
-//   off. The app infers Offline from stale `last_seen`. A
-//   server-side heartbeat cron can also flip `device_status`
-//   to "Offline" using the same timestamp.
+//   off. The app infers Offline from stale
+//   `ESP32S3 Last seen`. A server-side heartbeat cron can
+//   also flip `ESP32S3 Status` to "Offline" using the same
+//   timestamp.
 //
 // Security:
 //   This sketch uses the Supabase anon key and setInsecure()
@@ -153,8 +154,8 @@ void sendHeartbeat() {
                     "/rest/v1/monitoring?monitor_id=eq." +
                     String(SUPABASE_MONITOR_ID);
 
-  String payload = String("{\"device_status\":\"Online\",") +
-                   "\"last_seen\":\"" + timestamp + "\"}";
+  String payload = String("{\"ESP32S3 Status\":\"Online\",") +
+                   "\"ESP32S3 Last seen\":\"" + timestamp + "\"}";
 
   WiFiClientSecure client;
   client.setInsecure();

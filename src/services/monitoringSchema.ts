@@ -123,27 +123,27 @@ export const DOD_STATUS_VALUES = [
 export interface MonitoringRow {
   monitor_id: number;
   user_id: string;
-  battery_level: number | null;
-  battery_status: string | null;
-  time_remaining: string | null;
-  solar_input: number | null;
-  solar_timer: string | null;
-  solar_voltage: number | null;
-  solar_current: number | null;
-  total_energy: number | null;
-  solar_status: string | null;
-  current_load: number | null;
-  device_status: string | null;
-  last_seen: string | null;
-  battery_temperature: number | null;
-  battery_temperature_status: string | null;
-  dod_status: string | null;
-  solar_temperature: number | null;
-  solar_temperature_status: string | null;
-  interior_temp: number | null;
-  interior_temp_status: string | null;
-  voltage: number | null;
-  watt_hours: number | null;
+  "INA219 Voltage Percentage": number | null;
+  "INA228 Load Battery status": string | null;
+  "INA228 Load battery time remaining": string | null;
+  "INA228 Solar Side input": number | null;
+  "INA228 Solar Side timer": string | null;
+  "INA228 Solar Side voltage": number | null;
+  "INA228 Solar Side current": number | null;
+  "INA228 Load Side total energy": number | null;
+  "INA228 Solar Side solar status": string | null;
+  "INA228 Load Side battery load": number | null;
+  "ESP32S3 Status": string | null;
+  "ESP32S3 Last seen": string | null;
+  "DS18B20 1 Battery Temp": number | null;
+  "DS18B20 1 Battery Temp Status": string | null;
+  "INA228 Load Side dod_status": string | null;
+  "DS18B20 2 Solar Temp": number | null;
+  "DS18B20 2 Solar Temp Status": string | null;
+  "DHT22 Interior Temp": number | null;
+  "DHT22 Interior Temp Status": string | null;
+  "INA219 Voltage": number | null;
+  "INA228 Load Side battery watt_hour": number | null;
   cumulative_energy_input_wh: number | null;
   cumulative_energy_output_wh: number | null;
 }
@@ -153,8 +153,14 @@ export type MonitoringColumn = keyof MonitoringRow;
 export const MONITORING_COLUMNS: readonly MonitoringColumn[] =
   monitoringColumnList as MonitoringColumn[];
 
-export const MONITORING_SELECT =
-  MONITORING_COLUMNS.join(",");
+const quoteMonitoringColumn = (
+  column: string,
+): string =>
+  `"${column.replace(/"/g, '""')}"`;
+
+export const MONITORING_SELECT = MONITORING_COLUMNS.map(
+  quoteMonitoringColumn,
+).join(",");
 
 // ============================================================
 // NORMALIZED UI MODEL
@@ -204,24 +210,68 @@ export const NON_UI_MONITORING_COLUMNS = [
   "cumulative_energy_output_wh",
 ] as const satisfies readonly MonitoringColumn[];
 
+type InternalMonitoringColumn =
+  (typeof INTERNAL_MONITORING_COLUMNS)[number];
+
+type NonUiMonitoringColumn =
+  (typeof NON_UI_MONITORING_COLUMNS)[number];
+
+// Raw database column names no longer match the UI field
+// names, so the renamed columns are mapped explicitly here.
+
+type RenamedMonitoringColumn = Exclude<
+  MonitoringColumn,
+  InternalMonitoringColumn | NonUiMonitoringColumn
+>;
+
+export const MONITORING_RAW_TO_UI = {
+  "INA219 Voltage Percentage": "battery_level",
+  "INA228 Load Battery status": "battery_status",
+  "INA228 Load battery time remaining": "time_remaining",
+  "INA228 Solar Side input": "solar_input",
+  "INA228 Solar Side timer": "solar_timer",
+  "INA228 Solar Side voltage": "solar_voltage",
+  "INA228 Solar Side current": "solar_current",
+  "INA228 Load Side total energy": "total_energy",
+  "INA228 Solar Side solar status": "solar_status",
+  "INA228 Load Side battery load": "current_load",
+  "ESP32S3 Status": "device_status",
+  "ESP32S3 Last seen": "last_seen",
+  "DS18B20 1 Battery Temp": "battery_temperature",
+  "DS18B20 1 Battery Temp Status": "battery_temperature_status",
+  "INA228 Load Side dod_status": "dod_status",
+  "DS18B20 2 Solar Temp": "solar_temperature",
+  "DS18B20 2 Solar Temp Status": "solar_temperature_status",
+  "DHT22 Interior Temp": "interior_temp",
+  "DHT22 Interior Temp Status": "interior_temp_status",
+  "INA219 Voltage": "voltage",
+  "INA228 Load Side battery watt_hour": "watt_hours",
+} as const satisfies Record<
+  RenamedMonitoringColumn,
+  keyof MonitoringData
+>;
+
 // ============================================================
 // COMPILE-TIME CONTRACT CHECKS
 // ============================================================
 
 type AccountedColumn =
-  | keyof MonitoringData
-  | (typeof INTERNAL_MONITORING_COLUMNS)[number]
-  | (typeof NON_UI_MONITORING_COLUMNS)[number];
+  | keyof typeof MONITORING_RAW_TO_UI
+  | InternalMonitoringColumn
+  | NonUiMonitoringColumn;
 
 type UnaccountedColumn =
   Exclude<MonitoringColumn, AccountedColumn>;
 
+type MappedUiColumn =
+  (typeof MONITORING_RAW_TO_UI)[RenamedMonitoringColumn];
+
 type InvalidDataColumn =
-  Exclude<keyof MonitoringData, MonitoringColumn>;
+  Exclude<keyof MonitoringData, MappedUiColumn>;
 
 // These constants are typed `true` only while every raw
-// column is either displayed or explicitly excluded, and
-// every displayed field exists in the raw row.
+// column is either mapped or explicitly excluded, and
+// every displayed field is mapped from a raw column.
 
 export const MONITORING_CONTRACT_COMPLETE:
   [UnaccountedColumn] extends [never]
@@ -366,122 +416,145 @@ const normalizeTimestamp = (
   return null;
 };
 
+const normalizeMonitoringDataFields = (
+  row: Record<string, unknown>,
+): MonitoringData => ({
+  battery_level: normalizeNumber(
+    row.battery_level,
+    "battery_level",
+  ),
+
+  battery_status: normalizeStatus(
+    row.battery_status,
+    BATTERY_STATUS_VALUES,
+    "battery_status",
+  ),
+
+  time_remaining: normalizeText(
+    row.time_remaining,
+    "time_remaining",
+  ),
+
+  voltage: normalizeNumber(
+    row.voltage,
+    "voltage",
+  ),
+
+  watt_hours: normalizeNumber(
+    row.watt_hours,
+    "watt_hours",
+  ),
+
+  current_load: normalizeNumber(
+    row.current_load,
+    "current_load",
+  ),
+
+  device_status: normalizeStatus(
+    row.device_status,
+    DEVICE_STATUS_VALUES,
+    "device_status",
+  ),
+
+  solar_input: normalizeNumber(
+    row.solar_input,
+    "solar_input",
+  ),
+
+  solar_status: normalizeStatus(
+    row.solar_status,
+    SOLAR_STATUS_VALUES,
+    "solar_status",
+  ),
+
+  solar_timer: normalizeText(
+    row.solar_timer,
+    "solar_timer",
+  ),
+
+  solar_voltage: normalizeNumber(
+    row.solar_voltage,
+    "solar_voltage",
+  ),
+
+  solar_current: normalizeNumber(
+    row.solar_current,
+    "solar_current",
+  ),
+
+  total_energy: normalizeNumber(
+    row.total_energy,
+    "total_energy",
+  ),
+
+  battery_temperature: normalizeNumber(
+    row.battery_temperature,
+    "battery_temperature",
+  ),
+
+  battery_temperature_status: normalizeStatus(
+    row.battery_temperature_status,
+    BATTERY_TEMPERATURE_STATUS_VALUES,
+    "battery_temperature_status",
+  ),
+
+  dod_status: normalizeStatus(
+    row.dod_status,
+    DOD_STATUS_VALUES,
+    "dod_status",
+  ),
+
+  solar_temperature: normalizeNumber(
+    row.solar_temperature,
+    "solar_temperature",
+  ),
+
+  solar_temperature_status: normalizeStatus(
+    row.solar_temperature_status,
+    SOLAR_TEMPERATURE_STATUS_VALUES,
+    "solar_temperature_status",
+  ),
+
+  interior_temp: normalizeNumber(
+    row.interior_temp,
+    "interior_temp",
+  ),
+
+  interior_temp_status: normalizeStatus(
+    row.interior_temp_status,
+    INTERIOR_TEMPERATURE_STATUS_VALUES,
+    "interior_temp_status",
+  ),
+
+  last_seen: normalizeTimestamp(
+    row.last_seen,
+    "last_seen",
+  ),
+});
+
+// Normalizes a cached canonical `MonitoringData` object. The
+// cache stores UI-shaped data, so it must not go through the
+// raw-column mapping.
+export const normalizeMonitoringData = (
+  value: unknown,
+): MonitoringData =>
+  normalizeMonitoringDataFields(
+    isRecord(value) ? value : {},
+  );
+
+// Normalizes a raw `public.monitoring` row by translating the
+// renamed database columns into the canonical UI fields.
 export const normalizeMonitoringRow = (
   value: unknown,
 ): MonitoringData => {
   const row = isRecord(value) ? value : {};
+  const canonical: Record<string, unknown> = {};
 
-  return {
-    battery_level: normalizeNumber(
-      row.battery_level,
-      "battery_level",
-    ),
+  for (const [rawColumn, uiField] of Object.entries(
+    MONITORING_RAW_TO_UI,
+  )) {
+    canonical[uiField] = row[rawColumn];
+  }
 
-    battery_status: normalizeStatus(
-      row.battery_status,
-      BATTERY_STATUS_VALUES,
-      "battery_status",
-    ),
-
-    time_remaining: normalizeText(
-      row.time_remaining,
-      "time_remaining",
-    ),
-
-    voltage: normalizeNumber(
-      row.voltage,
-      "voltage",
-    ),
-
-    watt_hours: normalizeNumber(
-      row.watt_hours,
-      "watt_hours",
-    ),
-
-    current_load: normalizeNumber(
-      row.current_load,
-      "current_load",
-    ),
-
-    device_status: normalizeStatus(
-      row.device_status,
-      DEVICE_STATUS_VALUES,
-      "device_status",
-    ),
-
-    solar_input: normalizeNumber(
-      row.solar_input,
-      "solar_input",
-    ),
-
-    solar_status: normalizeStatus(
-      row.solar_status,
-      SOLAR_STATUS_VALUES,
-      "solar_status",
-    ),
-
-    solar_timer: normalizeText(
-      row.solar_timer,
-      "solar_timer",
-    ),
-
-    solar_voltage: normalizeNumber(
-      row.solar_voltage,
-      "solar_voltage",
-    ),
-
-    solar_current: normalizeNumber(
-      row.solar_current,
-      "solar_current",
-    ),
-
-    total_energy: normalizeNumber(
-      row.total_energy,
-      "total_energy",
-    ),
-
-    battery_temperature: normalizeNumber(
-      row.battery_temperature,
-      "battery_temperature",
-    ),
-
-    battery_temperature_status: normalizeStatus(
-      row.battery_temperature_status,
-      BATTERY_TEMPERATURE_STATUS_VALUES,
-      "battery_temperature_status",
-    ),
-
-    dod_status: normalizeStatus(
-      row.dod_status,
-      DOD_STATUS_VALUES,
-      "dod_status",
-    ),
-
-    solar_temperature: normalizeNumber(
-      row.solar_temperature,
-      "solar_temperature",
-    ),
-
-    solar_temperature_status: normalizeStatus(
-      row.solar_temperature_status,
-      SOLAR_TEMPERATURE_STATUS_VALUES,
-      "solar_temperature_status",
-    ),
-
-    interior_temp: normalizeNumber(
-      row.interior_temp,
-      "interior_temp",
-    ),
-
-    interior_temp_status: normalizeStatus(
-      row.interior_temp_status,
-      INTERIOR_TEMPERATURE_STATUS_VALUES,
-      "interior_temp_status",
-    ),
-
-    last_seen: normalizeTimestamp(
-      row.last_seen,
-      "last_seen",
-    ),
-  };
+  return normalizeMonitoringDataFields(canonical);
 };
