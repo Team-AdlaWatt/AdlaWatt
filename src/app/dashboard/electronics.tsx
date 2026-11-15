@@ -57,6 +57,7 @@ import {
 import {
   useMonitoring,
 } from "@/services/monitoringService";
+import { isDeviceOnline } from "@/utils/monitoringDisplay";
 
 type PowerLevel =
   | "All"
@@ -418,12 +419,28 @@ export default function ElectronicsScreen() {
         : "notAdvisable";
     }
 
+    const deviceOnline = isDeviceOnline(
+      monitoring.last_seen,
+      monitoring.device_status,
+    );
+    const lastSeenMs =
+      monitoring.last_seen
+        ? Date.parse(monitoring.last_seen)
+        : NaN;
+
     const battery: BatteryStateInput = {
-      soc: monitoring.battery_level,
-      voltage: monitoring.voltage,
+      soc: monitoring.battery_level ?? 0,
+      voltage: monitoring.voltage ?? 0,
       remainingWh:
-        monitoring.watt_hours,
-      dod: monitoring.dod_status,
+        monitoring.watt_hours ?? 0,
+      dod: monitoring.dod_status ?? undefined,
+      currentLoadW:
+        monitoring.current_load ?? undefined,
+      lastUpdated:
+        deviceOnline &&
+        Number.isFinite(lastSeenMs)
+          ? lastSeenMs
+          : null,
     };
 
     const recommendation =

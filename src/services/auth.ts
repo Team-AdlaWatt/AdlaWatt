@@ -540,7 +540,7 @@ export async function getCurrentUserProfile() {
             await supabase
                 .from("users")
                 .select(
-                    "id, username, email, terms_agreed, created_at, email_notifications, role, onboarding_completed",
+                    "id, username, email, terms_agreed, created_at, email_notifications, role, onboarding_completed, monitor_id",
                 )
                 .eq("id", user.id)
                 .single();
@@ -583,6 +583,10 @@ export async function getCurrentUserProfile() {
             // panel. Only an explicit true skips onboarding.
             onboardingCompleted:
                 profile?.onboarding_completed === true,
+            monitorId:
+                typeof profile?.monitor_id === "number"
+                    ? profile.monitor_id
+                    : null,
         };
     } catch (error) {
         if (isAuthSessionMissingError(error)) {

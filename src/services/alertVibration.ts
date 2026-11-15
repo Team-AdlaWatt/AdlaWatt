@@ -31,12 +31,49 @@ import { loadVibrationSetting } from "@/services/settings";
 const ANDROID_PATTERN = [0, 400, 2000];
 const IOS_REBUZZ_MS = 2500;
 
+// Where a start came from. "sync" is the inbox reconcile
+// (mount restore, preference re-enable); "insert" is a new
+// unread alert arriving over realtime. The guidance panel
+// uses this to show its one-time intro only on restores and
+// to avoid re-showing on every launch with a stale alert.
+export type AlertVibrationTrigger = "sync" | "insert";
+
+type AlertVibrationListener = (
+  active: boolean,
+  trigger: AlertVibrationTrigger,
+) => void;
+
+const listeners = new Set<AlertVibrationListener>();
+
 let active = false;
 let iosTimer: ReturnType<typeof setInterval> | null =
   null;
 
 export const isAlertVibrationActive = (): boolean =>
   active;
+
+export function subscribeAlertVibration(
+  listener: AlertVibrationListener,
+): () => void {
+  listeners.add(listener);
+
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+const emitAlertVibration = (
+  isActive: boolean,
+  trigger: AlertVibrationTrigger,
+): void => {
+  listeners.forEach((listener) => {
+    try {
+      listener(isActive, trigger);
+    } catch {
+      // Listeners must never break the buzz.
+    }
+  });
+};
 
 const clearIosTimer = (): void => {
   if (iosTimer) {
@@ -45,7 +82,9 @@ const clearIosTimer = (): void => {
   }
 };
 
-export async function startAlertVibration(): Promise<void> {
+export async function startAlertVibration(
+  trigger: AlertVibrationTrigger = "sync",
+): Promise<void> {
   if (active) {
     return;
   }
@@ -63,6 +102,7 @@ export async function startAlertVibration(): Promise<void> {
   }
 
   active = true;
+  emitAlertVibration(true, trigger);
 
   if (Platform.OS === "android") {
     Vibration.vibrate(ANDROID_PATTERN, true);
@@ -76,7 +116,9 @@ export async function startAlertVibration(): Promise<void> {
   }, IOS_REBUZZ_MS);
 }
 
-export function stopAlertVibration(): void {
+export function stopAlertVibration(
+  trigger: AlertVibrationTrigger = "sync",
+): void {
   // Idempotent and defensive: always silence the OS, even
   // if our flag drifted (e.g. hot reload mid-buzz).
   active = false;
@@ -87,6 +129,8 @@ export function stopAlertVibration(): void {
   } catch {
     // Intentionally ignored: nothing to silence.
   }
+
+  emitAlertVibration(false, trigger);
 }
 
 // Reconciles the buzz with the current inbox: starts when

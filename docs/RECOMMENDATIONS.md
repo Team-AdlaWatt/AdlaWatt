@@ -68,10 +68,12 @@ What you do well already:
 +-----+----------+------------------------------+------------+----------------------------------------------------------+
 | 7   | P1       | No offline story             | ✅ Done    | App side: last-reading AsyncStorage cache painted stale  |
 |     |          |                              |            | on cold open, NetInfo offline banner + last-updated on   |
-|     |          |                              |            | Dashboard, stale tripwire 10s → 60s. ESP32 buffer/retry  |
-|     |          |                              |            | is a firmware handoff spec (`esp32_offline_buffer.md`),  |
-|     |          |                              |            | not repo code. Needs dev-client rebuild (NetInfo) +      |
-|     |          |                              |            | airplane-mode manual test.                               |
+|     |          |                              |            | Dashboard, app online gate 10s with a 60s stale alert.   |
+|     |          |                              |            | ESP32 heartbeat sketch lives in                          |
+|     |          |                              |            | `firmware/esp32_heartbeat/`; buffer/retry remains a      |
+|     |          |                              |            | firmware handoff spec (`esp32_offline_buffer.md`).       |
+|     |          |                              |            | Needs dev-client rebuild (NetInfo) + airplane-mode       |
+|     |          |                              |            | manual test.                                             |
 +-----+----------+------------------------------+------------+----------------------------------------------------------+
 | 8   | P1       | Analytics perf               | ✅ Done    | Improvements landed: default range capped to 30 days     |
 |     |          |                              |            | (`27c0177`), charts lazy-mount with animations gated on  |

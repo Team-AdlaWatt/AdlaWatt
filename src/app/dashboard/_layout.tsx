@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useHouseholdGuard } from "@/hooks/useHouseholdGuard";
 import { useAlertVibration } from "@/hooks/useAlertVibration";
+import VibrationGuidancePanel from "@/components/guidance/VibrationGuidancePanel";
 import { useLocalReminders } from "@/hooks/useLocalReminders";
 import {
   initializeNotificationService,
@@ -111,6 +112,7 @@ function ThemedDashboard() {
         />
       )}
       <Slot />
+      <VibrationGuidancePanel />
     </SettingsProvider>
   );
 }

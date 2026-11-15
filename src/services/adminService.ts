@@ -1,11 +1,12 @@
 // ============================================================
 // ADMIN SERVICE
 //
-// Privacy-safe fleet aggregates for the admin dashboard.
-// Reads only through the SECURITY DEFINER RPC
-// get_admin_fleet_health(), which verifies the caller is an
-// admin server-side and returns fleet-wide numbers only (no
-// user_ids, emails, usernames, or raw monitoring rows).
+// Privacy-safe fleet data for the admin dashboard. Reads only
+// through the SECURITY DEFINER RPCs get_admin_fleet_health()
+// and get_admin_fleet_users(), which verify the caller is an
+// admin server-side and return aggregates only (no user_ids,
+// emails, usernames, or raw monitoring rows). Household rows
+// carry sequential pseudonyms assigned by first-seen order.
 // ============================================================
 
 import { supabase } from "@/lib/supabase";
@@ -26,6 +27,26 @@ interface RpcResult {
   avg_battery?: number | null;
   avg_voltage?: number | null;
   total_solar_wh_24h?: number | null;
+  low_battery_count?: number | null;
+  last_updated?: string | null;
+}
+
+export interface AdminFleetUser {
+  pseudonym: string;
+  is_online: boolean;
+  avg_battery: number | null;
+  avg_voltage: number | null;
+  solar_wh_24h: number;
+  low_battery_count: number;
+  last_updated: string | null;
+}
+
+interface FleetUserRpcResult {
+  pseudonym?: string | null;
+  is_online?: boolean | null;
+  avg_battery?: number | null;
+  avg_voltage?: number | null;
+  solar_wh_24h?: number | null;
   low_battery_count?: number | null;
   last_updated?: string | null;
 }
@@ -77,6 +98,57 @@ export async function getAdminFleetHealth(): Promise<{
         error instanceof Error
           ? error.message
           : "Failed to load fleet health",
+    };
+  }
+}
+
+export async function getAdminFleetUsers(): Promise<{
+  data: AdminFleetUser[] | null;
+  error: string | null;
+}> {
+  try {
+    const { data, error } = await supabase.rpc(
+      "get_admin_fleet_users",
+    );
+
+    if (error) {
+      return {
+        data: null,
+        error: error.message || "Failed to load fleet users",
+      };
+    }
+
+    const rows = Array.isArray(data)
+      ? (data as FleetUserRpcResult[])
+      : [];
+
+    return {
+      data: rows.map((row) => ({
+        pseudonym: row.pseudonym ?? "Household —",
+        is_online: row.is_online === true,
+        avg_battery:
+          row.avg_battery == null
+            ? null
+            : Number(row.avg_battery),
+        avg_voltage:
+          row.avg_voltage == null
+            ? null
+            : Number(row.avg_voltage),
+        solar_wh_24h: Number(row.solar_wh_24h ?? 0),
+        low_battery_count: Number(
+          row.low_battery_count ?? 0,
+        ),
+        last_updated: row.last_updated ?? null,
+      })),
+      error: null,
+    };
+  } catch (error) {
+    return {
+      data: null,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to load fleet users",
     };
   }
 }

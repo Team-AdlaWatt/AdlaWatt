@@ -300,6 +300,9 @@ const en = {
     vibration: "Vibration",
     vibrationHint:
       "Vibrate when important alerts are received.",
+    messagePanel: "Guidance Messages",
+    messagePanelHint:
+      "Show short in-app tips that explain what's happening, like the vibration notice.",
     reminders: "Reminders",
     remindersHint:
       "Daily evening review and low-sun advisories as phone banners. Works offline.",
@@ -337,6 +340,18 @@ const en = {
     englishName: "English",
   },
 
+  guidance: {
+    vibration: {
+      title: "Warning detected",
+      body: "Your phone is vibrating so you don't miss the warning.",
+      hint: "You can turn vibration off in Preferences.",
+      openPreferences: "Open Preferences",
+      dontShowAgain:
+        "Don't show messages like this again",
+      closeA11y: "Close message",
+    },
+  },
+
   dashboard: {
     common: {
       pullToRefresh: "Pull down to refresh",
@@ -349,8 +364,14 @@ const en = {
       realtimeMonitoring: "Real-Time Monitoring",
       offlineBanner:
         "You're offline — showing last readings.",
+      deviceOfflineBanner:
+        "Device is offline — showing last readings.",
       lastUpdated:
         "Last updated {{time}}.",
+      deviceLastSeen:
+        "Last seen {{time}}.",
+      deviceLastSeenUnavailable:
+        "Last seen unavailable.",
       goToElectronicsRecommendation:
         "Go to Electronics Recommendation",
       forecastFailed: "Could not load the forecast.",
@@ -376,6 +397,11 @@ const en = {
     manual: {
       title: "User Manual",
       subtitle: "Guides for operating your AdlaWatt system.",
+    },
+    preferences: {
+      title: "Preferences",
+      subtitle:
+        "Control appearance, language, alerts, and notifications.",
     },
     electronics: {
       title: "Electronics",

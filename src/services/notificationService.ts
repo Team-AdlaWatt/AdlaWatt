@@ -3,9 +3,14 @@ import {
   supabase,
 } from "@/lib/supabase";
 
-import type {
-  MonitoringData
+import {
+  getMonitoringData,
 } from "@/services/monitoringService";
+import {
+  isMonitoringRow,
+  normalizeMonitoringRow,
+  type MonitoringData,
+} from "@/services/monitoringSchema";
 import {
   classifyBatteryState,
   computeWattCap,
@@ -64,13 +69,13 @@ const SOLAR_INPUT_MILESTONE_WATTS =
 const CURRENT_LOAD_MILESTONE_WATTS =
   50;
 
-// Freshness tripwire for last_seen: the ESP32 posts every
-// few seconds and phone-side WiFi jitter rarely exceeds half
-// a minute, so 60s absorbs jitter without crying wolf while
-// still catching genuinely silent units within the minute.
-// (Server-side, the heartbeat cron owns the Online/Offline
-// device_status flip on its own cadence — this gate only
-// drives the client "Monitoring Data Stale" alert.)
+// Freshness tripwire for last_seen. This only controls the
+// "Monitoring Data Stale" alert cadence; the dashboard's
+// online/offline gate uses the 10s DEVICE_ONLINE_WINDOW_MS.
+// The ESP32 heartbeats every 5s, so 60s avoids alert spam
+// while still catching a genuinely silent unit within a minute.
+// (Server-side, the heartbeat cron owns the Offline
+// device_status flip on its own cadence.)
 const STALE_MONITORING_INTERVAL_MS =
   60 * 1000;
 
@@ -107,11 +112,154 @@ export const BATTERY_VOLTAGE_MAX = 14.6;
 
 
 // ============================================================
+// NULL-SAFE RULE VIEW
+// ============================================================
+//
+// The dashboard keeps nulls so it can render "Sensor fault" /
+// "--". Notification comparisons need defined values, so every
+// nullable field is filled from the previous reading when
+// available, then from a conservative default. This keeps a
+// missing reading from firing false low-battery/zero alerts.
+
+type Defined<T> = Exclude<T, null | undefined>;
+
+export type MonitoringRuleData = {
+  [K in keyof MonitoringData]: Defined<MonitoringData[K]>;
+};
+
+const DEFAULT_RULE_DATA: MonitoringRuleData = {
+  battery_level: 100,
+  battery_status: "Idle",
+  time_remaining: "0h 00m",
+  voltage: 12.6,
+  watt_hours: 0,
+  current_load: 0,
+  device_status: "Offline",
+
+  solar_input: 0,
+  solar_status: "Low",
+  solar_timer: "00:00:00",
+  solar_voltage: 0,
+  solar_current: 0,
+  total_energy: 0,
+
+  battery_temperature: 25,
+  battery_temperature_status: "Nominal",
+
+  dod_status: "Safe",
+
+  solar_temperature: 25,
+  solar_temperature_status: "Nominal",
+
+  interior_temp: 25,
+  interior_temp_status: "Nominal",
+
+  last_seen: "",
+};
+
+const toMonitoringRuleData = (
+  data: MonitoringData,
+  fallback?: MonitoringRuleData | null,
+): MonitoringRuleData => ({
+  battery_level:
+    data.battery_level ??
+    fallback?.battery_level ??
+    DEFAULT_RULE_DATA.battery_level,
+  battery_status:
+    data.battery_status ??
+    fallback?.battery_status ??
+    DEFAULT_RULE_DATA.battery_status,
+  time_remaining:
+    data.time_remaining ??
+    fallback?.time_remaining ??
+    DEFAULT_RULE_DATA.time_remaining,
+  voltage:
+    data.voltage ??
+    fallback?.voltage ??
+    DEFAULT_RULE_DATA.voltage,
+  watt_hours:
+    data.watt_hours ??
+    fallback?.watt_hours ??
+    DEFAULT_RULE_DATA.watt_hours,
+  current_load:
+    data.current_load ??
+    fallback?.current_load ??
+    DEFAULT_RULE_DATA.current_load,
+  device_status:
+    data.device_status ??
+    fallback?.device_status ??
+    DEFAULT_RULE_DATA.device_status,
+
+  solar_input:
+    data.solar_input ??
+    fallback?.solar_input ??
+    DEFAULT_RULE_DATA.solar_input,
+  solar_status:
+    data.solar_status ??
+    fallback?.solar_status ??
+    DEFAULT_RULE_DATA.solar_status,
+  solar_timer:
+    data.solar_timer ??
+    fallback?.solar_timer ??
+    DEFAULT_RULE_DATA.solar_timer,
+  solar_voltage:
+    data.solar_voltage ??
+    fallback?.solar_voltage ??
+    DEFAULT_RULE_DATA.solar_voltage,
+  solar_current:
+    data.solar_current ??
+    fallback?.solar_current ??
+    DEFAULT_RULE_DATA.solar_current,
+  total_energy:
+    data.total_energy ??
+    fallback?.total_energy ??
+    DEFAULT_RULE_DATA.total_energy,
+
+  battery_temperature:
+    data.battery_temperature ??
+    fallback?.battery_temperature ??
+    DEFAULT_RULE_DATA.battery_temperature,
+  battery_temperature_status:
+    data.battery_temperature_status ??
+    fallback?.battery_temperature_status ??
+    DEFAULT_RULE_DATA.battery_temperature_status,
+
+  dod_status:
+    data.dod_status ??
+    fallback?.dod_status ??
+    DEFAULT_RULE_DATA.dod_status,
+
+  solar_temperature:
+    data.solar_temperature ??
+    fallback?.solar_temperature ??
+    DEFAULT_RULE_DATA.solar_temperature,
+  solar_temperature_status:
+    data.solar_temperature_status ??
+    fallback?.solar_temperature_status ??
+    DEFAULT_RULE_DATA.solar_temperature_status,
+
+  interior_temp:
+    data.interior_temp ??
+    fallback?.interior_temp ??
+    DEFAULT_RULE_DATA.interior_temp,
+  interior_temp_status:
+    data.interior_temp_status ??
+    fallback?.interior_temp_status ??
+    DEFAULT_RULE_DATA.interior_temp_status,
+
+  last_seen:
+    data.last_seen ??
+    fallback?.last_seen ??
+    DEFAULT_RULE_DATA.last_seen,
+});
+
+
+// ============================================================
 // INTERNAL STATE
 // ============================================================
 
 let previousMonitoring:
-  MonitoringData | null = null;
+  MonitoringRuleData | null = null;
 
 let currentUserId:
   string | null = null;
@@ -215,116 +363,20 @@ const isStaleLogoutWrite =
 // user's monitoring row
 // ============================================================
 
-export const getCurrentMonitoringData =
-  async (): Promise<MonitoringData | null> => {
-
-    const user =
-      await getAuthenticatedUser();
-
-    if (!user) {
-      return null;
-    }
-
-    const {
-      data,
-      error,
-    } = await supabase
-      .from("monitoring")
-      .select(`
-        battery_level,
-        battery_status,
-        time_remaining,
-        voltage,
-        watt_hours,
-        solar_input,
-        solar_status,
-        current_load,
-        device_status,
-        battery_temperature,
-        battery_temperature_status,
-        dod_status,
-        solar_temperature,
-        solar_temperature_status
-      `)
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (error) {
-      console.error(
-        "Error loading monitoring data for notifications:",
-        error.message,
-      );
-
-      return null;
-    }
-
-    return data as MonitoringData | null;
-  };
-
-
 // ============================================================
-// FETCH CURRENT MONITORING DATA WITH LAST-SEEN
+// FETCH CURRENT MONITORING DATA
 // ============================================================
 //
-// Notification logic for stale monitoring and missing
-// last_seen requires the last_seen value.
-//
-// This function intentionally uses the monitoring table
-// directly instead of relying on ChartCard.tsx.
+// Notification rules need the same full row the dashboard
+// uses, including last_seen. Delegate to the monitoring
+// service so the select list, column guard, and
+// normalization can never drift apart from the dashboard.
 // ============================================================
-
-interface MonitoringNotificationData
-  extends MonitoringData {
-  last_seen: string | null;
-}
 
 const getCurrentMonitoringNotificationData =
-  async (): Promise<
-    MonitoringNotificationData | null
-  > => {
+  async (): Promise<MonitoringData | null> => {
 
-    const user =
-      await getAuthenticatedUser();
-
-    if (!user) {
-      return null;
-    }
-
-    const {
-      data,
-      error,
-    } = await supabase
-      .from("monitoring")
-      .select(`
-        battery_level,
-        battery_status,
-        time_remaining,
-        voltage,
-        watt_hours,
-        solar_input,
-        solar_status,
-        current_load,
-        device_status,
-        battery_temperature,
-        battery_temperature_status,
-        dod_status,
-        solar_temperature,
-        solar_temperature_status,
-        last_seen
-      `)
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (error) {
-      console.error(
-        "Error loading monitoring notification data:",
-        error.message,
-      );
-
-      return null;
-    }
-
-    return data as MonitoringNotificationData | null;
+    return getMonitoringData();
   };
 
 
@@ -786,8 +838,8 @@ const createNotificationWithCooldown =
 
 const checkDeviceOnline = async (
   userId: string,
-  current: MonitoringData,
-  previous: MonitoringData | null,
+  current: MonitoringRuleData,
+  previous: MonitoringRuleData | null,
 ) => {
 
   if (
@@ -823,8 +875,8 @@ const checkDeviceOnline = async (
 
 const checkDeviceOffline = async (
   userId: string,
-  current: MonitoringData,
-  previous: MonitoringData | null,
+  current: MonitoringRuleData,
+  previous: MonitoringRuleData | null,
 ) => {
 
   if (
@@ -853,8 +905,8 @@ const checkDeviceOffline = async (
 
 const checkBatteryCharging = async (
   userId: string,
-  current: MonitoringData,
-  previous: MonitoringData | null,
+  current: MonitoringRuleData,
+  previous: MonitoringRuleData | null,
 ) => {
 
   if (
@@ -883,8 +935,8 @@ const checkBatteryCharging = async (
 
 const checkBatteryDischarging = async (
   userId: string,
-  current: MonitoringData,
-  previous: MonitoringData | null,
+  current: MonitoringRuleData,
+  previous: MonitoringRuleData | null,
 ) => {
 
   if (
@@ -913,8 +965,8 @@ const checkBatteryDischarging = async (
 
 const checkBatteryIdle = async (
   userId: string,
-  current: MonitoringData,
-  previous: MonitoringData | null,
+  current: MonitoringRuleData,
+  previous: MonitoringRuleData | null,
 ) => {
 
   if (
@@ -949,8 +1001,8 @@ const checkBatteryIdle = async (
 const checkBatteryFullyCharged =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -986,8 +1038,8 @@ const checkBatteryFullyCharged =
 const checkBatteryLevelUpdated =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -1018,13 +1070,25 @@ const checkBatteryLevelUpdated =
 const checkBatteryTemperatureStatus =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (previous === null) {
       return;
     }
+
+    // Any Critical variant (plain, rapid rise, sensor fault)
+    // counts as a critical temperature alert.
+    const batteryTemperatureCritical =
+      current.battery_temperature_status.startsWith(
+        "Critical",
+      );
+
+    const previousBatteryTemperatureCritical =
+      previous.battery_temperature_status.startsWith(
+        "Critical",
+      );
 
     if (
       current.battery_temperature_status ===
@@ -1084,10 +1148,8 @@ const checkBatteryTemperatureStatus =
     }
 
     if (
-      current.battery_temperature_status ===
-        "Critical" &&
-      previous.battery_temperature_status !==
-        "Critical"
+      batteryTemperatureCritical &&
+      !previousBatteryTemperatureCritical
     ) {
 
       await createNotification(
@@ -1111,13 +1173,23 @@ const checkBatteryTemperatureStatus =
 const checkSolarTemperatureStatus =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (previous === null) {
       return;
     }
+
+    const solarTemperatureCritical =
+      current.solar_temperature_status.startsWith(
+        "Critical",
+      );
+
+    const previousSolarTemperatureCritical =
+      previous.solar_temperature_status.startsWith(
+        "Critical",
+      );
 
     if (
       current.solar_temperature_status ===
@@ -1177,10 +1249,8 @@ const checkSolarTemperatureStatus =
     }
 
     if (
-      current.solar_temperature_status ===
-        "Critical" &&
-      previous.solar_temperature_status !==
-        "Critical"
+      solarTemperatureCritical &&
+      !previousSolarTemperatureCritical
     ) {
 
       await createNotification(
@@ -1203,8 +1273,8 @@ const checkSolarTemperatureStatus =
 
 const checkSolarStatus = async (
   userId: string,
-  current: MonitoringData,
-  previous: MonitoringData | null,
+  current: MonitoringRuleData,
+  previous: MonitoringRuleData | null,
 ) => {
 
   if (previous === null) {
@@ -1275,8 +1345,8 @@ const checkSolarStatus = async (
 const checkSolarInputState =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (previous === null) {
@@ -1336,7 +1406,7 @@ const checkSolarInputState =
 const checkSolarInputMilestone =
   async (
     userId: string,
-    current: MonitoringData,
+    current: MonitoringRuleData,
   ) => {
 
     const currentMilestone =
@@ -1397,8 +1467,8 @@ const checkSolarInputMilestone =
 const checkCurrentLoadState =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (previous === null) {
@@ -1453,7 +1523,7 @@ const checkCurrentLoadState =
 const checkCurrentLoadMilestone =
   async (
     userId: string,
-    current: MonitoringData,
+    current: MonitoringRuleData,
   ) => {
 
     const currentMilestone =
@@ -1514,8 +1584,8 @@ const checkCurrentLoadMilestone =
 const checkBatteryVoltageUpdated =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -1555,8 +1625,8 @@ const checkBatteryVoltageUpdated =
 const checkBatteryRuntimeUpdated =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     const parseHourBucket = (
@@ -1658,8 +1728,8 @@ const checkBatteryRuntimeUpdated =
 const checkWattHoursUpdated =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -1690,8 +1760,8 @@ const checkWattHoursUpdated =
 const checkDepthOfDischarge =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (previous === null) {
@@ -1753,15 +1823,15 @@ const checkDepthOfDischarge =
 
 const checkElectronicsBecameAdvisable = async (
   userId: string,
-  current: MonitoringData,
-  previous: MonitoringData | null,
+  current: MonitoringRuleData,
+  previous: MonitoringRuleData | null,
 ): Promise<void> => {
 
   if (previous === null) {
     return;
   }
 
-  const toTier = (row: MonitoringData): string =>
+  const toTier = (row: MonitoringRuleData): string =>
     classifyBatteryState({
       soc: row.battery_level,
       voltage: row.voltage,
@@ -1830,7 +1900,7 @@ const checkElectronicsBecameAdvisable = async (
 
 const checkHighLoadWhileBatteryLow = async (
   userId: string,
-  current: MonitoringData,
+  current: MonitoringRuleData,
 ): Promise<void> => {
 
   const level = current.battery_level ?? 0;
@@ -1919,8 +1989,8 @@ const checkHighLoadWhileBatteryLow = async (
 const checkBatteryStatusChanged =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -1951,8 +2021,8 @@ const checkBatteryStatusChanged =
 const checkDeviceStatusChanged =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -1988,8 +2058,8 @@ const checkDeviceStatusChanged =
 const checkMonitoringDataUpdated =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -2049,8 +2119,8 @@ const checkMonitoringDataUpdated =
 const checkBatteryRecommendedCutoff =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -2094,8 +2164,8 @@ const checkBatteryRecommendedCutoff =
 const checkBatteryCriticallyLow =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -2126,8 +2196,8 @@ const checkBatteryCriticallyLow =
 const checkBatteryEmpty =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -2161,8 +2231,8 @@ const checkBatteryEmpty =
 const checkBatteryDischargingAtLowLevel =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -2200,8 +2270,8 @@ const checkBatteryDischargingAtLowLevel =
 const checkBatteryDischargingWithUnsafeDoD =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -2239,8 +2309,8 @@ const checkBatteryDischargingWithUnsafeDoD =
 const checkBatteryRuntimeDepleted =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -2274,8 +2344,8 @@ const checkBatteryRuntimeDepleted =
 const checkBatteryVoltageZero =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -2308,8 +2378,8 @@ const checkBatteryVoltageZero =
 const checkBatteryTemperatureZero =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -2343,8 +2413,8 @@ const checkBatteryTemperatureZero =
 const checkSolarTemperatureZero =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -2383,8 +2453,8 @@ const checkSolarTemperatureZero =
 const checkBatteryChargingNotDetected =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -2428,8 +2498,8 @@ const checkBatteryChargingNotDetected =
 const checkSolarInputUnavailable =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -2466,8 +2536,8 @@ const checkSolarInputUnavailable =
 const checkLowSolarInputDuringCharging =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -2509,8 +2579,8 @@ const checkLowSolarInputDuringCharging =
 export const checkHighCurrentLoad =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
     thresholdWatts: number,
   ) => {
 
@@ -2549,8 +2619,8 @@ export const checkHighCurrentLoad =
 export const checkBatteryVoltageTooLow =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
     minVoltage: number,
   ) => {
 
@@ -2589,8 +2659,8 @@ export const checkBatteryVoltageTooLow =
 export const checkBatteryVoltageTooHigh =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
     maxVoltage: number,
   ) => {
 
@@ -2654,8 +2724,8 @@ const isValidTimeRemaining =
 const checkInvalidTimeRemaining =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -2707,8 +2777,8 @@ const checkInvalidTimeRemaining =
 const processMonitoringNotifications =
   async (
     userId: string,
-    current: MonitoringData,
-    previous: MonitoringData | null,
+    current: MonitoringRuleData,
+    previous: MonitoringRuleData | null,
   ) => {
 
     if (
@@ -2990,19 +3060,21 @@ const processMonitoringNotifications =
 
 const handleMonitoringUpdate =
   async (
-    monitoringData:
-      MonitoringNotificationData,
+    monitoringData: MonitoringData,
   ) => {
 
     if (!currentUserId) {
       return;
     }
 
-    const currentMonitoring =
-      monitoringData as MonitoringData;
-
     const previousMonitoringState =
       previousMonitoring;
+
+    const currentMonitoring =
+      toMonitoringRuleData(
+        monitoringData,
+        previousMonitoringState,
+      );
 
     // ----------------------------------------------------------
     // UPDATE THE BASELINE BEFORE PROCESSING
@@ -3521,19 +3593,24 @@ export const startMonitoringNotificationWatcher =
       // notifications from ESP32 heartbeat updates.
       // --------------------------------------------------------
 
+      const initialRuleMonitoring =
+        toMonitoringRuleData(
+          initialMonitoring,
+        );
+
       previousMonitoring =
-        initialMonitoring as MonitoringData;
+        initialRuleMonitoring;
 
       milestoneState.solarInputMilestone =
         Math.floor(
-          initialMonitoring.solar_input /
+          initialRuleMonitoring.solar_input /
             SOLAR_INPUT_MILESTONE_WATTS,
         ) *
         SOLAR_INPUT_MILESTONE_WATTS;
 
       milestoneState.currentLoadMilestone =
         Math.floor(
-          initialMonitoring.current_load /
+          initialRuleMonitoring.current_load /
             CURRENT_LOAD_MILESTONE_WATTS,
         ) *
         CURRENT_LOAD_MILESTONE_WATTS;
@@ -3550,7 +3627,7 @@ export const startMonitoringNotificationWatcher =
 
       await checkBatteryRecommendedCutoff(
         user.id,
-        initialMonitoring as MonitoringData,
+        initialRuleMonitoring,
         null,
       );
     }
@@ -3583,7 +3660,15 @@ export const startMonitoringNotificationWatcher =
           async (payload) => {
 
             const updatedData =
-              payload.new as MonitoringNotificationData;
+              isMonitoringRow(payload.new)
+                ? normalizeMonitoringRow(
+                    payload.new,
+                  )
+                : await getCurrentMonitoringNotificationData();
+
+            if (!updatedData) {
+              return;
+            }
 
             console.log(
               "Notification service received monitoring Realtime UPDATE:",

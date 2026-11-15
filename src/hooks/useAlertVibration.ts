@@ -80,7 +80,7 @@ export function useAlertVibration(): void {
               record?.type === "alert" &&
               record?.read === false
             ) {
-              void startAlertVibration();
+              void startAlertVibration("insert");
             }
           },
         ),

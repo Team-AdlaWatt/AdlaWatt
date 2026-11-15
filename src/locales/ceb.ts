@@ -321,6 +321,9 @@ const ceb = {
     currentFont: "Karon: {{font}}",
     vibration: "Vibration",
     vibrationHint: "Mag-vibrate kung adunay importanteng alerto.",
+    messagePanel: "Mga Giya nga Mensahe",
+    messagePanelHint:
+      "Magpakita ug mugbo nga tip sa app nga nagpasabot kung unsa ang nahitabo, sama sa abiso sa vibration.",
     reminders: "Reminders",
     remindersHint:
       "Adlaw-adlaw nga evening review ug low-sun advisories isip phone banners. Moandar offline.",
@@ -356,6 +359,18 @@ const ceb = {
     englishName: "English",
   },
 
+  guidance: {
+    vibration: {
+      title: "Naay namatikdan nga babala",
+      body: "Nag-vibrate ang imong phone aron dili nimo malimtan ang babala.",
+      hint: "Mahimo nimong patyon ang vibration sa Preferences.",
+      openPreferences: "Ablihi ang Preferences",
+      dontShowAgain:
+        "Ayaw na ipakita ang mga mensahe nga sama niini",
+      closeA11y: "Isira ang mensahe",
+    },
+  },
+
   dashboard: {
     common: {
       pullToRefresh: "Biraha paubos para mag-refresh",
@@ -369,8 +384,14 @@ const ceb = {
       goToElectronicsRecommendation: "Adto sa Electronics Recommendation",
       offlineBanner:
         "Wala kay koneksyon — katapusang readings ang gipakita.",
+      deviceOfflineBanner:
+        "Offline ang device — katapusang readings ang gipakita.",
       lastUpdated:
         "Katapusang na-update {{time}}.",
+      deviceLastSeen:
+        "Katapusang nakita {{time}}.",
+      deviceLastSeenUnavailable:
+        "Dili available ang katapusang nakita.",
       forecastFailed: "Dili ma-load ang forecast.",
     },
     about: {
@@ -394,6 +415,11 @@ const ceb = {
     manual: {
       title: "User Manual",
       subtitle: "Mga giya sa pagpadagan sa imong AdlaWatt system.",
+    },
+    preferences: {
+      title: "Mga Gusto",
+      subtitle:
+        "Dumalaha sa itsura, pinulongan, alerto, ug notifications.",
     },
     electronics: {
       title: "Mga Electronics",

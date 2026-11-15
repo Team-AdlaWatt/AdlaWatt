@@ -79,15 +79,14 @@ describe("getForecast upcoming days", () => {
     expect([...dates].sort()).toEqual(dates);
 
     expect(result.cityName).toBe(
-      "Manolo Fortich, Bukidnon",
+      "Malaybalay",
     );
 
     const url = String(
       mockFetch.mock.calls[0]?.[0] ?? "",
     );
-
-    expect(url).toContain("lat=8.37");
-    expect(url).toContain("lon=124.86");
+    expect(url).toContain("lat=8.368");
+    expect(url).toContain("lon=124.873");
 
     // No calibration offset (tempOffsetC 0 in weather.json).
     expect(result.upcoming[0].tempMax).toBe(32 + 1);

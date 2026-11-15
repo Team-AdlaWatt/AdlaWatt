@@ -73,9 +73,11 @@ export interface MonitoringHistoryRow {
   last_seen: string | null;
   battery_temperature: number | null;
   battery_temperature_status: string | null;
+  dod_status: string | null;
   solar_temperature: number | null;
   solar_temperature_status: string | null;
   interior_temp: number | null;
+  interior_temp_status: string | null;
   voltage: number | null;
   watt_hours: number | null;
   cumulative_energy_input_wh: number | null;
@@ -173,9 +175,11 @@ export interface ReportMonitoringRow {
   lastSeen: string;
   batteryTemperature: string;
   batteryTemperatureStatus: string;
+  dodStatus: string;
   solarTemperature: string;
   solarTemperatureStatus: string;
   interiorTemp: string;
+  interiorTempStatus: string;
   voltage: string;
   wattHours: string;
   energyInputWh: string;
@@ -385,6 +389,46 @@ export function maximum(
   }
 
   return Math.max(...values);
+}
+
+/*
+ * Averages, min/max, peaks and status counts must use Online
+ * snapshots only: Offline rows hold stale values. Energy totals
+ * and uptime still use every row.
+ */
+function isOnlineRow(
+  row: MonitoringHistoryRow,
+): boolean {
+  return row.device_status === "Online";
+}
+
+function getOnlineRows(
+  rows: MonitoringHistoryRow[],
+): MonitoringHistoryRow[] {
+  return rows.filter(isOnlineRow);
+}
+
+/*
+ * The database is authoritative for depth of discharge. Fall back
+ * to the SOC heuristic only for legacy rows where dod_status is
+ * missing, so old history still counts unsafe events.
+ */
+export function isUnsafeDischarge(
+  row: MonitoringHistoryRow,
+): boolean {
+  if (row.dod_status === "Unsafe") {
+    return true;
+  }
+
+  if (row.dod_status === "Safe") {
+    return false;
+  }
+
+  return (
+    getDoDStatus(
+      toNumber(row.battery_level),
+    ) === "Unsafe"
+  );
 }
 
 export function formatNumber(
@@ -739,6 +783,10 @@ export function formatMonitoringReportRows(
         row.battery_status ??
         "Unknown",
 
+      dodStatus:
+        row.dod_status ??
+        "Unknown",
+
       timeRemaining:
         row.time_remaining ??
         "N/A",
@@ -841,6 +889,10 @@ export function formatMonitoringReportRows(
           ),
         ),
 
+      interiorTempStatus:
+        row.interior_temp_status ??
+        "Unknown",
+
       voltage:
         formatNumber(
           Math.max(
@@ -941,8 +993,13 @@ function getLatestMonitoringRow(
 export function createReportSummary(
   monitoringHistory: MonitoringHistoryRow[],
 ): ReportSummary {
+  const onlineHistory =
+    getOnlineRows(
+      monitoringHistory,
+    );
+
   const batteryLevels =
-    monitoringHistory.map(
+    onlineHistory.map(
       (row) =>
         clamp(
           toNumber(
@@ -954,7 +1011,7 @@ export function createReportSummary(
     );
 
   const solarInputs =
-    monitoringHistory.map(
+    onlineHistory.map(
       (row) =>
         Math.max(
           0,
@@ -965,7 +1022,7 @@ export function createReportSummary(
     );
 
   const currentLoads =
-    monitoringHistory.map(
+    onlineHistory.map(
       (row) =>
         Math.max(
           0,
@@ -976,7 +1033,7 @@ export function createReportSummary(
     );
 
   const batteryTemperatures =
-    monitoringHistory.map(
+    onlineHistory.map(
       (row) =>
         toNumber(
           row.battery_temperature,
@@ -984,7 +1041,7 @@ export function createReportSummary(
     );
 
   const solarTemperatures =
-    monitoringHistory.map(
+    onlineHistory.map(
       (row) =>
         toNumber(
           row.solar_temperature,
@@ -1368,15 +1425,13 @@ export function buildReportKpis(
       toNumber(row.energy_output_wh),
     );
 
-    if (row.device_status === "Online") {
-      onlineSamples += 1;
+    if (row.device_status !== "Online") {
+      return;
     }
 
-    if (
-      getDoDStatus(
-        toNumber(row.battery_level),
-      ) === "Unsafe"
-    ) {
+    onlineSamples += 1;
+
+    if (isUnsafeDischarge(row)) {
       unsafeSamples += 1;
     }
 
@@ -1390,6 +1445,12 @@ export function buildReportKpis(
       ALERT_TEMPERATURE_STATUSES.has(
         String(
           row.solar_temperature_status ??
+            "",
+        ),
+      ) ||
+      ALERT_TEMPERATURE_STATUSES.has(
+        String(
+          row.interior_temp_status ??
             "",
         ),
       )
@@ -1757,9 +1818,11 @@ export async function loadAnalyticsData(
               "last_seen",
               "battery_temperature",
               "battery_temperature_status",
+              "dod_status",
               "solar_temperature",
               "solar_temperature_status",
               "interior_temp",
+              "interior_temp_status",
               "voltage",
               "watt_hours",
               "cumulative_energy_input_wh",
@@ -1950,7 +2013,7 @@ export function getBatteryActivityData(
 
   groupedMonitoring.forEach(
     (bucket) => {
-      bucket.rows.forEach(
+      getOnlineRows(bucket.rows).forEach(
         (row) => {
           const status =
             String(
@@ -2026,7 +2089,9 @@ export function getBatteryChartRangeData(
   return groupedMonitoring.map(
     (bucket) => {
       const levels =
-        bucket.rows.map(
+        getOnlineRows(
+          bucket.rows,
+        ).map(
           (row) =>
             toNumber(
               row.battery_level,
@@ -2066,12 +2131,9 @@ export function getUnsafeDischargeChartData(
   return groupedMonitoring.map(
     (bucket) => {
       const unsafeCount =
-        bucket.rows.filter(
-          (row) =>
-            getDoDStatus(
-              toNumber(row.battery_level),
-            ) === "Unsafe",
-        ).length;
+        getOnlineRows(bucket.rows)
+          .filter(isUnsafeDischarge)
+          .length;
 
       return {
         value: unsafeCount,
@@ -2094,7 +2156,9 @@ export function getSolarChartData(
       value: Math.max(
         0,
         average(
-          bucket.rows.map(
+          getOnlineRows(
+            bucket.rows,
+          ).map(
             (row) =>
               toNumber(
                 row.solar_input,
@@ -2293,7 +2357,9 @@ export function getBatteryTemperatureData(
     (bucket) => ({
       value:
         average(
-          bucket.rows.map(
+          getOnlineRows(
+            bucket.rows,
+          ).map(
             (row) =>
               toNumber(
                 row.battery_temperature,
@@ -2318,7 +2384,9 @@ export function getSolarTemperatureData(
     (bucket) => ({
       value:
         average(
-          bucket.rows.map(
+          getOnlineRows(
+            bucket.rows,
+          ).map(
             (row) =>
               toNumber(
                 row.solar_temperature,
@@ -2347,7 +2415,9 @@ export function getInteriorTemperatureData(
 ): ChartPoint[] {
   return groupedMonitoring.map(
     (bucket) => {
-      const samples = bucket.rows
+      const samples = getOnlineRows(
+        bucket.rows,
+      )
         .map((row) => row.interior_temp)
         .filter(
           (value): value is number =>
@@ -2384,7 +2454,9 @@ export function getLoadChartData(
       value: Math.max(
         0,
         average(
-          bucket.rows.map(
+          getOnlineRows(
+            bucket.rows,
+          ).map(
             (row) =>
               toNumber(
                 row.current_load,
@@ -2409,7 +2481,9 @@ export function getVoltageChartData(
   return groupedMonitoring.map(
     (bucket) => ({
       value: average(
-        bucket.rows.map(
+        getOnlineRows(
+          bucket.rows,
+        ).map(
           (row) =>
             toNumber(
               row.voltage,
@@ -2451,7 +2525,9 @@ export function getSolarVsLoadData(
       solar: Math.max(
         0,
         average(
-          bucket.rows.map(
+          getOnlineRows(
+            bucket.rows,
+          ).map(
             (row) =>
               toNumber(
                 row.solar_input,
@@ -2463,7 +2539,9 @@ export function getSolarVsLoadData(
       load: Math.max(
         0,
         average(
-          bucket.rows.map(
+          getOnlineRows(
+            bucket.rows,
+          ).map(
             (row) =>
               toNumber(
                 row.current_load,
@@ -2493,7 +2571,9 @@ export function getBestSunDaysData(
       value: Math.max(
         0,
         maximum(
-          bucket.rows.map(
+          getOnlineRows(
+            bucket.rows,
+          ).map(
             (row) =>
               toNumber(
                 row.solar_input,
@@ -2565,7 +2645,9 @@ export function getSunHoursData(
     (bucket) => {
       const byDay = new Map<string, number>();
 
-      bucket.rows.forEach((row) => {
+      getOnlineRows(
+        bucket.rows,
+      ).forEach((row) => {
         const dayKey = String(
           row.recorded_at ?? "",
         ).slice(0, 10);
@@ -2640,7 +2722,7 @@ export function getSolarCurveByHourData(
   const sums = new Array<number>(24).fill(0);
   const counts = new Array<number>(24).fill(0);
 
-  rows.forEach((row) => {
+  getOnlineRows(rows).forEach((row) => {
     const date = new Date(String(row.recorded_at ?? ""));
 
     if (Number.isNaN(date.getTime())) {
@@ -2679,10 +2761,14 @@ export function getTemperatureHealthData(
 ): HealthCell[] {
   return groupedMonitoring.map(
     (bucket) => {
+      const onlineRows = getOnlineRows(
+        bucket.rows,
+      );
+
       let status =
         "Nominal";
 
-      bucket.rows.forEach(
+      onlineRows.forEach(
         (row) => {
           const rowStatus =
             row.battery_temperature_status ??
@@ -2705,7 +2791,7 @@ export function getTemperatureHealthData(
         date: bucket.date,
         temperature:
           average(
-            bucket.rows.map(
+            onlineRows.map(
               (row) =>
                 toNumber(
                   row.battery_temperature,
@@ -2753,13 +2839,18 @@ export function getTemperatureAlertsData(
 ): ChartPoint[] {
   return groupedMonitoring.map(
     (bucket) => ({
-      value: bucket.rows.filter(
+      value: getOnlineRows(
+        bucket.rows,
+      ).filter(
         (row) =>
           ALERT_TEMPERATURE_STATUSES.has(
             String(row.battery_temperature_status ?? ""),
           ) ||
           ALERT_TEMPERATURE_STATUSES.has(
             String(row.solar_temperature_status ?? ""),
+          ) ||
+          ALERT_TEMPERATURE_STATUSES.has(
+            String(row.interior_temp_status ?? ""),
           ),
       ).length,
 
@@ -2854,7 +2945,9 @@ export function getLoadVsPeakData(
 ): LoadVsPeakPoint[] {
   return groupedMonitoring.map(
     (bucket) => {
-      const loads = bucket.rows.map(
+      const loads = getOnlineRows(
+        bucket.rows,
+      ).map(
         (row) => toNumber(row.current_load),
       );
 
@@ -2883,7 +2976,7 @@ export function getPowerByHourData(
   const sums = new Array<number>(24).fill(0);
   const counts = new Array<number>(24).fill(0);
 
-  rows.forEach((row) => {
+  getOnlineRows(rows).forEach((row) => {
     const date = new Date(String(row.recorded_at ?? ""));
 
     if (Number.isNaN(date.getTime())) {
@@ -3213,6 +3306,7 @@ export function generateAdlaWattCsv(
     "Recorded At",
     "Battery %",
     "Battery",
+    "DoD Status",
     "Time Remaining",
     "Solar W",
     "Solar Status",
@@ -3228,6 +3322,7 @@ export function generateAdlaWattCsv(
     "Solar C",
     "Solar Temp Status",
     "Interior C",
+    "Interior Temp Status",
     "Voltage",
     "Watt Hours",
     "Energy In Wh",
@@ -3243,6 +3338,7 @@ export function generateAdlaWattCsv(
         row.recordedAt,
         row.batteryLevel,
         row.batteryStatus,
+        row.dodStatus,
         row.timeRemaining,
         row.solarInput,
         row.solarStatus,
@@ -3258,6 +3354,7 @@ export function generateAdlaWattCsv(
         row.solarTemperature,
         row.solarTemperatureStatus,
         row.interiorTemp,
+        row.interiorTempStatus,
         row.voltage,
         row.wattHours,
         row.energyInputWh,

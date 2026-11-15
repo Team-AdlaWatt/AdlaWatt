@@ -321,6 +321,9 @@ const fil = {
     currentFont: "Kasalukuyan: {{font}}",
     vibration: "Vibration",
     vibrationHint: "Mag-vibrate kapag may mahalagang alerto.",
+    messagePanel: "Mga Gabay na Mensahe",
+    messagePanelHint:
+      "Magpakita ng maiikling tip sa app na nagpapaliwanag kung ano ang nangyayari, tulad ng abiso sa vibration.",
     reminders: "Reminders",
     remindersHint:
       "Araw-araw na evening review at low-sun advisories bilang phone banners. Gumagana offline.",
@@ -356,6 +359,18 @@ const fil = {
     englishName: "English",
   },
 
+  guidance: {
+    vibration: {
+      title: "May nakita kaming babala",
+      body: "Nag-vibrate ang iyong phone para hindi mo makalimutan ang babala.",
+      hint: "Maaari mong patayin ang vibration sa Preferences.",
+      openPreferences: "Buksan ang Preferences",
+      dontShowAgain:
+        "Huwag nang ipakita ang mga mensaheng tulad nito",
+      closeA11y: "Isara ang mensahe",
+    },
+  },
+
   dashboard: {
     common: {
       pullToRefresh: "Hilahin pababa para mag-refresh",
@@ -369,8 +384,14 @@ const fil = {
       goToElectronicsRecommendation: "Pumunta sa Electronics Recommendation",
       offlineBanner:
         "Wala kang koneksyon — huling readings ang ipinapakita.",
+      deviceOfflineBanner:
+        "Offline ang device — huling readings ang ipinapakita.",
       lastUpdated:
         "Huling na-update {{time}}.",
+      deviceLastSeen:
+        "Huling nakita {{time}}.",
+      deviceLastSeenUnavailable:
+        "Hindi available ang huling nakita.",
       forecastFailed: "Hindi ma-load ang forecast.",
     },
     about: {
@@ -394,6 +415,11 @@ const fil = {
     manual: {
       title: "User Manual",
       subtitle: "Mga gabay sa pagpapatakbo ng iyong AdlaWatt system.",
+    },
+    preferences: {
+      title: "Mga Kagustuhan",
+      subtitle:
+        "Pamahalaan ang itsura, wika, alerto, at notifications.",
     },
     electronics: {
       title: "Mga Electronics",
