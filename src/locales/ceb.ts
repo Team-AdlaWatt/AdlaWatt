@@ -416,6 +416,11 @@ const ceb = {
       title: "User Manual",
       subtitle: "Mga giya sa pagpadagan sa imong AdlaWatt system.",
     },
+    preferences: {
+      title: "Mga Gusto",
+      subtitle:
+        "Dumalaha sa itsura, pinulongan, alerto, ug notifications.",
+    },
     electronics: {
       title: "Mga Electronics",
       subtitle: "Dumalaha ug i-monitor ang gisuportahang mga electronics.",

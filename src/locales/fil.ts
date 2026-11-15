@@ -416,6 +416,11 @@ const fil = {
       title: "User Manual",
       subtitle: "Mga gabay sa pagpapatakbo ng iyong AdlaWatt system.",
     },
+    preferences: {
+      title: "Mga Kagustuhan",
+      subtitle:
+        "Pamahalaan ang itsura, wika, alerto, at notifications.",
+    },
     electronics: {
       title: "Mga Electronics",
       subtitle: "Pamahalaan at i-monitor ang mga sinusuportahang electronics.",

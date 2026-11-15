@@ -2,6 +2,7 @@ import { router } from "expo-router";
 import { useTranslation } from "react-i18next";
 
 import MessagePanel from "@/components/ui/MessagePanel";
+import { Routes } from "@/constants/routes";
 import { useVibrationGuidance } from "@/hooks/useVibrationGuidance";
 
 export default function VibrationGuidancePanel() {
@@ -29,7 +30,7 @@ export default function VibrationGuidancePanel() {
       onAction={() => {
         close();
         router.push({
-          pathname: "/dashboard/menu",
+          pathname: Routes.PREFERENCES,
           params: { focus: "vibration" },
         });
       }}

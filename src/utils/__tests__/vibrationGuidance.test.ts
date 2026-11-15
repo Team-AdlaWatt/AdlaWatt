@@ -56,13 +56,17 @@ describe("shouldShowVibrationGuidance", () => {
     ).toBe(false);
   });
 
-  it("suppresses on Notifications and Menu", () => {
+  it("suppresses on Notifications, Menu, and Preferences", () => {
     expect(
       gate({ pathname: Routes.NOTIFICATIONS }),
     ).toBe(false);
 
     expect(
       gate({ pathname: Routes.MENU }),
+    ).toBe(false);
+
+    expect(
+      gate({ pathname: Routes.PREFERENCES }),
     ).toBe(false);
   });
 

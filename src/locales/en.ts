@@ -398,6 +398,11 @@ const en = {
       title: "User Manual",
       subtitle: "Guides for operating your AdlaWatt system.",
     },
+    preferences: {
+      title: "Preferences",
+      subtitle:
+        "Control appearance, language, alerts, and notifications.",
+    },
     electronics: {
       title: "Electronics",
       subtitle: "Manage and monitor supported electronics.",

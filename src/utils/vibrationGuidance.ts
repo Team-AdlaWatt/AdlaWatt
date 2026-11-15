@@ -25,7 +25,8 @@ export function shouldShowVibrationGuidance(
 
   if (
     input.pathname === Routes.NOTIFICATIONS ||
-    input.pathname === Routes.MENU
+    input.pathname === Routes.MENU ||
+    input.pathname === Routes.PREFERENCES
   ) {
     return false;
   }
