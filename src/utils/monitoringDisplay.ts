@@ -46,10 +46,12 @@ export const formatTemperature = (
   return `${value}°C`;
 };
 
-// A device is online only when it reported recently AND the
-// last known device status is not explicitly "Offline".
-// Firmware heartbeats every 5s; 10s allows one missed beat.
-export const DEVICE_ONLINE_WINDOW_MS = 10 * 1000;
+// Hardware heartbeats about every 10s. Trust the table's
+// explicit Online status immediately so active devices show
+// real-time data without waiting on timestamp heuristics, but
+// keep a relaxed freshness window to avoid false-offline flicker
+// from clock skew/missed beats.
+export const DEVICE_ONLINE_WINDOW_MS = 30 * 1000;
 
 export const isDeviceOnline = (
   lastSeen: string | null | undefined,
@@ -58,6 +60,12 @@ export const isDeviceOnline = (
 ): boolean => {
   if (deviceStatus === "Offline") {
     return false;
+  }
+
+  // If the monitoring table reports the device as Online, treat
+  // it as active immediately so the latest table data is shown.
+  if (deviceStatus === "Online") {
+    return true;
   }
 
   if (lastSeen == null || lastSeen === "") {
@@ -94,7 +102,7 @@ export const formatLastSeen = (
 
   const elapsedMs = Math.max(0, nowMs - timestamp);
 
-  if (elapsedMs < DEVICE_ONLINE_WINDOW_MS) {
+  if (elapsedMs < 10 * 1000) {
     return "just now";
   }
 

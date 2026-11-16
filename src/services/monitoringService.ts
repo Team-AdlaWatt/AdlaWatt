@@ -5,6 +5,7 @@ import {
   useState,
 } from "react";
 
+import { AppState } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
@@ -13,6 +14,10 @@ import {
 } from "@/lib/supabase";
 import { requestManager, RequestManager } from "@/services/requestManager";
 import { memoryCache, CACHE_TTL } from "@/services/memoryCache";
+import {
+  subscribeResilientChannel,
+  type ResilientSubscription,
+} from "@/services/realtimeResubscribe";
 import {
   MONITORING_SCHEMA_VERSION,
   MONITORING_SELECT,
@@ -184,132 +189,131 @@ export const loadCachedMonitoring = async (
   }
 };
 
+// ============================================================
+// SESSION MONITOR ID CACHE + ALIGNED FETCH (user_id/RLS)
+// ============================================================
+
+const monitorIdByUser = new Map<string, number>();
+
+const rememberMonitorId = (
+  userId: string,
+  monitorId: unknown,
+): void => {
+  if (typeof monitorId === "number" && Number.isFinite(monitorId)) {
+    monitorIdByUser.set(userId, monitorId);
+  }
+};
+
+export const clearMonitoringSessionCache = (
+  userId?: string,
+): void => {
+  if (userId) {
+    monitorIdByUser.delete(userId);
+    memoryCache.delete(monitoringMemoryKey(userId));
+    return;
+  }
+  monitorIdByUser.clear();
+};
+
+// Back-compat export: resolve monitor_id for callers that need it.
 export const getMonitorIdForUser = async (
   userId: string,
 ): Promise<number | null> => {
+  const cached = monitorIdByUser.get(userId);
+  if (cached != null) {
+    return cached;
+  }
 
-  const startedAt = perfNow();
-
-  let fallbackUsed = false;
-
-  const finish = (
-    result: number | null,
-  ): number | null => {
-
-    perfLog("monitor-id", {
-      ms: roundMs(perfNow() - startedAt),
-      fallbackUsed,
-      found: result != null,
-    });
-
-    return result;
-  };
-
-  const {
-    data,
-    error,
-  } = await supabase
-    .from("users")
-    .select(
-      "monitor_id",
-    )
-    .eq(
-      "id",
-      userId,
-    )
+  // Aligned primary path: read the user's own monitoring row (RLS by user_id).
+  const { data, error } = await supabase
+    .from("monitoring")
+    .select("monitor_id")
+    .eq("user_id", userId)
     .maybeSingle();
 
-  if (error) {
-
-    console.error(
-      "Error loading monitor id:",
-      error.message,
-    );
-
-    return finish(null);
+  if (!error && data?.monitor_id != null) {
+    const id = Number(data.monitor_id);
+    rememberMonitorId(userId, id);
+    return id;
   }
 
-  // Fast path: profile already carries the monitor_id.
-  if (data?.monitor_id != null) {
+  // Fallback for legacy profile linkage.
+  const { data: profile } = await supabase
+    .from("users")
+    .select("monitor_id")
+    .eq("id", userId)
+    .maybeSingle();
 
-    return finish(Number(data.monitor_id));
+  if (profile?.monitor_id != null) {
+    const id = Number(profile.monitor_id);
+    rememberMonitorId(userId, id);
+    return id;
   }
 
-  // Fallback: resolve monitor_id from the monitoring row itself.
-  // Covers accounts whose profile row was backfilled or created
-  // without monitor_id, and any future monitor_id assignments.
-  if (data == null || data.monitor_id == null) {
-
-    fallbackUsed = true;
-
-    const { data: monitoringRow, error: monitoringError } = await supabase
-      .from("monitoring")
-      .select("monitor_id")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (monitoringError) {
-
-      console.error(
-        "Error resolving monitor id from monitoring row:",
-        monitoringError.message,
-      );
-      return finish(null);
-    }
-
-    if (monitoringRow?.monitor_id == null) {
-
-      return finish(null);
-    }
-
-    return finish(Number(monitoringRow.monitor_id));
-  }
-
-  return finish(Number(data.monitor_id));
+  return null;
 };
 
-// ============================================================
-// FETCH MONITORING ROW
-// ============================================================
-
-export const fetchMonitoringRow = async (
-  monitorId: number,
+// Aligned: fetch the full 25-column live row for this user in one query.
+export const fetchMonitoringRowForUser = async (
+  userId: string,
 ): Promise<MonitoringRow | null> => {
-
-  const {
-    data,
-    error,
-  } = await supabase
+  const { data, error } = await supabase
     .from("monitoring")
     .select(MONITORING_SELECT)
-    .eq(
-      "monitor_id",
-      monitorId,
-    )
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (error) {
-
     console.error(
       "Error loading monitoring data:",
       error.message,
     );
-
     return null;
   }
 
   if (!data) {
-
     return null;
   }
 
   if (!isMonitoringRow(data)) {
-
     console.error(
       "[monitoring] Row is missing columns:",
       getMissingMonitoringColumns(data),
     );
+    return null;
+  }
 
+  rememberMonitorId(userId, data.monitor_id);
+  return data;
+};
+
+// Back-compat export.
+export const fetchMonitoringRow = async (
+  monitorId: number,
+): Promise<MonitoringRow | null> => {
+  const { data, error } = await supabase
+    .from("monitoring")
+    .select(MONITORING_SELECT)
+    .eq("monitor_id", monitorId)
+    .maybeSingle();
+
+  if (error) {
+    console.error(
+      "Error loading monitoring data:",
+      error.message,
+    );
+    return null;
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  if (!isMonitoringRow(data)) {
+    console.error(
+      "[monitoring] Row is missing columns:",
+      getMissingMonitoringColumns(data),
+    );
     return null;
   }
 
@@ -320,491 +324,271 @@ export const fetchMonitoringRow = async (
 // FETCH MONITORING DATA
 // ============================================================
 
-export const getMonitoringData =
-  async (
-    options: {
-      forceRefresh?: boolean;
-    } = {},
-  ): Promise<MonitoringData | null> => {
+export const getMonitoringData = async (
+  options: {
+    forceRefresh?: boolean;
+  } = {},
+): Promise<MonitoringData | null> => {
+  const totalStart = perfNow();
 
-    const totalStart = perfNow();
+  const user = await getAuthenticatedUserSafe();
+  const authMs = roundMs(perfNow() - totalStart);
 
-    const user = await getAuthenticatedUserSafe();
+  if (!user) {
+    perfLog("fetch", {
+      result: "no-user",
+      authMs,
+      totalMs: roundMs(perfNow() - totalStart),
+    });
+    return null;
+  }
 
-    const authMs = roundMs(perfNow() - totalStart);
+  const cacheKey = monitoringMemoryKey(user.id);
 
-    if (!user) {
-
+  // Fast path: serve in-memory cache before any extra network
+  // work. Pull-to-refresh/explicit callers can force a refetch.
+  if (!options.forceRefresh) {
+    const cached = memoryCache.get<MonitoringData>(cacheKey);
+    if (cached) {
       perfLog("fetch", {
-        result: "no-user",
+        result: "cache-hit",
         authMs,
         totalMs: roundMs(perfNow() - totalStart),
       });
-
-      return null;
+      return cached;
     }
+  } else {
+    memoryCache.delete(cacheKey);
+  }
 
-    const monitorStart = perfNow();
+  // Coalesce the full aligned fetch (single RTT by user_id).
+  return requestManager.execute(
+    RequestManager.userKey(user.id, "monitoring"),
+    async () => {
+      const fetchStart = perfNow();
+      const row = await fetchMonitoringRowForUser(user.id);
+      const fetchMs = roundMs(perfNow() - fetchStart);
 
-    const monitorId =
-      await getMonitorIdForUser(user.id);
-
-    const monitorIdMs = roundMs(perfNow() - monitorStart);
-
-    if (monitorId == null) {
-
-      perfLog("fetch", {
-        result: "no-monitor-id",
-        authMs,
-        monitorIdMs,
-        totalMs: roundMs(perfNow() - totalStart),
-      });
-
-      return null;
-    }
-
-    const cacheKey = monitoringMemoryKey(user.id);
-
-    // Check memory cache first for fast response. Pull-to-
-    // refresh bypasses it and refetches from the database.
-    if (!options.forceRefresh) {
-      const cacheStart = perfNow();
-
-      const cached =
-        memoryCache.get<MonitoringData>(cacheKey);
-
-      const cacheMs = roundMs(perfNow() - cacheStart);
-
-      if (cached) {
-
+      if (!row) {
         perfLog("fetch", {
-          result: "cache-hit",
+          result: "empty",
           authMs,
-          monitorIdMs,
-          cacheMs,
-          totalMs: roundMs(perfNow() - totalStart),
-        });
-
-        return cached;
-      }
-    } else {
-      memoryCache.delete(cacheKey);
-    }
-
-    // Use request coalescing to prevent duplicate in-flight requests
-    return requestManager.execute(
-      RequestManager.userKey(user.id, "monitoring"),
-      async () => {
-        const fetchStart = perfNow();
-
-        const row = await fetchMonitoringRow(
-          monitorId,
-        );
-
-        const fetchMs = roundMs(perfNow() - fetchStart);
-
-        if (!row) {
-
-          perfLog("fetch", {
-            result: "empty",
-            authMs,
-            monitorIdMs,
-            fetchMs,
-            totalMs: roundMs(perfNow() - totalStart),
-          });
-
-          return null;
-        }
-
-        const normalizeStart = perfNow();
-
-        const normalized =
-          normalizeMonitoringRow(row);
-
-        const normalizeMs = roundMs(perfNow() - normalizeStart);
-
-        // Cache in memory for fast subsequent access
-        memoryCache.set(
-          cacheKey,
-          normalized,
-          CACHE_TTL.MONITORING,
-        );
-
-        // Fire-and-forget: the dashboard must never wait on
-        // storage, and a blocked store must not break reads.
-        void saveCachedMonitoring(
-          normalized,
-          user.id,
-        );
-
-        perfLog("fetch", {
-          result: "network",
-          authMs,
-          monitorIdMs,
           fetchMs,
-          normalizeMs,
           totalMs: roundMs(perfNow() - totalStart),
         });
-
-        return normalized;
+        return null;
       }
-    );
-  };
 
-// ============================================================
-// FETCH DEVICE STATUS ONLY
-// ============================================================
+      const normalizeStart = perfNow();
+      // Normalize exact table columns into the UI model (values
+      // come from the row; nulls stay null).
+      const normalized = normalizeMonitoringRow(row);
+      const normalizeMs = roundMs(perfNow() - normalizeStart);
 
-export const getDeviceStatus =
-  async (): Promise<DeviceStatus> => {
-
-    const user = await getAuthenticatedUserSafe();
-
-    if (!user) {
-
-      return "Offline";
-    }
-
-    const monitorId =
-      await getMonitorIdForUser(user.id);
-
-    if (monitorId == null) {
-
-      return "Offline";
-    }
-
-    const {
-      data,
-      error,
-    } = await supabase
-      .from("monitoring")
-      .select(
-        '"ESP32S3 Status","ESP32S3 Last seen"',
-      )
-      .eq(
-        "monitor_id",
-        monitorId,
-      )
-      .maybeSingle();
-
-    if (error) {
-
-      console.error(
-        "Error loading device status:",
-        error,
+      memoryCache.set(
+        cacheKey,
+        normalized,
+        CACHE_TTL.MONITORING,
       );
 
-      return "Offline";
-    }
+      void saveCachedMonitoring(normalized, user.id);
 
-    return isDeviceOnline(
-      data?.["ESP32S3 Last seen"],
-      data?.["ESP32S3 Status"],
-    )
-      ? "Online"
-      : "Offline";
-  };
+      perfLog("fetch", {
+        result: "network",
+        authMs,
+        fetchMs,
+        normalizeMs,
+        totalMs: roundMs(perfNow() - totalStart),
+      });
 
-// ============================================================
-// SUBSCRIBE TO MONITORING
-// ============================================================
-
-export const subscribeToMonitoring =
-  async (
-    onChange: (
-      data: MonitoringData | null,
-    ) => void,
-  ) => {
-
-    const user = await getAuthenticatedUserSafe();
-
-    if (!user) {
-
-      return null;
-    }
-
-    const monitorId =
-      await getMonitorIdForUser(user.id);
-
-    if (monitorId == null) {
-
-      return null;
-    }
-
-    const topic = `monitoring-hook-${monitorId}`;
-
-    const reused = supabase
-      .getChannels()
-      .find(
-        (c) =>
-          (c as unknown as { topic?: string }).topic ===
-          `realtime:${topic}`,
-      );
-
-    if (reused) {
-      return reused as unknown as ReturnType<
-        typeof supabase.channel
-      >;
-    }
-
-    const subscribeStartedAt = perfNow();
-
-    let firstPayloadLogged = false;
-
-    const channel =
-      supabase
-        .channel(
-          topic,
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "monitoring",
-            filter: `monitor_id=eq.${monitorId}`,
-          },
-          (payload) => {
-
-            if (!firstPayloadLogged) {
-
-              firstPayloadLogged = true;
-
-              perfLog("realtime-first-payload", {
-                ms: roundMs(perfNow() - subscribeStartedAt),
-                event: payload.eventType,
-              });
-            }
-
-            // ------------------------------------------------
-            // DELETE
-            // ------------------------------------------------
-
-            if (
-              payload.eventType === "DELETE"
-            ) {
-
-              onChange(null);
-
-              return;
-            }
-
-            // ------------------------------------------------
-            // INSERT / UPDATE
-            // ------------------------------------------------
-
-            if (
-              payload.new
-            ) {
-
-              if (!isMonitoringRow(payload.new)) {
-
-                console.error(
-                  "[monitoring] Realtime payload is missing columns; refetching:",
-                  getMissingMonitoringColumns(
-                    payload.new,
-                  ),
-                );
-
-                void getMonitoringData({
-                  forceRefresh: true,
-                }).then((fresh) => {
-                  if (fresh) {
-                    onChange(fresh);
-                  }
-                });
-
-                return;
-              }
-
-              const normalized = normalizeMonitoringRow(
-                payload.new,
-              );
-              // Update memory cache on realtime updates
-              memoryCache.set(
-                monitoringMemoryKey(user.id),
-                normalized,
-                CACHE_TTL.MONITORING
-              );
-              onChange(normalized);
-            }
-          },
-        )
-        .subscribe(
-          (status) => {
-
-            if (
-              status === "SUBSCRIBED"
-            ) {
-
-              perfLog("realtime-subscribed", {
-                ms: roundMs(perfNow() - subscribeStartedAt),
-              });
-            }
-
-            if (
-              status === "CHANNEL_ERROR"
-            ) {
-
-              console.warn(
-                "Monitoring Realtime channel error.",
-              );
-            }
-
-            if (
-              status === "TIMED_OUT"
-            ) {
-
-              console.warn(
-                "Monitoring Realtime connection timed out.",
-              );
-            }
-
-            // CLOSED after explicit removeChannel (e.g. bell
-            // navigates away from dashboard index) is expected
-            // teardown — stay silent. Unexpected service-side
-            // closes still surface via CHANNEL_ERROR/TIMED_OUT.
-          },
-        );
-
-    return channel;
-  };
+      return normalized;
+    },
+    { force: options.forceRefresh === true },
+  );
+};
 
 // ============================================================
-// SUBSCRIBE TO DEVICE STATUS ONLY
+// FETCH DEVICE STATUS (aligned, from latest monitoring data)
 // ============================================================
 
-export const subscribeToDeviceStatus =
-  async (
-    onChange: (
-      status: DeviceStatus,
-    ) => void,
-  ) => {
+export const getDeviceStatus = async (): Promise<DeviceStatus> => {
+  const data = await getMonitoringData();
+  return isDeviceOnline(data?.last_seen, data?.device_status)
+    ? "Online"
+    : "Offline";
+};
 
-    const user = await getAuthenticatedUserSafe();
+// ============================================================
+// REALTIME SUBSCRIPTIONS (resilient, aligned by user_id)
+// ============================================================
 
-    if (!user) {
+type MonitoringSubscriptionHandle =
+  | ResilientSubscription
+  | null;
 
-      onChange("Offline");
+export const subscribeToMonitoring = async (
+  onChange: (data: MonitoringData | null) => void,
+  options?: {
+    onSubscribed?: () => void;
+  },
+): Promise<MonitoringSubscriptionHandle> => {
+  const user = await getAuthenticatedUserSafe();
 
-      return null;
-    }
+  if (!user) {
+    return null;
+  }
 
-    const topic = `device-status-${user.id}`;
+  const userId = user.id;
+  let firstPayloadLogged = false;
+  const subscribeStartedAt = perfNow();
 
-    const reused = supabase
-      .getChannels()
-      .find(
-        (c) =>
-          (c as unknown as { topic?: string }).topic ===
-          `realtime:${topic}`,
-      );
+  return subscribeResilientChannel({
+    topic: `monitoring-user-${userId}`,
+    label: `monitoring-user-${userId}`,
+    build: (base) =>
+      base.on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "monitoring",
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          if (!firstPayloadLogged) {
+            firstPayloadLogged = true;
+            perfLog("realtime-first-payload", {
+              ms: roundMs(perfNow() - subscribeStartedAt),
+              event: payload.eventType,
+            });
+          }
 
-    if (reused) {
-      return reused as unknown as ReturnType<
-        typeof supabase.channel
-      >;
-    }
+          if (payload.eventType === "DELETE") {
+            onChange(null);
+            return;
+          }
 
-    const channel =
-      supabase
-        .channel(
-          topic,
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "UPDATE",
-            schema: "public",
-            table: "monitoring",
-            filter: `user_id=eq.${user.id}`,
-          },
-          (payload) => {
-
-            onChange(
-              isDeviceOnline(
-                payload.new?.["ESP32S3 Last seen"],
-                payload.new?.["ESP32S3 Status"],
-              )
-                ? "Online"
-                : "Offline",
+          if (!payload.new || !isMonitoringRow(payload.new)) {
+            console.error(
+              "[monitoring] Realtime payload is missing columns; refetching:",
+              getMissingMonitoringColumns(payload.new),
             );
-          },
-        )
-        .subscribe(
-          (status) => {
+            void getMonitoringData({ forceRefresh: true }).then(
+              (fresh) => {
+                if (fresh) {
+                  onChange(fresh);
+                }
+              },
+            );
+            return;
+          }
 
-            if (
-              status === "CHANNEL_ERROR"
-            ) {
+          const normalized = normalizeMonitoringRow(payload.new);
+          memoryCache.set(
+            monitoringMemoryKey(userId),
+            normalized,
+            CACHE_TTL.MONITORING,
+          );
+          void saveCachedMonitoring(normalized, userId);
+          // Emit latest table values immediately (including when
+          // hardware becomes active / ESP32S3 Status is Online).
+          onChange(normalized);
+        },
+      ),
+    isAlive: () => true,
+    onSubscribed: () => {
+      // Converge on latest DB state on connect/reconnect so no
+      // active update is missed while channel was down.
+      options?.onSubscribed?.();
+    },
+  });
+};
 
-              console.warn(
-                "Device status Realtime channel error.",
-              );
-            }
+export const subscribeToDeviceStatus = async (
+  onChange: (status: DeviceStatus) => void,
+  options?: {
+    onSubscribed?: () => void;
+  },
+): Promise<MonitoringSubscriptionHandle> => {
+  const user = await getAuthenticatedUserSafe();
 
-            if (
-              status === "TIMED_OUT"
-            ) {
+  if (!user) {
+    onChange("Offline");
+    return null;
+  }
 
-              console.warn(
-                "Device status Realtime connection timed out.",
-              );
-            }
+  const userId = user.id;
 
-            // CLOSED after explicit removeChannel on screen
-            // unmount is expected teardown — stay silent.
-          },
-        );
+  return subscribeResilientChannel({
+    topic: `device-status-user-${userId}`,
+    label: `device-status-user-${userId}`,
+    build: (base) =>
+      base.on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "monitoring",
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          if (payload.eventType === "DELETE") {
+            onChange("Offline");
+            return;
+          }
 
-    return channel;
-  };
+          const next = payload.new as Record<string, unknown> | null;
+          onChange(
+            isDeviceOnline(
+              next?.["ESP32S3 Last seen"] as string | null | undefined,
+              next?.["ESP32S3 Status"] as string | null | undefined,
+            )
+              ? "Online"
+              : "Offline",
+          );
+        },
+      ),
+    isAlive: () => true,
+    onSubscribed: () => {
+      options?.onSubscribed?.();
+    },
+  });
+};
 
 // ============================================================
 // UNSUBSCRIBE
 // ============================================================
 
-export const unsubscribeFromMonitoring =
-  (
-    channel:
-      | ReturnType<
-          typeof supabase.channel
-        >
-      | null,
-  ) => {
-
-    if (
-      channel
-    ) {
-
-      supabase.removeChannel(
-        channel,
-      );
+export const unsubscribeFromMonitoring = (
+  handle:
+    | MonitoringSubscriptionHandle
+    | { stop?: () => void }
+    | { unsubscribe?: () => void }
+    | null,
+): void => {
+  if (!handle) return;
+  if (typeof (handle as { stop?: () => void }).stop === "function") {
+    (handle as { stop: () => void }).stop();
+    return;
+  }
+  if (typeof (handle as { unsubscribe?: () => void }).unsubscribe === "function") {
+    try {
+      (handle as { unsubscribe: () => void }).unsubscribe();
+    } catch {
+      // ignore
     }
-  };
+  }
+};
 
-// ============================================================
-// UNSUBSCRIBE FROM DEVICE STATUS
-// ============================================================
-
-export const unsubscribeFromDeviceStatus =
-  (
-    channel:
-      | ReturnType<
-          typeof supabase.channel
-        >
-      | null,
-  ) => {
-
-    if (
-      channel
-    ) {
-
-      supabase.removeChannel(
-        channel,
-      );
-    }
-  };
+export const unsubscribeFromDeviceStatus = (
+  handle:
+    | MonitoringSubscriptionHandle
+    | { stop?: () => void }
+    | { unsubscribe?: () => void }
+    | null,
+): void => {
+  unsubscribeFromMonitoring(handle);
+};
 
 // ============================================================
 // USE MONITORING HOOK
@@ -905,187 +689,127 @@ export const useMonitoring =
 
     useEffect(
       () => {
-
-        let mounted =
-          true;
-
-        // Tracks whether anything is already on screen
-        // (cache paint or live row) so an error never wipes
-        // a painted cache back to nulls. Closure-local on
-        // purpose: `monitoring` state would be stale here.
+        let mounted = true;
         let painted = false;
+        let channel: Awaited<
+          ReturnType<typeof subscribeToMonitoring>
+        > = null;
+        let activeUserId: string | null = null;
 
-        let channel:
-          | ReturnType<
-              typeof supabase.channel
-            >
-          | null = null;
-
-        const initializeMonitoring =
-          async () => {
-
-            try {
-
-              const cachedUser =
-                await getAuthenticatedUserSafe();
-
-              // ------------------------------------------------
-              // PAINT LAST READING INSTANTLY (flagged stale)
-              // ------------------------------------------------
-              //
-              // Cold start with no connection would otherwise
-              // show nulls until the network times out. The
-              // live fetch below overwrites this on success.
-              // ------------------------------------------------
-
-              const cached =
-                await loadCachedMonitoring(
-                  cachedUser?.id ?? null,
-                );
-
-              if (
-                mounted &&
-                cached
-              ) {
-
-                setMonitoring(
-                  cached.data,
-                );
-
-                setStale(true);
-
-                setCachedAt(
-                  cached.savedAt,
-                );
-
-                painted = true;
-              }
-
-              // ------------------------------------------------
-              // GET INITIAL MONITORING DATA
-              // ------------------------------------------------
-
-              const data =
-                await getMonitoringData();
-
-              if (
-                !mounted
-              ) {
-
-                return;
-              }
-
-              if (data) {
-
-                setMonitoring(
-                  data,
-                );
-
-                setStale(false);
-
-                setCachedAt(
-                  Date.now(),
-                );
-
-                painted = true;
-
-              } else if (
-                !cached
-              ) {
-
-                setMonitoring(
-                  null,
-                );
-              }
-
-              // ------------------------------------------------
-              // SUBSCRIBE TO REALTIME MONITORING
-              // ------------------------------------------------
-
-              channel =
-                await subscribeToMonitoring(
-                  (
-                    updatedData,
-                  ) => {
-
-                    if (
-                      !mounted
-                    ) {
-
-                      return;
-                    }
-
-                    setMonitoring(
-                      updatedData,
-                    );
-
-                    if (
-                      updatedData
-                    ) {
-
-                      setStale(false);
-
-                      setCachedAt(
-                        Date.now(),
-                      );
-
-                      void saveCachedMonitoring(
-                        updatedData,
-                        cachedUser?.id ??
-                          null,
-                      );
-                    }
-                  },
-                );
-
-            } catch (
-              error
-            ) {
-
-              console.error(
-                "Unexpected monitoring error:",
-                error,
-              );
-
-              if (
-                mounted &&
-                !painted
-              ) {
-
-                setMonitoring(
-                  null,
-                );
-              }
-
-            } finally {
-
-              if (
-                mounted
-              ) {
-
-                setLoading(
-                  false,
-                );
-              }
+        const refetchLatest = async () => {
+          try {
+            const data = await getMonitoringData({
+              forceRefresh: true,
+            });
+            if (!mounted) return;
+            if (data) {
+              setMonitoring(data);
+              setStale(false);
+              setCachedAt(Date.now());
+              painted = true;
             }
-          };
+          } catch (error) {
+            console.warn(
+              "Monitoring refetch failed:",
+              error instanceof Error ? error.message : error,
+            );
+          }
+        };
+
+        const initializeMonitoring = async () => {
+          try {
+            const cachedUser = await getAuthenticatedUserSafe();
+            activeUserId = cachedUser?.id ?? null;
+
+            const cached = await loadCachedMonitoring(
+              activeUserId,
+            );
+
+            if (mounted && cached) {
+              setMonitoring(cached.data);
+              setStale(true);
+              setCachedAt(cached.savedAt);
+              painted = true;
+            }
+
+            const data = await getMonitoringData();
+
+            if (!mounted) {
+              return;
+            }
+
+            if (data) {
+              setMonitoring(data);
+              setStale(false);
+              setCachedAt(Date.now());
+              painted = true;
+            } else if (!cached) {
+              setMonitoring(null);
+            }
+
+            channel = await subscribeToMonitoring(
+              (updatedData) => {
+                if (!mounted) {
+                  return;
+                }
+
+                setMonitoring(updatedData);
+
+                if (updatedData) {
+                  setStale(false);
+                  setCachedAt(Date.now());
+                  if (activeUserId) {
+                    void saveCachedMonitoring(
+                      updatedData,
+                      activeUserId,
+                    );
+                  }
+                }
+              },
+              {
+                // On connect/reconnect, immediately pull latest
+                // DB row so active hardware updates are shown
+                // even if an event was missed.
+                onSubscribed: () => {
+                  void refetchLatest();
+                },
+              },
+            );
+
+            // Extra convergence fetch right after subscribe setup.
+            void refetchLatest();
+          } catch (error) {
+            console.error(
+              "Unexpected monitoring error:",
+              error,
+            );
+
+            if (mounted && !painted) {
+              setMonitoring(null);
+            }
+          } finally {
+            if (mounted) {
+              setLoading(false);
+            }
+          }
+        };
 
         initializeMonitoring();
 
-        // ======================================================
-        // CLEANUP
-        // ======================================================
+        const appStateSub = AppState.addEventListener(
+          "change",
+          (state) => {
+            if (state === "active") {
+              void refetchLatest();
+            }
+          },
+        );
 
         return () => {
-
-          mounted =
-            false;
-
-          unsubscribeFromMonitoring(
-            channel,
-          );
+          mounted = false;
+          appStateSub.remove();
+          unsubscribeFromMonitoring(channel);
         };
-
       },
       [],
     );
@@ -1120,109 +844,72 @@ export const useDeviceStatus =
 
     useEffect(
       () => {
+        let mounted = true;
+        let channel: Awaited<
+          ReturnType<typeof subscribeToDeviceStatus>
+        > = null;
 
-        let mounted =
-          true;
-
-        let channel:
-          | ReturnType<
-              typeof supabase.channel
-            >
-          | null = null;
-
-        const initializeDeviceStatus =
-          async () => {
-
-            try {
-
-              // ------------------------------------------------
-              // GET INITIAL DEVICE STATUS
-              // ------------------------------------------------
-
-              const status =
-                await getDeviceStatus();
-
-              if (
-                !mounted
-              ) {
-
-                return;
-              }
-
-              setDeviceStatus(
-                status,
-              );
-
-              // ------------------------------------------------
-              // SUBSCRIBE TO REALTIME DEVICE STATUS
-              // ------------------------------------------------
-
-              channel =
-                await subscribeToDeviceStatus(
-                  (
-                    updatedStatus,
-                  ) => {
-
-                    if (
-                      !mounted
-                    ) {
-
-                      return;
-                    }
-
-                    setDeviceStatus(
-                      updatedStatus,
-                    );
-                  },
-                );
-
-            } catch (
-              error
-            ) {
-
-              console.error(
-                "Unexpected device status error:",
-                error,
-              );
-
-              if (
-                mounted
-              ) {
-
-                setDeviceStatus(
-                  "Offline",
-                );
-              }
-
-            } finally {
-
-              if (
-                mounted
-              ) {
-
-                setLoading(
-                  false,
-                );
-              }
+        const refetchStatus = async () => {
+          try {
+            const status = await getDeviceStatus();
+            if (mounted) {
+              setDeviceStatus(status);
             }
-          };
+          } catch {
+            // keep last known
+          }
+        };
+
+        const initializeDeviceStatus = async () => {
+          try {
+            const status = await getDeviceStatus();
+            if (!mounted) return;
+            setDeviceStatus(status);
+
+            channel = await subscribeToDeviceStatus(
+              (updatedStatus) => {
+                if (!mounted) return;
+                setDeviceStatus(updatedStatus);
+              },
+              {
+                onSubscribed: () => {
+                  void refetchStatus();
+                },
+              },
+            );
+
+            void refetchStatus();
+          } catch (error) {
+            console.error(
+              "Unexpected device status error:",
+              error,
+            );
+            if (mounted) {
+              setDeviceStatus("Offline");
+            }
+          } finally {
+            if (mounted) {
+              setLoading(false);
+            }
+          }
+        };
 
         initializeDeviceStatus();
 
-        // ======================================================
-        // CLEANUP
-        // ======================================================
+        const appStateSub = AppState.addEventListener(
+          "change",
+          (state) => {
+            if (state === "active") {
+              void refetchStatus();
+            }
+          },
+        );
 
         return () => {
-
-          mounted =
-            false;
-
-          unsubscribeFromDeviceStatus(
-            channel,
-          );
+          mounted = false;
+          appStateSub.remove();
+          unsubscribeFromDeviceStatus(channel);
         };
-
       },
       [],
     );
