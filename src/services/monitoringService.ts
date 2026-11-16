@@ -41,6 +41,42 @@ export type {
 };
 
 // ============================================================
+// PERF INSTRUMENTATION (gated)
+// ============================================================
+//
+// Lightweight timings for the monitoring fetch path. Disabled
+// in production unless EXPO_PUBLIC_PERF_LOG=1, so normal
+// installs pay nothing but a boolean check.
+// ============================================================
+
+const PERF_LOG_ENABLED =
+  (typeof __DEV__ !== "undefined" && __DEV__) ||
+  process.env.EXPO_PUBLIC_PERF_LOG === "1";
+
+const perfNow = (): number =>
+  typeof performance !== "undefined" &&
+  typeof performance.now === "function"
+    ? performance.now()
+    : Date.now();
+
+const roundMs = (value: number): number =>
+  Math.round(value * 10) / 10;
+
+const perfLog = (
+  label: string,
+  fields: Record<string, unknown>,
+): void => {
+  if (!PERF_LOG_ENABLED) {
+    return;
+  }
+
+  console.info(
+    `[perf][monitoring] ${label}`,
+    fields,
+  );
+};
+
+// ============================================================
 // LAST-READING CACHE (offline resilience)
 // ============================================================
 //
@@ -152,6 +188,23 @@ export const getMonitorIdForUser = async (
   userId: string,
 ): Promise<number | null> => {
 
+  const startedAt = perfNow();
+
+  let fallbackUsed = false;
+
+  const finish = (
+    result: number | null,
+  ): number | null => {
+
+    perfLog("monitor-id", {
+      ms: roundMs(perfNow() - startedAt),
+      fallbackUsed,
+      found: result != null,
+    });
+
+    return result;
+  };
+
   const {
     data,
     error,
@@ -173,19 +226,21 @@ export const getMonitorIdForUser = async (
       error.message,
     );
 
-    return null;
+    return finish(null);
   }
 
   // Fast path: profile already carries the monitor_id.
   if (data?.monitor_id != null) {
 
-    return Number(data.monitor_id);
+    return finish(Number(data.monitor_id));
   }
 
   // Fallback: resolve monitor_id from the monitoring row itself.
   // Covers accounts whose profile row was backfilled or created
   // without monitor_id, and any future monitor_id assignments.
   if (data == null || data.monitor_id == null) {
+
+    fallbackUsed = true;
 
     const { data: monitoringRow, error: monitoringError } = await supabase
       .from("monitoring")
@@ -199,18 +254,18 @@ export const getMonitorIdForUser = async (
         "Error resolving monitor id from monitoring row:",
         monitoringError.message,
       );
-      return null;
+      return finish(null);
     }
 
     if (monitoringRow?.monitor_id == null) {
 
-      return null;
+      return finish(null);
     }
 
-    return Number(monitoringRow.monitor_id);
+    return finish(Number(monitoringRow.monitor_id));
   }
 
-  return Number(data.monitor_id);
+  return finish(Number(data.monitor_id));
 };
 
 // ============================================================
@@ -272,17 +327,38 @@ export const getMonitoringData =
     } = {},
   ): Promise<MonitoringData | null> => {
 
+    const totalStart = perfNow();
+
     const user = await getAuthenticatedUserSafe();
 
+    const authMs = roundMs(perfNow() - totalStart);
+
     if (!user) {
+
+      perfLog("fetch", {
+        result: "no-user",
+        authMs,
+        totalMs: roundMs(perfNow() - totalStart),
+      });
 
       return null;
     }
 
+    const monitorStart = perfNow();
+
     const monitorId =
       await getMonitorIdForUser(user.id);
 
+    const monitorIdMs = roundMs(perfNow() - monitorStart);
+
     if (monitorId == null) {
+
+      perfLog("fetch", {
+        result: "no-monitor-id",
+        authMs,
+        monitorIdMs,
+        totalMs: roundMs(perfNow() - totalStart),
+      });
 
       return null;
     }
@@ -292,10 +368,23 @@ export const getMonitoringData =
     // Check memory cache first for fast response. Pull-to-
     // refresh bypasses it and refetches from the database.
     if (!options.forceRefresh) {
+      const cacheStart = perfNow();
+
       const cached =
         memoryCache.get<MonitoringData>(cacheKey);
 
+      const cacheMs = roundMs(perfNow() - cacheStart);
+
       if (cached) {
+
+        perfLog("fetch", {
+          result: "cache-hit",
+          authMs,
+          monitorIdMs,
+          cacheMs,
+          totalMs: roundMs(perfNow() - totalStart),
+        });
+
         return cached;
       }
     } else {
@@ -306,17 +395,33 @@ export const getMonitoringData =
     return requestManager.execute(
       RequestManager.userKey(user.id, "monitoring"),
       async () => {
+        const fetchStart = perfNow();
+
         const row = await fetchMonitoringRow(
           monitorId,
         );
 
+        const fetchMs = roundMs(perfNow() - fetchStart);
+
         if (!row) {
+
+          perfLog("fetch", {
+            result: "empty",
+            authMs,
+            monitorIdMs,
+            fetchMs,
+            totalMs: roundMs(perfNow() - totalStart),
+          });
 
           return null;
         }
 
+        const normalizeStart = perfNow();
+
         const normalized =
           normalizeMonitoringRow(row);
+
+        const normalizeMs = roundMs(perfNow() - normalizeStart);
 
         // Cache in memory for fast subsequent access
         memoryCache.set(
@@ -331,6 +436,15 @@ export const getMonitoringData =
           normalized,
           user.id,
         );
+
+        perfLog("fetch", {
+          result: "network",
+          authMs,
+          monitorIdMs,
+          fetchMs,
+          normalizeMs,
+          totalMs: roundMs(perfNow() - totalStart),
+        });
 
         return normalized;
       }
@@ -433,6 +547,10 @@ export const subscribeToMonitoring =
       >;
     }
 
+    const subscribeStartedAt = perfNow();
+
+    let firstPayloadLogged = false;
+
     const channel =
       supabase
         .channel(
@@ -447,6 +565,16 @@ export const subscribeToMonitoring =
             filter: `monitor_id=eq.${monitorId}`,
           },
           (payload) => {
+
+            if (!firstPayloadLogged) {
+
+              firstPayloadLogged = true;
+
+              perfLog("realtime-first-payload", {
+                ms: roundMs(perfNow() - subscribeStartedAt),
+                event: payload.eventType,
+              });
+            }
 
             // ------------------------------------------------
             // DELETE
@@ -504,6 +632,15 @@ export const subscribeToMonitoring =
         )
         .subscribe(
           (status) => {
+
+            if (
+              status === "SUBSCRIBED"
+            ) {
+
+              perfLog("realtime-subscribed", {
+                ms: roundMs(perfNow() - subscribeStartedAt),
+              });
+            }
 
             if (
               status === "CHANNEL_ERROR"

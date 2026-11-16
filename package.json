@@ -21,7 +21,8 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "verify:monitoring": "node scripts/verify-monitoring-schema.mjs"
+    "verify:monitoring": "node scripts/verify-monitoring-schema.mjs",
+    "bench:monitoring": "node scripts/bench-monitoring-fetch.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
