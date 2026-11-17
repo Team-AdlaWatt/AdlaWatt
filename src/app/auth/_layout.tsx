@@ -23,6 +23,7 @@ import {
   type AppColors,
 } from "@/hooks/useAppColors";
 import { useAppFonts } from "@/hooks/useAppFonts";
+import RouteErrorBoundary from "@/components/ui/RouteErrorBoundary";
 
 // ============================================================
 // AUTH LAYOUT
@@ -164,7 +165,11 @@ function ThemedAuth() {
     );
   }
 
-  return <Slot />;
+  return (
+    <RouteErrorBoundary>
+      <Slot />
+    </RouteErrorBoundary>
+  );
 }
 
 const getStyles = (colors: AppColors) =>

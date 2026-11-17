@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useHouseholdGuard } from "@/hooks/useHouseholdGuard";
 import { useAlertVibration } from "@/hooks/useAlertVibration";
+import RouteErrorBoundary from "@/components/ui/RouteErrorBoundary";
 import VibrationGuidancePanel from "@/components/guidance/VibrationGuidancePanel";
 import { useLocalReminders } from "@/hooks/useLocalReminders";
 import {
@@ -111,7 +112,9 @@ function ThemedDashboard() {
           style={isDark ? "light" : "dark"}
         />
       )}
-      <Slot />
+      <RouteErrorBoundary>
+        <Slot />
+      </RouteErrorBoundary>
       <VibrationGuidancePanel />
     </SettingsProvider>
   );
