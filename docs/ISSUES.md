@@ -352,40 +352,46 @@ all.
 
 ---
 
-### 11. [Chore] The battery capacity reference was 720 Wh, now 756 Wh
+### 11. [Chore] Hardware values now follow the manuscript (720 Wh / 600 W)
 
 **Summary**
-The battery bank is rated 756 Wh (12.6 V × 60 Ah), but the app still described a
-720 Wh pack with a 144 Wh reserve and 576 Wh usable. Because the electronics
-recommendation engine reads the battery's energy, every label, limit, and
-recommendation was built on the older 720 Wh figure.
+The app's battery and electronics limits had drifted from the manuscript, and
+some screens and docs disagreed with each other. The bank is 12 V × 60 Ah =
+720 Wh total, with a 20% reserve (144 Wh) and 576 Wh usable, and the AC outlet
+is limited to 600 W total. An earlier pass had moved the app to a 756 Wh figure
+(12.6 V × 60 Ah with a 151.2 Wh reserve), so the recommendation engine, battery
+gauge, manual, and docs needed to be brought back onto the manuscript numbers.
 
 **Steps to Reproduce**
 1. Open the Electronics screen and add an electronics item, or open Menu, then User Manual.
-2. Look at the battery capacity and reserve figures shown.
-3. Compare them with the battery datasheet (756 Wh, 20% reserve = 151.2 Wh).
+2. Look at the battery capacity, reserve, usable energy, and wattage limit shown.
+3. Compare them with the manuscript (720 Wh, 144 Wh reserve, 576 Wh usable,
+   600 W cap).
 
 **Expected Behavior**
-The app shows 756 Wh total, a 151.2 Wh reserve, and 604.8 Wh usable, and the
-recommendations and wattage limits follow those numbers.
+Every screen and doc uses 720 Wh total, a 144 Wh reserve, 576 Wh usable, a 480 W
+warning, and a 600 W cap, all from one shared source.
 
 **Actual Behavior**
-The app used 720 Wh / 144 Wh / 576 Wh and capped electronics wattage at 720 W.
+The app had been aligned to a 756 Wh pack with a 151.2 Wh reserve and a 756 W
+cap, which no longer matched the manuscript, and the labels and limits were
+inconsistent between the engine, gauge, and docs.
 
 **Environment**
 - **Device:** Android, iPhone, and web browser
 - **App Version:** v1.0.0
 
-**Fixed:** Updated the recommendation engine (`BATTERY_NOMINAL_WH` 756, `RESERVE_WH`
-151.2), the battery gauge ceiling (756 Wh) and low threshold (151.2 Wh), the
-electronics wattage cap (756 W), the in-app advisory and User Manual, and the
-README / implementation-plan docs, including the 1% SoC table recomputed as
-756 × SoC ÷ 100. The capacity, reserve, and usable figures now come from a
-single source of truth (`src/constants/battery.ts`) shared by the engine, the
-battery gauge, and the electronics modals — 756 is the basis, the old 720 value is
-gone.
-**Note:** The ESP32 firmware must also report `watt_hours` on the 756 Wh scale
-before recommendations reflect the new capacity — still to do on the hardware side.
+**Fixed:** Realigned the battery and electronics limits to the manuscript.
+`src/constants/battery.ts` is the single source of truth
+(`BATTERY_CAPACITY_WH` 720, `BATTERY_RESERVE_WH` 144, `BATTERY_USABLE_WH` 576,
+`BATTERY_MAX_ELECTRONICS_W` 600). The recommendation engine now uses
+`BATTERY_NOMINAL_WH` 720, `RESERVE_WH` 144, a 480 W warning, and a 600 W cap; the
+custom-electronics modal shows the 600 W range warning; and the advisory copy,
+User Manual, README, SYSTEM-STATUS, and implementation-plan docs were updated to
+match. The earlier 756 Wh figures were removed.
+**Note:** The ESP32 firmware must report `watt_hours` on the 720 Wh manuscript
+scale before recommendations reflect the values end to end — still to do on the
+hardware side.
 
 ---
 
@@ -1338,8 +1344,350 @@ dimension, metadata, and unused-CSS checks.
 
 ---
 
+## Monitoring, Analytics, and Hardware Sync
+
+These entries cover the manuscript hardware sync, the monitoring schema work,
+and the admin dashboard on `sync/manuscript-hardware-values`.
+
+---
+
+### 42. fix(monitoring): dashboard never loaded data because the account-monitor link was empty
+
+**Summary**
+The dashboard could stay empty even though readings were already stored in
+`public.monitoring`. `getMonitorIdForUser()` resolved the account's monitor id
+from `public.users`, but that table was empty, so it returned `null` and the
+monitoring fetch never ran.
+
+**Steps to Reproduce**
+1. Sign in with an account that owns monitoring rows.
+2. Open the dashboard.
+3. Watch the live readings and history.
+
+**Expected Behavior**
+The dashboard finds the account's `monitor_id` and loads its readings.
+
+**Actual Behavior**
+`public.users` had no profile rows, so no `monitor_id` was found and the fetch
+was skipped.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Migration `20261113000300` backfills `public.users` from `auth.users`,
+sets `users.monitor_id` from matching monitoring rows, and adds a trigger on
+`public.monitoring` that keeps `users.monitor_id` in sync for existing and future
+`monitor_id`s. `getMonitorIdForUser()` also falls back to resolving `monitor_id`
+from `public.monitoring` by `user_id` when the profile row lacks it.
+
+---
+
+### 43. fix(monitoring): row-level security blocked every signed-in read
+
+**Summary**
+The monitoring RLS policies checked ownership through a subquery on
+`public.users.monitor_id`. Because that table was empty the subquery returned
+`NULL`, which denied all authenticated reads of `public.monitoring`.
+
+**Steps to Reproduce**
+1. Sign in with any household account that has monitoring rows.
+2. Query `public.monitoring` through the app.
+3. Observe the empty/denied result.
+
+**Expected Behavior**
+A signed-in user can read the monitoring rows they own.
+
+**Actual Behavior**
+Every authenticated read was blocked because the policy subquery evaluated to
+`NULL`.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Replaced the `users.monitor_id` subquery policies with direct
+`user_id = auth.uid()` policies on `public.monitoring` (migration
+`20261113000400`). This covers every existing and future `monitor_id` row owned
+by the signed-in account without depending on the profile table.
+
+---
+
+### 44. fix(analytics): history analytics and reports didn't match the monitoring schema
+
+**Summary**
+After the monitoring schema changed, analytics summaries, CSV/PDF reports, and
+grouping still assumed the older columns. New fields such as depth-of-discharge
+status and interior-temperature status were ignored, and averages/min/max were
+computed over offline rows that hold stale values.
+
+**Steps to Reproduce**
+1. Open Analytics and note the summary numbers for a range with both online and
+   offline readings.
+2. Download the CSV and PDF reports.
+3. Compare them with the history table and the monitoring schema.
+
+**Expected Behavior**
+Analytics and every report use the same columns and the same online-only basis
+for averages, peaks, and status counts.
+
+**Actual Behavior**
+New columns were dropped and offline rows skewed the numbers, so analytics and
+reports disagreed with the live schema.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Added `dod_status` and `interior_temp_status` to the monitoring history
+and report row types, made `isUnsafeDischarge` prefer the database's
+`dod_status` (with the SoC heuristic only for legacy rows), restricted averages,
+min/max, peaks, and status counts to `Online` snapshots while keeping energy
+totals and uptime on all rows, and updated the report schemas/tests. Migration
+`20261111000000_monitoring_history_interior_temp_status.sql` adds the columns.
+
+---
+
+### 45. fix(recommendation): engine ignored live battery freshness and current load
+
+**Summary**
+The recommendation engine received only static battery values, so it could label
+electronics using a stale reading and without accounting for the current load
+already running. The dashboard and Electronics screens never passed the live
+freshness or load.
+
+**Steps to Reproduce**
+1. Open the Electronics screen while the unit is offline or has an old reading.
+2. Add or edit an electronics item and read its recommendation.
+3. Compare it with the live load and the age of the latest reading.
+
+**Expected Behavior**
+Recommendations use the current load and treat stale readings as unknown rather
+than as fresh battery data.
+
+**Actual Behavior**
+The engine saw no current load and no freshness timestamp, so it could recommend
+from outdated values.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** The dashboard and Electronics screens now pass `currentLoadW` and
+`lastUpdated` (only when the device is online and `last_seen` parses) into the
+`BatteryStateInput`, so the engine accounts for the live load and marks stale
+readings correctly.
+
+---
+
+### 46. fix(weather): Today card used city centers and stale GPS instead of the exact position
+
+**Summary**
+The Today weather card could show another area's weather. It snapped to a
+curated city-center list and could reuse an older fix, so the reading did not
+always match where the device actually was. It could also label the weather with
+the curated place name instead of the city OpenWeather returned.
+
+**Steps to Reproduce**
+1. Open the dashboard, move to a different spot, and let the Today card refresh.
+2. Compare the displayed weather and city with the device's actual position.
+3. Check the request coordinates sent to OpenWeather.
+
+**Expected Behavior**
+The card uses the device's exact GPS coordinates and shows the city OpenWeather
+reports for them.
+
+**Actual Behavior**
+The card used rounded city-center coordinates and the curated place label, so the
+weather could belong to another area.
+
+**Environment**
+- **Device:** Android and iPhone
+- **App Version:** v1.0.0
+
+**Fixed:** Improved GPS accuracy and expanded the Bukidnon sample set, then
+switched to exact GPS coordinates and OpenWeather's real city name. `forecast.ts`
+now prefers `response.city.name` and falls back to the curated label only when
+OpenWeather returns none, and the weather tests were updated to the exact
+coordinates.
+
+---
+
+### 47. fix(electronics): the custom-electronics modal didn't show the 600 W cap warning
+
+**Summary**
+The Add/Edit Custom Electronics modal did not tell the user when a wattage
+exceeded the 600 W electronics cap. The wattage sanitizer also rejected values
+above the cap before validation could explain why, so the field just refused the
+input.
+
+**Steps to Reproduce**
+1. Open the Electronics screen and add a custom electronics item.
+2. Enter a wattage above 600 W (for example 757 or 1000).
+3. Try to save and read the message.
+
+**Expected Behavior**
+The modal shows "Wattage must be between 1W and 600W." and the Save button stays
+disabled until the value is valid.
+
+**Actual Behavior**
+The cap was not explained in the modal, and some out-of-range values were
+silently rejected by the sanitizer.
+
+**Environment**
+- **Device:** Android and iPhone
+- **App Version:** v1.0.0
+
+**Fixed:** The sanitizer now accepts up to four integer digits and delegates the
+cap check to validation, and the modal shows
+`CUSTOM_ELECTRONICS_WATTS_RANGE_MESSAGE` when either wattage side exceeds
+`BATTERY_MAX_ELECTRONICS_W` (600 W).
+
+---
+
+### 48. fix(admin): the admin top navbar ignored the status-bar safe area
+
+**Summary**
+On phones with a notch or status bar, the admin top navbar sat under the system
+status bar, so its title and actions could be obscured.
+
+**Steps to Reproduce**
+1. Sign in as an admin on a phone with a status bar/notch.
+2. Open the admin dashboard.
+3. Look at the top navbar.
+
+**Expected Behavior**
+The top navbar sits below the status-bar safe area.
+
+**Actual Behavior**
+The navbar drew under the status bar.
+
+**Environment**
+- **Device:** Android and iPhone
+- **App Version:** v1.0.0
+
+**Fixed:** Added the top safe-area inset to `AdminNavBarTop` so the navbar clears
+the status bar.
+
+---
+
+## Admin, Preferences, and Guidance Features
+
+These entries document features delivered on the same branch.
+
+---
+
+### 49. feat(admin): role-based three-tab admin dashboard
+
+**Summary**
+The admin area was a login and exit shell only. It had no way to see fleet health
+or manage accounts.
+
+**Steps to Reproduce**
+1. Sign in with an admin account.
+2. Look at the admin dashboard.
+
+**Expected Behavior**
+Admins get a dashboard with Overview, Reports, and Users tabs, live fleet-health
+data, pull-to-refresh, and clear empty states.
+
+**Actual Behavior**
+Only a blank shell was available.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Added the three-tab dashboard (`AdminOverviewTab`, `AdminReportsTab`,
+`AdminUsersTab`), connected it to the Supabase fleet-health RPC through
+`adminService.ts`, added pull-to-refresh with shared tab states/formatters, and
+gave every tab an empty state and left-aligned account menu.
+
+---
+
+### 50. feat(admin): pseudonymized fleet users list
+
+**Summary**
+Admins had no way to review the households in the fleet without exposing
+personal data.
+
+**Steps to Reproduce**
+1. Sign in as an admin and open the Users tab.
+
+**Expected Behavior**
+The Users tab lists fleet accounts with pseudonymized identifiers rather than raw
+personal details.
+
+**Actual Behavior**
+No fleet-user listing existed.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Added the `admin_fleet_users` RPC/migration
+(`20261111000000_admin_fleet_users.sql`) and wired the Users tab to it, returning
+pseudonymized user records for the fleet.
+
+---
+
+### 51. feat(preferences): dedicated Preferences screen
+
+**Summary**
+Notification, vibration, language, theme, and font settings were piled into the
+Menu screen, which made Menu long and the settings hard to find.
+
+**Steps to Reproduce**
+1. Open Menu and look for display and notification settings.
+
+**Expected Behavior**
+Preferences live on their own screen, reachable from Menu, so Menu stays short and
+settings are easy to find.
+
+**Actual Behavior**
+All settings were embedded in Menu.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Moved the preferences into `src/app/dashboard/preferences.tsx`, added
+the route, and slimmed `menu.tsx` to link to it. Translations were added in
+English, Filipino, and Cebuano.
+
+---
+
+### 52. feat(guidance): vibration notice panel and persisted preference
+
+**Summary**
+The phone-vibration alert needed a visible explanation and a stored preference so
+users understood what would buzz and could turn it off.
+
+**Steps to Reproduce**
+1. Open the vibration setting in Preferences.
+2. Read the explanation and toggle the preference.
+3. Reload the app.
+
+**Expected Behavior**
+A notice explains how vibration behaves, the toggle persists across sessions, and
+the copy is translated.
+
+**Actual Behavior**
+The alert had no guidance panel and no shared persistence layer.
+
+**Environment**
+- **Device:** Android and iPhone
+- **App Version:** v1.0.0
+
+**Fixed:** Added `VibrationGuidancePanel`, `useVibrationGuidance`, a reusable
+`MessagePanel`, and a `settings.ts` persistence layer; wired the preference into
+alert vibration and added English, Filipino, and Cebuano copy plus tests.
+
+---
+
 ## Still To Do
 
-- Update the ESP32 firmware so watt_hours is reported on the 756 Wh scale.
+- Update the ESP32 firmware so watt_hours is reported on the 720 Wh manuscript
+  scale (144 Wh reserve, 576 Wh usable, 600 W cap).
 - Small pre-existing warning in the code cleanup (not related to these fixes).
 
