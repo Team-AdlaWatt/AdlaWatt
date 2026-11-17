@@ -21,6 +21,8 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
+    "check:env": "node scripts/check-env.mjs",
+    "eas-build-post-install": "node scripts/check-env.mjs",
     "verify:monitoring": "node scripts/verify-monitoring-schema.mjs",
     "bench:monitoring": "node scripts/bench-monitoring-fetch.mjs"
   },
