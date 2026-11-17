@@ -65,8 +65,8 @@ describe("metric display", () => {
 });
 
 describe("device online", () => {
-  test("trusts explicit Online and enforces freshness otherwise", () => {
-    const fresh = new Date(NOW - 9_000).toISOString();
+  test("uses last_seen as the only online signal", () => {
+    const fresh = new Date(NOW - 4_999).toISOString();
     const boundary = new Date(
       NOW - DEVICE_ONLINE_WINDOW_MS,
     ).toISOString();
@@ -74,38 +74,41 @@ describe("device online", () => {
       NOW - DEVICE_ONLINE_WINDOW_MS - 1,
     ).toISOString();
 
+    expect(DEVICE_ONLINE_WINDOW_MS).toBe(5_000);
     expect(isDeviceOnline(fresh, "Online", NOW)).toBe(
       true,
     );
-    expect(isDeviceOnline(fresh, null, NOW)).toBe(true);
     expect(isDeviceOnline(fresh, "Offline", NOW)).toBe(
+      true,
+    );
+    expect(isDeviceOnline(fresh, null, NOW)).toBe(true);
+    expect(isDeviceOnline(boundary, "Online", NOW)).toBe(
       false,
     );
-    expect(isDeviceOnline(boundary, "Online", NOW)).toBe(
-      true,
-    );
     expect(isDeviceOnline(stale, "Online", NOW)).toBe(
-      true,
+      false,
     );
     expect(isDeviceOnline(boundary, null, NOW)).toBe(
       false,
     );
-    expect(isDeviceOnline(stale, null, NOW)).toBe(
+    expect(isDeviceOnline(null, "Online", NOW)).toBe(
       false,
     );
-    expect(isDeviceOnline(null, null, NOW)).toBe(
-      false,
-    );
-    expect(isDeviceOnline("", null, NOW)).toBe(
+    expect(isDeviceOnline("", "Online", NOW)).toBe(
       false,
     );
     expect(
-      isDeviceOnline("not-a-date", null, NOW),
+      isDeviceOnline("not-a-date", "Online", NOW),
     ).toBe(false);
-    expect(isDeviceOnline(null, "Online", NOW)).toBe(
-      true,
+    expect(isDeviceOnline(null, "Offline", NOW)).toBe(
+      false,
     );
-    expect(isDeviceOnline("", "Online", NOW)).toBe(
+  });
+
+  test("treats future clock skew as fresh", () => {
+    const future = new Date(NOW + 2_000).toISOString();
+
+    expect(isDeviceOnline(future, "Offline", NOW)).toBe(
       true,
     );
   });

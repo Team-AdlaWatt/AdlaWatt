@@ -52,11 +52,8 @@ import {
   getWeather,
 } from "@/services/weatherForecast";
 
-import {
-  useMonitoring,
-} from "@/services/monitoringService";
+import { useMonitoringContext } from "@/context/MonitoringContext";
 import { formatLastSeen } from "@/utils/monitoringDisplay";
-import { useDeviceOnline } from "@/hooks/useDeviceOnline";
 import { useConnectivity } from "@/hooks/useConnectivity";
 import { maybeScheduleLowSunAdvisory } from "@/services/reminderService";
 import { useTranslation } from "react-i18next";
@@ -139,7 +136,8 @@ export default function DashboardScreen() {
     stale,
     cachedAt,
     refresh: refreshMonitoring,
-  } = useMonitoring();
+    deviceOnline,
+  } = useMonitoringContext();
 
   // Phone-side connectivity (distinct from device status):
   // offline shows the cached readings plus a banner instead
@@ -149,11 +147,6 @@ export default function DashboardScreen() {
 
   const phoneOffline =
     connected === false;
-
-  const deviceOnline = useDeviceOnline(
-    monitoring?.last_seen,
-    monitoring?.device_status,
-  );
 
   // Only flag the device offline once a row exists; a null
   // row is "no data yet", not a stale device.
@@ -655,13 +648,7 @@ export default function DashboardScreen() {
           FIXED NAVBAR
           ==================================================== */}
 
-      <NavBar
-        deviceStatus={
-          deviceOnline
-            ? "Online"
-            : "Offline"
-        }
-      />
+      <NavBar />
 
       {/* ====================================================
           DASHBOARD

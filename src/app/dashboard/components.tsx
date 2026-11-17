@@ -36,8 +36,7 @@ import {
   SlidingToggle,
 } from "@/components/ui/SlidingToggle";
 import { getAuthenticatedUserSafe, supabase } from "@/lib/supabase";
-import { useDeviceOnline } from "@/hooks/useDeviceOnline";
-import { useMonitoring } from "@/services/monitoringService";
+import { useMonitoringContext } from "@/context/MonitoringContext";
 import {
   subscribeResilientChannel,
   type ResilientSubscription,
@@ -157,15 +156,9 @@ export default function ComponentsScreen() {
   const [components, setComponents] =
     useState<ComponentData[]>([]);
 
-  // Unified live monitoring (same source as dashboard): updates
+  // Unified live monitoring (single dashboard provider): updates
   // immediately when hardware becomes active / table changes.
-  const { monitoring } = useMonitoring();
-
-  // Freshness-aware online flag shared with the dashboard.
-  const deviceOnline = useDeviceOnline(
-    monitoring?.last_seen,
-    monitoring?.device_status,
-  );
+  const { deviceOnline } = useMonitoringContext();
 
   // ============================================
   // CONTENT-AWARE STATUS SEGMENTS

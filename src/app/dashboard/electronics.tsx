@@ -54,10 +54,7 @@ import {
   type BatteryStateInput,
   recommendElectronics,
 } from "@/services/recommendation";
-import {
-  useMonitoring,
-} from "@/services/monitoringService";
-import { isDeviceOnline } from "@/utils/monitoringDisplay";
+import { useMonitoringContext } from "@/context/MonitoringContext";
 
 type PowerLevel =
   | "All"
@@ -212,7 +209,8 @@ export default function ElectronicsScreen() {
   const {
     monitoring,
     refresh: refreshMonitoring,
-  } = useMonitoring();
+    deviceOnline,
+  } = useMonitoringContext();
 
   const [
     selectedElectronics,
@@ -419,10 +417,6 @@ export default function ElectronicsScreen() {
         : "notAdvisable";
     }
 
-    const deviceOnline = isDeviceOnline(
-      monitoring.last_seen,
-      monitoring.device_status,
-    );
     const lastSeenMs =
       monitoring.last_seen
         ? Date.parse(monitoring.last_seen)
@@ -471,7 +465,7 @@ export default function ElectronicsScreen() {
 
     return "advisable";
     },
-    [monitoring],
+    [monitoring, deviceOnline],
   );
 
   // ==========================================================

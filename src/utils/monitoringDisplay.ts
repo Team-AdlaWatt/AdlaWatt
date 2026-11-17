@@ -46,27 +46,18 @@ export const formatTemperature = (
   return `${value}°C`;
 };
 
-// Hardware heartbeats about every 10s. Trust the table's
-// explicit Online status immediately so active devices show
-// real-time data without waiting on timestamp heuristics, but
-// keep a relaxed freshness window to avoid false-offline flicker
-// from clock skew/missed beats.
-export const DEVICE_ONLINE_WINDOW_MS = 30 * 1000;
+// Hardware heartbeats every 2s with a 1.5s HTTP timeout. The
+// monitoring row's last_seen is the single source of truth:
+// fresh for less than 5s, Offline from the 5s mark until the
+// next successful heartbeat lands.
+export const DEVICE_ONLINE_WINDOW_MS = 5 * 1000;
 
 export const isDeviceOnline = (
   lastSeen: string | null | undefined,
-  deviceStatus: DeviceStatus | string | null | undefined,
+  _deviceStatus: DeviceStatus | string | null | undefined,
   nowMs: number = Date.now(),
 ): boolean => {
-  if (deviceStatus === "Offline") {
-    return false;
-  }
-
-  // If the monitoring table reports the device as Online, treat
-  // it as active immediately so the latest table data is shown.
-  if (deviceStatus === "Online") {
-    return true;
-  }
+  void _deviceStatus;
 
   if (lastSeen == null || lastSeen === "") {
     return false;
@@ -78,7 +69,9 @@ export const isDeviceOnline = (
     return false;
   }
 
-  return nowMs - timestamp < DEVICE_ONLINE_WINDOW_MS;
+  const ageMs = Math.max(0, nowMs - timestamp);
+
+  return ageMs < DEVICE_ONLINE_WINDOW_MS;
 };
 
 const SECOND_MS = 1000;
