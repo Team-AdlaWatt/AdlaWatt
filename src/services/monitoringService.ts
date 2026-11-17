@@ -12,6 +12,7 @@ import {
   getAuthenticatedUserSafe,
   supabase,
 } from "@/lib/supabase";
+import { withTimeout } from "@/lib/withTimeout";
 import { requestManager, RequestManager } from "@/services/requestManager";
 import { memoryCache, CACHE_TTL } from "@/services/memoryCache";
 import {
@@ -254,14 +255,37 @@ export const getMonitorIdForUser = async (
 };
 
 // Aligned: fetch the full 25-column live row for this user in one query.
+type MonitoringRowResponse = {
+  data: MonitoringRow | null;
+  error: { message: string } | null;
+};
+
 export const fetchMonitoringRowForUser = async (
   userId: string,
 ): Promise<MonitoringRow | null> => {
-  const { data, error } = await supabase
-    .from("monitoring")
-    .select(MONITORING_SELECT)
-    .eq("user_id", userId)
-    .maybeSingle();
+  let response: MonitoringRowResponse;
+
+  try {
+    response = await withTimeout(
+      supabase
+        .from("monitoring")
+        .select(MONITORING_SELECT)
+        .eq("user_id", userId)
+        .maybeSingle(),
+      undefined,
+      "Monitoring request timed out.",
+    );
+  } catch (caught) {
+    console.error(
+      "Error loading monitoring data:",
+      caught instanceof Error
+        ? caught.message
+        : caught,
+    );
+    return null;
+  }
+
+  const { data, error } = response;
 
   if (error) {
     console.error(
@@ -291,11 +315,29 @@ export const fetchMonitoringRowForUser = async (
 export const fetchMonitoringRow = async (
   monitorId: number,
 ): Promise<MonitoringRow | null> => {
-  const { data, error } = await supabase
-    .from("monitoring")
-    .select(MONITORING_SELECT)
-    .eq("monitor_id", monitorId)
-    .maybeSingle();
+  let response: MonitoringRowResponse;
+
+  try {
+    response = await withTimeout(
+      supabase
+        .from("monitoring")
+        .select(MONITORING_SELECT)
+        .eq("monitor_id", monitorId)
+        .maybeSingle(),
+      undefined,
+      "Monitoring request timed out.",
+    );
+  } catch (caught) {
+    console.error(
+      "Error loading monitoring data:",
+      caught instanceof Error
+        ? caught.message
+        : caught,
+    );
+    return null;
+  }
+
+  const { data, error } = response;
 
   if (error) {
     console.error(

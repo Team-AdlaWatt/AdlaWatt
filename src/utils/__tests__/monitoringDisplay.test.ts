@@ -65,7 +65,7 @@ describe("metric display", () => {
 });
 
 describe("device online", () => {
-  test("requires a fresh last_seen and a non-Offline status", () => {
+  test("trusts explicit Online and enforces freshness otherwise", () => {
     const fresh = new Date(NOW - 9_000).toISOString();
     const boundary = new Date(
       NOW - DEVICE_ONLINE_WINDOW_MS,
@@ -82,20 +82,32 @@ describe("device online", () => {
       false,
     );
     expect(isDeviceOnline(boundary, "Online", NOW)).toBe(
-      false,
+      true,
     );
     expect(isDeviceOnline(stale, "Online", NOW)).toBe(
+      true,
+    );
+    expect(isDeviceOnline(boundary, null, NOW)).toBe(
       false,
     );
-    expect(isDeviceOnline(null, "Online", NOW)).toBe(
+    expect(isDeviceOnline(stale, null, NOW)).toBe(
       false,
     );
-    expect(isDeviceOnline("", "Online", NOW)).toBe(
+    expect(isDeviceOnline(null, null, NOW)).toBe(
+      false,
+    );
+    expect(isDeviceOnline("", null, NOW)).toBe(
       false,
     );
     expect(
-      isDeviceOnline("not-a-date", "Online", NOW),
+      isDeviceOnline("not-a-date", null, NOW),
     ).toBe(false);
+    expect(isDeviceOnline(null, "Online", NOW)).toBe(
+      true,
+    );
+    expect(isDeviceOnline("", "Online", NOW)).toBe(
+      true,
+    );
   });
 });
 
