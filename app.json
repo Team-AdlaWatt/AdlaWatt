@@ -85,9 +85,21 @@
         "expo-build-properties",
         {
           "android": {
-            "buildArchs": ["arm64-v8a", "armeabi-v7a"],
+            "buildArchs": [
+              "arm64-v8a",
+              "armeabi-v7a"
+            ],
             "enableMinifyInReleaseBuilds": true,
             "enableShrinkResourcesInReleaseBuilds": true
+          }
+        }
+      ],
+      [
+        "expo-ble-kit",
+        {
+          "bluetoothAlwaysPermission": "Allow AdlaWatt to use Bluetooth to connect to your monitoring device.",
+          "android": {
+            "neverForLocation": true
           }
         }
       ]

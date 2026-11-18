@@ -626,6 +626,31 @@ export default function SettingsScreen() {
 
           <Pressable
             onPress={() =>
+              router.push(Routes.ADD_DEVICE)
+            }
+            accessibilityRole="button"
+            accessibilityLabel={tMenu("menu.openAddDevice")}
+            style={({ pressed }) => [
+              styles.menuBox,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Ionicons
+              name="bluetooth"
+              size={60}
+              color={colors.accentContent}
+            />
+
+            <AppText
+              variant="body"
+              style={styles.menuBoxText}
+            >
+              {tMenu("menu.addDevice")}
+            </AppText>
+          </Pressable>
+
+          <Pressable
+            onPress={() =>
               router.push(Routes.PREFERENCES)
             }
             accessibilityRole="button"
