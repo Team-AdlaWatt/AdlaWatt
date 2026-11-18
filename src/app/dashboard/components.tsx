@@ -51,11 +51,7 @@ const componentImages: Record<string, any> = {
     "@/assets/images/components/Buck Converter.png",
   ),
 
-  "DS18B20 (Battery)": require(
-    "@/assets/images/components/DS18B20.png",
-  ),
-
-  "DS18B20 (Solar)": require(
+  DS18B20: require(
     "@/assets/images/components/DS18B20.png",
   ),
 
@@ -68,14 +64,6 @@ const componentImages: Record<string, any> = {
 
   "ESP32-S3": require(
     "@/assets/images/components/ESP32-S3.png",
-  ),
-
-  "INA228 (Input)": require(
-    "@/assets/images/components/INA228.png",
-  ),
-
-  "INA228 (Output)": require(
-    "@/assets/images/components/INA228.png",
   ),
 
   // The old Voltage Sensor is gone: the INA219 replaced it
@@ -165,9 +153,42 @@ export default function ComponentsScreen() {
   //
   // Only segments holding components render; Active is
   // the default and Inactive the fallback. ESP32 follows
-  // monitoring.device_status, other rows use their flag —
+  // monitoring.device_status, other rows use their flag �?-
   // one shared rule feeds both the counts and the list.
   // ============================================
+
+  const displayComponents = useMemo(() => {
+    const ds18b20: ComponentData[] = [];
+    const result: ComponentData[] = [];
+
+    for (const component of components) {
+      const name = component.component_name;
+
+      if (name.includes("INA228")) {
+        continue;
+      }
+
+      if (name === "DS18B20" || name.startsWith("DS18B20")) {
+        ds18b20.push(component);
+        continue;
+      }
+
+      result.push(component);
+    }
+
+    if (ds18b20.length > 0) {
+      result.push({
+        component_id:
+          ds18b20[0]?.component_id ?? "ds18b20-combined",
+        component_name: "DS18B20",
+        status: ds18b20.some((item) => item.status),
+      });
+    }
+
+    return result.sort((a, b) =>
+      a.component_name.localeCompare(b.component_name),
+    );
+  }, [components]);
 
   const isComponentActive = useCallback(
     (component: ComponentData): boolean => {
@@ -184,7 +205,7 @@ export default function ComponentsScreen() {
     let active = 0;
     let inactive = 0;
 
-    for (const component of components) {
+    for (const component of displayComponents) {
       if (isComponentActive(component)) {
         active += 1;
       } else {
@@ -193,12 +214,12 @@ export default function ComponentsScreen() {
     }
 
     return { active, inactive };
-  }, [components, isComponentActive]);
+  }, [displayComponents, isComponentActive]);
 
   const visibleComponentFilters = useMemo<
     ("Active" | "Inactive")[]
   >(() => {
-    if (components.length === 0) {
+    if (displayComponents.length === 0) {
       return ["Active", "Inactive"];
     }
 
@@ -220,7 +241,7 @@ export default function ComponentsScreen() {
           | "Active"
           | "Inactive"
         )[]);
-  }, [components.length, componentCounts]);
+  }, [displayComponents.length, componentCounts]);
 
   const effectiveStatusFilter =
     visibleComponentFilters.includes(statusFilter)
@@ -416,21 +437,14 @@ export default function ComponentsScreen() {
         >
           {(() => {
             const filteredComponents =
-              [...components]
-                .sort((a, b) =>
-                  a.component_name.localeCompare(
-                    b.component_name,
-                  ),
-                )
-                .filter((component) => {
-                  const isActive =
-                    isComponentActive(component);
+              displayComponents.filter((component) => {
+                const isActive =
+                  isComponentActive(component);
 
-                  return effectiveStatusFilter ===
-                    "Active"
-                    ? isActive
-                    : !isActive;
-                });
+                return effectiveStatusFilter === "Active"
+                  ? isActive
+                  : !isActive;
+              });
 
             // ========================================
             // EMPTY STATE
