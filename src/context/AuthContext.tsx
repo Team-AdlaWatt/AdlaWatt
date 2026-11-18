@@ -12,6 +12,7 @@ import type { Session, User } from "@supabase/supabase-js";
 
 import { supabase } from "@/lib/supabase";
 import { getCurrentUserProfile } from "@/services/auth";
+import { logAuth } from "@/services/activityLogService";
 import { clearMonitoringSessionCache } from "@/services/monitoringService";
 
 // ============================================================
@@ -171,6 +172,13 @@ export function AuthProvider({
             clearMonitoringSessionCache();
           }
           previousUserIdRef.current = nextUserId;
+
+          if (event === "SIGNED_IN" && nextSession?.user) {
+            logAuth.loggedIn(
+              nextSession.user.id,
+              nextSession.access_token,
+            );
+          }
 
           if (event === "PASSWORD_RECOVERY") {
             setIsRecoverySession(true);

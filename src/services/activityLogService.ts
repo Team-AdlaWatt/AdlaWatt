@@ -37,6 +37,27 @@ export interface LogActivityInput {
   userId?: string;
 }
 
+const loggedSignInSessionKeys = new Set<string>();
+
+function shouldLogSignIn(
+  userId: string,
+  sessionKey?: string | null,
+): boolean {
+  if (!sessionKey) {
+    return true;
+  }
+
+  const key = `${userId}:${sessionKey}`;
+
+  if (loggedSignInSessionKeys.has(key)) {
+    return false;
+  }
+
+  loggedSignInSessionKeys.add(key);
+
+  return true;
+}
+
 async function resolveUserId(): Promise<string | null> {
   try {
     const user = await getAuthenticatedUserSafe();
@@ -101,11 +122,21 @@ export const logAuth = {
     });
   },
 
-  loggedIn(): void {
+  loggedIn(userId?: string, sessionKey?: string | null): void {
+    const resolvedUserId = userId ?? null;
+
+    if (
+      resolvedUserId &&
+      !shouldLogSignIn(resolvedUserId, sessionKey)
+    ) {
+      return;
+    }
+
     logActivity({
       title: "Logged In",
       description: "Signed in.",
       type: "info",
+      userId: resolvedUserId ?? undefined,
     });
   },
 
