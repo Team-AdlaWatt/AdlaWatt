@@ -412,12 +412,21 @@ const fil = {
       wifiPasswordRequired: "Ilagay ang password ng iyong Wi-Fi.",
       accountSection: "Account",
       loggedInAs: "Naka-log in bilang",
-      assignmentChecking: "Sinusuri ang iyong monitoring assignment...",
+      assignmentCheckingUser: "Sinusuri ang iyong account...",
+      assignmentChecking: "Kinukuha ang iyong monitoring assignment...",
       assignmentVerified: "Na-verify ang monitoring assignment",
       assignmentMissing:
         "Walang monitoring assignment para sa account na ito.",
       assignmentError:
         "Hindi ma-verify ang iyong monitoring assignment.",
+      assignmentSessionExpired:
+        "Hindi available o nag-expire na ang iyong session. Mag-sign in muli at subukang muli.",
+      assignmentQueryFailed:
+        "Hindi makuha ang iyong monitoring assignment. Suriin ang iyong koneksyon at subukang muli.",
+      assignmentAmbiguous:
+        "Hindi matukoy ang iyong monitoring assignment. Makipag-ugnayan sa suporta.",
+      assignmentInvalid:
+        "Hindi wasto ang iyong monitoring assignment. Makipag-ugnayan sa suporta.",
       loginRequired: "Mag-sign in para mag-configure ng device.",
       send: "Ipadala ang Configuration",
       sending: "Ipinapadala...",

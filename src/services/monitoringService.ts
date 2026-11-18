@@ -216,6 +216,50 @@ export const clearMonitoringSessionCache = (
   monitorIdByUser.clear();
 };
 
+export type ProvisioningMonitorAssignment =
+  | { status: "found"; monitorId: number }
+  | { status: "not_found" }
+  | { status: "ambiguous" }
+  | { status: "invalid" }
+  | { status: "query_failed" };
+
+export const resolveProvisioningMonitorIdForUser = async (
+  userId: string,
+): Promise<ProvisioningMonitorAssignment> => {
+  const { data, error } = await supabase
+    .from("monitoring")
+    .select("monitor_id")
+    .eq("user_id", userId)
+    .limit(2);
+
+  if (error) {
+    return { status: "query_failed" };
+  }
+
+  if (!Array.isArray(data) || data.length === 0) {
+    return { status: "not_found" };
+  }
+
+  if (data.length > 1) {
+    return { status: "ambiguous" };
+  }
+
+  const record = data[0] as { monitor_id?: unknown } | null;
+  const raw = record?.monitor_id;
+  const monitorId =
+    typeof raw === "number"
+      ? raw
+      : typeof raw === "string" && raw.trim() !== ""
+        ? Number(raw)
+        : NaN;
+
+  if (!Number.isFinite(monitorId)) {
+    return { status: "invalid" };
+  }
+
+  return { status: "found", monitorId };
+};
+
 // Back-compat export: resolve monitor_id for callers that need it.
 export const getMonitorIdForUser = async (
   userId: string,

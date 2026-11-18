@@ -393,12 +393,21 @@ const en = {
       wifiPasswordRequired: "Enter your Wi-Fi password.",
       accountSection: "Account",
       loggedInAs: "Logged in as",
-      assignmentChecking: "Checking your monitoring assignment...",
+      assignmentCheckingUser: "Checking your account...",
+      assignmentChecking: "Retrieving your monitoring assignment...",
       assignmentVerified: "Monitoring assignment verified",
       assignmentMissing:
         "No monitoring assignment found for this account.",
       assignmentError:
         "Unable to verify your monitoring assignment.",
+      assignmentSessionExpired:
+        "Your session is unavailable or has expired. Sign in again and try again.",
+      assignmentQueryFailed:
+        "Unable to retrieve your monitoring assignment. Check your connection and try again.",
+      assignmentAmbiguous:
+        "Your monitoring assignment could not be determined. Please contact support.",
+      assignmentInvalid:
+        "Your monitoring assignment is invalid. Please contact support.",
       loginRequired: "Sign in to configure a device.",
       send: "Send Configuration",
       sending: "Sending...",

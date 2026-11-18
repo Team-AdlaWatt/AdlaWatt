@@ -53,10 +53,21 @@ import {
   type ScannedDevice,
   type UiStatus,
 } from "@/services/provisioningBleService";
-import { getMonitorIdForUser } from "@/services/monitoringService";
+import {
+  resolveProvisioningMonitorIdForUser,
+  type ProvisioningMonitorAssignment,
+} from "@/services/monitoringService";
 import type { BlePermissions, BleState } from "expo-ble-kit";
 
-type AssignmentState = "loading" | "ready" | "missing" | "error";
+type AssignmentState =
+  | "checking_user"
+  | "session_expired"
+  | "retrieving"
+  | "found"
+  | "not_found"
+  | "query_failed"
+  | "ambiguous"
+  | "invalid";
 type ToneKey = "nominal" | "elevated" | "critical";
 type ScanPhase = "idle" | "scanning" | "completed_empty" | "devices_found";
 
@@ -189,19 +200,33 @@ export default function AddDeviceScreen() {
     password?: string;
   }>({});
 
-  const [assignmentState, setAssignmentState] =
-    useState<AssignmentState>("loading");
-  const [monitorId, setMonitorId] = useState<number | null>(null);
+  const [resolvedAssignment, setResolvedAssignment] = useState<{
+    userId: string;
+    retryKey: number;
+    result: ProvisioningMonitorAssignment;
+  } | null>(null);
   const [assignmentRetryKey, setAssignmentRetryKey] = useState(0);
 
-  const effectiveAssignmentState: AssignmentState = !isLoaded
-    ? "loading"
-    : !user?.id
-      ? "error"
-      : assignmentState;
+  const assignmentRequestSeqRef = useRef(0);
+  const sendInFlightRef = useRef(false);
 
+  const currentUserId = user?.id ?? null;
+  const isAssignmentResolvedForCurrent =
+    !!currentUserId &&
+    resolvedAssignment?.userId === currentUserId &&
+    resolvedAssignment.retryKey === assignmentRetryKey;
+  const assignmentState: AssignmentState = !isLoaded
+    ? "checking_user"
+    : !currentUserId
+      ? "session_expired"
+      : isAssignmentResolvedForCurrent
+        ? resolvedAssignment.result.status
+        : "retrieving";
   const effectiveMonitorId =
-    effectiveAssignmentState === "ready" ? monitorId : null;
+    isAssignmentResolvedForCurrent &&
+    resolvedAssignment.result.status === "found"
+      ? resolvedAssignment.result.monitorId
+      : null;
 
   const [bleState, setBleState] = useState<BleState | "checking">("checking");
   const [blePermissions, setBlePermissions] =
@@ -213,6 +238,7 @@ export default function AddDeviceScreen() {
 
   const [status, setStatus] = useState<UiStatus>("idle");
   const [statusDetail, setStatusDetail] = useState<string | null>(null);
+  const [sendBusy, setSendBusy] = useState(false);
   const [devices, setDevices] = useState<ScannedDevice[]>([]);
   const [selectedDevice, setSelectedDevice] =
     useState<ScannedDevice | null>(null);
@@ -367,39 +393,44 @@ export default function AddDeviceScreen() {
   }, [operationBusy, readiness, scanPhase, stopProvisioning, stopScan]);
 
   useEffect(() => {
-    if (!isLoaded || !user?.id) {
+    if (!isLoaded || !currentUserId) {
       return;
     }
 
+    if (
+      resolvedAssignment?.userId === currentUserId &&
+      resolvedAssignment.retryKey === assignmentRetryKey
+    ) {
+      return;
+    }
+
+    const requestSeq = ++assignmentRequestSeqRef.current;
+    const targetUserId = currentUserId;
+    const targetRetryKey = assignmentRetryKey;
     let cancelled = false;
 
     void (async () => {
-      try {
-        const id = await getMonitorIdForUser(user.id);
-
-        if (cancelled) {
-          return;
-        }
-
-        setMonitorId(id);
-        setAssignmentState(id == null ? "missing" : "ready");
-      } catch {
-        if (cancelled) {
-          return;
-        }
-
-        setMonitorId(null);
-        setAssignmentState("error");
+      const result = await resolveProvisioningMonitorIdForUser(targetUserId);
+      if (cancelled || assignmentRequestSeqRef.current !== requestSeq) {
+        return;
       }
+      setResolvedAssignment({
+        userId: targetUserId,
+        retryKey: targetRetryKey,
+        result,
+      });
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [isLoaded, user, assignmentRetryKey]);
+  }, [assignmentRetryKey, currentUserId, isLoaded, resolvedAssignment]);
 
   const handleRetryAssignment = () => {
-    setAssignmentState("loading");
+    if (!isLoaded || !currentUserId) {
+      return;
+    }
+    setResolvedAssignment(null);
     setAssignmentRetryKey((current) => current + 1);
   };
 
@@ -546,6 +577,10 @@ export default function AddDeviceScreen() {
   };
 
   const handleSend = async () => {
+    if (sendInFlightRef.current || sendBusy || operationBusy) {
+      return;
+    }
+
     const nextErrors: {
       ssid?: string;
       password?: string;
@@ -565,24 +600,6 @@ export default function AddDeviceScreen() {
       return;
     }
 
-    if (!user?.id) {
-      setStatus("error");
-      setStatusDetail(t("dashboard.addDevice.loginRequired"));
-      return;
-    }
-
-    if (effectiveAssignmentState !== "ready" || effectiveMonitorId == null) {
-      setStatus("error");
-      setStatusDetail(
-        t(
-          effectiveAssignmentState === "missing"
-            ? "dashboard.addDevice.assignmentMissing"
-            : "dashboard.addDevice.assignmentError",
-        ),
-      );
-      return;
-    }
-
     if (!selectedDevice) {
       setScanOpen(true);
       return;
@@ -594,17 +611,64 @@ export default function AddDeviceScreen() {
       return;
     }
 
+    sendInFlightRef.current = true;
+    setSendBusy(true);
     setStatusDetail(null);
-    stopProvisioning();
-    setStatus("connecting");
 
     try {
+      const authUserId = user?.id ?? null;
+
+      if (!authUserId) {
+        setResolvedAssignment(null);
+        setStatus("error");
+        setStatusDetail(t("dashboard.addDevice.assignmentSessionExpired"));
+        return;
+      }
+
+      const resolveSeq = ++assignmentRequestSeqRef.current;
+      setResolvedAssignment(null);
+
+      const result = await resolveProvisioningMonitorIdForUser(authUserId);
+
+      if (assignmentRequestSeqRef.current !== resolveSeq) {
+        return;
+      }
+
+      if (user?.id !== authUserId) {
+        setStatus("error");
+        setStatusDetail(t("dashboard.addDevice.assignmentSessionExpired"));
+        return;
+      }
+
+      setResolvedAssignment({
+        userId: authUserId,
+        retryKey: assignmentRetryKey,
+        result,
+      });
+
+      if (result.status !== "found") {
+        const detailKey =
+          result.status === "not_found"
+            ? "dashboard.addDevice.assignmentMissing"
+            : result.status === "query_failed"
+              ? "dashboard.addDevice.assignmentQueryFailed"
+              : result.status === "ambiguous"
+                ? "dashboard.addDevice.assignmentAmbiguous"
+                : "dashboard.addDevice.assignmentInvalid";
+        setStatus("error");
+        setStatusDetail(t(detailKey));
+        return;
+      }
+
+      stopProvisioning();
+      setStatus("connecting");
+
       const session = await provisionDevice(
         selectedDevice.id,
         {
           wifiSsid: ssid.trim(),
           wifiPassword: password,
-          monitorId: effectiveMonitorId,
+          monitorId: result.monitorId,
         },
         (nextStatus) => {
           setStatus(nextStatus);
@@ -615,13 +679,12 @@ export default function AddDeviceScreen() {
       );
 
       provisionSessionRef.current = session;
-    } catch (error) {
+    } catch {
       setStatus("error");
-      setStatusDetail(
-        error instanceof Error
-          ? error.message
-          : t("dashboard.addDevice.errorBody"),
-      );
+      setStatusDetail(t("dashboard.addDevice.errorBody"));
+    } finally {
+      sendInFlightRef.current = false;
+      setSendBusy(false);
     }
   };
 
@@ -637,45 +700,60 @@ export default function AddDeviceScreen() {
   );
 
   const canScan = isReady && !operationBusy && !permissionBusy && !enableBusy;
+  const assignmentReady =
+    assignmentState === "found" && effectiveMonitorId != null;
   const canSend =
     !operationBusy &&
+    !sendBusy &&
     !!selectedDevice &&
-    effectiveMonitorId != null &&
+    assignmentReady &&
     !!ssid.trim() &&
     !!password &&
     isReady;
 
-  const accountContent: React.ReactNode =
-    effectiveAssignmentState === "loading" ? (
-      <View style={styles.inlineRow}>
-        <ActivityIndicator size="small" color={colors.accentContent} />
-        <AppText variant="caption" style={styles.inlineText}>
-          {t("dashboard.addDevice.assignmentChecking")}
-        </AppText>
-      </View>
-    ) : effectiveAssignmentState === "ready" && effectiveMonitorId != null ? (
-      <View style={styles.inlineRow}>
-        <Ionicons
-          name="checkmark-circle-outline"
-          size={Touch.iconInline}
-          color={colors.primary}
-        />
-        <AppText variant="caption" style={styles.inlineText}>
-          {t("dashboard.addDevice.assignmentVerified")}
-        </AppText>
-      </View>
-    ) : (
-      <ErrorState
-        message={t(
-          effectiveAssignmentState === "missing"
-            ? "dashboard.addDevice.assignmentMissing"
-            : user?.id
-              ? "dashboard.addDevice.assignmentError"
-              : "dashboard.addDevice.loginRequired",
+  const assignmentLoading =
+    assignmentState === "checking_user" || assignmentState === "retrieving";
+
+  const accountContent: React.ReactNode = assignmentLoading ? (
+    <View style={styles.inlineRow}>
+      <ActivityIndicator size="small" color={colors.accentContent} />
+      <AppText variant="caption" style={styles.inlineText}>
+        {t(
+          assignmentState === "checking_user"
+            ? "dashboard.addDevice.assignmentCheckingUser"
+            : "dashboard.addDevice.assignmentChecking",
         )}
-        onRetry={handleRetryAssignment}
+      </AppText>
+    </View>
+  ) : assignmentReady ? (
+    <View style={styles.inlineRow}>
+      <Ionicons
+        name="checkmark-circle-outline"
+        size={Touch.iconInline}
+        color={colors.primary}
       />
-    );
+      <AppText variant="caption" style={styles.inlineText}>
+        {t("dashboard.addDevice.assignmentVerified")}
+      </AppText>
+    </View>
+  ) : (
+    <ErrorState
+      message={t(
+        assignmentState === "session_expired"
+          ? "dashboard.addDevice.assignmentSessionExpired"
+          : assignmentState === "not_found"
+            ? "dashboard.addDevice.assignmentMissing"
+            : assignmentState === "query_failed"
+              ? "dashboard.addDevice.assignmentQueryFailed"
+              : assignmentState === "ambiguous"
+                ? "dashboard.addDevice.assignmentAmbiguous"
+                : assignmentState === "invalid"
+                  ? "dashboard.addDevice.assignmentInvalid"
+                  : "dashboard.addDevice.assignmentError",
+      )}
+      onRetry={handleRetryAssignment}
+    />
+  );
 
   const showTurnOn = readiness === "poweredOff" && Platform.OS === "android";
 
@@ -1114,7 +1192,7 @@ export default function AddDeviceScreen() {
 
         <AppButton
           title={
-            operationBusy
+            operationBusy || sendBusy
               ? t("dashboard.addDevice.sending")
               : t("dashboard.addDevice.send")
           }

@@ -412,12 +412,21 @@ const ceb = {
       wifiPasswordRequired: "Isulod ang password sa imong Wi-Fi.",
       accountSection: "Account",
       loggedInAs: "Naka-log in isip",
-      assignmentChecking: "Gisusi ang imong monitoring assignment...",
+      assignmentCheckingUser: "Gisusi ang imong account...",
+      assignmentChecking: "Gikuha ang imong monitoring assignment...",
       assignmentVerified: "Na-verify ang monitoring assignment",
       assignmentMissing:
         "Walay monitoring assignment para sa account niini.",
       assignmentError:
         "Dili ma-verify ang imong monitoring assignment.",
+      assignmentSessionExpired:
+        "Dili magamit o nahuman na ang imong session. Pag-sign in pag-usab ug sulayi pag-usab.",
+      assignmentQueryFailed:
+        "Dili makuha ang imong monitoring assignment. Susiha ang imong koneksyon ug sulayi pag-usab.",
+      assignmentAmbiguous:
+        "Dili matino ang imong monitoring assignment. Palihug kontaka ang suporta.",
+      assignmentInvalid:
+        "Dili balido ang imong monitoring assignment. Palihug kontaka ang suporta.",
       loginRequired: "Mag-sign in aron mag-configure ug device.",
       send: "Ipadala ang Configuration",
       sending: "Gipapadala...",
