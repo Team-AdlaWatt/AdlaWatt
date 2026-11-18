@@ -747,7 +747,7 @@ export default function AddDeviceScreen() {
             ) : null}
 
             {readiness === "poweredOff" ? (
-              <View style={styles.actionRow}>
+              <View style={styles.bannerActionRow}>
                 {showTurnOn ? (
                   <AppButton
                     title={
@@ -759,7 +759,7 @@ export default function AddDeviceScreen() {
                       void handleTurnOnBluetooth();
                     }}
                     disabled={enableBusy}
-                    style={styles.inlineButton}
+                    style={[styles.inlineButton, styles.bannerActionButton]}
                   />
                 ) : null}
                 <Pressable
@@ -771,6 +771,7 @@ export default function AddDeviceScreen() {
                   style={({ pressed }) => [
                     styles.secondaryActionButton,
                     styles.inlineButton,
+                    styles.bannerActionButton,
                     pressed && styles.pressed,
                   ]}
                 >
@@ -782,7 +783,7 @@ export default function AddDeviceScreen() {
             ) : null}
 
             {readiness === "permission_required" ? (
-              <View style={styles.actionRow}>
+              <View style={styles.bannerActionRow}>
                 <AppButton
                   title={
                     permissionBusy
@@ -793,29 +794,31 @@ export default function AddDeviceScreen() {
                     void ensurePermissions();
                   }}
                   disabled={permissionBusy}
-                  style={styles.inlineButton}
+                  style={[styles.inlineButton, styles.bannerActionButton]}
                 />
               </View>
             ) : null}
 
             {readiness === "permission_denied" ? (
-              <View style={styles.actionRow}>
+              <View style={styles.bannerActionRow}>
                 <AppButton
                   title={t("dashboard.addDevice.grantPermission")}
                   onPress={() => {
                     void ensurePermissions();
                   }}
                   disabled={permissionBusy}
-                  style={styles.inlineButton}
+                  style={[styles.inlineButton, styles.bannerActionButton]}
                 />
                 <Pressable
                   onPress={() => {
                     void Linking.openSettings();
                   }}
                   accessibilityRole="button"
+                  accessibilityLabel={t("dashboard.addDevice.openSettings")}
                   style={({ pressed }) => [
                     styles.secondaryActionButton,
                     styles.inlineButton,
+                    styles.bannerActionButton,
                     pressed && styles.pressed,
                   ]}
                 >
@@ -828,27 +831,29 @@ export default function AddDeviceScreen() {
 
             {readiness === "permission_blocked" ||
             readiness === "unauthorized" ? (
-              <View style={styles.actionRow}>
+              <View style={styles.bannerActionRow}>
                 <AppButton
                   title={t("dashboard.addDevice.openSettings")}
                   onPress={() => {
                     void Linking.openSettings();
                   }}
-                  style={styles.inlineButton}
+                  style={[styles.inlineButton, styles.bannerActionButton]}
                 />
               </View>
             ) : null}
 
             {readiness === "unsupported" ? (
-              <View style={styles.actionRow}>
+              <View style={styles.bannerActionRow}>
                 <Pressable
                   onPress={() => {
                     void Linking.openSettings();
                   }}
                   accessibilityRole="button"
+                  accessibilityLabel={t("dashboard.addDevice.openSettings")}
                   style={({ pressed }) => [
                     styles.secondaryActionButton,
                     styles.inlineButton,
+                    styles.bannerActionButton,
                     pressed && styles.pressed,
                   ]}
                 >
@@ -1351,9 +1356,21 @@ const getStyles = (colors: AppColors) =>
       gap: 8,
       marginTop: 10,
     },
+    bannerActionRow: {
+      width: "100%",
+      marginTop: 12,
+      gap: 8,
+      alignItems: "stretch",
+    },
     inlineButton: {
       flexGrow: 1,
       minWidth: 140,
+    },
+    bannerActionButton: {
+      marginTop: 0,
+      minWidth: 0,
+      width: "100%",
+      alignSelf: "stretch",
     },
     secondaryActionButton: {
       minHeight: Control.button,
