@@ -24,9 +24,10 @@ export function shouldShowVibrationGuidance(
   }
 
   if (
-    input.pathname === Routes.NOTIFICATIONS ||
-    input.pathname === Routes.MENU ||
-    input.pathname === Routes.PREFERENCES
+    input.source !== "reenable" &&
+    (input.pathname === Routes.NOTIFICATIONS ||
+      input.pathname === Routes.MENU ||
+      input.pathname === Routes.PREFERENCES)
   ) {
     return false;
   }
@@ -36,6 +37,10 @@ export function shouldShowVibrationGuidance(
     !input.vibrationEnabled
   ) {
     return false;
+  }
+
+  if (input.source === "reenable") {
+    return true;
   }
 
   if (input.shownThisSession) {
