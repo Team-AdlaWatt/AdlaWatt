@@ -767,6 +767,7 @@ export default function AddDeviceScreen() {
                     void openBluetoothSettings();
                   }}
                   accessibilityRole="button"
+                  accessibilityLabel={t("dashboard.addDevice.openBluetoothSettings")}
                   style={({ pressed }) => [
                     styles.secondaryActionButton,
                     styles.inlineButton,
@@ -964,6 +965,7 @@ export default function AddDeviceScreen() {
               <Pressable
                 onPress={() => setScanOpen(true)}
                 accessibilityRole="button"
+                accessibilityLabel={t("dashboard.addDevice.showDevices")}
                 style={({ pressed }) => [
                   styles.secondaryActionButton,
                   styles.inlineButton,
@@ -1185,21 +1187,22 @@ export default function AddDeviceScreen() {
               disabled={!canScan}
             />
             {!isReady ? (
-              <Pressable
-                onPress={() => {
-                  void openBluetoothSettings();
-                }}
-                accessibilityRole="button"
-                style={({ pressed }) => [
-                  styles.secondaryActionButton,
-                  styles.modalSecondary,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <AppText variant="caption" style={styles.secondaryActionText}>
-                  {t("dashboard.addDevice.openBluetoothSettings")}
-                </AppText>
-              </Pressable>
+                <Pressable
+                  onPress={() => {
+                    void Linking.openSettings();
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("dashboard.addDevice.openSettings")}
+                  style={({ pressed }) => [
+                    styles.secondaryActionButton,
+                    styles.inlineButton,
+                    pressed && styles.pressed,
+                  ]}
+                >
+                  <AppText variant="caption" style={styles.secondaryActionText}>
+                    {t("dashboard.addDevice.openSettings")}
+                  </AppText>
+                </Pressable>
             ) : null}
           </View>
         ) : null}
