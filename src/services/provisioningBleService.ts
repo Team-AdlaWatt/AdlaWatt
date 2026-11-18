@@ -1,5 +1,7 @@
 import {
   BleManager,
+  type BlePermissions,
+  type BleState,
   type CharacteristicSubscription,
   type ScanSession,
   type Subscription,
@@ -96,11 +98,112 @@ export function parseProvisioningStatus(
     : "error";
 }
 
-export async function requestBleAccess(): Promise<void> {
-  const permissions = await BleManager.requestPermissionsAsync({
+export type BlePermissionState =
+  | "undetermined"
+  | "granted"
+  | "denied"
+  | "blocked";
+
+export type BleReadiness =
+  | "checking"
+  | "unknown"
+  | "resetting"
+  | "unsupported"
+  | "unauthorized"
+  | "poweredOff"
+  | "permission_required"
+  | "permission_denied"
+  | "permission_blocked"
+  | "ready";
+
+export function getBleState(): BleState {
+  return BleManager.state;
+}
+
+export function subscribeBleState(
+  listener: (state: BleState) => void,
+): Subscription {
+  return BleManager.addStateListener(listener);
+}
+
+export async function getBlePermissions(): Promise<BlePermissions> {
+  return BleManager.getPermissionsAsync();
+}
+
+export async function requestBlePermissions(): Promise<BlePermissions> {
+  return BleManager.requestPermissionsAsync({
     scan: true,
     connect: true,
   });
+}
+
+export function getBlePermissionState(
+  permissions: BlePermissions | null,
+): BlePermissionState {
+  if (!permissions) {
+    return "undetermined";
+  }
+
+  if (
+    permissions.scan === "granted" &&
+    permissions.connect === "granted"
+  ) {
+    return "granted";
+  }
+
+  if (
+    permissions.scan === "denied" ||
+    permissions.connect === "denied"
+  ) {
+    return permissions.canAskAgain ? "denied" : "blocked";
+  }
+
+  return "undetermined";
+}
+
+export function getBleReadiness(
+  state: BleState | "checking",
+  permissions: BlePermissions | null,
+): BleReadiness {
+  if (state === "checking" || state === "unknown") {
+    return state;
+  }
+
+  if (state === "resetting") {
+    return "resetting";
+  }
+
+  if (state === "unsupported") {
+    return "unsupported";
+  }
+
+  if (state === "unauthorized") {
+    return "unauthorized";
+  }
+
+  if (state === "poweredOff") {
+    return "poweredOff";
+  }
+
+  const permissionState = getBlePermissionState(permissions);
+
+  if (permissionState === "granted") {
+    return "ready";
+  }
+
+  if (permissionState === "blocked") {
+    return "permission_blocked";
+  }
+
+  if (permissionState === "denied") {
+    return "permission_denied";
+  }
+
+  return "permission_required";
+}
+
+export async function requestBleAccess(): Promise<void> {
+  const permissions = await requestBlePermissions();
 
   if (
     permissions.scan !== "granted" ||
