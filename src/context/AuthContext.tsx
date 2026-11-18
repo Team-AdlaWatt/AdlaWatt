@@ -113,13 +113,20 @@ export function AuthProvider({
   }, [loadProfile]);
 
   const refresh = useCallback(async () => {
-    const {
-      data: { session: current },
-    } = await supabase.auth.getSession();
+    try {
+      const {
+        data: { session: current },
+      } = await supabase.auth.getSession();
 
-    setSession(current);
-    setIsLoaded(true);
-    await loadProfile(current !== null);
+      setSession(current);
+      setIsLoaded(true);
+      await loadProfile(current !== null);
+    } catch {
+      // A failed probe must not reject into an unhandled
+      // promise; keep whatever session state we already have
+      // and let the next auth event correct it.
+      setIsLoaded(true);
+    }
   }, [loadProfile]);
 
   useEffect(() => {

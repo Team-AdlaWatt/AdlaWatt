@@ -26,6 +26,7 @@ import { Bar, Touch } from "@/constants/sizing";
 
 import { getAuthenticatedUserSafe, supabase } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
+import { useMonitoringContext } from "@/context/MonitoringContext";
 
 import {
   subscribeResilientChannel,
@@ -37,15 +38,12 @@ import UserAvatar from "@/components/ui/UserAvatar";
 import { useTranslation } from "react-i18next";
 import { resolveAvatarPhotoUrl } from "@/services/avatar";
 
-import type { DeviceStatus } from "@/services/monitoringService";
-
 // ============================================================
 // NAVBAR PROPS
 // ============================================================
 
 interface NavBarProps {
   onNotificationPress?: () => void;
-  deviceStatus?: DeviceStatus;
 }
 
 // ============================================================
@@ -54,13 +52,13 @@ interface NavBarProps {
 
 export default function NavBar({
   onNotificationPress,
-  deviceStatus = "Offline",
 }: NavBarProps) {
   const [
     hasUnreadNotifications,
     setHasUnreadNotifications,
   ] = useState(false);
   const { t } = useTranslation();
+  const { deviceOnline } = useMonitoringContext();
 
   // Signed-in username, served synchronously from the
   // AuthContext session cache — no per-mount fetch, so the
@@ -263,8 +261,9 @@ export default function NavBar({
   // DEVICE STATUS
   // ==========================================================
 
-  const isOnline =
-    deviceStatus === "Online";
+  const deviceStatusLabel = deviceOnline
+    ? "Online"
+    : "Offline";
 
   const colors = useAppColors();
 
@@ -317,7 +316,7 @@ export default function NavBar({
           <View
             style={[
               navBarStyles.statusDot,
-              isOnline
+              deviceOnline
                 ? navBarStyles.onlineDot
                 : navBarStyles.offlineDot,
             ]}
@@ -329,7 +328,7 @@ export default function NavBar({
               navBarStyles.statusText
             }
           >
-            {deviceStatus}
+            {deviceStatusLabel}
           </AppText>
         </View>
 

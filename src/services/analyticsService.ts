@@ -8,6 +8,8 @@ import {
   supabase,
 } from "@/lib/supabase";
 
+import { withTimeout } from "@/lib/withTimeout";
+
 import { CAUTION_SOC } from "@/services/recommendation";
 
 import type { jsPDF } from "jspdf";
@@ -313,6 +315,16 @@ export const ANALYTICS_PAGE_SIZE = 1000;
  */
 export const CSV_MAX_ROWS = 20000;
 
+/*
+ * Upper bound on rows pulled into the Analytics tab. A 1Y
+ * range at 5-minute cadence is ~105k rows; holding them all in
+ * JS memory and running ~15 grouping passes over them ANRs /
+ * OOMs Hermes on low-end phones. Keep the most recent window
+ * (fetched newest-first) and restore ascending order for the
+ * charts. On-screen numbers therefore reflect the kept window.
+ */
+export const ANALYTICS_MAX_ROWS = 20000;
+
 export const FREQUENCIES: ChartFrequency[] = [
   "Daily",
   "Weekly",
@@ -371,6 +383,12 @@ export function average(
   );
 }
 
+/*
+ * Inline reduce instead of Math.min(...values): spreading a
+ * full-year history (~100k entries) into arguments overflows
+ * the Hermes call stack with RangeError. reduce is O(n) with
+ * constant stack.
+ */
 export function minimum(
   values: number[],
 ): number {
@@ -378,7 +396,9 @@ export function minimum(
     return 0;
   }
 
-  return Math.min(...values);
+  return values.reduce((lowest, value) =>
+    value < lowest ? value : lowest,
+  );
 }
 
 export function maximum(
@@ -388,7 +408,9 @@ export function maximum(
     return 0;
   }
 
-  return Math.max(...values);
+  return values.reduce((highest, value) =>
+    value > highest ? value : highest,
+  );
 }
 
 /*
@@ -1783,82 +1805,102 @@ export async function loadAnalyticsData(
 
     // Paginated fetch: without paging, the server caps a
     // single response and the chart silently truncates to the
-    // oldest rows. Pages walk forward until a short page.
+    // oldest rows. Pages walk newest-first so the row cap keeps
+    // the latest window, then reverse back to ascending order
+    // (charts and the report assume chronological rows).
     const monitoringRows: unknown[] = [];
 
     for (
       let pageStart = 0;
-      ;
+      pageStart < ANALYTICS_MAX_ROWS;
       pageStart += ANALYTICS_PAGE_SIZE
     ) {
-      const {
-        data:
-          monitoringPage,
-        error:
-          monitoringError,
-      } =
-        await supabase
-          .from(
-            "monitoring_history",
-          )
-          .select(
-            [
-              "recorded_at",
-              "battery_level",
-              "battery_status",
-              "time_remaining",
-              "solar_input",
-              "solar_status",
-              "solar_timer",
-              "solar_voltage",
-              "solar_current",
-              "total_energy",
-              "current_load",
-              "device_status",
-              "last_seen",
-              "battery_temperature",
-              "battery_temperature_status",
-              "dod_status",
-              "solar_temperature",
-              "solar_temperature_status",
-              "interior_temp",
-              "interior_temp_status",
-              "voltage",
-              "watt_hours",
-              "cumulative_energy_input_wh",
-              "cumulative_energy_output_wh",
-              "energy_input_wh",
-              "energy_output_wh",
-            ].join(","),
-          )
-          .eq(
-            "user_id",
-            user.id,
-          )
-          .gte(
-            "recorded_at",
-            range.start.toISOString(),
-          )
-          .lte(
-            "recorded_at",
-            getInclusiveRangeEnd(
-              range,
-            ).toISOString(),
-          )
-          .order(
-            "recorded_at",
-            {
-              ascending: true,
-            },
-          )
-          .range(
-            pageStart,
-            pageStart + ANALYTICS_PAGE_SIZE - 1,
-          );
+      let monitoringPage: unknown[] = [];
+      let monitoringError: {
+        message: string;
+      } | null = null;
 
-      if (
-        monitoringError
-      ) {
+      try {
+        const page = await withTimeout(
+          supabase
+            .from(
+              "monitoring_history",
+            )
+            .select(
+              [
+                "recorded_at",
+                "battery_level",
+                "battery_status",
+                "time_remaining",
+                "solar_input",
+                "solar_status",
+                "solar_timer",
+                "solar_voltage",
+                "solar_current",
+                "total_energy",
+                "current_load",
+                "device_status",
+                "last_seen",
+                "battery_temperature",
+                "battery_temperature_status",
+                "dod_status",
+                "solar_temperature",
+                "solar_temperature_status",
+                "interior_temp",
+                "interior_temp_status",
+                "voltage",
+                "watt_hours",
+                "cumulative_energy_input_wh",
+                "cumulative_energy_output_wh",
+                "energy_input_wh",
+                "energy_output_wh",
+              ].join(","),
+            )
+            .eq(
+              "user_id",
+              user.id,
+            )
+            .gte(
+              "recorded_at",
+              range.start.toISOString(),
+            )
+            .lte(
+              "recorded_at",
+              getInclusiveRangeEnd(
+                range,
+              ).toISOString(),
+            )
+            .order(
+              "recorded_at",
+              {
+                ascending: false,
+              },
+            )
+            .range(
+              pageStart,
+              pageStart + ANALYTICS_PAGE_SIZE - 1,
+            ),
+          undefined,
+          "Analytics history request timed out.",
+        );
+
+        monitoringPage = (page.data ??
+          []) as unknown[];
+        monitoringError = page.error;
+      } catch (error) {
+        // Timeout / transport failure: keep the pages already
+        // collected instead of blanking the whole screen.
+        console.error(
+          "Analytics monitoring history error:",
+          error instanceof Error
+            ? error.message
+            : error,
+        );
+
+        break;
+      }
+
+      if (monitoringError) {
         console.error(
           "Analytics monitoring history error:",
           monitoringError.message,
@@ -1868,16 +1910,27 @@ export async function loadAnalyticsData(
       }
 
       monitoringRows.push(
-        ...(monitoringPage ?? []),
+        ...monitoringPage,
       );
 
       if (
-        !monitoringPage ||
-        monitoringPage.length < ANALYTICS_PAGE_SIZE
+        monitoringPage.length <
+        ANALYTICS_PAGE_SIZE
       ) {
         break;
       }
     }
+
+    if (
+      monitoringRows.length >=
+      ANALYTICS_MAX_ROWS
+    ) {
+      console.warn(
+        `[analytics] History capped at ${ANALYTICS_MAX_ROWS} recent rows for this range.`,
+      );
+    }
+
+    monitoringRows.reverse();
 
     return {
       monitoringHistory:

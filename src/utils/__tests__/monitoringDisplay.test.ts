@@ -65,8 +65,8 @@ describe("metric display", () => {
 });
 
 describe("device online", () => {
-  test("requires a fresh last_seen and a non-Offline status", () => {
-    const fresh = new Date(NOW - 9_000).toISOString();
+  test("uses last_seen as the only online signal", () => {
+    const fresh = new Date(NOW - 4_999).toISOString();
     const boundary = new Date(
       NOW - DEVICE_ONLINE_WINDOW_MS,
     ).toISOString();
@@ -74,17 +74,21 @@ describe("device online", () => {
       NOW - DEVICE_ONLINE_WINDOW_MS - 1,
     ).toISOString();
 
+    expect(DEVICE_ONLINE_WINDOW_MS).toBe(5_000);
     expect(isDeviceOnline(fresh, "Online", NOW)).toBe(
       true,
     );
-    expect(isDeviceOnline(fresh, null, NOW)).toBe(true);
     expect(isDeviceOnline(fresh, "Offline", NOW)).toBe(
-      false,
+      true,
     );
+    expect(isDeviceOnline(fresh, null, NOW)).toBe(true);
     expect(isDeviceOnline(boundary, "Online", NOW)).toBe(
       false,
     );
     expect(isDeviceOnline(stale, "Online", NOW)).toBe(
+      false,
+    );
+    expect(isDeviceOnline(boundary, null, NOW)).toBe(
       false,
     );
     expect(isDeviceOnline(null, "Online", NOW)).toBe(
@@ -96,6 +100,17 @@ describe("device online", () => {
     expect(
       isDeviceOnline("not-a-date", "Online", NOW),
     ).toBe(false);
+    expect(isDeviceOnline(null, "Offline", NOW)).toBe(
+      false,
+    );
+  });
+
+  test("treats future clock skew as fresh", () => {
+    const future = new Date(NOW + 2_000).toISOString();
+
+    expect(isDeviceOnline(future, "Offline", NOW)).toBe(
+      true,
+    );
   });
 });
 

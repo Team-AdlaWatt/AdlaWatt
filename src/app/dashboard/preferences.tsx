@@ -202,13 +202,16 @@ export default function PreferencesScreen() {
     next: boolean,
   ) => {
     setVibration(next);
-    void saveVibrationSetting(next);
 
-    if (next) {
-      void syncAlertVibration();
-    } else {
-      stopAlertVibration();
-    }
+    void (async () => {
+      await saveVibrationSetting(next);
+
+      if (next) {
+        await syncAlertVibration("reenable");
+      } else {
+        stopAlertVibration();
+      }
+    })();
   };
 
   const [reminders, setReminders] =

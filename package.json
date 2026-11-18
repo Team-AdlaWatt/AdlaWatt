@@ -21,7 +21,10 @@
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "verify:monitoring": "node scripts/verify-monitoring-schema.mjs"
+    "check:env": "node scripts/check-env.mjs",
+    "eas-build-post-install": "node scripts/check-env.mjs",
+    "verify:monitoring": "node scripts/verify-monitoring-schema.mjs",
+    "bench:monitoring": "node scripts/bench-monitoring-fetch.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
@@ -33,6 +36,7 @@
     "@supabase/supabase-js": "^2.112.3",
     "expo": "^57.0.27",
     "expo-asset": "~57.0.19",
+    "expo-ble-kit": "^2.0.0",
     "expo-build-properties": "~57.0.22",
     "expo-constants": "~57.0.21",
     "expo-crypto": "~57.0.3",

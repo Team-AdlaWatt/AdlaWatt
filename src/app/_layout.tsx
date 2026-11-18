@@ -1,12 +1,13 @@
 import { Slot } from "expo-router";
 import { useEffect } from "react";
-import { LogBox, Platform, Text, View } from "react-native";
+import { LogBox, Platform } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as Sentry from "@sentry/react-native";
 
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 
 import AccountSessionGuard from "@/components/auth/AccountSessionGuard";
+import CrashFallback from "@/components/ui/CrashFallback";
 
 import {
   initSentry,
@@ -56,42 +57,6 @@ function SentryUserSync() {
   return null;
 }
 
-function CrashFallback() {
-  return (
-    <View
-      style={{
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 24,
-        backgroundColor: "#F0EAD6",
-      }}
-    >
-      <Text
-        style={{
-          fontSize: 18,
-          fontWeight: "700",
-          color: "#1A1A1A",
-          textAlign: "center",
-        }}
-      >
-        Something went wrong
-      </Text>
-
-      <Text
-        style={{
-          marginTop: 8,
-          fontSize: 14,
-          color: "#5A5A5A",
-          textAlign: "center",
-        }}
-      >
-        Please restart the app. The error was reported.
-      </Text>
-    </View>
-  );
-}
-
 // Registers this install for remote push once a user session
 // exists. Same shape as SentryUserSync: it only calls a service
 // (no React state), so it cannot cascade renders. Failures are
@@ -121,18 +86,30 @@ function PushRegistrationSync() {
 // and dashboard guards share one bootstrap instead of each
 // calling getSession() ad hoc. Fonts and theme stay in the
 // group layouts (auth renders its fallback theme by design).
-// Sentry boundary wraps the slot so render crashes report
-// to the preview project instead of grey-screening.
+//
+// The GlobalErrorBoundary sits OUTSIDE the providers so a
+// throw inside AuthProvider / push registration still lands
+// on a recoverable screen, and fatal event-handler/timer
+// errors (which React boundaries never see) also get a retry
+// path. Sentry's RN integration reports unhandled rejections
+// on its own; we deliberately do NOT take over the screen for
+// them, so one stray background rejection can't interrupt a
+// demo. Sentry captures before the fallback renders — no
+// duplicate events.
 // ============================================================
 
 function RootLayout() {
   return (
-    <SafeAreaProvider>
-      <AuthProvider>
-        <SentryUserSync />
-        <PushRegistrationSync />
+    <Sentry.GlobalErrorBoundary
+      fallback={({ resetError }) => (
+        <CrashFallback onRetry={resetError} />
+      )}
+    >
+      <SafeAreaProvider>
+        <AuthProvider>
+          <SentryUserSync />
+          <PushRegistrationSync />
 
-        <Sentry.ErrorBoundary fallback={<CrashFallback />}>
           <Slot />
 
           {/* Cross-cutting session watcher: an account deleted
@@ -141,9 +118,9 @@ function RootLayout() {
               Mounted here (above every route) so the takeover
               covers dashboard, admin, and auth. */}
           <AccountSessionGuard />
-        </Sentry.ErrorBoundary>
-      </AuthProvider>
-    </SafeAreaProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
+    </Sentry.GlobalErrorBoundary>
   );
 }
 

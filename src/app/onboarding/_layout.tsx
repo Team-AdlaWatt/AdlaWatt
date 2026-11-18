@@ -9,6 +9,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useAppColors } from "@/hooks/useAppColors";
 import { useAppFonts } from "@/hooks/useAppFonts";
+import RouteErrorBoundary from "@/components/ui/RouteErrorBoundary";
 import { Routes } from "@/constants/routes";
 import {
   getCurrentUserProfile,
@@ -87,7 +88,11 @@ export default function OnboardingLayout() {
     );
   }
 
-  return <Slot />;
+  return (
+    <RouteErrorBoundary>
+      <Slot />
+    </RouteErrorBoundary>
+  );
 }
 
 const styles = StyleSheet.create({

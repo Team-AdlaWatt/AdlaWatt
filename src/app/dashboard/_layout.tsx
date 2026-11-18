@@ -3,6 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import { Platform } from "react-native";
 import { useEffect, useRef } from "react";
 
+import { MonitoringProvider } from "@/context/MonitoringContext";
 import { SettingsProvider } from "@/context/SettingsContext";
 import {
   ThemeProvider,
@@ -11,6 +12,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useHouseholdGuard } from "@/hooks/useHouseholdGuard";
 import { useAlertVibration } from "@/hooks/useAlertVibration";
+import RouteErrorBoundary from "@/components/ui/RouteErrorBoundary";
 import VibrationGuidancePanel from "@/components/guidance/VibrationGuidancePanel";
 import { useLocalReminders } from "@/hooks/useLocalReminders";
 import {
@@ -111,7 +113,11 @@ function ThemedDashboard() {
           style={isDark ? "light" : "dark"}
         />
       )}
-      <Slot />
+      <RouteErrorBoundary>
+        <MonitoringProvider>
+          <Slot />
+        </MonitoringProvider>
+      </RouteErrorBoundary>
       <VibrationGuidancePanel />
     </SettingsProvider>
   );

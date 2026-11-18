@@ -19,6 +19,7 @@ export const Routes = {
   
   NOTIFICATIONS: "/dashboard/notifications",
   MENU: "/dashboard/menu",
+  ADD_DEVICE: "/dashboard/add-device",
   PREFERENCES: "/dashboard/preferences",
   ABOUT_US: "/dashboard/about-us",
   USER_MANUAL: "/dashboard/user-manual",

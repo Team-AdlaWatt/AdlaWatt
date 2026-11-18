@@ -40,6 +40,49 @@ describe("shouldShowVibrationGuidance", () => {
     ).toBe(false);
   });
 
+  it("shows on re-enable from Preferences after the intro", () => {
+    expect(
+      gate({
+        pathname: Routes.PREFERENCES,
+        introSeen: true,
+        shownThisSession: true,
+        source: "reenable",
+      }),
+    ).toBe(true);
+  });
+
+  it("still hides re-enable when guidance or vibration is off", () => {
+    expect(
+      gate({
+        guidanceEnabled: false,
+        source: "reenable",
+      }),
+    ).toBe(false);
+
+    expect(
+      gate({
+        vibrationEnabled: false,
+        source: "reenable",
+      }),
+    ).toBe(false);
+  });
+
+  it("still hides re-enable on web or in the background", () => {
+    expect(
+      gate({
+        platformOS: "web",
+        source: "reenable",
+      }),
+    ).toBe(false);
+
+    expect(
+      gate({
+        appState: "background",
+        source: "reenable",
+      }),
+    ).toBe(false);
+  });
+
   it("never shows on web", () => {
     expect(
       gate({

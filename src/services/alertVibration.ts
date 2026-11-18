@@ -31,12 +31,16 @@ import { loadVibrationSetting } from "@/services/settings";
 const ANDROID_PATTERN = [0, 400, 2000];
 const IOS_REBUZZ_MS = 2500;
 
-// Where a start came from. "sync" is the inbox reconcile
-// (mount restore, preference re-enable); "insert" is a new
-// unread alert arriving over realtime. The guidance panel
-// uses this to show its one-time intro only on restores and
-// to avoid re-showing on every launch with a stale alert.
-export type AlertVibrationTrigger = "sync" | "insert";
+// Where a start came from. "sync" is the inbox reconcile on
+// mount; "insert" is a new unread alert arriving over
+// realtime; "reenable" is the user switching vibration back
+// ON in Preferences. The guidance panel uses "sync" for its
+// one-time intro and "reenable" to explain a fresh buzz
+// without re-showing on every launch with a stale alert.
+export type AlertVibrationTrigger =
+  | "sync"
+  | "insert"
+  | "reenable";
 
 type AlertVibrationListener = (
   active: boolean,
@@ -137,7 +141,9 @@ export function stopAlertVibration(
 // an unread alert exists (and the preference is ON), stops
 // otherwise. Used on mount restores and when the preference
 // flips back ON.
-export async function syncAlertVibration(): Promise<void> {
+export async function syncAlertVibration(
+  trigger: AlertVibrationTrigger = "sync",
+): Promise<void> {
   try {
     const user = await getAuthenticatedUserSafe();
 
@@ -159,9 +165,9 @@ export async function syncAlertVibration(): Promise<void> {
     }
 
     if (data.length > 0) {
-      await startAlertVibration();
+      await startAlertVibration(trigger);
     } else {
-      stopAlertVibration();
+      stopAlertVibration(trigger);
     }
   } catch {
     // Intentionally ignored (see header).

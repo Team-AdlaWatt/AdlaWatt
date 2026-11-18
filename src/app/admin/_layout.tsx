@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useAdminGuard } from "@/admin/hooks/useAdminGuard";
 import { useAppFonts } from "@/hooks/useAppFonts";
+import RouteErrorBoundary from "@/components/ui/RouteErrorBoundary";
 
 // ============================================================
 // ADMIN LAYOUT (admin-only, pinned light + Inter + English)
@@ -48,7 +49,9 @@ function ThemedAdmin() {
       {Platform.OS !== "web" && (
         <StatusBar style="dark" />
       )}
-      <Slot />
+      <RouteErrorBoundary>
+        <Slot />
+      </RouteErrorBoundary>
     </>
   );
 }

@@ -46,19 +46,18 @@ export const formatTemperature = (
   return `${value}°C`;
 };
 
-// A device is online only when it reported recently AND the
-// last known device status is not explicitly "Offline".
-// Firmware heartbeats every 5s; 10s allows one missed beat.
-export const DEVICE_ONLINE_WINDOW_MS = 10 * 1000;
+// Hardware heartbeats every 2s with a 1.5s HTTP timeout. The
+// monitoring row's last_seen is the single source of truth:
+// fresh for less than 5s, Offline from the 5s mark until the
+// next successful heartbeat lands.
+export const DEVICE_ONLINE_WINDOW_MS = 5 * 1000;
 
 export const isDeviceOnline = (
   lastSeen: string | null | undefined,
-  deviceStatus: DeviceStatus | string | null | undefined,
+  _deviceStatus: DeviceStatus | string | null | undefined,
   nowMs: number = Date.now(),
 ): boolean => {
-  if (deviceStatus === "Offline") {
-    return false;
-  }
+  void _deviceStatus;
 
   if (lastSeen == null || lastSeen === "") {
     return false;
@@ -70,7 +69,9 @@ export const isDeviceOnline = (
     return false;
   }
 
-  return nowMs - timestamp < DEVICE_ONLINE_WINDOW_MS;
+  const ageMs = Math.max(0, nowMs - timestamp);
+
+  return ageMs < DEVICE_ONLINE_WINDOW_MS;
 };
 
 const SECOND_MS = 1000;
@@ -94,7 +95,7 @@ export const formatLastSeen = (
 
   const elapsedMs = Math.max(0, nowMs - timestamp);
 
-  if (elapsedMs < DEVICE_ONLINE_WINDOW_MS) {
+  if (elapsedMs < 10 * 1000) {
     return "just now";
   }
 

@@ -36,11 +36,7 @@ import {
   SlidingToggle,
 } from "@/components/ui/SlidingToggle";
 import { getAuthenticatedUserSafe, supabase } from "@/lib/supabase";
-import type {
-  DeviceStatus as MonitoringDeviceStatus,
-} from "@/services/monitoringSchema";
-import { useDeviceOnline } from "@/hooks/useDeviceOnline";
-import { getMonitorIdForUser } from "@/services/monitoringService";
+import { useMonitoringContext } from "@/context/MonitoringContext";
 import {
   subscribeResilientChannel,
   type ResilientSubscription,
@@ -128,10 +124,7 @@ type ComponentData = {
   status: boolean;
 };
 
-type DeviceStatus =
-  | MonitoringDeviceStatus
-  | Lowercase<MonitoringDeviceStatus>
-  | null;
+// (device status/last seen come from unified monitoring)
 
 // ============================================
 // COMPONENT
@@ -163,18 +156,9 @@ export default function ComponentsScreen() {
   const [components, setComponents] =
     useState<ComponentData[]>([]);
 
-  // ESP32 status from monitoring table
-  const [deviceStatus, setDeviceStatus] =
-    useState<DeviceStatus>(null);
-
-  const [lastSeen, setLastSeen] =
-    useState<string | null>(null);
-
-  // Freshness-aware online flag shared with the dashboard.
-  const deviceOnline = useDeviceOnline(
-    lastSeen,
-    deviceStatus,
-  );
+  // Unified live monitoring (single dashboard provider): updates
+  // immediately when hardware becomes active / table changes.
+  const { deviceOnline } = useMonitoringContext();
 
   // ============================================
   // CONTENT-AWARE STATUS SEGMENTS
@@ -265,21 +249,9 @@ export default function ComponentsScreen() {
       | ReturnType<typeof supabase.channel>
       | null = null;
 
-    let monitoringChannel:
-      | ReturnType<typeof supabase.channel>
-      | null = null;
-
     let componentsSubscription:
       | ResilientSubscription
       | null = null;
-
-    let monitoringSubscription:
-      | ResilientSubscription
-      | null = null;
-
-    // ==========================================
-    // LOAD COMPONENTS
-    // ==========================================
 
     const loadComponents = async (
       userId: string,
@@ -308,52 +280,6 @@ export default function ComponentsScreen() {
       setComponents(data ?? []);
     };
 
-    // ==========================================
-    // LOAD ESP32 DEVICE STATUS
-    // ==========================================
-
-    const loadDeviceStatus = async (
-      monitorId: number | null,
-    ) => {
-      if (monitorId == null) {
-        setDeviceStatus(null);
-        setLastSeen(null);
-        return;
-      }
-
-      const { data, error } =
-        await supabase
-          .from("monitoring")
-          .select('"ESP32S3 Status","ESP32S3 Last seen"')
-          .eq("monitor_id", monitorId)
-          .maybeSingle();
-
-      if (cancelled) return;
-
-      if (error) {
-        console.error(
-          "Error loading device status:",
-          error.message,
-        );
-
-        setDeviceStatus(null);
-        setLastSeen(null);
-        return;
-      }
-
-      setDeviceStatus(
-        (data?.["ESP32S3 Status"] as DeviceStatus | null) ?? null,
-      );
-
-      setLastSeen(
-        (data?.["ESP32S3 Last seen"] as string | null) ?? null,
-      );
-    };
-
-    // ==========================================
-    // SETUP
-    // ==========================================
-
     const setup = async () => {
       const user = await getAuthenticatedUserSafe();
 
@@ -361,29 +287,12 @@ export default function ComponentsScreen() {
 
       if (!user) {
         setComponents([]);
-        setDeviceStatus(null);
-        setLastSeen(null);
         return;
       }
 
-      // ========================================
-      // LOAD INITIAL DATA
-      // ========================================
-
-      const monitorId =
-        await getMonitorIdForUser(user.id);
-
-      await Promise.all([
-        loadComponents(user.id),
-        loadDeviceStatus(monitorId),
-      ]);
+      await loadComponents(user.id);
 
       if (cancelled) return;
-
-      // ========================================
-      // COMPONENTS REALTIME (shared resilient recovery:
-      // capped backoff, no attempt cap, warn-once logging)
-      // ========================================
 
       componentsSubscription = subscribeResilientChannel({
         topic: `components-${user.id}`,
@@ -408,53 +317,9 @@ export default function ComponentsScreen() {
           componentsChannel = next;
         },
       });
-
-      // ========================================
-      // MONITORING REALTIME (same shared recovery)
-      // ========================================
-
-      if (monitorId != null) {
-        monitoringSubscription = subscribeResilientChannel({
-          topic: `monitoring-${monitorId}`,
-          label: `monitoring-${monitorId}`,
-          build: (ch) =>
-            ch.on(
-              "postgres_changes",
-              {
-                event: "UPDATE",
-                schema: "public",
-                table: "monitoring",
-                filter: `monitor_id=eq.${monitorId}`,
-              },
-              (payload) => {
-                if (cancelled) return;
-
-                setDeviceStatus(
-                  (payload.new["ESP32S3 Status"] as
-                    | DeviceStatus
-                    | null) ?? null,
-                );
-
-                setLastSeen(
-                  (payload.new["ESP32S3 Last seen"] as
-                    | string
-                    | null) ?? null,
-                );
-              },
-            ),
-          isAlive: () => !cancelled,
-          onChannel: (next) => {
-            monitoringChannel = next;
-          },
-        });
-      }
     };
 
     setup();
-
-    // ==========================================
-    // CLEANUP
-    // ==========================================
 
     return () => {
       cancelled = true;
@@ -464,20 +329,9 @@ export default function ComponentsScreen() {
         componentsSubscription = null;
       }
 
-      if (monitoringSubscription) {
-        monitoringSubscription.stop();
-        monitoringSubscription = null;
-      }
-
       if (componentsChannel) {
         supabase.removeChannel(
           componentsChannel,
-        );
-      }
-
-      if (monitoringChannel) {
-        supabase.removeChannel(
-          monitoringChannel,
         );
       }
     };
