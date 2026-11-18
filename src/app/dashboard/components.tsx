@@ -153,42 +153,17 @@ export default function ComponentsScreen() {
   //
   // Only segments holding components render; Active is
   // the default and Inactive the fallback. ESP32 follows
-  // monitoring.device_status, other rows use their flag �?-
-  // one shared rule feeds both the counts and the list.
+  // monitoring.device_status, other rows use their flag.
+  // One shared rule feeds both the counts and the list.
   // ============================================
 
-  const displayComponents = useMemo(() => {
-    const ds18b20: ComponentData[] = [];
-    const result: ComponentData[] = [];
-
-    for (const component of components) {
-      const name = component.component_name;
-
-      if (name.includes("INA228")) {
-        continue;
-      }
-
-      if (name === "DS18B20" || name.startsWith("DS18B20")) {
-        ds18b20.push(component);
-        continue;
-      }
-
-      result.push(component);
-    }
-
-    if (ds18b20.length > 0) {
-      result.push({
-        component_id:
-          ds18b20[0]?.component_id ?? "ds18b20-combined",
-        component_name: "DS18B20",
-        status: ds18b20.some((item) => item.status),
-      });
-    }
-
-    return result.sort((a, b) =>
-      a.component_name.localeCompare(b.component_name),
-    );
-  }, [components]);
+  const displayComponents = useMemo(
+    () =>
+      [...components].sort((a, b) =>
+        a.component_name.localeCompare(b.component_name),
+      ),
+    [components],
+  );
 
   const isComponentActive = useCallback(
     (component: ComponentData): boolean => {
