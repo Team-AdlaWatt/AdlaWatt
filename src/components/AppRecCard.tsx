@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 
 import React, {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -30,6 +31,7 @@ import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
+import { useTableRealtimeRefresh } from "@/hooks/useTableRealtimeRefresh";
 import { Radius } from "@/constants/theme";
 import { Control } from "@/constants/sizing";
 import {
@@ -378,7 +380,7 @@ export default function AppRecCard({
   // LOAD USER ELECTRONICS
   // ============================================
 
-  const loadElectronics = async () => {
+  const loadElectronics = useCallback(async () => {
     try {
       const { fetchSelectedElectronics } = await import(
         "@/services/electronicsService"
@@ -477,7 +479,13 @@ export default function AppRecCard({
     prefetchElectronicsPhotos(
       mapped.map((item) => item.imageUrl),
     );
-  };
+  }, []);
+
+  useTableRealtimeRefresh({
+    table: "electronics",
+    topic: "dashboard-electronics-carousel",
+    onRefresh: loadElectronics,
+  });
 
   // ============================================
   // INITIAL LOAD
@@ -486,7 +494,7 @@ export default function AppRecCard({
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial Supabase fetch on mount (external sync); results settle in async callbacks
     loadElectronics();
-  }, []);
+  }, [loadElectronics]);
 
   // ============================================
   // RESET CAROUSEL

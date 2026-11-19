@@ -163,6 +163,21 @@ export function captureAppError(
   });
 }
 
+export function addAppBreadcrumb(
+  message: string,
+  category = "app",
+): void {
+  if (!initialized) {
+    return;
+  }
+
+  Sentry.addBreadcrumb({
+    message: scrubValue(message) as string,
+    category,
+    level: "info",
+  });
+}
+
 export function isSentryInitialized(): boolean {
   return initialized;
 }

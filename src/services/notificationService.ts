@@ -7,6 +7,7 @@ import {
   getMonitoringData,
 } from "@/services/monitoringService";
 import {
+  isBatteryReadingError,
   isMonitoringRow,
   normalizeMonitoringRow,
   type MonitoringData,
@@ -2456,6 +2457,14 @@ const checkBatteryChargingNotDetected =
     current: MonitoringRuleData,
     previous: MonitoringRuleData | null,
   ) => {
+
+    if (
+      isBatteryReadingError(
+        current.battery_status,
+      )
+    ) {
+      return;
+    }
 
     if (
       current.battery_level <

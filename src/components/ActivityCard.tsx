@@ -1,6 +1,11 @@
 import { router } from "expo-router";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import {
   Pressable,
@@ -19,6 +24,7 @@ import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
+import { useTableRealtimeRefresh } from "@/hooks/useTableRealtimeRefresh";
 import { Touch } from "@/constants/sizing";
 import { Routes } from "@/constants/routes";
 import { getAuthenticatedUserSafe, supabase } from "@/lib/supabase";
@@ -36,77 +42,83 @@ export default function ActivityCard() {
   const [activities, setActivities] =
     useState<ActivityLogItem[]>([]);
 
-  useEffect(() => {
-    const loadRecentActivities = async () => {
-      const user = await getAuthenticatedUserSafe();
+  const loadRecentActivities = useCallback(async () => {
+    const user = await getAuthenticatedUserSafe();
 
-      if (!user) {
-        setActivities([]);
-        return;
-      }
+    if (!user) {
+      setActivities([]);
+      return;
+    }
 
-      const { data, error } = await supabase
-        .from("activity_logs")
-        .select(
-          "act_id, title, description, type, created_at",
-        )
-        .eq("user_id", user.id)
-        .order("created_at", {
-          ascending: false,
-        })
-        .limit(5);
+    const { data, error } = await supabase
+      .from("activity_logs")
+      .select(
+        "act_id, title, description, type, created_at",
+      )
+      .eq("user_id", user.id)
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(5);
 
-      if (error) {
-        console.error(
-          "Error loading recent activities:",
-          error.message,
-        );
-        setActivities([]);
-        return;
-      }
+    if (error) {
+      console.error(
+        "Error loading recent activities:",
+        error.message,
+      );
+      setActivities([]);
+      return;
+    }
 
-      const mappedActivities: ActivityLogItem[] = (
-        data ?? []
-      ).map((activity) => {
-        const dateObject = new Date(
-          activity.created_at,
-        );
+    const mappedActivities: ActivityLogItem[] = (
+      data ?? []
+    ).map((activity) => {
+      const dateObject = new Date(
+        activity.created_at,
+      );
 
-        const type: ActivityLogType =
-          activity.type === "warning" ||
-          activity.type === "error" ||
-          activity.type === "critical"
-            ? activity.type
-            : "info";
+      const type: ActivityLogType =
+        activity.type === "warning" ||
+        activity.type === "error" ||
+        activity.type === "critical"
+          ? activity.type
+          : "info";
 
-        return {
-          id: activity.act_id,
-          type,
-          title: activity.title,
-          details: activity.description,
-          date: dateObject.toLocaleDateString(
-            "en-US",
-            {
-              month: "short",
-              day: "2-digit",
-              year: "numeric",
-            },
-          ),
-          time: dateObject.toLocaleTimeString(
-            "en-US",
-            {
-              hour: "2-digit",
-              minute: "2-digit",
-            },
-          ),
-        };
-      });
+      return {
+        id: activity.act_id,
+        type,
+        title: activity.title,
+        details: activity.description,
+        date: dateObject.toLocaleDateString(
+          "en-US",
+          {
+            month: "short",
+            day: "2-digit",
+            year: "numeric",
+          },
+        ),
+        time: dateObject.toLocaleTimeString(
+          "en-US",
+          {
+            hour: "2-digit",
+            minute: "2-digit",
+          },
+        ),
+      };
+    });
 
-      setActivities(mappedActivities);
-    };
-
-    loadRecentActivities();
+    setActivities(mappedActivities);
   }, []);
+
+  useEffect(() => {
+    void Promise.resolve().then(loadRecentActivities);
+  }, [loadRecentActivities]);
+
+  useTableRealtimeRefresh({
+    table: "activity_logs",
+    topic: "dashboard-activity-card",
+    onRefresh: loadRecentActivities,
+  });
 
   return (
     <View>

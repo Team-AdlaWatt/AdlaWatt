@@ -7,6 +7,7 @@ import * as Sentry from "@sentry/react-native";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 
 import AccountSessionGuard from "@/components/auth/AccountSessionGuard";
+import AppUpdateGuard from "@/components/updates/AppUpdateGuard";
 import CrashFallback from "@/components/ui/CrashFallback";
 
 import {
@@ -118,6 +119,7 @@ function RootLayout() {
               Mounted here (above every route) so the takeover
               covers dashboard, admin, and auth. */}
           <AccountSessionGuard />
+          <AppUpdateGuard />
         </AuthProvider>
       </SafeAreaProvider>
     </Sentry.GlobalErrorBoundary>

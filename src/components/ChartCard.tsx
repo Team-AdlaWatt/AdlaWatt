@@ -39,6 +39,7 @@ import type {
   MonitoringData,
   TemperatureStatus,
 } from "@/services/monitoringSchema";
+import { isBatteryReadingError } from "@/services/monitoringSchema";
 import {
   MISSING_VALUE,
   formatMetric,
@@ -643,6 +644,9 @@ export default function ChartCard({
     const isIdle =
       batteryStatus === "Idle";
 
+    const isBatteryError =
+      isBatteryReadingError(batteryStatus);
+
     const dodStatus =
       monitoring?.dod_status ??
       null;
@@ -945,13 +949,13 @@ export default function ChartCard({
             >
 
               {/* Battery Status: icon + label so state never
-                  relies on color alone (Idle vs
-                  Charging/Discharging). */}
+                  relies on color alone (Idle/Reading Error
+                  vs Charging/Discharging). */}
 
               <View
                 style={[
                   styles.batteryStatus,
-                  isIdle
+                  isIdle || isBatteryError
                     ? styles.batteryStatusIdle
                     : null,
                 ]}

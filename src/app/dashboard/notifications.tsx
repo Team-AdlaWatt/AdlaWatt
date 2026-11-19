@@ -38,6 +38,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import PullRefreshScroll from "@/components/PullRefreshScroll";
 import { useSafeAsync } from "@/hooks/useSafeAsync";
+import { useTableRealtimeRefresh } from "@/hooks/useTableRealtimeRefresh";
 
 import {
   useAppColors,
@@ -276,6 +277,12 @@ export default function NotificationsScreen() {
     refreshing: notificationsRefreshing,
     onRefresh: onNotificationsRefresh,
   } = usePullToRefresh(refreshNotifications);
+
+  useTableRealtimeRefresh({
+    table: "notifications",
+    topic: "dashboard-notifications",
+    onRefresh: refreshNotifications,
+  });
 
   // Optimistic read-all: flips the list instantly on tap;
   // the refetch after a successful update is authoritative

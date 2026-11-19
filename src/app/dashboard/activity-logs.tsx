@@ -29,6 +29,7 @@ import ActivityLogCard, { ACTIVITY_LOG_GAP } from "@/components/ActivityLogCard"
 import EmptyState from "@/components/ui/EmptyState";
 import ErrorState from "@/components/ui/ErrorState";
 import { useSafeAsync } from "@/hooks/useSafeAsync";
+import { useTableRealtimeRefresh } from "@/hooks/useTableRealtimeRefresh";
 
 import {
   useAppColors,
@@ -263,6 +264,12 @@ export default function ActivityLogsScreen() {
     refreshing: logsRefreshing,
     onRefresh: onLogsRefresh,
   } = usePullToRefresh(refreshLogs);
+
+  useTableRealtimeRefresh({
+    table: "activity_logs",
+    topic: "dashboard-activity-logs",
+    onRefresh: refreshLogs,
+  });
 
   const activityLogs = useMemo(
     () => loadedLogs ?? [],

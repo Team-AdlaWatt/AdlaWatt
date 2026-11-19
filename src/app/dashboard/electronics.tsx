@@ -39,6 +39,7 @@ import {
   type AppColors,
 } from "@/hooks/useAppColors";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { useTableRealtimeRefresh } from "@/hooks/useTableRealtimeRefresh";
 import {
   Radius,
 } from "@/constants/theme";
@@ -348,6 +349,12 @@ export default function ElectronicsScreen() {
       ),
     );
   }, []);
+
+  useTableRealtimeRefresh({
+    table: "electronics",
+    topic: "dashboard-electronics",
+    onRefresh: loadSelectedElectronics,
+  });
 
   const handleElectronicsSave = async () => {
     await loadSelectedElectronics();

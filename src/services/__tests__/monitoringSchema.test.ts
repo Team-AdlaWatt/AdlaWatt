@@ -22,6 +22,7 @@ import {
   SOLAR_TEMPERATURE_STATUS_VALUES,
   TEMPERATURE_STATUS_VALUES,
   getMissingMonitoringColumns,
+  isBatteryReadingError,
   isMonitoringRow,
   normalizeMonitoringRow,
   type MonitoringRow,
@@ -31,28 +32,32 @@ const row: MonitoringRow = {
   monitor_id: 1,
   user_id: "user-1",
   "INA219 Voltage Percentage": 80,
-  "INA228 Load Battery status": "Charging",
-  "INA228 Load battery time remaining": "5h 00m",
-  "INA228 Solar Side input": 100,
-  "INA228 Solar Side timer": "00:00:00",
-  "INA228 Solar Side voltage": 18,
-  "INA228 Solar Side current": 5,
-  "INA228 Load Side total energy": 1200,
-  "INA228 Solar Side solar status": "Moderate",
-  "INA228 Load Side battery load": 50,
+  "INA219 Load Battery status": "Charging",
+  "INA219 Load battery time remaining": "5h 00m",
+  "INA219 Solar Side input": 100,
+  "INA219 Solar Side timer": "00:00:00",
+  "INA219 Solar Side voltage": 18,
+  "INA219 Solar Side current": 5,
+  "INA219 Load Side total energy": 1200,
+  "INA219 Solar Side solar status": "Moderate",
+  "INA219 Load Side battery load": 50,
   "ESP32S3 Status": "Online",
   "ESP32S3 Last seen": "2026-11-12T10:00:00.000Z",
   "DS18B20 1 Battery Temp": 30,
   "DS18B20 1 Battery Temp Status": "Nominal",
-  "INA228 Load Side dod_status": "Safe",
+  "INA219 Load Side dod_status": "Safe",
   "DS18B20 2 Solar Temp": 35,
   "DS18B20 2 Solar Temp Status": "Nominal",
   "DHT22 Interior Temp": 28,
   "DHT22 Interior Temp Status": "Nominal",
   "INA219 Voltage": 12.6,
-  "INA228 Load Side battery watt_hour": 500,
+  "INA219 Load Side battery watt_hour": 500,
   cumulative_energy_input_wh: 1000,
   cumulative_energy_output_wh: 900,
+  heartbeat_expires_at:
+    "2026-11-12T10:00:10.000Z",
+  "ESP32S3 Sampled at":
+    "2026-11-12T10:00:00.000Z",
 };
 
 describe("monitoring column contract", () => {
@@ -64,11 +69,11 @@ describe("monitoring column contract", () => {
     );
   });
 
-  test("all 25 columns are selected", () => {
-    expect(MONITORING_COLUMNS).toHaveLength(25);
+  test("all 27 columns are selected", () => {
+    expect(MONITORING_COLUMNS).toHaveLength(27);
     expect(
       MONITORING_SELECT.split(","),
-    ).toHaveLength(25);
+    ).toHaveLength(27);
   });
 
   test("every column is displayed or explicitly excluded", () => {
@@ -95,6 +100,7 @@ describe("monitoring column contract", () => {
       "Charging",
       "Discharging",
       "Idle",
+      "Reading Error",
     ]);
     expect(SOLAR_STATUS_VALUES).toEqual([
       "Low",
@@ -132,7 +138,19 @@ describe("monitoring column contract", () => {
       "Safe",
       "Unsafe",
     ]);
-    expect(MONITORING_SCHEMA_VERSION).toBe(3);
+    expect(MONITORING_SCHEMA_VERSION).toBe(4);
+  });
+
+  test("recognizes the Reading Error battery status", () => {
+    expect(
+      isBatteryReadingError("Reading Error"),
+    ).toBe(true);
+    expect(
+      isBatteryReadingError("Discharging"),
+    ).toBe(false);
+    expect(
+      isBatteryReadingError(null),
+    ).toBe(false);
   });
 });
 
@@ -166,7 +184,7 @@ describe("row guard", () => {
   test("non-objects report every column missing", () => {
     expect(
       getMissingMonitoringColumns(null),
-    ).toHaveLength(25);
+    ).toHaveLength(27);
   });
 });
 
@@ -217,6 +235,19 @@ describe("normalization", () => {
     ).toBe("Nominal");
   });
 
+  test("keeps the Reading Error battery status", () => {
+    const normalized =
+      normalizeMonitoringRow({
+        ...row,
+        "INA219 Load Battery status":
+          "Reading Error",
+      });
+
+    expect(normalized.battery_status).toBe(
+      "Reading Error",
+    );
+  });
+
   test("accepts the new critical temperature variants", () => {
     const normalized =
       normalizeMonitoringRow({
@@ -248,7 +279,7 @@ describe("normalization", () => {
     const normalized =
       normalizeMonitoringRow({
         ...row,
-        "INA228 Load Battery status": "Bogus",
+        "INA219 Load Battery status": "Bogus",
         "ESP32S3 Status": "Unknown",
         "DS18B20 1 Battery Temp Status": "Hot",
         "ESP32S3 Last seen": "not-a-date",
@@ -266,7 +297,7 @@ describe("normalization", () => {
     expect(
       normalizeMonitoringRow({
         ...row,
-        "INA228 Load Side dod_status": null,
+        "INA219 Load Side dod_status": null,
         "INA219 Voltage Percentage": 10,
       }).dod_status,
     ).toBeNull();
