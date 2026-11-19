@@ -199,7 +199,7 @@ AdlaWatt/
 |---|---|
 | ESP32-S3 | Main controller and Wi-Fi communication |
 | INA228 (Solar / Load) | Monitors solar and load voltage/current |
-| DS18B20 (Battery / Solar) | Monitors temperatures |
+| DS18B20 | Monitors solar panel temperature |
 | DHT22 | Monitors interior temperature and humidity |
 | INA219 | Monitors battery voltage and current |
 | Relay Module | Controls load and cooling fans |

@@ -97,8 +97,6 @@ Related table: **Live Monitoring Table** (`public.monitoring`).
 
 | Column | Type | Meaning |
 |---|---|---|
-| `battery_temperature` | numeric(5,2) | Battery temperature |
-| `battery_temperature_status` | text | Nominal, Elevated, High, Critical, Critical (sensor fault) |
 | `solar_temperature` | numeric(5,2) | Solar panel temperature |
 | `solar_temperature_status` | text | Nominal, Elevated, High, Critical, Critical (rapid rise), Critical (sensor fault) |
 | `interior_temp` | numeric(5,2) | Interior temperature |
@@ -168,7 +166,6 @@ All non-key columns are nullable. A null temperature with a status still display
 | `solar_status` | Low, Moderate, High |
 | `device_status` | Online, Offline |
 | `dod_status` | Safe, Unsafe |
-| `battery_temperature_status` | Nominal, Elevated, High, Critical, Critical (sensor fault) |
 | `solar_temperature_status`, `interior_temp_status` | Nominal, Elevated, High, Critical, Critical (rapid rise), Critical (sensor fault) |
 | `solar_input`, `solar_voltage`, `solar_current`, `total_energy`, `current_load`, `interior_temp`, `voltage`, `watt_hours`, `interval_seconds`, `energy_input_wh`, `energy_output_wh` | 0 or higher |
 
@@ -250,7 +247,7 @@ Output columns:
 | Battery state | `battery_charging_samples`, `battery_discharging_samples`, `battery_idle_samples` |
 | Solar | `solar_input_avg`, `solar_input_max`, `solar_voltage_avg`, `solar_voltage_max`, `solar_current_avg`, `solar_current_max`, `solar_active_seconds` |
 | Load | `current_load_avg`, `current_load_max` |
-| Temperature | `battery_temperature_*`, `solar_temperature_*`, `interior_temp_*` (avg, min, max), `temperature_alert_count` |
+| Temperature | `solar_temperature_*`, `interior_temp_*` (avg, min, max), `temperature_alert_count` |
 | Energy | `energy_input_wh`, `energy_output_wh`, `net_energy_wh` |
 
 ### 12.2 `get_analytics_summary(start_date, end_date)`
@@ -272,7 +269,7 @@ Output columns:
 |---|---|
 | Line chart: battery | `battery_level_avg`, `voltage_avg` |
 | Line chart: power | `solar_input_avg`, `current_load_avg` |
-| Line chart: temperature | `battery_temperature_avg`, `solar_temperature_avg`, `interior_temp_avg` |
+| Line chart: temperature | `solar_temperature_avg`, `interior_temp_avg` |
 | Grouped bar chart | `energy_input_wh` vs `energy_output_wh` |
 | Bar or area chart | `net_energy_wh` |
 | Bar chart: solar time | `solar_active_seconds` (divide by 3600 for hours) |

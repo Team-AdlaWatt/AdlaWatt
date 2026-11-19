@@ -564,7 +564,7 @@ describe("generateAdlaWattCsv", () => {
       lines[start + 1],
     );
 
-    expect(header).toHaveLength(26);
+    expect(header).toHaveLength(24);
     expect(header).toContain("Time Remaining");
     expect(header).toContain("Solar Status");
     expect(header).toContain("Last Seen");
@@ -583,7 +583,7 @@ describe("generateAdlaWattCsv", () => {
     ) {
       expect(
         parseCsvLine(lines[i]),
-      ).toHaveLength(26);
+      ).toHaveLength(24);
     }
   });
 
@@ -616,14 +616,14 @@ describe("generateAdlaWattCsv", () => {
       lines[start + 1],
     );
 
-    expect(header).toHaveLength(20);
+    expect(header).toHaveLength(19);
     expect(header[0]).toBe("Period");
 
     const day1 = parseCsvLine(lines[start + 2]);
     const day2 = parseCsvLine(lines[start + 3]);
 
-    expect(day1).toHaveLength(20);
-    expect(day2).toHaveLength(20);
+    expect(day1).toHaveLength(19);
+    expect(day2).toHaveLength(19);
 
     // Net energy column (index 9): +50 Wh then -100 Wh.
     expect(day1[9]).toBe("50.0");

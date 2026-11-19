@@ -254,7 +254,7 @@ export default function UserManualScreen() {
               depth-of-discharge safety
             </Bullet>
             <Bullet>
-              Battery, solar, and interior
+              Solar panel and interior
               temperatures
             </Bullet>
             <Bullet>
@@ -448,7 +448,7 @@ export default function UserManualScreen() {
               Current load in watts.
             </Bullet>
             <Bullet>
-              Battery, solar, and interior
+              Solar panel and interior
               temps: Nominal, Elevated,
               High, or Critical.
             </Bullet>

@@ -126,7 +126,7 @@ describe("monitoring column contract", () => {
       "Safe",
       "Unsafe",
     ]);
-    expect(MONITORING_SCHEMA_VERSION).toBe(4);
+    expect(MONITORING_SCHEMA_VERSION).toBe(5);
   });
 
   test("recognizes the Reading Error battery status", () => {

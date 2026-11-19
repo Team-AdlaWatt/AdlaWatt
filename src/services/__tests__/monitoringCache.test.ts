@@ -138,14 +138,14 @@ describe("monitoring cache round-trip", () => {
     ).toBe("number");
     expect(
       cached?.schemaVersion,
-    ).toBe(4);
+    ).toBe(5);
   });
 
   test("load re-normalizes untrusted shapes", async () => {
     await AsyncStorage.setItem(
       CACHE_KEY,
       JSON.stringify({
-        schemaVersion: 4,
+        schemaVersion: 5,
         data: {
           battery_level: "high",
           battery_status: "bogus",

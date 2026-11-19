@@ -56,7 +56,7 @@ Related docs: `monitoring_history.md` (snapshot source), `activity_logging.md`, 
 
 | Chart | Type | Data | What it tells you |
 |---|---|---|---|
-| Temperatures | Line, 3 lines | battery, solar and interior `_avg` | Heat trends |
+| Temperatures | Line, 2 lines | solar and interior `_avg` | Heat trends |
 | Temperature alerts | Bar | `temperature_alert_count` | Days with high or critical heat |
 | Device uptime | Line | `uptime_percent` | How reliable the ESP32 link is |
 | Online vs offline | Pie | `online_sample_count` vs the rest | Share of time connected |

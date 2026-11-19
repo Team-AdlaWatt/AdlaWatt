@@ -35,7 +35,7 @@ The mobile app is your window into the system. It shows:
 - Live battery level, voltage, stored energy, and estimated time remaining
 - Incoming solar power and 5-day solar outlook
 - Current electronics load and depth-of-discharge safety status
-- Battery, solar panel, and interior temperatures
+- Solar panel and interior temperatures
 - Smart electronics recommendations based on your remaining battery
 - Notifications, activity history, and exportable energy reports
 
@@ -130,7 +130,7 @@ The Dashboard is the home screen. It updates in real time whenever the AdlaWatt 
 ### Load, temperature, and device
 
 - **Current load** — what connected electronics are drawing right now, in watts.
-- **Temperatures** — battery, solar panel, and interior, each rated *Nominal*, *Elevated*, *High*, or *Critical*, including *Critical (rapid rise)* and *Critical (sensor fault)*. *Critical* triggers an alert — check the unit when safe. A failed sensor shows **Sensor fault**; other unavailable readings show `--`.
+- **Temperatures** — solar panel and interior, each rated *Nominal*, *Elevated*, *High*, or *Critical*, including *Critical (rapid rise)* and *Critical (sensor fault)*. *Critical* triggers an alert — check the unit when safe. A failed sensor shows **Sensor fault**; other unavailable readings show `--`.
 - **Device status** — *Online* (fresh heartbeat within the last 10 seconds) or *Offline* (no heartbeat for over 10 seconds — see troubleshooting).
 
 ### Quick navigation
@@ -261,7 +261,7 @@ Filter by **type** (Info, Warning, Error, Critical) and **time range**, and page
 
 ## 11. Components: Checking System Health
 
-The **Components** screen lists the IoT and power parts (ESP32 controller, solar/load sensors, battery and solar temperature sensors, interior sensor, voltage sensor, relay, display, cooling fan, buck converter) with live **Active / Inactive** status and photos.
+The **Components** screen lists the IoT and power parts (ESP32 controller, solar/load sensors, solar temperature sensor, interior sensor, voltage sensor, relay, display, cooling fan, buck converter) with live **Active / Inactive** status and photos.
 
 Use it to answer "is the unit itself healthy?" If the Dashboard shows Offline but your phone has internet, check here: an Inactive controller or sensor points to a hardware-side problem (power, wiring, or Wi-Fi at the unit) rather than an app problem.
 

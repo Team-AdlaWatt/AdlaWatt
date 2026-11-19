@@ -131,7 +131,7 @@ Section tally: 3 Match · 1 Mismatch · 3 N/A
 | ESP32-S3 (44-pin), Wi-Fi + BT | `monitoring` row designed to be ESP32-written; realtime subscription on the app side; **no firmware sources in this repo** | Partial — app side ready, device feed not wired end-to-end |
 | INA219 — battery voltage/current | `voltage`, `watt_hours`, `battery_level` | Match |
 | INA228 x2 — solar-side and load-side V/I/power | `solar_input`, `solar_voltage`, `solar_current`, `current_load`, `total_energy` | Match |
-| DS18B20 x2 — battery & solar panel temperature | `battery_temperature`, `solar_temperature` (+ status each) | Match |
+| DS18B20 x2 — battery & solar panel temperature | `solar_temperature` (+ status); battery temperature no longer tracked in app | Partial — *Ruled:* app intentionally omits battery temperature |
 | DHT22 — interior temperature **and humidity** | `interior_temp` only; **no humidity field** in the monitoring model (humidity appears only in weather data) | Partial — *Ruled:* documented as a limitation (no code change now; no firmware yet to feed it) |
 | Relay module 5 V (1 channel) | Component status card (`src/app/dashboard/components.tsx`) | Match |
 | 5 V DC fans x2 | Component status card | Match |
@@ -139,7 +139,7 @@ Section tally: 3 Match · 1 Mismatch · 3 N/A
 | Double-sided perfboard PCB, 22 AWG wires | None | N/A |
 | SPI TFT touchscreen (local display) | Component status card ("SPI TFT Display") | Match |
 
-Section tally: 6 Match · 4 Partial · 1 Mismatch · 6 N/A
+Section tally: 5 Match · 5 Partial · 1 Mismatch · 6 N/A
 
 ---
 
@@ -173,7 +173,7 @@ descriptions) vs `MonitoringData` in `src/services/monitoringService.ts:49-114`.
 | Solar input | `solar_input` | Match |
 | Solar voltage | `solar_voltage` | Match |
 | Solar current | `solar_current` | Match |
-| Temperature readings | `battery_temperature`, `solar_temperature`, `interior_temp` (+ status each) | Match |
+| Temperature readings | `solar_temperature`, `interior_temp` (+ status each); battery temperature removed | Partial — *Ruled:* app intentionally omits battery temperature |
 | Depth of discharge | `dod_status` (Safe / Unsafe) | Match |
 | Device status | `device_status` (Online / Offline) | Match |
 | Energy generation (solar) | `solar_input`, `total_energy` | Match |
@@ -182,7 +182,7 @@ descriptions) vs `MonitoringData` in `src/services/monitoringService.ts:49-114`.
 | Enclosure humidity (DHT22, Figure 3 sensors) | Not in the monitoring data model | Not in app — *Ruled:* documented as a limitation (no code change now) |
 | — | `time_remaining`, `solar_timer`, `solar_status`, per-temperature status bands, offline cache + 60 s stale-reading tripwire + connectivity banner | Extra |
 
-Section tally: 12 Match · 1 Not in app · 1 Extra
+Section tally: 11 Match · 1 Partial · 1 Not in app · 1 Extra
 
 ---
 
