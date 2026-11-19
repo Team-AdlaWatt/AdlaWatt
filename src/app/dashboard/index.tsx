@@ -49,6 +49,7 @@ import {
   type WeatherData,
   WeatherError,
   getCurrentCoordinates,
+  getLastKnownLocation,
   getWeather,
 } from "@/services/weatherForecast";
 
@@ -338,7 +339,9 @@ export default function DashboardScreen() {
         }
 
         const fix =
-          coordinates ?? (await getCurrentCoordinates());
+          coordinates ??
+          getLastKnownLocation() ??
+          (await getCurrentCoordinates());
 
         const result = await getForecast(
           fix.lat,
@@ -501,12 +504,11 @@ export default function DashboardScreen() {
   useEffect(() => {
     screenMounted.current = true;
 
-    // Initial fetch: setState lands in the async
-    // loadWeather/loadForecast continuations.
+    // Initial fetch: one GPS fix is shared by the current
+    // weather and forecast legs so both describe the same
+    // resolved place.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- mount + interval weather fetch is the effect's purpose
-    loadWeather();
-
-    loadForecast();
+    void fetchFreshWeatherSession();
 
     // Keep the temperature from staying frozen by
     // re-fetching on fixed intervals: live weather every
@@ -537,17 +539,21 @@ export default function DashboardScreen() {
             return;
           }
 
-          loadWeather();
-
           const last = lastFetchRef.current;
 
-          if (
+          const shouldRefreshForecast =
             last === null ||
             Date.now() - last >
-              FORECAST_REFRESH_INTERVAL_MS
-          ) {
-            loadForecast();
-          }
+              FORECAST_REFRESH_INTERVAL_MS;
+
+          void loadWeather().finally(() => {
+            if (
+              shouldRefreshForecast &&
+              screenMounted.current
+            ) {
+              void loadForecast();
+            }
+          });
         },
       );
 
@@ -560,7 +566,7 @@ export default function DashboardScreen() {
 
       foregroundSub.remove();
     };
-  }, [loadForecast, loadWeather]);
+  }, [fetchFreshWeatherSession, loadForecast, loadWeather]);
 
   // ==========================================================
   // SMOOTH SCROLL-TO-SECTION

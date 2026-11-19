@@ -103,7 +103,7 @@ The power path and the data path are separate. Solar energy charges the battery 
 
 ### Weather Location (implementation addition)
 
-The weather card uses the device's live GPS fix. Within 10 km of one of the 24 configured Bukidnon points (22 Manolo Fortich barangays plus Lingi-on and Balubal), the app requests OpenWeather at that sample's exact coordinates for both current weather and forecast, then displays the resolved location label. Outside coverage, it keeps the raw GPS fix and shows a non-blocking notice. The forecast rows show condition, high temperature with Celsius units, daily max feels-like temperature, and solar outlook without rain-chance percentages.
+The weather card uses the device's live GPS fix. Within 10 km of one of the 467 configured Bukidnon places, the app requests OpenWeather at that place's exact coordinates for both current weather and forecast, and displays the configured place label instead of OpenWeather's nearby station name. Outside coverage, it keeps the raw GPS fix and OpenWeather's city name, and shows a non-blocking notice. The forecast rows show condition, high temperature with Celsius units, daily max feels-like temperature, and solar outlook without rain-chance percentages.
 
 ---
 
@@ -116,7 +116,7 @@ The weather card uses the device's live GPS fix. Within 10 km of one of the 24 c
 | Mobile App | Expo 57 (React Native 0.86) with Expo Router |
 | Language | TypeScript |
 | Backend | Supabase (PostgreSQL, Auth, Realtime, Edge Functions, Storage) |
-| Weather | OpenWeatherMap API (current + 5-day forecast) |
+| Weather | OpenWeatherMap API (current + 5-day feed, 4 upcoming days shown) |
 | Charts | react-native-gifted-charts |
 | Reports | jsPDF (web) and expo-print (native), plus CSV |
 | Alerts | In-app + AgentMail email via a Supabase Edge Function |
