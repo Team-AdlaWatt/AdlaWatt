@@ -113,10 +113,10 @@ What you do well already:
 |     |          |                              |            | (low-battery auto-cutoff, remote fan toggle via a        |
 |     |          |                              |            | `device_commands` table) moves to future improvements.   |
 +-----+----------+------------------------------+------------+----------------------------------------------------------+
-| 13  | P2       | No device pairing flow       | ✅ Done    | Closed as out of scope: no QR/Wi-Fi provisioning. Units  |
-|     |          |                              |            | are researcher-provisioned and the in-app manual         |
-|     |          |                              |            | documents that honestly; a pairing flow moves to future  |
-|     |          |                              |            | improvements.                                            |
+| 13  | P2       | No device pairing flow       | ✅ Done    | BLE provisioning shipped: the Add Device screen scans    |
+|     |          |                              |            | for AdlaWatt-AW-01, verifies the account monitor ID, and |
+|     |          |                              |            | sends Wi-Fi credentials over the Nordic UART GATT        |
+|     |          |                              |            | contract implemented by the ESP32-S3 firmware.          |
 +-----+----------+------------------------------+------------+----------------------------------------------------------+
 | 14  | P2       | Missing insights             | ✅ Done    | Closed as deferred scope: the 17 charts plus report KPIs |
 |     |          |                              |            | (net energy, in/out, lowest battery, uptime, solar hours,|

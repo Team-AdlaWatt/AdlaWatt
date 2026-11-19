@@ -489,6 +489,15 @@ const ceb = {
       status_configured: "Malampuson nga natipig ang configuration",
       status_error: "Error sa provisioning",
       status_disconnected: "Nawala ang koneksyon sa Bluetooth",
+      status_timeout: "Nag-time out ang setup",
+      timeout: "Nag-time out ang setup",
+      timeoutBody:
+        "Wala mahuman sa device ang setup sulod sa {{seconds}} ka segundo. Ipadayon kini nga naka-on ug duol, unya sulayi pag-usab.",
+      validationSsidRequired: "Isulod ang pangalan sa Wi-Fi network.",
+      validationSsidTooLong: "Taas kaayo ang pangalan sa Wi-Fi network.",
+      validationPasswordTooLong: "Taas kaayo ang password sa Wi-Fi.",
+      validationMonitorIdInvalid: "Dili balido ang monitor ID.",
+      validationInvalidText: "Adunay dili balido nga karakter sa detalye sa Wi-Fi.",
       errorTitle: "Napakyas ang provisioning",
       errorBody:
         "Dili mahuman sa device ang request. Susiha ang detalye ug sulayi pag-usab.",

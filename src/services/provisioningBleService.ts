@@ -16,6 +16,15 @@ const SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
 const RX_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
 const TX_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
 
+export const PROVISIONING_TIMEOUT_MS = 60000;
+const CONNECT_TIMEOUT_MS = 15000;
+const SUBSCRIBE_TIMEOUT_MS = 10000;
+const WRITE_TIMEOUT_MS = 10000;
+const WRITE_CHUNK_SIZE = 512;
+const MAX_SSID_BYTES = 32;
+const MAX_PASSWORD_BYTES = 64;
+const MAX_MONITOR_ID = 0xffffffff;
+
 export const PROVISIONING_STATUSES = [
   "received",
   "busy",
@@ -30,14 +39,41 @@ export const PROVISIONING_STATUSES = [
 export type ProvisioningStatus =
   (typeof PROVISIONING_STATUSES)[number];
 
-export type UiStatus = "idle" | "scanning" | "connecting" | ProvisioningStatus;
-
-export const UI_STATUSES: UiStatus[] = [
+const APP_STATUSES = [
   "idle",
   "scanning",
   "connecting",
+  "timeout",
+] as const;
+
+export type UiStatus =
+  (typeof APP_STATUSES)[number] | ProvisioningStatus;
+
+export const UI_STATUSES: UiStatus[] = [
+  ...APP_STATUSES,
   ...PROVISIONING_STATUSES,
 ];
+
+export const TERMINAL_SUCCESS_STATUSES: readonly ProvisioningStatus[] = [
+  "configured",
+];
+
+export const TERMINAL_FAILURE_STATUSES: readonly UiStatus[] = [
+  "wifi_failed",
+  "wifi_lost",
+  "error",
+  "disconnected",
+  "timeout",
+];
+
+export const TERMINAL_STATUSES: readonly UiStatus[] = [
+  ...TERMINAL_SUCCESS_STATUSES,
+  ...TERMINAL_FAILURE_STATUSES,
+];
+
+export const isTerminalStatus = (
+  status: UiStatus,
+): boolean => TERMINAL_STATUSES.includes(status);
 
 export interface ScannedDevice {
   id: string;
@@ -51,15 +87,48 @@ export interface ProvisioningConfig {
   monitorId: number;
 }
 
+export interface ProvisioningOptions {
+  timeoutMs?: number;
+}
+
 export interface ProvisioningSession {
   dispose: () => Promise<void>;
 }
 
+export interface ProvisioningStatusUpdate {
+  status: ProvisioningStatus;
+  raw: string;
+}
+
+export type ProvisioningValidationIssue =
+  | "ssid_required"
+  | "ssid_too_long"
+  | "password_too_long"
+  | "monitor_id_invalid"
+  | "invalid_text";
+
+export class ProvisioningValidationError extends Error {
+  readonly issue: ProvisioningValidationIssue;
+
+  constructor(issue: ProvisioningValidationIssue) {
+    super(issue);
+    this.name = "ProvisioningValidationError";
+    this.issue = issue;
+  }
+}
+
+export class ProvisioningTimeoutError extends Error {
+  constructor() {
+    super("Provisioning timed out.");
+    this.name = "ProvisioningTimeoutError";
+  }
+}
+
 const KNOWN_STATUSES = new Set<string>(PROVISIONING_STATUSES);
 
-export function buildProvisioningPayload(
+export const buildProvisioningPayload = (
   config: ProvisioningConfig,
-): string {
+): string => {
   return JSON.stringify({
     device_code: DEVICE_CODE,
     device_id: DEVICE_ID,
@@ -67,36 +136,82 @@ export function buildProvisioningPayload(
     wifi_password: config.wifiPassword,
     monitor_id: config.monitorId,
   });
-}
+};
 
-export function parseProvisioningStatus(
+export const parseProvisioningStatusDetail = (
   value: Uint8Array,
-): ProvisioningStatus {
+): ProvisioningStatusUpdate => {
   const text = new TextDecoder().decode(value).trim();
-
+  let raw = text;
   let candidate = text.toLowerCase();
 
   try {
     const parsed: unknown = JSON.parse(text);
 
     if (typeof parsed === "string") {
+      raw = parsed;
       candidate = parsed.toLowerCase();
     } else if (parsed && typeof parsed === "object") {
       const record = parsed as Record<string, unknown>;
       const status = record.status ?? record.state;
 
       if (typeof status === "string") {
+        raw = status;
         candidate = status.toLowerCase();
       }
     }
   } catch {
+    raw = text;
     candidate = text.toLowerCase();
   }
 
-  return KNOWN_STATUSES.has(candidate)
-    ? (candidate as ProvisioningStatus)
-    : "error";
-}
+  return {
+    status: KNOWN_STATUSES.has(candidate)
+      ? (candidate as ProvisioningStatus)
+      : "error",
+    raw,
+  };
+};
+
+export const parseProvisioningStatus = (
+  value: Uint8Array,
+): ProvisioningStatus =>
+  parseProvisioningStatusDetail(value).status;
+
+export const validateProvisioningConfig = (
+  config: ProvisioningConfig,
+): ProvisioningValidationIssue | null => {
+  if (config.wifiSsid.length === 0) {
+    return "ssid_required";
+  }
+
+  if (
+    config.wifiSsid.includes("\u0000") ||
+    config.wifiPassword.includes("\u0000")
+  ) {
+    return "invalid_text";
+  }
+
+  const encoder = new TextEncoder();
+
+  if (encoder.encode(config.wifiSsid).length > MAX_SSID_BYTES) {
+    return "ssid_too_long";
+  }
+
+  if (encoder.encode(config.wifiPassword).length > MAX_PASSWORD_BYTES) {
+    return "password_too_long";
+  }
+
+  if (
+    !Number.isInteger(config.monitorId) ||
+    config.monitorId < 1 ||
+    config.monitorId > MAX_MONITOR_ID
+  ) {
+    return "monitor_id_invalid";
+  }
+
+  return null;
+};
 
 export type BlePermissionState =
   | "undetermined"
@@ -244,17 +359,65 @@ export async function provisionDevice(
   deviceId: string,
   config: ProvisioningConfig,
   onStatus: (status: UiStatus) => void,
+  options: ProvisioningOptions = {},
 ): Promise<ProvisioningSession> {
+  const validationIssue = validateProvisioningConfig(config);
+
+  if (validationIssue) {
+    throw new ProvisioningValidationError(validationIssue);
+  }
+
+  const timeoutMs = options.timeoutMs ?? PROVISIONING_TIMEOUT_MS;
   const peripheral = BleManager.getPeripheral(deviceId);
+  const controller = new AbortController();
 
   let connectionListener: Subscription | null = null;
   let txSubscription: CharacteristicSubscription | null = null;
+  let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
   let disposed = false;
+  let terminalReported = false;
+  let timedOut = false;
+  let lastStatus: UiStatus | null = null;
+
+  const emit = (status: UiStatus): void => {
+    if (lastStatus === status) {
+      return;
+    }
+
+    lastStatus = status;
+    onStatus(status);
+  };
+
+  const clearTimeoutTimer = (): void => {
+    if (timeoutTimer) {
+      clearTimeout(timeoutTimer);
+      timeoutTimer = null;
+    }
+  };
 
   const dispose = async (): Promise<void> => {
+    if (disposed) {
+      return;
+    }
+
     disposed = true;
-    connectionListener?.remove();
-    txSubscription?.remove();
+    controller.abort();
+    clearTimeoutTimer();
+
+    try {
+      connectionListener?.remove();
+    } catch {
+      void 0;
+    }
+
+    try {
+      txSubscription?.remove();
+    } catch {
+      void 0;
+    }
+
+    connectionListener = null;
+    txSubscription = null;
 
     try {
       if (
@@ -264,33 +427,67 @@ export async function provisionDevice(
         await peripheral.disconnect();
       }
     } catch {
+      void 0;
+    }
+  };
+
+  const finish = async (status: UiStatus): Promise<void> => {
+    if (terminalReported) {
       return;
+    }
+
+    terminalReported = true;
+    clearTimeoutTimer();
+    emit(status);
+    await dispose();
+  };
+
+  timeoutTimer = setTimeout(() => {
+    timedOut = true;
+    void finish("timeout");
+  }, timeoutMs);
+
+  const handleNotification = (value: Uint8Array): void => {
+    if (disposed || terminalReported) {
+      return;
+    }
+
+    const update = parseProvisioningStatusDetail(value);
+    emit(update.status);
+
+    if (isTerminalStatus(update.status)) {
+      void finish(update.status);
     }
   };
 
   try {
-    connectionListener = peripheral.addConnectionStateListener(
-      (state) => {
-        if (disposed) {
-          return;
-        }
+    connectionListener = peripheral.addConnectionStateListener((state) => {
+      if (disposed || terminalReported) {
+        return;
+      }
 
-        if (state === "disconnected") {
-          onStatus("disconnected");
-        } else if (state === "reconnecting") {
-          onStatus("busy");
-        }
-      },
-    );
+      if (state === "disconnected") {
+        void finish("disconnected");
+      } else if (state === "reconnecting") {
+        emit("busy");
+      }
+    });
 
-    onStatus("connecting");
-    await peripheral.connect({ timeoutMs: 15000 });
+    emit("connecting");
+
+    await peripheral.connect({
+      timeoutMs: CONNECT_TIMEOUT_MS,
+      signal: controller.signal,
+    });
 
     txSubscription = await peripheral.subscribe(
       SERVICE_UUID,
       TX_UUID,
-      (value) => onStatus(parseProvisioningStatus(value)),
-      { timeoutMs: 10000 },
+      handleNotification,
+      {
+        timeoutMs: SUBSCRIBE_TIMEOUT_MS,
+        signal: controller.signal,
+      },
     );
 
     const payload = new TextEncoder().encode(
@@ -301,12 +498,23 @@ export async function provisionDevice(
       SERVICE_UUID,
       RX_UUID,
       payload,
-      { timeoutMs: 10000 },
+      {
+        timeoutMs: WRITE_TIMEOUT_MS,
+        signal: controller.signal,
+        withResponse: true,
+        chunkSize: WRITE_CHUNK_SIZE,
+      },
     );
+
+    return { dispose };
   } catch (error) {
+    clearTimeoutTimer();
+
+    if (timedOut) {
+      throw new ProvisioningTimeoutError();
+    }
+
     await dispose();
     throw error;
   }
-
-  return { dispose };
 }

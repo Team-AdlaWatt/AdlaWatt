@@ -40,7 +40,11 @@ import {
 } from "@/hooks/useAppColors";
 import {
   DEVICE_NAME_PREFIX,
+  PROVISIONING_TIMEOUT_MS,
+  TERMINAL_STATUSES,
   UI_STATUSES,
+  ProvisioningTimeoutError,
+  ProvisioningValidationError,
   getBlePermissions,
   getBleReadiness,
   getBleState,
@@ -50,6 +54,7 @@ import {
   subscribeBleState,
   type BleReadiness,
   type ProvisioningSession,
+  type ProvisioningValidationIssue,
   type ScannedDevice,
   type UiStatus,
 } from "@/services/provisioningBleService";
@@ -84,6 +89,7 @@ const FAILED_STATUSES: UiStatus[] = [
   "wifi_lost",
   "error",
   "disconnected",
+  "timeout",
 ];
 
 const STATUS_ORDER: UiStatus[] = UI_STATUSES;
@@ -116,7 +122,8 @@ function toneForStatus(status: UiStatus): ToneKey {
     status === "wifi_failed" ||
     status === "wifi_lost" ||
     status === "error" ||
-    status === "disconnected"
+    status === "disconnected" ||
+    status === "timeout"
   ) {
     return "critical";
   }
@@ -164,6 +171,7 @@ function iconForStatus(status: UiStatus): keyof typeof Ionicons.glyphMap {
     case "wifi_lost":
       return "wifi-outline";
     case "error":
+    case "timeout":
       return "alert-circle-outline";
     default:
       return "hardware-chip-outline";
@@ -178,6 +186,9 @@ function displayStatusKey(status: UiStatus): string {
   ) {
     return "provisioning";
   }
+  if (status === "timeout") {
+    return "timeout";
+  }
   if (FAILED_STATUSES.includes(status)) {
     return "connectionFailed";
   }
@@ -185,6 +196,23 @@ function displayStatusKey(status: UiStatus): string {
     return "success";
   }
   return `status_${status}`;
+}
+
+function validationDetailKey(
+  issue: ProvisioningValidationIssue,
+): string {
+  switch (issue) {
+    case "ssid_required":
+      return "dashboard.addDevice.validationSsidRequired";
+    case "ssid_too_long":
+      return "dashboard.addDevice.validationSsidTooLong";
+    case "password_too_long":
+      return "dashboard.addDevice.validationPasswordTooLong";
+    case "monitor_id_invalid":
+      return "dashboard.addDevice.validationMonitorIdInvalid";
+    default:
+      return "dashboard.addDevice.validationInvalidText";
+  }
 }
 
 export default function AddDeviceScreen() {
@@ -672,16 +700,44 @@ export default function AddDeviceScreen() {
         },
         (nextStatus) => {
           setStatus(nextStatus);
-          if (nextStatus !== "error") {
+
+          if (TERMINAL_STATUSES.includes(nextStatus)) {
+            provisionSessionRef.current = null;
+          }
+
+          if (nextStatus === "timeout") {
+            setStatusDetail(
+              t("dashboard.addDevice.timeoutBody", {
+                seconds: Math.round(PROVISIONING_TIMEOUT_MS / 1000),
+              }),
+            );
+          } else if (nextStatus !== "error") {
             setStatusDetail(null);
           }
         },
       );
 
       provisionSessionRef.current = session;
-    } catch {
-      setStatus("error");
-      setStatusDetail(t("dashboard.addDevice.errorBody"));
+    } catch (error) {
+      if (error instanceof ProvisioningTimeoutError) {
+        setStatus("timeout");
+        setStatusDetail(
+          t("dashboard.addDevice.timeoutBody", {
+            seconds: Math.round(PROVISIONING_TIMEOUT_MS / 1000),
+          }),
+        );
+      } else if (error instanceof ProvisioningValidationError) {
+        setStatus("error");
+        setStatusDetail(t(validationDetailKey(error.issue)));
+      } else {
+        const detail = error instanceof Error ? error.message : "";
+        setStatus("error");
+        setStatusDetail(
+          detail
+            ? `${t("dashboard.addDevice.errorBody")} ${detail}`
+            : t("dashboard.addDevice.errorBody"),
+        );
+      }
     } finally {
       sendInFlightRef.current = false;
       setSendBusy(false);

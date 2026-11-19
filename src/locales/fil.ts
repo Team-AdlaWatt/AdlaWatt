@@ -489,6 +489,15 @@ const fil = {
       status_configured: "Matagumpay na na-save ang configuration",
       status_error: "Error sa provisioning",
       status_disconnected: "Nawala ang koneksyon sa Bluetooth",
+      status_timeout: "Nag-time out ang pag-setup",
+      timeout: "Nag-time out ang pag-setup",
+      timeoutBody:
+        "Hindi natapos ng device ang pag-setup sa loob ng {{seconds}} segundo. Panatilihing naka-on at malapit ito, pagkatapos ay subukan muli.",
+      validationSsidRequired: "Maglagay ng pangalan ng Wi-Fi network.",
+      validationSsidTooLong: "Masyadong mahaba ang pangalan ng Wi-Fi network.",
+      validationPasswordTooLong: "Masyadong mahaba ang password ng Wi-Fi.",
+      validationMonitorIdInvalid: "Invalid ang monitor ID.",
+      validationInvalidText: "May invalid na character ang detalye ng Wi-Fi.",
       errorTitle: "Nabigo ang provisioning",
       errorBody:
         "Hindi natapos ng device ang request. Suriin ang detalye at subukang muli.",

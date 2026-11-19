@@ -470,6 +470,15 @@ const en = {
       status_configured: "Configuration saved successfully",
       status_error: "Provisioning error",
       status_disconnected: "Bluetooth disconnected",
+      status_timeout: "Setup timed out",
+      timeout: "Setup timed out",
+      timeoutBody:
+        "The device did not finish setup within {{seconds}} seconds. Keep it powered on and nearby, then try again.",
+      validationSsidRequired: "Enter a Wi-Fi network name.",
+      validationSsidTooLong: "The Wi-Fi network name is too long.",
+      validationPasswordTooLong: "The Wi-Fi password is too long.",
+      validationMonitorIdInvalid: "The monitor ID is invalid.",
+      validationInvalidText: "The Wi-Fi details contain an invalid character.",
       errorTitle: "Provisioning failed",
       errorBody:
         "The device could not complete the request. Check the details and try again.",
