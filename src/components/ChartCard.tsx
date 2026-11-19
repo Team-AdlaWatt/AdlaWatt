@@ -46,6 +46,7 @@ import {
   formatTemperature,
   hasValue,
 } from "@/utils/monitoringDisplay";
+import { getEstimatedTimeRemaining } from "@/utils/estimatedTimeRemaining";
 
 import {
   formatBestSunSummary,
@@ -595,7 +596,7 @@ export default function ChartCard({
   // ==========================================================
   // BATTERY MONITORING GROUP
   //
-  // The battery gauge block (ring + percentage + time remaining
+  // The battery gauge block (ring + percentage + estimated time remaining
   // + status badges) was merged into this card's left column.
   // Voltage, Watt-hour, Load Now, and Interior fill the right 2 × 2 grid.
   // ==========================================================
@@ -704,6 +705,20 @@ export default function ChartCard({
         loading,
         styles,
       );
+
+    const estimatedTimeRemaining =
+      getEstimatedTimeRemaining({
+        batteryStatus:
+          monitoring?.battery_status ?? null,
+        wattHours:
+          monitoring?.watt_hours ?? null,
+        batteryLevel:
+          monitoring?.battery_level ?? null,
+        currentLoad:
+          monitoring?.current_load ?? null,
+        solarInput:
+          monitoring?.solar_input ?? null,
+      });
 
     const interiorTemperatureStatus =
       monitoring
@@ -911,7 +926,7 @@ export default function ChartCard({
             </View>
 
             {/* ==============================================
-                TIME REMAINING
+                ESTIMATED TIME REMAINING
                 ============================================== */}
 
             <AppText
@@ -920,12 +935,8 @@ export default function ChartCard({
                 styles.remainingText
               }
             >
-              Time Remaining:{" "}
-              {loading
-                ? "—"
-                : monitoring
-                    ?.time_remaining ??
-                  "—"}
+              Estimated Time Remaining:{" "}
+              {loading ? "—" : estimatedTimeRemaining}
             </AppText>
 
             {/* ==============================================
