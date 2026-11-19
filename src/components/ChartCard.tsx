@@ -74,7 +74,6 @@ type ChartType =
   | "solar_timer"
   | "load"
   | "weather"
-  | "temperature"
   | "solar_temperature"
   | "dod";
 
@@ -598,7 +597,7 @@ export default function ChartCard({
   //
   // The battery gauge block (ring + percentage + time remaining
   // + status badges) was merged into this card's left column.
-  // Voltage, Watt-hour, and Load Now fill the right 2 × 3 grid.
+  // Voltage, Watt-hour, Load Now, and Interior fill the right 2 × 2 grid.
   // ==========================================================
 
   if (type === "voltage") {
@@ -710,15 +709,6 @@ export default function ChartCard({
       monitoring
         ?.interior_temp_status ??
       null;
-
-    const batteryTemperatureData =
-      getCardData(
-        "temperature",
-        monitoring,
-        weather ?? null,
-        loading,
-        styles,
-      );
 
     const interiorTemperatureValue =
       loading
@@ -1004,7 +994,7 @@ export default function ChartCard({
           </View>
 
           {/* ==================================================
-              RIGHT — BATTERY 2 × 3 MEASUREMENT GRID
+              RIGHT — BATTERY 2 × 2 MEASUREMENT GRID
               ================================================== */}
 
           <View
@@ -1108,67 +1098,6 @@ export default function ChartCard({
             </View>
 
             {/* ==============================================
-                RESERVED CELL (for future data)
-                ============================================== */}
-
-            <View
-              style={
-                styles.batteryMetricCell
-              }
-            />
-
-            {/* ==============================================
-                TEMPERATURE (battery temperature)
-                ============================================== */}
-
-            <View
-              style={
-                styles.batteryMetricCell
-              }
-            >
-
-              <AppText
-                variant="caption"
-                style={
-                  styles.batteryMetricLabel
-                }
-              >
-                Temperature
-              </AppText>
-
-              <AppText
-                variant="heading"
-                style={
-                  styles.batteryMetricValue
-                }
-              >
-                {batteryTemperatureData.value}
-              </AppText>
-
-              {batteryTemperatureData.badge && (
-                <View
-                  style={[
-                    styles.statusBadge,
-                    batteryTemperatureData.badgeStyle,
-                  ]}
-                >
-
-                  <AppText
-                    variant="caption"
-                    style={[
-                      styles.statusBadgeText,
-                      batteryTemperatureData.badgeTextStyle,
-                    ]}
-                  >
-                    {batteryTemperatureData.badge}
-                  </AppText>
-
-                </View>
-              )}
-
-            </View>
-
-            {/* ==============================================
                 INTERIOR TEMPERATURE
                 ============================================== */}
 
@@ -1232,7 +1161,7 @@ export default function ChartCard({
   //
   // Solar Input (inside the sun gauge), Timer, and the status
   // badge fill the left column. Voltage, Current, Total Energy,
-  // and Solar Panel Temperature fill the right 2 × 3 grid.
+  // and Solar Panel Temperature fill the right 2 × 2 grid.
   // The Temperature Monitoring card no longer exists.
   // ==========================================================
 
@@ -1484,7 +1413,7 @@ export default function ChartCard({
           </View>
 
           {/* ================================================
-              RIGHT — SOLAR 2 × 3 MEASUREMENT GRID
+              RIGHT — SOLAR 2 × 2 MEASUREMENT GRID
               ================================================ */}
 
           <View
@@ -1584,16 +1513,6 @@ export default function ChartCard({
             </View>
 
             {/* ==============================================
-                RESERVED CELL (for future data)
-                ============================================== */}
-
-            <View
-              style={
-                styles.batteryMetricCell
-              }
-            />
-
-            {/* ==============================================
                 SOLAR PANEL TEMPERATURE
                 (moved from Temperature Monitoring)
                 ============================================== */}
@@ -1644,16 +1563,6 @@ export default function ChartCard({
               )}
 
             </View>
-
-            {/* ==============================================
-                RESERVED CELL (for future data)
-                ============================================== */}
-
-            <View
-              style={
-                styles.batteryMetricCell
-              }
-            />
 
           </View>
 
@@ -2433,8 +2342,7 @@ export default function ChartCard({
     type === "solar_timer" ||
     type === "load" ||
     type === "dod" ||
-    type === "solar_temperature" ||
-    type === "temperature"
+    type === "solar_temperature"
   ) {
     return null;
   }
@@ -2897,52 +2805,6 @@ function getCardData(
       };
 
     // ========================================================
-    // BATTERY TEMPERATURE
-    // ========================================================
-
-    case "temperature": {
-
-      const status =
-        monitoring
-          ?.battery_temperature_status ??
-        null;
-
-      return {
-        icon:
-          "thermometer-outline",
-
-        label:
-          "Battery Temp",
-
-        value:
-          loading
-            ? "—"
-            : formatTemperature(
-                monitoring?.battery_temperature,
-              ),
-
-        ...(status
-          ? {
-              badge:
-                status,
-
-              badgeStyle:
-                getTemperatureBadgeStyle(
-                  status,
-                  themedStyles,
-                ),
-
-              badgeTextStyle:
-                getTemperatureBadgeTextStyle(
-                  status,
-                  themedStyles,
-                ),
-            }
-          : {}),
-      };
-    }
-
-    // ========================================================
     // SOLAR PANEL TEMPERATURE
     // ========================================================
 
@@ -3393,10 +3255,9 @@ const getStyles = (colors: AppColors) =>
   },
 
   // ==========================================================
-  // RIGHT — BATTERY 2 × 3 MEASUREMENT GRID
+  // RIGHT — MONITORING 2 × 2 MEASUREMENT GRID
   //
-  // Flex-wraps six equal cells (two per row × three rows).
-  // The bottom three cells are reserved for future data.
+  // Flex-wraps four equal cells (two per row × two rows).
   // ==========================================================
 
   batteryMetricGrid: {

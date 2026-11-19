@@ -57,7 +57,6 @@ import {
   generateAdlaWattPdf,
   getBatteryChartRangeData,
   getBatteryActivityData,
-  getBatteryTemperatureData,
   getBestSunDaysData,
   getDefaultRange,
   getEnergyInputChartData,
@@ -540,22 +539,6 @@ export default function AnalyticsScreen() {
   }, [
     monitoringHistory,
     coverageFrequency,
-  ]);
-
-  const battTempPoints = useMemo(() => {
-    const buckets =
-      groupMonitoringHistory(
-        monitoringHistory,
-        tempFrequency,
-      );
-
-    return getBatteryTemperatureData(
-      buckets,
-      tempFrequency,
-    );
-  }, [
-    monitoringHistory,
-    tempFrequency,
   ]);
 
   const solarTempPoints = useMemo(() => {
@@ -1528,7 +1511,6 @@ export default function AnalyticsScreen() {
           }
         >
           <TemperaturesChart
-            battPoints={battTempPoints}
             solarPoints={solarTempPoints}
             interiorPoints={interiorTempPoints}
           />

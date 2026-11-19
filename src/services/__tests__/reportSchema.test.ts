@@ -40,8 +40,6 @@ interface RowOverrides {
   solar_timer?: string | null;
   current_load?: number | null;
   device_status?: string | null;
-  battery_temperature?: number | null;
-  battery_temperature_status?: string | null;
   dod_status?: string | null;
   solar_temperature?: number | null;
   solar_temperature_status?: string | null;
@@ -65,10 +63,6 @@ const row = (overrides: RowOverrides): MonitoringHistoryRow =>
     current_load: overrides.current_load ?? 0,
     device_status: overrides.device_status ?? "Online",
     last_seen: null,
-    battery_temperature:
-      overrides.battery_temperature ?? 0,
-    battery_temperature_status:
-      overrides.battery_temperature_status ?? null,
     dod_status: overrides.dod_status ?? null,
     solar_temperature: overrides.solar_temperature ?? 0,
     solar_temperature_status:
@@ -94,8 +88,6 @@ const twoDayRows: MonitoringHistoryRow[] = [
     solar_timer: "02:00:00",
     current_load: 50,
     device_status: "Online",
-    battery_temperature: 25,
-    battery_temperature_status: "Nominal",
     solar_temperature: 40,
     solar_temperature_status: "Nominal",
     energy_input_wh: 100,
@@ -108,8 +100,6 @@ const twoDayRows: MonitoringHistoryRow[] = [
     solar_timer: "01:00:00",
     current_load: 120,
     device_status: "Offline",
-    battery_temperature: 30,
-    battery_temperature_status: "High",
     solar_temperature: 45,
     solar_temperature_status: "Nominal",
     energy_input_wh: 120,
@@ -123,8 +113,6 @@ const twoDayRows: MonitoringHistoryRow[] = [
     solar_timer: "03:00:00",
     current_load: 40,
     device_status: "Online",
-    battery_temperature: 20,
-    battery_temperature_status: "Nominal",
     solar_temperature: 30,
     solar_temperature_status: "Nominal",
     energy_input_wh: 0,
@@ -137,8 +125,6 @@ const twoDayRows: MonitoringHistoryRow[] = [
     solar_timer: "04:00:00",
     current_load: 60,
     device_status: "Online",
-    battery_temperature: 22,
-    battery_temperature_status: "Nominal",
     solar_temperature: 35,
     solar_temperature_status: "Critical",
     energy_input_wh: 0,
@@ -309,8 +295,6 @@ describe("buildReportKpis", () => {
         maximumSolarInput: 500,
         averageCurrentLoad: 67.5,
         maximumCurrentLoad: 60,
-        averageBatteryTemperature: 24.25,
-        maximumBatteryTemperature: 30,
         averageSolarTemperature: 37.5,
         maximumSolarTemperature: 45,
         totalEnergyInputWh: 220,
@@ -320,8 +304,6 @@ describe("buildReportKpis", () => {
         latestSolarInput: 400,
         latestSolarStatus: "Producing",
         latestCurrentLoad: 60,
-        latestBatteryTemperature: 22,
-        latestBatteryTemperatureStatus: "Nominal",
         latestSolarTemperature: 35,
         latestSolarTemperatureStatus: "Critical",
         latestSolarTimer: "04:00:00",
@@ -370,10 +352,10 @@ describe("buildReportKpis", () => {
     ).toBe("50.0% of samples");
   });
 
-  test("temperature alerts count High|Critical on any sensor, Online only", () => {
+  test("temperature alerts count High|Critical on solar or interior, Online only", () => {
     const list = buildList();
 
-    // The Day 1 High reading is Offline, so only the Day 2
+    // The Day 1 Offline sample is excluded, so only the Day 2
     // Critical Online sample counts.
     expect(
       kpi(list, "temperatureAlerts")?.value,
@@ -412,8 +394,6 @@ describe("buildReportKpis", () => {
       maximumSolarInput: 0,
       averageCurrentLoad: 0,
       maximumCurrentLoad: 0,
-      averageBatteryTemperature: 0,
-      maximumBatteryTemperature: 0,
       averageSolarTemperature: 0,
       maximumSolarTemperature: 0,
       totalEnergyInputWh: 0,
@@ -423,8 +403,6 @@ describe("buildReportKpis", () => {
       latestSolarInput: 0,
       latestSolarStatus: "No data",
       latestCurrentLoad: 0,
-      latestBatteryTemperature: 0,
-      latestBatteryTemperatureStatus: "No data",
       latestSolarTemperature: 0,
       latestSolarTemperatureStatus: "No data",
       latestSolarTimer: "No data",
@@ -743,8 +721,8 @@ describe("stored status precedence", () => {
         recorded_at: "2026-10-01T08:00:00",
         battery_level: 80,
         device_status: "Offline",
-        battery_temperature_status: "High",
         solar_temperature_status: "Critical",
+        interior_temp_status: "High",
       }),
     ];
 

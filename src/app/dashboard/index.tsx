@@ -833,6 +833,7 @@ export default function DashboardScreen() {
                 - Voltage
                 - Watt-hour
                 - Load Now
+                - Interior
 
                 Only "voltage" is passed here because
                 ChartCard.tsx uses it as the grouped
@@ -858,6 +859,7 @@ export default function DashboardScreen() {
                 - Solar Voltage
                 - Solar Current
                 - Total Energy
+                - Solar Panel Temperature
                 ============================================== */}
 
             <View

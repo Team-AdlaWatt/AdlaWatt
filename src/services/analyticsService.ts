@@ -73,8 +73,6 @@ export interface MonitoringHistoryRow {
   current_load: number | null;
   device_status: string | null;
   last_seen: string | null;
-  battery_temperature: number | null;
-  battery_temperature_status: string | null;
   dod_status: string | null;
   solar_temperature: number | null;
   solar_temperature_status: string | null;
@@ -108,12 +106,6 @@ export type BatteryHealthStatus =
   | "Safe"
   | "Unsafe";
 
-export interface HealthCell {
-  date: Date;
-  temperature: number;
-  status: string;
-}
-
 /* ============================================================
    REPORT TYPES
    ============================================================ */
@@ -131,9 +123,6 @@ export interface ReportSummary {
   averageCurrentLoad: number;
   maximumCurrentLoad: number;
 
-  averageBatteryTemperature: number;
-  maximumBatteryTemperature: number;
-
   averageSolarTemperature: number;
   maximumSolarTemperature: number;
 
@@ -145,9 +134,6 @@ export interface ReportSummary {
   latestSolarInput: number;
   latestSolarStatus: string;
   latestCurrentLoad: number;
-
-  latestBatteryTemperature: number;
-  latestBatteryTemperatureStatus: string;
 
   latestSolarTemperature: number;
   latestSolarTemperatureStatus: string;
@@ -175,8 +161,6 @@ export interface ReportMonitoringRow {
   currentLoad: string;
   deviceStatus: string;
   lastSeen: string;
-  batteryTemperature: string;
-  batteryTemperatureStatus: string;
   dodStatus: string;
   solarTemperature: string;
   solarTemperatureStatus: string;
@@ -268,7 +252,6 @@ export interface ReportPeriodRow {
   temperatureAlertCount: number;
   sunHours: number;
 
-  avgBatteryTemperature: number;
   avgSolarTemperature: number;
 }
 
@@ -882,17 +865,6 @@ export function formatMonitoringReportRows(
           )
         : "N/A",
 
-      batteryTemperature:
-        formatNumber(
-          toNumber(
-            row.battery_temperature,
-          ),
-        ),
-
-      batteryTemperatureStatus:
-        row.battery_temperature_status ??
-        "Unknown",
-
       solarTemperature:
         formatNumber(
           toNumber(
@@ -1054,14 +1026,6 @@ export function createReportSummary(
         ),
     );
 
-  const batteryTemperatures =
-    onlineHistory.map(
-      (row) =>
-        toNumber(
-          row.battery_temperature,
-        ),
-    );
-
   const solarTemperatures =
     onlineHistory.map(
       (row) =>
@@ -1140,16 +1104,6 @@ export function createReportSummary(
         currentLoads,
       ),
 
-    averageBatteryTemperature:
-      average(
-        batteryTemperatures,
-      ),
-
-    maximumBatteryTemperature:
-      maximum(
-        batteryTemperatures,
-      ),
-
     averageSolarTemperature:
       average(
         solarTemperatures,
@@ -1202,17 +1156,6 @@ export function createReportSummary(
             ),
           )
         : 0,
-
-    latestBatteryTemperature:
-      latest
-        ? toNumber(
-            latest.battery_temperature,
-          )
-        : 0,
-
-    latestBatteryTemperatureStatus:
-      latest?.battery_temperature_status ??
-      "No data",
 
     latestSolarTemperature:
       latest
@@ -1361,12 +1304,6 @@ export function buildReportPeriods(
     reportFrequency,
   );
 
-  const batteryTemperature =
-    getBatteryTemperatureData(
-      buckets,
-      reportFrequency,
-    );
-
   const solarTemperature =
     getSolarTemperatureData(
       buckets,
@@ -1406,8 +1343,6 @@ export function buildReportPeriods(
       alerts[index]?.value ?? 0,
     sunHours: sunHours[index]?.value ?? 0,
 
-    avgBatteryTemperature:
-      batteryTemperature[index]?.value ?? 0,
     avgSolarTemperature:
       solarTemperature[index]?.value ?? 0,
   }));
@@ -1458,12 +1393,6 @@ export function buildReportKpis(
     }
 
     if (
-      ALERT_TEMPERATURE_STATUSES.has(
-        String(
-          row.battery_temperature_status ??
-            "",
-        ),
-      ) ||
       ALERT_TEMPERATURE_STATUSES.has(
         String(
           row.solar_temperature_status ??
@@ -1841,8 +1770,6 @@ export async function loadAnalyticsData(
                 "current_load",
                 "device_status",
                 "last_seen",
-                "battery_temperature",
-                "battery_temperature_status",
                 "dod_status",
                 "solar_temperature",
                 "solar_temperature_status",
@@ -2402,33 +2329,6 @@ export function getSolarCoverageData(
   );
 }
 
-export function getBatteryTemperatureData(
-  groupedMonitoring: MonitoringBucket[],
-  chartFrequency: ChartFrequency,
-): ChartPoint[] {
-  return groupedMonitoring.map(
-    (bucket) => ({
-      value:
-        average(
-          getOnlineRows(
-            bucket.rows,
-          ).map(
-            (row) =>
-              toNumber(
-                row.battery_temperature,
-              ),
-          ),
-        ),
-
-      label:
-        formatDateLabel(
-          bucket.date,
-          chartFrequency,
-        ),
-    }),
-  );
-}
-
 export function getSolarTemperatureData(
   groupedMonitoring: MonitoringBucket[],
   chartFrequency: ChartFrequency,
@@ -2798,66 +2698,6 @@ export function getSolarCurveByHourData(
   }));
 }
 
-const TEMPERATURE_STATUS_RANK: Record<
-  string,
-  number
-> = {
-  Nominal: 0,
-  Elevated: 1,
-  High: 2,
-  Critical: 3,
-};
-
-export function getTemperatureHealthData(
-  groupedMonitoring: MonitoringBucket[],
-  chartFrequency: ChartFrequency,
-): HealthCell[] {
-  return groupedMonitoring.map(
-    (bucket) => {
-      const onlineRows = getOnlineRows(
-        bucket.rows,
-      );
-
-      let status =
-        "Nominal";
-
-      onlineRows.forEach(
-        (row) => {
-          const rowStatus =
-            row.battery_temperature_status ??
-            "Nominal";
-
-          if (
-            TEMPERATURE_STATUS_RANK[
-              rowStatus
-            ] >
-            TEMPERATURE_STATUS_RANK[
-              status
-            ]
-          ) {
-            status = rowStatus;
-          }
-        },
-      );
-
-      return {
-        date: bucket.date,
-        temperature:
-          average(
-            onlineRows.map(
-              (row) =>
-                toNumber(
-                  row.battery_temperature,
-                ),
-            ),
-          ),
-
-        status,
-      };
-    },
-  );
-}
-
 export function getDoDStatus(
   batteryLevel: number,
 ): BatteryHealthStatus {
@@ -2884,7 +2724,7 @@ const ALERT_TEMPERATURE_STATUSES = new Set([
 
 /*
  * Temperature alerts: per-bucket count of rows where the
- * battery OR solar temperature status is High/Critical.
+ * solar OR interior temperature status is High/Critical.
  */
 export function getTemperatureAlertsData(
   groupedMonitoring: MonitoringBucket[],
@@ -2896,9 +2736,6 @@ export function getTemperatureAlertsData(
         bucket.rows,
       ).filter(
         (row) =>
-          ALERT_TEMPERATURE_STATUSES.has(
-            String(row.battery_temperature_status ?? ""),
-          ) ||
           ALERT_TEMPERATURE_STATUSES.has(
             String(row.solar_temperature_status ?? ""),
           ) ||
@@ -3056,59 +2893,6 @@ export function getPowerByHourData(
    ANALYTICS RANGE PROCESSING
    ============================================================ */
 
-export function getChartLimits(
-  solarChartData: ChartPoint[],
-  energyInputChartData: ChartPoint[],
-  energyOutputChartData: ChartPoint[],
-  batteryTemperatureData: ChartPoint[],
-  solarTemperatureData: ChartPoint[],
-): {
-  solarMax: number;
-  energyInputMax: number;
-  temperatureMax: number;
-} {
-  const solarMax =
-    Math.max(
-      100,
-      ...solarChartData.map(
-        (item) =>
-          item.value,
-      ),
-    );
-
-  const energyInputMax =
-    Math.max(
-      10,
-      ...energyInputChartData.map(
-        (item) =>
-          item.value,
-      ),
-      ...energyOutputChartData.map(
-        (item) =>
-          item.value,
-      ),
-    );
-
-  const temperatureMax =
-    Math.max(
-      40,
-      ...batteryTemperatureData.map(
-        (item) =>
-          item.value,
-      ),
-      ...solarTemperatureData.map(
-        (item) =>
-          item.value,
-      ),
-    );
-
-  return {
-    solarMax,
-    energyInputMax,
-    temperatureMax,
-  };
-}
-
 /* ============================================================
    NEXT BUCKET HELPER
    ============================================================ */
@@ -3230,22 +3014,6 @@ export function generateAdlaWattCsv(
     ],
 
     [
-      "Average Battery Temperature (C)",
-      formatNumber(
-        reportData.summary
-          .averageBatteryTemperature,
-      ),
-    ],
-
-    [
-      "Maximum Battery Temperature (C)",
-      formatNumber(
-        reportData.summary
-          .maximumBatteryTemperature,
-      ),
-    ],
-
-    [
       "Average Solar Temperature (C)",
       formatNumber(
         reportData.summary
@@ -3313,7 +3081,6 @@ export function generateAdlaWattCsv(
     "Unsafe Samples",
     "Temp Alerts",
     "Sun Hours",
-    "Avg Battery C",
     "Avg Solar C",
   ];
 
@@ -3342,9 +3109,6 @@ export function generateAdlaWattCsv(
       period.temperatureAlertCount,
       formatNumber(period.sunHours),
       formatNumber(
-        period.avgBatteryTemperature,
-      ),
-      formatNumber(
         period.avgSolarTemperature,
       ),
     ],
@@ -3370,8 +3134,6 @@ export function generateAdlaWattCsv(
     "Load W",
     "Device",
     "Last Seen",
-    "Battery C",
-    "Battery Temp Status",
     "Solar C",
     "Solar Temp Status",
     "Interior C",
@@ -3402,8 +3164,6 @@ export function generateAdlaWattCsv(
         row.currentLoad,
         row.deviceStatus,
         row.lastSeen,
-        row.batteryTemperature,
-        row.batteryTemperatureStatus,
         row.solarTemperature,
         row.solarTemperatureStatus,
         row.interiorTemp,
@@ -5113,28 +4873,6 @@ export async function generateAdlaWattPdf(
 
       body: [
         [
-          "Battery Temperature",
-
-          `${formatNumber(
-            reportData.summary
-              .averageBatteryTemperature,
-          )} C`,
-
-          `${formatNumber(
-            reportData.summary
-              .maximumBatteryTemperature,
-          )} C`,
-
-          `${formatNumber(
-            reportData.summary
-              .latestBatteryTemperature,
-          )} C`,
-
-          reportData.summary
-            .latestBatteryTemperatureStatus,
-        ],
-
-        [
           "Solar Temperature",
 
           `${formatNumber(
@@ -5741,7 +5479,6 @@ export async function generateAdlaWattPdf(
             "Solar W",
             "Load W",
             "Device",
-            "Battery C",
             "Solar C",
             "Sol Timer",
             "Sol V",
@@ -5759,7 +5496,6 @@ export async function generateAdlaWattPdf(
               row.solarInput,
               row.currentLoad,
               row.deviceStatus,
-              row.batteryTemperature,
               row.solarTemperature,
               row.solarTimer,
               row.solarVoltage,

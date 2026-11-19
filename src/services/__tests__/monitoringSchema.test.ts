@@ -7,7 +7,6 @@
 
 import {
   BATTERY_STATUS_VALUES,
-  BATTERY_TEMPERATURE_STATUS_VALUES,
   DEVICE_STATUS_VALUES,
   DOD_STATUS_VALUES,
   INTERNAL_MONITORING_COLUMNS,
@@ -43,8 +42,6 @@ const row: MonitoringRow = {
   "INA219 Load Side battery load": 50,
   "ESP32S3 Status": "Online",
   "ESP32S3 Last seen": "2026-11-12T10:00:00.000Z",
-  "DS18B20 1 Battery Temp": 30,
-  "DS18B20 1 Battery Temp Status": "Nominal",
   "INA219 Load Side dod_status": "Safe",
   "DS18B20 2 Solar Temp": 35,
   "DS18B20 2 Solar Temp Status": "Nominal",
@@ -69,11 +66,11 @@ describe("monitoring column contract", () => {
     );
   });
 
-  test("all 27 columns are selected", () => {
-    expect(MONITORING_COLUMNS).toHaveLength(27);
+  test("all 25 columns are selected", () => {
+    expect(MONITORING_COLUMNS).toHaveLength(25);
     expect(
       MONITORING_SELECT.split(","),
-    ).toHaveLength(27);
+    ).toHaveLength(25);
   });
 
   test("every column is displayed or explicitly excluded", () => {
@@ -113,15 +110,6 @@ describe("monitoring column contract", () => {
       "High",
       "Critical",
       "Critical (rapid rise)",
-      "Critical (sensor fault)",
-    ]);
-    expect(
-      BATTERY_TEMPERATURE_STATUS_VALUES,
-    ).toEqual([
-      "Nominal",
-      "Elevated",
-      "High",
-      "Critical",
       "Critical (sensor fault)",
     ]);
     expect(
@@ -184,7 +172,7 @@ describe("row guard", () => {
   test("non-objects report every column missing", () => {
     expect(
       getMissingMonitoringColumns(null),
-    ).toHaveLength(27);
+    ).toHaveLength(25);
   });
 });
 
@@ -206,8 +194,6 @@ describe("normalization", () => {
       solar_voltage: null,
       solar_current: null,
       total_energy: null,
-      battery_temperature: null,
-      battery_temperature_status: null,
       dod_status: null,
       solar_temperature: null,
       solar_temperature_status: null,
@@ -248,21 +234,16 @@ describe("normalization", () => {
     );
   });
 
-  test("accepts the new critical temperature variants", () => {
+  test("accepts critical solar and interior variants", () => {
     const normalized =
       normalizeMonitoringRow({
         ...row,
-        "DS18B20 1 Battery Temp Status":
-          "Critical (sensor fault)",
         "DS18B20 2 Solar Temp Status":
           "Critical (rapid rise)",
         "DHT22 Interior Temp Status":
           "Critical (sensor fault)",
       });
 
-    expect(
-      normalized.battery_temperature_status,
-    ).toBe("Critical (sensor fault)");
     expect(
       normalized.solar_temperature_status,
     ).toBe("Critical (rapid rise)");
@@ -281,14 +262,14 @@ describe("normalization", () => {
         ...row,
         "INA219 Load Battery status": "Bogus",
         "ESP32S3 Status": "Unknown",
-        "DS18B20 1 Battery Temp Status": "Hot",
+        "DS18B20 2 Solar Temp Status": "Hot",
         "ESP32S3 Last seen": "not-a-date",
       });
 
     expect(normalized.battery_status).toBeNull();
     expect(normalized.device_status).toBeNull();
     expect(
-      normalized.battery_temperature_status,
+      normalized.solar_temperature_status,
     ).toBeNull();
     expect(normalized.last_seen).toBeNull();
   });

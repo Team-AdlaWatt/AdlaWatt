@@ -13,8 +13,6 @@
   "INA219 Load Side battery load",
   "ESP32S3 Status",
   "ESP32S3 Last seen",
-  "DS18B20 1 Battery Temp",
-  "DS18B20 1 Battery Temp Status",
   "INA219 Load Side dod_status",
   "DS18B20 2 Solar Temp",
   "DS18B20 2 Solar Temp Status",

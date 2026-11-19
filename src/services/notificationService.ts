@@ -144,9 +144,6 @@ const DEFAULT_RULE_DATA: MonitoringRuleData = {
   solar_current: 0,
   total_energy: 0,
 
-  battery_temperature: 25,
-  battery_temperature_status: "Nominal",
-
   dod_status: "Safe",
 
   solar_temperature: 25,
@@ -215,15 +212,6 @@ const toMonitoringRuleData = (
     data.total_energy ??
     fallback?.total_energy ??
     DEFAULT_RULE_DATA.total_energy,
-
-  battery_temperature:
-    data.battery_temperature ??
-    fallback?.battery_temperature ??
-    DEFAULT_RULE_DATA.battery_temperature,
-  battery_temperature_status:
-    data.battery_temperature_status ??
-    fallback?.battery_temperature_status ??
-    DEFAULT_RULE_DATA.battery_temperature_status,
 
   dod_status:
     data.dod_status ??
@@ -1059,109 +1047,6 @@ const checkBatteryLevelUpdated =
           type: "normal",
         },
         UPDATE_NOTIFICATION_COOLDOWN_MS,
-      );
-    }
-  };
-
-
-// ------------------------------------------------------------
-// BATTERY TEMPERATURE STATUS
-// ------------------------------------------------------------
-
-const checkBatteryTemperatureStatus =
-  async (
-    userId: string,
-    current: MonitoringRuleData,
-    previous: MonitoringRuleData | null,
-  ) => {
-
-    if (previous === null) {
-      return;
-    }
-
-    // Any Critical variant (plain, rapid rise, sensor fault)
-    // counts as a critical temperature alert.
-    const batteryTemperatureCritical =
-      current.battery_temperature_status.startsWith(
-        "Critical",
-      );
-
-    const previousBatteryTemperatureCritical =
-      previous.battery_temperature_status.startsWith(
-        "Critical",
-      );
-
-    if (
-      current.battery_temperature_status ===
-        "Nominal" &&
-      previous.battery_temperature_status !==
-        "Nominal"
-    ) {
-
-      await createNotification(
-        userId,
-        {
-          title:
-            "Battery Temperature Nominal",
-          description:
-            "The battery temperature status is Nominal.",
-          type: "normal",
-        },
-      );
-    }
-
-    if (
-      current.battery_temperature_status ===
-        "Elevated" &&
-      previous.battery_temperature_status !==
-        "Elevated"
-    ) {
-
-      await createNotification(
-        userId,
-        {
-          title:
-            "Battery Temperature Elevated",
-          description:
-            "Battery temperature is above its normal range but is not critical.",
-          type: "normal",
-        },
-      );
-    }
-
-    if (
-      current.battery_temperature_status ===
-        "High" &&
-      previous.battery_temperature_status !==
-        "High"
-    ) {
-
-      await createNotification(
-        userId,
-        {
-          title:
-            "Battery Temperature High",
-          description:
-            "Battery temperature is high but has not reached the critical level.",
-          type: "normal",
-        },
-      );
-    }
-
-    if (
-      batteryTemperatureCritical &&
-      !previousBatteryTemperatureCritical
-    ) {
-
-      await createNotification(
-        userId,
-        {
-          title:
-            "Critical Battery Temperature",
-          description:
-            "Battery temperature has reached a critical level. Check the system immediately.",
-          type: "alert",
-        },
       );
     }
   };
@@ -2373,41 +2258,6 @@ const checkBatteryVoltageZero =
 
 
 // ------------------------------------------------------------
-// BATTERY TEMPERATURE ZERO
-// ------------------------------------------------------------
-
-const checkBatteryTemperatureZero =
-  async (
-    userId: string,
-    current: MonitoringRuleData,
-    previous: MonitoringRuleData | null,
-  ) => {
-
-    if (
-      current.battery_temperature ===
-        0 &&
-      (
-        previous === null ||
-        previous.battery_temperature !==
-          0
-      )
-    ) {
-
-      await createNotification(
-        userId,
-        {
-          title:
-            "Battery Temperature Reading Zero",
-          description:
-            "The battery_temperature value is 0. This may indicate a missing or invalid temperature reading, depending on your sensor setup.",
-          type: "alert",
-        },
-      );
-    }
-  };
-
-
-// ------------------------------------------------------------
 // SOLAR TEMPERATURE ZERO
 // ------------------------------------------------------------
 
@@ -2851,12 +2701,6 @@ const processMonitoringNotifications =
         previous,
       );
 
-      await checkBatteryTemperatureStatus(
-        userId,
-        current,
-        previous,
-      );
-
       await checkSolarTemperatureStatus(
         userId,
         current,
@@ -2975,12 +2819,6 @@ const processMonitoringNotifications =
       );
 
       await checkBatteryVoltageZero(
-        userId,
-        current,
-        previous,
-      );
-
-      await checkBatteryTemperatureZero(
         userId,
         current,
         previous,

@@ -45,13 +45,6 @@ const STATUS_COLUMNS = {
   ],
   "ESP32S3 Status": ["Online", "Offline"],
   "INA219 Load Side dod_status": ["Safe", "Unsafe"],
-  "DS18B20 1 Battery Temp Status": [
-    "Nominal",
-    "Elevated",
-    "High",
-    "Critical",
-    "Critical (sensor fault)",
-  ],
   "DS18B20 2 Solar Temp Status": [
     "Nominal",
     "Elevated",
@@ -156,9 +149,9 @@ if (contract.length !== contractSet.size) {
   );
 }
 
-if (contract.length !== 27) {
+if (contract.length !== 25) {
   fail(
-    `Expected 27 monitoring columns, contract has ${contract.length}.`,
+    `Expected 25 monitoring columns, contract has ${contract.length}.`,
   );
 }
 

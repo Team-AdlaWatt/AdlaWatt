@@ -68,31 +68,29 @@ function Stat({
 
 /* ============================================================
    TEMPERATURES
-   Three thin lines per period — battery green, solar yellow,
-   interior red (react-native-gifted-charts, SVG-based so it
-   works on native and web with no extra engine loading). Only
-   the battery series carries area fill so overlaps never turn
-   muddy. Y scale is dynamic (nice-ceiled data max) because
-   temperatures are unbounded.
+   Two thin lines per period — solar yellow, interior red
+   (react-native-gifted-charts, SVG-based so it works on native
+   and web with no extra engine loading). Only the solar series
+   carries area fill so overlaps never turn muddy. Y scale is
+   dynamic (nice-ceiled data max) because temperatures are
+   unbounded.
    Interior NULL discipline: history predates the v8
    interior_temp column, so interior gaps are filled from the
    last finite value (flat lead-in from the first finite one).
-   Ranges with no interior data at all render the two older
-   lines with "-" interior stats; the legend still lists all
-   three as commitment to the line.
+   Ranges with no interior data at all render the solar line
+   with "-" interior stats; the legend still lists both lines
+   as commitment to the line.
    The Y axis labels stay fixed while the plot scrolls inside;
    the chart opens at the newest data via scrollToEnd.
-   All three point arrays must share buckets (same order).
+   Both point arrays must share buckets (same order).
    Do NOT wrap this component in a horizontal ScrollView.
    ============================================================ */
 
 export default function TemperaturesChart({
-  battPoints,
   solarPoints,
   interiorPoints,
   pointWidth = DEFAULT_POINT_WIDTH,
 }: {
-  battPoints: ChartPoint[];
   solarPoints: ChartPoint[];
   interiorPoints: ChartPoint[];
   pointWidth?: number;
@@ -108,27 +106,22 @@ export default function TemperaturesChart({
 
   const scrollRef = useRef<ScrollView | null>(null);
 
-  // Pair up by index on the two always-present series; interior
-  // rides along as number|null (never drops a bucket).
+  // Solar is the always-present series; interior rides along as
+  // number|null (never drops a bucket).
   const pairs = useMemo(
     () =>
-      battPoints
-        .map((battPoint, index) => ({
-          batt: battPoint.value,
-          solar: solarPoints[index]?.value,
+      solarPoints
+        .map((solarPoint, index) => ({
+          solar: solarPoint.value,
           interior:
             interiorPoints[index] != null &&
             Number.isFinite(interiorPoints[index].value)
               ? (interiorPoints[index].value as number)
               : null,
-          label: battPoint.label ?? "",
+          label: solarPoint.label ?? "",
         }))
-        .filter(
-          (pair) =>
-            Number.isFinite(pair.batt) &&
-            Number.isFinite(pair.solar),
-        ),
-    [battPoints, solarPoints, interiorPoints],
+        .filter((pair) => Number.isFinite(pair.solar)),
+    [solarPoints, interiorPoints],
   );
   const isEmpty = pairs.length < 2;
 
@@ -171,10 +164,7 @@ export default function TemperaturesChart({
     ? 10
     : niceCeil(
         Math.max(
-          ...pairs.flatMap((pair) => [
-            pair.batt,
-            pair.solar as number,
-          ]),
+          ...pairs.map((pair) => pair.solar),
           ...(hasInterior ? interiorFilled : [0]),
         ),
       );
@@ -188,23 +178,8 @@ export default function TemperaturesChart({
             { value: 0, label: "" },
           ]
         : pairs.map((pair) => ({
-            value: Math.max(0, pair.batt),
+            value: Math.max(0, pair.solar),
             label: pair.label,
-          })),
-    [pairs, isEmpty],
-  );
-
-  // Solar line: same length/order, no x-labels (labels stay on
-  // the primary series to avoid duplicates).
-  const dataSolar = useMemo(
-    () =>
-      isEmpty
-        ? [
-            { value: 0 },
-            { value: 0 },
-          ]
-        : pairs.map((pair) => ({
-            value: Math.max(0, pair.solar as number),
           })),
     [pairs, isEmpty],
   );
@@ -231,18 +206,38 @@ export default function TemperaturesChart({
     : Math.max(pointWidth, (chartW - 36) / (pairs.length - 1));
 
   // Stats: one value each, nothing repeats.
-  const latestBatt = isEmpty ? null : pairs[pairs.length - 1].batt;
   const latestSolar = isEmpty
     ? null
-    : (pairs[pairs.length - 1].solar as number);
+    : pairs[pairs.length - 1].solar;
   const latestInterior = hasInterior
     ? interiorFilled[interiorFilled.length - 1]
     : null;
-  const hottest = hasInterior
+  const hottestSolar = isEmpty
+    ? null
+    : pairs.reduce(
+        (
+          top: { value: number; index: number } | null,
+          pair,
+          index,
+        ) =>
+          Number.isFinite(pair.solar) &&
+          (top === null || pair.solar > top.value)
+            ? { value: pair.solar, index }
+            : top,
+        null,
+      );
+  const hottestInterior = hasInterior
     ? interiorFinite.reduce((top, entry) =>
         entry.value > top.value ? entry : top,
       )
     : null;
+  const hottest =
+    hottestSolar === null
+      ? hottestInterior
+      : hottestInterior === null ||
+          hottestSolar.value >= hottestInterior.value
+        ? hottestSolar
+        : hottestInterior;
 
   useEffect(() => {
     if (isEmpty || boxW <= 0) {
@@ -271,14 +266,6 @@ export default function TemperaturesChart({
     <View style={styles.container}>
       {/* Stats: text labels, not color only. */}
       <View style={styles.statsRow}>
-        <Stat
-          label="Batt"
-          value={
-            latestBatt != null ? `${Math.round(latestBatt)}°C` : "-"
-          }
-          color={colors.text}
-        />
-
         <Stat
           label="Solar"
           value={
@@ -318,15 +305,14 @@ export default function TemperaturesChart({
             <LineChart
               key={`temperatures-${data.length}-${hasInterior}`}
               data={data}
-              data2={dataSolar}
-              // Native-only guard: omit the 3rd series entirely
+              // Native-only guard: omit the 2nd series entirely
               // when interior history is empty. Passing [] against
               // 2-item series throws on Fabric/SVG release builds
               // while web tolerates the length mismatch.
               {...(hasInterior &&
               dataInterior.length > 0
                 ? {
-                    data3:
+                    data2:
                       dataInterior,
                   }
                 : {})}
@@ -336,14 +322,12 @@ export default function TemperaturesChart({
               overflowTop={8}
               curved
             areaChart
-            color={chartColors.green}
-            color2={chartColors.yellow}
-            color3={chartColors.red}
+            color={chartColors.yellow}
+            color2={chartColors.red}
             thickness={1.5}
             thickness2={1.5}
-            thickness3={1.5}
-            startFillColor={chartColors.green}
-            endFillColor={chartColors.green}
+            startFillColor={chartColors.yellow}
+            endFillColor={chartColors.yellow}
             startOpacity={colors.isDark ? 0.22 : 0.32}
             endOpacity={0.02}
             maxValue={top}
@@ -369,11 +353,9 @@ export default function TemperaturesChart({
             rulesThickness={1}
             showVerticalLines={false}
             hideDataPoints={isEmpty || Platform.OS === "web"}
-            hideDataPoints2={isEmpty || Platform.OS === "web"}
-            hideDataPoints3={!hasInterior || Platform.OS === "web"}
-            dataPointsColor={chartColors.green}
-            dataPointsColor2={chartColors.yellow}
-            dataPointsColor3={chartColors.red}
+            hideDataPoints2={!hasInterior || Platform.OS === "web"}
+            dataPointsColor={chartColors.yellow}
+            dataPointsColor2={chartColors.red}
             dataPointsRadius={3}
             spacing={spacing}
             initialSpacing={20}
@@ -392,24 +374,8 @@ export default function TemperaturesChart({
       <View
         style={styles.legend}
         accessibilityRole="text"
-        accessibilityLabel="Legend: green line battery temperature, yellow line solar temperature, red line interior temperature"
+        accessibilityLabel="Legend: yellow line solar temperature, red line interior temperature"
       >
-        <View style={styles.legendItem}>
-          <View
-            style={[
-              styles.legendSwatchThin,
-              { backgroundColor: chartColors.green },
-            ]}
-          />
-
-          <AppText
-            variant="caption"
-            style={styles.legendText}
-          >
-            Battery
-          </AppText>
-        </View>
-
         <View style={styles.legendItem}>
           <View
             style={[

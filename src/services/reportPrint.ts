@@ -153,7 +153,6 @@ export const buildReportHtml = (
         <td>${escapeHtml(row.solarInput)}</td>
         <td>${escapeHtml(row.currentLoad)}</td>
         <td>${escapeHtml(row.deviceStatus)}</td>
-        <td>${escapeHtml(row.batteryTemperature)}</td>
         <td>${escapeHtml(row.solarTemperature)}</td>
         <td>${escapeHtml(row.solarTimer)}</td>
         <td>${escapeHtml(row.solarVoltage)}</td>
@@ -243,8 +242,6 @@ export const buildReportHtml = (
     ${kpi("Max solar", `${formatNumber(summary.maximumSolarInput)} W`)}
     ${kpi("Avg load", `${formatNumber(summary.averageCurrentLoad)} W`)}
     ${kpi("Max load", `${formatNumber(summary.maximumCurrentLoad)} W`)}
-    ${kpi("Avg batt temp", `${formatNumber(summary.averageBatteryTemperature)} C`)}
-    ${kpi("Max batt temp", `${formatNumber(summary.maximumBatteryTemperature)} C`)}
     ${kpi("Energy in", `${formatNumber(summary.totalEnergyInputWh)} Wh`)}
     ${kpi("Energy out", `${formatNumber(summary.totalEnergyOutputWh)} Wh`)}
     ${kpi("Device", summary.latestDeviceStatus)}
@@ -287,7 +284,6 @@ export const buildReportHtml = (
         <th>Solar W</th>
         <th>Load W</th>
         <th>Device</th>
-        <th>Battery C</th>
         <th>Solar C</th>
         <th>Sol Timer</th>
         <th>Sol V</th>

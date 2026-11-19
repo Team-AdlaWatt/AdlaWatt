@@ -50,8 +50,6 @@ const row = (
     current_load: 90,
     device_status: "Online",
     last_seen: null,
-    battery_temperature: 27,
-    battery_temperature_status: "Nominal",
     dod_status: "Safe",
     solar_temperature: 41,
     solar_temperature_status: "Nominal",
@@ -69,7 +67,7 @@ const row = (
 const reportData = prepareReportData(
   [
     row("2026-10-01T08:00:00", 80, {
-      battery_temperature_status: "High",
+      solar_temperature_status: "High",
     }),
     row("2026-10-01T20:00:00", 15, {
       device_status: "Offline",
