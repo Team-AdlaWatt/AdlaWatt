@@ -36,6 +36,32 @@ export const formatMetric = (
   return unit ? `${rendered}${unit}` : rendered;
 };
 
+export const fitTextFontSize = (
+  measuredWidth: number,
+  targetWidth: number,
+  currentFontSize: number,
+  minFontSize: number,
+): number => {
+  if (
+    !Number.isFinite(measuredWidth) ||
+    !Number.isFinite(targetWidth) ||
+    !Number.isFinite(currentFontSize) ||
+    measuredWidth <= 0 ||
+    targetWidth <= 0 ||
+    currentFontSize <= 0 ||
+    measuredWidth <= targetWidth
+  ) {
+    return currentFontSize;
+  }
+
+  return Math.max(
+    Math.min(minFontSize, currentFontSize),
+    Math.floor(
+      (currentFontSize * targetWidth) / measuredWidth,
+    ),
+  );
+};
+
 export const formatTemperature = (
   value: number | null | undefined,
 ): string => {

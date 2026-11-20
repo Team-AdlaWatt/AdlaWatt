@@ -10,6 +10,7 @@ import {
   AccessibilityInfo,
   Animated,
   Easing,
+  LayoutChangeEvent,
   Linking,
   Pressable,
   StyleSheet,
@@ -22,6 +23,7 @@ import Svg, {
 } from "react-native-svg";
 
 import AppText from "@/components/ui/AppText";
+import { useSettings } from "@/context/SettingsContext";
 import {
   BATTERY_CAPACITY_WH,
   BATTERY_RESERVE_WH,
@@ -42,6 +44,7 @@ import type {
 import { isBatteryReadingError } from "@/services/monitoringSchema";
 import {
   MISSING_VALUE,
+  fitTextFontSize,
   formatMetric,
   formatTemperature,
   hasValue,
@@ -206,6 +209,13 @@ const CHARGING_GLOW_STROKE_OFFSET = 5;
 
 const SUN_RADIUS = 52;
 
+const SOLAR_LABEL_MAX_FONT_SIZE = 30;
+
+const SOLAR_LABEL_MIN_FONT_SIZE = 10;
+
+const SOLAR_LABEL_TARGET_WIDTH =
+  SUN_RADIUS * 2 - 16;
+
 const SUN_RAYS_STROKE = STROKE;
 
 // Short capsule rays that float with a clear distance from the
@@ -288,6 +298,63 @@ export default function ChartCard({
 }: ChartCardProps) {
 
   const colors = useAppColors();
+
+  const { prefs } = useSettings();
+
+  const solarInput =
+    loading
+      ? "—"
+      : formatMetric(
+          monitoring?.solar_input,
+          "W",
+        );
+
+  const solarLabelKey =
+    `${solarInput}|${prefs.fontFamily}|${prefs.fontSize}`;
+
+  const [
+    solarLabelFit,
+    setSolarLabelFit,
+  ] = useState({
+    key: solarLabelKey,
+    fontSize: SOLAR_LABEL_MAX_FONT_SIZE,
+  });
+
+  const solarLabelFontSize =
+    solarLabelFit.key === solarLabelKey
+      ? solarLabelFit.fontSize
+      : SOLAR_LABEL_MAX_FONT_SIZE;
+
+  const handleSolarLabelLayout = (
+    event: LayoutChangeEvent,
+  ): void => {
+    setSolarLabelFit((current) => {
+      const currentFontSize =
+        current.key === solarLabelKey
+          ? current.fontSize
+          : SOLAR_LABEL_MAX_FONT_SIZE;
+
+      const nextFontSize =
+        fitTextFontSize(
+          event.nativeEvent.layout.width,
+          SOLAR_LABEL_TARGET_WIDTH,
+          currentFontSize,
+          SOLAR_LABEL_MIN_FONT_SIZE,
+        );
+
+      if (
+        current.key === solarLabelKey &&
+        current.fontSize === nextFontSize
+      ) {
+        return current;
+      }
+
+      return {
+        key: solarLabelKey,
+        fontSize: nextFontSize,
+      };
+    });
+  };
 
   const styles = useMemo(
     () => getStyles(colors),
@@ -1186,14 +1253,6 @@ export default function ChartCard({
       monitoring?.solar_timer ??
       null;
 
-    const solarInput =
-      loading
-        ? "—"
-        : formatMetric(
-            monitoring?.solar_input,
-            "W",
-          );
-
     const solarVoltage =
       loading
         ? "—"
@@ -1353,9 +1412,15 @@ export default function ChartCard({
 
                 <AppText
                   variant="heading"
-                  style={
-                    styles.solarCenterText
-                  }
+                  numberOfLines={1}
+                  ellipsizeMode="clip"
+                  onLayout={handleSolarLabelLayout}
+                  style={[
+                    styles.solarCenterText,
+                    {
+                      fontSize: solarLabelFontSize,
+                    },
+                  ]}
                 >
                   {solarInput}
                 </AppText>
@@ -3189,9 +3254,10 @@ const getStyles = (colors: AppColors) =>
   // theme and goes light in dark mode, unreadable on yellow.
   solarCenterText: {
     color: Colors.light.text,
-    fontSize: 30,
+    fontSize: SOLAR_LABEL_MAX_FONT_SIZE,
     fontWeight: "800",
-    lineHeight: 26,
+    textAlign: "center",
+    includeFontPadding: false,
   },
 
   // Frozen: dark ink on the moderate (amber) solar badge.

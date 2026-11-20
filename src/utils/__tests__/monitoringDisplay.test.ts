@@ -8,6 +8,7 @@ import {
   SENSOR_FAULT_VALUE,
   formatLastSeen,
   formatMetric,
+  fitTextFontSize,
   formatTemperature,
   hasTemperatureReading,
   isDeviceOnline,
@@ -61,6 +62,24 @@ describe("metric display", () => {
       MISSING_VALUE,
     );
     expect(MISSING_VALUE).toBe("--");
+  });
+});
+
+describe("fit text font size", () => {
+  test("keeps the current size when the text already fits", () => {
+    expect(fitTextFontSize(80, 88, 30, 10)).toBe(30);
+    expect(fitTextFontSize(88, 88, 30, 10)).toBe(30);
+    expect(fitTextFontSize(0, 88, 30, 10)).toBe(30);
+  });
+
+  test("shrinks long values proportionally", () => {
+    expect(fitTextFontSize(140, 88, 30, 10)).toBe(18);
+    expect(fitTextFontSize(98, 88, 21, 10)).toBe(18);
+  });
+
+  test("never shrinks below the minimum", () => {
+    expect(fitTextFontSize(400, 88, 18, 10)).toBe(10);
+    expect(fitTextFontSize(400, 88, 8, 10)).toBe(8);
   });
 });
 
