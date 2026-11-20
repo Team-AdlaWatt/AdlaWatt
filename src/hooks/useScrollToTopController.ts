@@ -7,7 +7,7 @@ import {
 import type {
   NativeScrollEvent,
   NativeSyntheticEvent,
-  ScrollView,
+  ScrollViewInstance,
 } from "react-native";
 
 const ENABLE_RATIO = 0.5;
@@ -23,7 +23,7 @@ export interface ScrollToTopController {
 }
 
 export function useScrollToTopController(
-  scrollRef: RefObject<ScrollView | null>,
+  scrollRef: RefObject<ScrollViewInstance | null>,
 ): ScrollToTopController {
   const [enabled, setEnabled] =
     useState(false);

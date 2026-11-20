@@ -7,6 +7,7 @@ import React, {
 import {
   Pressable,
   ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   View,
 } from "react-native";
@@ -75,7 +76,7 @@ export default function UserManualScreen() {
   );
 
   const scrollRef =
-    useRef<ScrollView | null>(null);
+    useRef<ScrollViewInstance | null>(null);
 
   const scrollToTop =
     useScrollToTopController(scrollRef);

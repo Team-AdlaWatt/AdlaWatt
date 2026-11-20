@@ -13,9 +13,10 @@ import {
   AppState,
   Easing,
   Pressable,
-  ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   View,
+  type ViewInstance,
 } from "react-native";
 
 import ActivityCard from "@/components/ActivityCard";
@@ -101,16 +102,16 @@ export default function DashboardScreen() {
   // ==========================================================
 
   const scrollRef =
-    useRef<ScrollView>(null);
+    useRef<ScrollViewInstance>(null);
 
   const scrollToTop =
     useScrollToTopController(scrollRef);
 
   const monitoringRef =
-    useRef<View>(null);
+    useRef<ViewInstance>(null);
 
   const electronicsRef =
-    useRef<View>(null);
+    useRef<ViewInstance>(null);
 
   const scrollYRef =
     useRef(0);
@@ -593,7 +594,7 @@ export default function DashboardScreen() {
   }, [scrollOffset]);
 
   const scrollToSection = (
-    sectionRef: React.RefObject<View | null>,
+    sectionRef: React.RefObject<ViewInstance | null>,
   ) => {
     const section = sectionRef.current;
     const scroll = scrollRef.current;

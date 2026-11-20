@@ -6,11 +6,6 @@ import { useConnectivity } from "@/hooks/useConnectivity";
 import {
   checkForAppUpdate,
 } from "@/services/appUpdateService";
-import {
-  addAppBreadcrumb,
-  captureAppError,
-} from "@/services/sentry";
-
 const CHECK_INTERVAL_MS = 15 * 60 * 1000;
 
 export default function AppUpdateGuard() {
@@ -33,18 +28,8 @@ export default function AppUpdateGuard() {
       checking = true;
 
       try {
-        const result = await checkForAppUpdate();
-
-        if (result === "downloaded") {
-          addAppBreadcrumb(
-            "OTA update downloaded",
-            "ota",
-          );
-        }
-      } catch (error) {
-        captureAppError(error, {
-          context: "ota-check",
-        });
+        await checkForAppUpdate();
+      } catch {
       } finally {
         checking = false;
       }

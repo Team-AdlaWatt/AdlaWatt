@@ -6,7 +6,7 @@ import {
 } from "react";
 import {
   LayoutChangeEvent,
-  ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   View,
 } from "react-native";
@@ -99,7 +99,7 @@ export default function UnsafeDischargeChart({
   // Own the chart's scroll ref (same pattern as the battery
   // chart): re-assert the end position after layout settles
   // in case the library's content-size scroll fires early.
-  const scrollRef = useRef<ScrollView | null>(null);
+  const scrollRef = useRef<ScrollViewInstance | null>(null);
 
   // Skip non-finite values (periods with no data). Zero stays:
   // a safe period is information, not a gap.

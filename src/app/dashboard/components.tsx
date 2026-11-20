@@ -8,6 +8,7 @@ import React, {
 
 import {
   ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   View,
 } from "react-native";
@@ -131,7 +132,7 @@ export default function ComponentsScreen() {
   );
 
   const scrollRef =
-    useRef<ScrollView>(null);
+    useRef<ScrollViewInstance>(null);
 
   const scrollToTop =
     useScrollToTopController(scrollRef);

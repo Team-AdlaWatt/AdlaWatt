@@ -10,7 +10,7 @@ import {
   ScrollView,
   StyleSheet,
   View,
-  type ScrollView as ScrollViewType,
+  type ScrollViewInstance,
 } from "react-native";
 
 import AppText from "@/components/ui/AppText";
@@ -40,7 +40,7 @@ interface DropdownModalProps {
   footer?: ReactNode;
   showCloseButton?: boolean;
   dismissOnOverlayPress?: boolean;
-  scrollRef?: RefObject<ScrollViewType | null>;
+  scrollRef?: RefObject<ScrollViewInstance | null>;
 }
 
 export function DropdownModal({

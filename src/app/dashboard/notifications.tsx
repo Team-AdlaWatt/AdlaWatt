@@ -12,7 +12,7 @@ import {
   Animated,
   Easing,
   Pressable,
-  ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   View,
 } from "react-native";
@@ -135,7 +135,7 @@ export default function NotificationsScreen() {
   // ==========================================================
 
   const scrollRef =
-    useRef<ScrollView>(null);
+    useRef<ScrollViewInstance>(null);
 
   const scrollToTop =
     useScrollToTopController(scrollRef);

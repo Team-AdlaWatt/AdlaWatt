@@ -96,7 +96,7 @@ export function useVibrationGuidance(): VibrationGuidanceState {
         const shouldShow =
           shouldShowVibrationGuidance({
             platformOS: Platform.OS,
-            appState: AppState.currentState,
+            appState: AppState.currentState ?? "unknown",
             pathname: pathnameRef.current,
             guidanceEnabled,
             vibrationEnabled,

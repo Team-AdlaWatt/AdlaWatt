@@ -13,8 +13,6 @@ import {
   Roboto_700Bold,
 } from "@expo-google-fonts/roboto";
 
-import { captureAppError } from "@/services/sentry";
-
 // ============================================================
 // APP FONTS
 //
@@ -62,9 +60,6 @@ export function useAppFonts(): boolean {
     console.warn(
       "[fonts] Bundled fonts failed to load; using the system fallback.",
     );
-    captureAppError(error, {
-      source: "fonts",
-    });
   }, [error]);
 
   return loaded || Boolean(error) || timedOut;

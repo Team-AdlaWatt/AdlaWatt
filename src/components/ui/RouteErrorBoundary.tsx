@@ -1,7 +1,9 @@
-import * as Sentry from "@sentry/react-native";
-import React, { useRef } from "react";
+import React from "react";
 
-import SilentBoundaryFallback from "@/components/ui/SilentBoundaryFallback";
+// ============================================================
+// ROUTE ERROR BOUNDARY
+// (Sentry removed: pass-through, no crash reporting)
+// ============================================================
 
 interface RouteErrorBoundaryProps {
   children: React.ReactNode;
@@ -10,21 +12,5 @@ interface RouteErrorBoundaryProps {
 export default function RouteErrorBoundary({
   children,
 }: RouteErrorBoundaryProps) {
-  const attemptsRef = useRef(0);
-
-  return (
-    <Sentry.ErrorBoundary
-      fallback={({ resetError }) => (
-        <SilentBoundaryFallback
-          attempts={attemptsRef.current}
-          onRetry={() => {
-            attemptsRef.current += 1;
-            resetError();
-          }}
-        />
-      )}
-    >
-      {children}
-    </Sentry.ErrorBoundary>
-  );
+  return <>{children}</>;
 }
