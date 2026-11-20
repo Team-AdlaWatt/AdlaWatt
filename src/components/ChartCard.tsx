@@ -47,6 +47,7 @@ import {
   fitTextFontSize,
   formatMetric,
   formatTemperature,
+  formatTemperatureStatusLabel,
   hasValue,
 } from "@/utils/monitoringDisplay";
 import { getEstimatedTimeRemaining } from "@/utils/estimatedTimeRemaining";
@@ -1218,7 +1219,9 @@ export default function ChartCard({
                       interiorTemperatureBadgeText,
                     ]}
                   >
-                    {interiorTemperatureStatus}
+                    {formatTemperatureStatusLabel(
+                      interiorTemperatureStatus,
+                    )}
                   </AppText>
 
                 </View>
@@ -2908,7 +2911,9 @@ function getCardData(
         ...(status
           ? {
               badge:
-                status,
+                formatTemperatureStatusLabel(
+                  status,
+                ),
 
               badgeStyle:
                 getTemperatureBadgeStyle(

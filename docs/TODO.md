@@ -41,3 +41,64 @@
 
 - [ ] Account Profile: Maintain a fixed height when the Update button is clicked
 - [ ] Account Profile: Remove the black border from the password field
+
+## PROJECT NOTES
+
+### 1. HARDWARE SIDE - DISPLAY
+
+#### 1.1 Welcome Screen
+
+- [ ] Display a welcome message.
+- [ ] Show a QR code to download or open the mobile application.
+
+#### 1.2 User Registration and Login
+
+- [ ] Register an account through the mobile application.
+- [ ] Log in using a PIN.
+
+#### 1.3 Main Dashboard
+
+- [ ] Display battery percentage (%).
+- [ ] Display solar voltage (V).
+- [ ] Display solar power (W).
+- [ ] Display available load watts (W).
+- [ ] Display consumed watts (W).
+
+#### 1.4 Wi-Fi Status
+
+- [ ] Display whether Wi-Fi is connected or offline.
+- [ ] When online, send monitoring data to the database.
+- [ ] When offline, store monitoring data locally on the SD card.
+- [ ] Automatically synchronize stored data once Wi-Fi reconnects.
+
+#### 1.5 Wi-Fi Connection
+
+- [ ] Provide a Connect to Wi-Fi option on the display.
+
+### 2. SYSTEM SIDE - USER SUGGESTIONS
+
+#### 2.1 Automatic Appliance Monitoring
+
+- [ ] Detect or measure the wattage of connected appliances.
+- [ ] Display appliance power consumption.
+- [ ] Estimate how long an appliance can operate based on available battery capacity.
+
+#### 2.2 Manual Appliance Selection
+
+- [ ] Allow users to select appliances from the mobile application.
+- [ ] Allow users to select one, two, or three appliances.
+- [ ] Calculate the combined wattage of the selected appliances.
+
+#### 2.3 Recommendation Results
+
+- [ ] Show whether the selected appliances are advisable to use.
+- [ ] Display the total power consumption of the selected appliances.
+- [ ] Estimate operating time in hours and minutes.
+- [ ] Show the estimated remaining battery percentage.
+- [ ] Suggest alternative appliances if the selected appliances are not advisable.
+
+#### 2.4 Main Purpose
+
+- [ ] Help users determine which appliances they can operate.
+- [ ] Prevent excessive power consumption.
+- [ ] Maximize battery usage and efficiency.

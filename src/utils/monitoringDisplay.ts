@@ -20,6 +20,11 @@ export const hasTemperatureReading = (
   value: number | null | undefined,
 ): value is number => hasValue(value);
 
+export const formatTemperatureStatusLabel = (
+  status: string,
+): string =>
+  status === "Critical (sensor fault)" ? "Critical" : status;
+
 export const formatMetric = (
   value: number | null | undefined,
   unit = "",

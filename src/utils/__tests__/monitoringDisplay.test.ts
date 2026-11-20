@@ -10,6 +10,7 @@ import {
   formatMetric,
   fitTextFontSize,
   formatTemperature,
+  formatTemperatureStatusLabel,
   hasTemperatureReading,
   isDeviceOnline,
 } from "@/utils/monitoringDisplay";
@@ -45,6 +46,27 @@ describe("temperature display", () => {
       SENSOR_FAULT_VALUE,
     );
     expect(SENSOR_FAULT_VALUE).toBe("Sensor fault");
+  });
+});
+
+describe("temperature status label", () => {
+  test("shortens only the sensor fault status for display", () => {
+    expect(
+      formatTemperatureStatusLabel(
+        "Critical (sensor fault)",
+      ),
+    ).toBe("Critical");
+    expect(
+      formatTemperatureStatusLabel(
+        "Critical (rapid rise)",
+      ),
+    ).toBe("Critical (rapid rise)");
+    expect(formatTemperatureStatusLabel("Critical")).toBe(
+      "Critical",
+    );
+    expect(formatTemperatureStatusLabel("Nominal")).toBe(
+      "Nominal",
+    );
   });
 });
 
