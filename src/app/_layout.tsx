@@ -8,7 +8,6 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 
 import AccountSessionGuard from "@/components/auth/AccountSessionGuard";
 import AppUpdateGuard from "@/components/updates/AppUpdateGuard";
-import CrashFallback from "@/components/ui/CrashFallback";
 
 import {
   initSentry,
@@ -101,28 +100,22 @@ function PushRegistrationSync() {
 
 function RootLayout() {
   return (
-    <Sentry.GlobalErrorBoundary
-      fallback={({ resetError }) => (
-        <CrashFallback onRetry={resetError} />
-      )}
-    >
-      <SafeAreaProvider>
-        <AuthProvider>
-          <SentryUserSync />
-          <PushRegistrationSync />
+    <SafeAreaProvider>
+      <AuthProvider>
+        <SentryUserSync />
+        <PushRegistrationSync />
 
-          <Slot />
+        <Slot />
 
-          {/* Cross-cutting session watcher: an account deleted
-              while the app is open keeps a valid JWT until it
-              expires, so the dashboard would keep rendering.
-              Mounted here (above every route) so the takeover
-              covers dashboard, admin, and auth. */}
-          <AccountSessionGuard />
-          <AppUpdateGuard />
-        </AuthProvider>
-      </SafeAreaProvider>
-    </Sentry.GlobalErrorBoundary>
+        {/* Cross-cutting session watcher: an account deleted
+            while the app is open keeps a valid JWT until it
+            expires, so the dashboard would keep rendering.
+            Mounted here (above every route) so the takeover
+            covers dashboard, admin, and auth. */}
+        <AccountSessionGuard />
+        <AppUpdateGuard />
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
 
