@@ -403,7 +403,7 @@ const en = {
       assignmentSessionExpired:
         "Your session is unavailable or has expired. Sign in again and try again.",
       assignmentQueryFailed:
-        "Unable to retrieve your monitoring assignment. Check your connection and try again.",
+        "Unable to retrieve your monitoring assignment. We'll retry automatically.",
       assignmentAmbiguous:
         "Your monitoring assignment could not be determined. Please contact support.",
       assignmentInvalid:
@@ -563,7 +563,7 @@ const en = {
         "System activity and electronics events will appear here.",
       total: "Total Activity Logs:",
       loadFailed:
-        "We couldn't load your activity logs. Check your connection and try again.",
+        "Activity logs are temporarily unavailable. They'll load automatically when the connection returns.",
       timeRange: "Time Range",
       activityType: "Activity Type",
       timeAll: "All",
@@ -583,7 +583,7 @@ const en = {
         "System notifications and important alerts will appear here.",
       total: "Total Notifications:",
       loadFailed:
-        "We couldn't load your notifications. Check your connection and try again.",
+        "Notifications are temporarily unavailable. They'll load automatically when the connection returns.",
       markFailed:
         "Couldn't mark notifications as read. Please try again.",
       markError:
@@ -616,8 +616,12 @@ const en = {
     emptyTitle: "No Activity Logs",
     emptyDescription:
       "No activities match the selected filters.",
-    errorTitle: "Couldn't load data",
-    retry: "Try Again",
+    quietUnavailableTitle: "Temporarily unavailable",
+    quietUnavailableMessage:
+      "We're retrying automatically. The app is still usable.",
+    quietOfflineTitle: "Working offline",
+    quietOfflineMessage:
+      "We'll sync automatically when the connection returns.",
     paginationPrev: "Prev",
     paginationNext: "Next",
     paginationPage: "Page {{current}} of {{total}}",

@@ -20,9 +20,8 @@ import type { AdminFleetHealth } from "@/services/adminService";
 // the same state ladder — loading spinner, error card with
 // retry, tab header — over one shared fleet fetch. These
 // pieces keep that ladder identical across tabs instead of
-// copy-pasting it per tab. Admin-local on purpose: the shared
-// ui/ErrorState translates its labels via i18n, and admin is
-// pinned English-only.
+// copy-pasting it per tab. Admin-local on purpose because
+// admin is pinned English-only.
 // ============================================================
 
 export interface AdminTabDataProps {

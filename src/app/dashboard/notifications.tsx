@@ -35,7 +35,7 @@ import Pagination from "@/components/ui/Pagination";
 import AppText from "@/components/ui/AppText";
 
 import EmptyState from "@/components/ui/EmptyState";
-import ErrorState from "@/components/ui/ErrorState";
+import AutoRetryNotice from "@/components/ui/AutoRetryNotice";
 import PullRefreshScroll from "@/components/PullRefreshScroll";
 import { useSafeAsync } from "@/hooks/useSafeAsync";
 import { useTableRealtimeRefresh } from "@/hooks/useTableRealtimeRefresh";
@@ -267,6 +267,7 @@ export default function NotificationsScreen() {
     data: loadedNotifications,
     error: loadError,
     loading: isLoading,
+    attempt: loadAttempt,
     retry: retryLoad,
     refresh: refreshNotifications,
   } = useSafeAsync(loadNotifications, [i18n.language]);
@@ -778,8 +779,9 @@ export default function NotificationsScreen() {
         )}
 
         {loadError && !hasLoadedData && (
-          <ErrorState
+          <AutoRetryNotice
             message={loadError}
+            initialAttempts={loadAttempt}
             onRetry={retryLoad}
           />
         )}

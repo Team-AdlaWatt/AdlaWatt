@@ -30,7 +30,7 @@ import {
   RadioOptionRow,
 } from "@/components/ui/DropdownModal";
 import EmptyState from "@/components/ui/EmptyState";
-import ErrorState from "@/components/ui/ErrorState";
+import AutoRetryNotice from "@/components/ui/AutoRetryNotice";
 import PasswordInput from "@/components/ui/PasswordInput";
 import { Card, Control, Touch, useScreenPadding } from "@/constants/sizing";
 import { useAuth } from "@/context/AuthContext";
@@ -793,7 +793,8 @@ export default function AddDeviceScreen() {
       </AppText>
     </View>
   ) : (
-    <ErrorState
+    <AutoRetryNotice
+      initialAttempts={assignmentRetryKey}
       message={t(
         assignmentState === "session_expired"
           ? "dashboard.addDevice.assignmentSessionExpired"

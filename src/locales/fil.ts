@@ -422,7 +422,7 @@ const fil = {
       assignmentSessionExpired:
         "Hindi available o nag-expire na ang iyong session. Mag-sign in muli at subukang muli.",
       assignmentQueryFailed:
-        "Hindi makuha ang iyong monitoring assignment. Suriin ang iyong koneksyon at subukang muli.",
+        "Hindi makuha ang iyong monitoring assignment. Awtomatiko kaming magreresubay.",
       assignmentAmbiguous:
         "Hindi matukoy ang iyong monitoring assignment. Makipag-ugnayan sa suporta.",
       assignmentInvalid:
@@ -580,7 +580,7 @@ const fil = {
       subtitle: "Dito lilitaw ang aktibidad ng system at mga event ng electronics.",
       total: "Kabuuang Activity Logs:",
       loadFailed:
-        "Hindi ma-load ang iyong activity logs. Suriin ang iyong koneksyon at subukang muli.",
+        "Pansamantalang hindi available ang activity logs. Awtomatikong lalabas ang mga ito kapag bumalik ang koneksyon.",
       timeRange: "Saklaw ng Oras",
       activityType: "Uri ng Aktibidad",
       timeAll: "Lahat",
@@ -599,7 +599,7 @@ const fil = {
       subtitle: "Dito lilitaw ang mga notification ng system at mahahalagang alerto.",
       total: "Kabuuang Notification:",
       loadFailed:
-        "Hindi ma-load ang iyong mga notification. Suriin ang iyong koneksyon at subukang muli.",
+        "Pansamantalang hindi available ang mga notification. Awtomatikong lalabas ang mga ito kapag bumalik ang koneksyon.",
       markFailed: "Hindi ma-mark as read ang mga notification. Pakisubukang muli.",
       markError: "Hindi ma-mark as read. Suriin ang iyong koneksyon at subukang muli.",
       marking: "Mini-mark...",
@@ -628,8 +628,12 @@ const fil = {
     notifications: "Mga Notification",
     emptyTitle: "Walang Activity Logs",
     emptyDescription: "Walang aktibidad na tumutugma sa mga filter.",
-    errorTitle: "Hindi ma-load ang data",
-    retry: "Subukang Muli",
+    quietUnavailableTitle: "Pansamantalang hindi available",
+    quietUnavailableMessage:
+      "Awtomatiko kaming magreresubay. Magagamit pa rin ang app.",
+    quietOfflineTitle: "Gumagana offline",
+    quietOfflineMessage:
+      "Awtomatikong magsi-sync kapag bumalik ang koneksyon.",
     paginationPrev: "Nakaraan",
     paginationNext: "Susunod",
     paginationPage: "Pahina {{current}} ng {{total}}",

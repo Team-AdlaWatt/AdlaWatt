@@ -1,20 +1,20 @@
 import * as Sentry from "@sentry/react-native";
-import React from "react";
+import React, { useRef } from "react";
 import {
   StyleSheet,
   View,
 } from "react-native";
 
-import ErrorState from "@/components/ui/ErrorState";
+import AutoRetryNotice from "@/components/ui/AutoRetryNotice";
 
 // ============================================================
 // ROUTE ERROR BOUNDARY
 //
 // Per-route-group containment: a render crash inside one
-// group shows ErrorState with a working retry (resets the
-// boundary and remounts the subtree) instead of the root
-// crash screen. Rendered inside each group's providers, so
-// the fallback inherits the active theme + language.
+// group is retried automatically, then degrades to a quiet
+// inline notice instead of a blocking screen. Rendered
+// inside each group's providers, so the fallback inherits
+// the active theme + language.
 // ============================================================
 
 interface RouteErrorBoundaryProps {
@@ -24,11 +24,20 @@ interface RouteErrorBoundaryProps {
 export default function RouteErrorBoundary({
   children,
 }: RouteErrorBoundaryProps) {
+  const attemptsRef = useRef(0);
+
   return (
     <Sentry.ErrorBoundary
       fallback={({ resetError }) => (
         <View style={styles.fallback}>
-          <ErrorState onRetry={resetError} />
+          <AutoRetryNotice
+            initialAttempts={attemptsRef.current}
+            maxAttempts={2}
+            onAttempt={(attempts) => {
+              attemptsRef.current = attempts;
+            }}
+            onRetry={resetError}
+          />
         </View>
       )}
     >
@@ -41,5 +50,6 @@ const styles = StyleSheet.create({
   fallback: {
     flex: 1,
     justifyContent: "center",
+    padding: 16,
   },
 });

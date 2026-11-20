@@ -27,7 +27,7 @@ import AppText from "@/components/ui/AppText";
 import { DropdownModal, RadioOptionRow, TintedOptionRow } from "@/components/ui/DropdownModal";
 import ActivityLogCard, { ACTIVITY_LOG_GAP } from "@/components/ActivityLogCard";
 import EmptyState from "@/components/ui/EmptyState";
-import ErrorState from "@/components/ui/ErrorState";
+import AutoRetryNotice from "@/components/ui/AutoRetryNotice";
 import { useSafeAsync } from "@/hooks/useSafeAsync";
 import { useTableRealtimeRefresh } from "@/hooks/useTableRealtimeRefresh";
 
@@ -254,6 +254,7 @@ export default function ActivityLogsScreen() {
     data: loadedLogs,
     error: loadError,
     loading: isLoading,
+    attempt: loadAttempt,
     retry: retryLoad,
     refresh: refreshLogs,
   } = useSafeAsync(loadActivityLogs, [i18n.language]);
@@ -617,8 +618,9 @@ export default function ActivityLogsScreen() {
         )}
 
         {loadError && !hasLoadedData && (
-          <ErrorState
+          <AutoRetryNotice
             message={loadError}
+            initialAttempts={loadAttempt}
             onRetry={retryLoad}
           />
         )}
