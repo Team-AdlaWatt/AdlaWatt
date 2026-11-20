@@ -1,24 +1,44 @@
 import * as Sentry from "@sentry/react-native";
-import React, { useRef } from "react";
-import {
-  StyleSheet,
-  View,
-} from "react-native";
-
-import AutoRetryNotice from "@/components/ui/AutoRetryNotice";
-
-// ============================================================
-// ROUTE ERROR BOUNDARY
-//
-// Per-route-group containment: a render crash inside one
-// group is retried automatically, then degrades to a quiet
-// inline notice instead of a blocking screen. Rendered
-// inside each group's providers, so the fallback inherits
-// the active theme + language.
-// ============================================================
+import React, {
+  useEffect,
+  useRef,
+} from "react";
 
 interface RouteErrorBoundaryProps {
   children: React.ReactNode;
+}
+
+interface SilentRetryProps {
+  attempts: number;
+  onRetry: () => void;
+}
+
+const MAX_ATTEMPTS = 2;
+
+function SilentRetry({
+  attempts,
+  onRetry,
+}: SilentRetryProps) {
+  const onRetryRef = useRef(onRetry);
+
+  useEffect(() => {
+    onRetryRef.current = onRetry;
+  }, [onRetry]);
+
+  useEffect(() => {
+    if (attempts >= MAX_ATTEMPTS) {
+      return;
+    }
+
+    const timer = setTimeout(
+      () => onRetryRef.current(),
+      300 * (attempts + 1),
+    );
+
+    return () => clearTimeout(timer);
+  }, [attempts]);
+
+  return null;
 }
 
 export default function RouteErrorBoundary({
@@ -29,27 +49,16 @@ export default function RouteErrorBoundary({
   return (
     <Sentry.ErrorBoundary
       fallback={({ resetError }) => (
-        <View style={styles.fallback}>
-          <AutoRetryNotice
-            initialAttempts={attemptsRef.current}
-            maxAttempts={2}
-            onAttempt={(attempts) => {
-              attemptsRef.current = attempts;
-            }}
-            onRetry={resetError}
-          />
-        </View>
+        <SilentRetry
+          attempts={attemptsRef.current}
+          onRetry={() => {
+            attemptsRef.current += 1;
+            resetError();
+          }}
+        />
       )}
     >
       {children}
     </Sentry.ErrorBoundary>
   );
 }
-
-const styles = StyleSheet.create({
-  fallback: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 16,
-  },
-});
