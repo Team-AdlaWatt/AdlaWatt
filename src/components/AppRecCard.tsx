@@ -456,13 +456,22 @@ export default function AppRecCard({
     (nextMode: Status) => {
       setMode(nextMode);
       setCurrentPage(0);
-      pagerRef.current?.scrollToOffset({
-        offset: 0,
-        animated: false,
-      });
+
+      if (pageCount > 1 && pageWidth > 0) {
+        pagerRef.current?.scrollToOffset({
+          offset: 0,
+          animated: false,
+        });
+      }
+
       restartAutoAdvance();
     },
-    [restartAutoAdvance, setCurrentPage],
+    [
+      pageCount,
+      pageWidth,
+      restartAutoAdvance,
+      setCurrentPage,
+    ],
   );
 
   const handlePagerLayout = useCallback(
@@ -520,9 +529,34 @@ export default function AppRecCard({
     [restartAutoAdvance, updatePageFromOffset],
   );
 
+  const handleScrollToIndexFailed = useCallback(
+    ({ index }: { index: number }) => {
+      if (pageWidth <= 0 || pageCount === 0) {
+        return;
+      }
+
+      const next = Math.min(
+        Math.max(0, index),
+        maxPageIndex,
+      );
+
+      setCurrentPage(next);
+      pagerRef.current?.scrollToOffset({
+        offset: next * pageWidth,
+        animated: false,
+      });
+    },
+    [maxPageIndex, pageCount, pageWidth, setCurrentPage],
+  );
+
   const handleIndicatorPress = useCallback(
     (page: number) => {
-      if (page < 0 || page > maxPageIndex) {
+      if (
+        pageCount <= 1 ||
+        pageWidth <= 0 ||
+        page < 0 ||
+        page > maxPageIndex
+      ) {
         return;
       }
 
@@ -533,7 +567,13 @@ export default function AppRecCard({
       });
       restartAutoAdvance();
     },
-    [maxPageIndex, restartAutoAdvance, setCurrentPage],
+    [
+      maxPageIndex,
+      pageCount,
+      pageWidth,
+      restartAutoAdvance,
+      setCurrentPage,
+    ],
   );
 
   const renderPage = useCallback(
@@ -783,11 +823,14 @@ export default function AppRecCard({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset pager state when the visible page count changes
     setPageIndex(0);
     pageIndexRef.current = 0;
-    pagerRef.current?.scrollToOffset({
-      offset: 0,
-      animated: false,
-    });
-  }, [pageCount]);
+
+    if (pageCount > 1 && pageWidth > 0) {
+      pagerRef.current?.scrollToOffset({
+        offset: 0,
+        animated: false,
+      });
+    }
+  }, [pageCount, pageWidth]);
 
   useEffect(() => {
     if (pageCount <= 1 || pageWidth <= 0) {
@@ -795,6 +838,10 @@ export default function AppRecCard({
     }
 
     const timer = setInterval(() => {
+      if (pageCount <= 1 || pageWidth <= 0) {
+        return;
+      }
+
       const current = Math.min(
         pageIndexRef.current,
         maxPageIndex,
@@ -995,14 +1042,12 @@ export default function AppRecCard({
                   keyExtractor={(_, page) =>
                     String(page)
                   }
-                  getItemLayout={(_, page) => ({
-                    length: pageWidth,
-                    offset: pageWidth * page,
-                    index: page,
-                  })}
                   onScroll={handleScroll}
                   onMomentumScrollEnd={handleScrollEnd}
                   onScrollEndDrag={handleScrollEnd}
+                  onScrollToIndexFailed={
+                    handleScrollToIndexFailed
+                  }
                   scrollEventThrottle={16}
                   renderItem={renderPage}
                   style={styles.pager}
