@@ -77,28 +77,130 @@
 
 ### 2. SYSTEM SIDE - USER SUGGESTIONS
 
+**Planning note:** This pass verifies current implementation and defines the design direction only. No code, database, locale, build, commit, push, or OTA changes are included.
+
 #### 2.1 Automatic Appliance Monitoring
+
+**Verified: Partial** — System-level load, voltage, Wh, and runtime calculations exist, but wattage is supplied from catalog/custom nameplate values. There is no per-appliance detection or measured per-appliance consumption.
 
 - [ ] Detect or measure the wattage of connected appliances.
 - [ ] Display appliance power consumption.
 - [ ] Estimate how long an appliance can operate based on available battery capacity.
+  - [ ] Label the current capability as catalog/nameplate-based monitoring until per-device telemetry exists.
+  - [ ] Show aggregate measured system load separately from catalog appliance watt ratings.
+  - [ ] Surface the engine's runtime estimate in the recommendation result, not only in system ETR.
 
 #### 2.2 Manual Appliance Selection
+
+**Verified: Partial** — Appliance selection and persistence work, but the one/two/three appliance limit is not enforced and combined wattage is not shown as a selection result.
 
 - [ ] Allow users to select appliances from the mobile application.
 - [ ] Allow users to select one, two, or three appliances.
 - [ ] Calculate the combined wattage of the selected appliances.
+  - [ ] Enforce a hard cap of three selected appliances in toggle, Select All, and save flows.
+  - [ ] Show a `2/3 selected` counter and live total watts in the selection modal.
+  - [ ] Reuse `ElectronicsBox` and `ElectronicsModal` semantics instead of adding a new selection component.
 
 #### 2.3 Recommendation Results
+
+**Verified: Partial** — Advisability verdicts are wired into Dashboard and Electronics, but total watts, operating time in hours/minutes, estimated remaining battery percentage, and alternatives are not displayed.
 
 - [ ] Show whether the selected appliances are advisable to use.
 - [ ] Display the total power consumption of the selected appliances.
 - [ ] Estimate operating time in hours and minutes.
 - [ ] Show the estimated remaining battery percentage.
 - [ ] Suggest alternative appliances if the selected appliances are not advisable.
+  - [ ] Add one shared `evaluateSelection(battery, selectedElectronics[])` result consumed by both Dashboard and Electronics.
+  - [ ] Surface combined typical/peak watts, `displayRuntime`, projected remaining battery percentage, and ranked alternatives.
+  - [ ] Replace optimistic no-data fallbacks with an explicit waiting-for-battery-data state.
 
 #### 2.4 Main Purpose
+
+**Verified: Partial** — Safety guards exist in the recommendation engine and alerts, but several are not wired into the user-facing result and are not testable as a single product goal.
 
 - [ ] Help users determine which appliances they can operate.
 - [ ] Prevent excessive power consumption.
 - [ ] Maximize battery usage and efficiency.
+  - [ ] Apply reserve floor, charge-scaled watt cap, projected voltage, stale-data fail-safe, and current-load checks to the whole selected set.
+  - [ ] Add tests for the 3-item cap, no-data state, combined evaluator, and alternative suggestions.
+  - [ ] Keep the exact verdict labels so the result remains consistent across screens.
+
+#### 2.5 Design Alignment Contract
+
+- [ ] Reuse `AppText`, `SlidingToggle`, `ElectronicsBox`, `ElectronicsStatusBox`, `EmptyState`, `ErrorState`, and `AppButton` instead of introducing new components.
+- [ ] Use `useAppColors()` tokens only: `primary`, `warning`, `error`, `surface`, `cardBorder`, `text`, `textSecondary`, `selectedWash`, and `glass.white`.
+- [ ] Keep the exact verdict vocabulary: `OK to use`, `Use with care`, `Not advisable`; segments remain `Advisable`, `Caution`, `Not Advisable`.
+- [ ] Keep the existing card structure: bordered shell, themed header, segmented toggle, status grid, then empty/error states.
+- [ ] Keep status signaled by icon plus text plus color; never color alone.
+- [ ] Hide empty segments and render only groups that contain appliances.
+- [ ] Follow `docs/UI-STANDARDS.md`: 4/8 spacing grid, card padding 16, radius 16, section gap 24, left-aligned labels, and right-aligned numeric values.
+- [ ] Use the existing reduced-motion-aware `SlidingToggle` behavior; do not add a new carousel or custom animation.
+
+#### 2.6 System-Side UI Concept (Text)
+
+```txt
+DASHBOARD / ELECTRONICS SCREEN
+ScreenContainer2
+  NavBar
+    PullRefreshScroll
+      AppText heading: "Electronics Recommendation"
+      AppText caption: "Monitor your AdlaWatt system in real time."
+
+      Card shell
+        tokens: surface + cardBorder + glass.white
+        radius/spacing: UI-STANDARDS card rhythm
+
+        SlidingToggle
+          Advisable | Caution | Not Advisable
+          only non-empty segments rendered
+
+        Status area
+          ElectronicsStatusBox / AppRecCard status boxes
+          OK to use      -> primary + checkmark icon
+          Use with care  -> warning + warning icon
+          Not advisable  -> error + alert icon + text label
+
+          [app appliance box]
+          Name
+          Watt range: 40-60 W
+          Status label + icon
+
+        EmptyState / ErrorState
+          No Advisable Electronics
+          Waiting for battery data
+```
+
+```txt
+SELECTION MODAL
+DropdownModal / ElectronicsModal shell
+  themed header + 48px close
+  AppText body: "Battery: 72%  |  Usable: 518 Wh"
+  AppText caption: "Select 1 to 3 appliances."
+
+  selection counter: 2/3
+  [x] Fan          40 W
+  [x] TV           120 W
+  [ ] Rice cooker  800 W
+
+  sticky footer
+    Select All | Reset | Add / Save
+```
+
+```txt
+RESULT PANEL
+Card shell
+  header: Electronics Recommendation
+
+  badge: Use with care
+  reason: Peak draw may approach the safe cap.
+
+  AppText body: "Total power: 160 W typical / 240 W peak"
+  AppText body: "Estimated operating time: 2h 05m"
+  AppText body: "Estimated battery after 1h: 54%"
+
+  AppText caption: "Suggested alternatives"
+  [Fan 40 W]  [LED bulb 12 W]
+
+  AppButton: Adjust Selection
+  AppButton: Save Selection
+```
