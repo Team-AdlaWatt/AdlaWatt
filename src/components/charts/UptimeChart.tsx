@@ -7,7 +7,7 @@ import {
 import {
   LayoutChangeEvent,
   Platform,
-  ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   View,
 } from "react-native";
@@ -97,7 +97,7 @@ export default function UptimeChart({
   const onLayout = (e: LayoutChangeEvent) =>
     setBoxW(e.nativeEvent.layout.width);
 
-  const scrollRef = useRef<ScrollView | null>(null);
+  const scrollRef = useRef<ScrollViewInstance | null>(null);
 
   // Skip non-finite values (periods with no data).
   const real = useMemo(

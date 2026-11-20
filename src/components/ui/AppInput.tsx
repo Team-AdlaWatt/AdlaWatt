@@ -2,6 +2,7 @@ import React, { useMemo, type Ref } from "react";
 import {
   StyleSheet,
   TextInput,
+  type TextInputInstance,
   TextInputProps,
   View,
 } from "react-native";
@@ -17,7 +18,7 @@ import { useTypography } from "@/hooks/useTypography";
 interface AppInputProps extends TextInputProps {
   label?: string;
   error?: string;
-  inputRef?: Ref<TextInput>;
+  inputRef?: Ref<TextInputInstance>;
   bottomGap?: number;
 }
 

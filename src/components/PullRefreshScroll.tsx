@@ -11,6 +11,7 @@ import {
   Platform,
   RefreshControl,
   ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   View,
   type GestureResponderEvent,
@@ -68,7 +69,7 @@ interface PullRefreshScrollProps
   onRefresh: () => void;
   refreshLabel: string;
   refreshTint: string;
-  scrollRef?: Ref<ScrollView>;
+  scrollRef?: Ref<ScrollViewInstance>;
 }
 
 export default function PullRefreshScroll({

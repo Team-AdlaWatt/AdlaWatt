@@ -13,6 +13,7 @@ import {
   Pressable,
   StyleSheet,
   TextInput,
+  type TextInputInstance,
   TextInputProps,
   View,
 } from "react-native";
@@ -41,7 +42,7 @@ interface PasswordInputProps {
    * filled in during dark mode.
    */
   importantForAutofill?: TextInputProps["importantForAutofill"];
-  inputRef?: Ref<TextInput>;
+  inputRef?: Ref<TextInputInstance>;
   bottomGap?: number;
   editable?: boolean;
 }

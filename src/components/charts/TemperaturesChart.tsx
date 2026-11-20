@@ -7,7 +7,7 @@ import {
 import {
   LayoutChangeEvent,
   Platform,
-  ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   View,
 } from "react-native";
@@ -104,7 +104,7 @@ export default function TemperaturesChart({
   const onLayout = (e: LayoutChangeEvent) =>
     setBoxW(e.nativeEvent.layout.width);
 
-  const scrollRef = useRef<ScrollView | null>(null);
+  const scrollRef = useRef<ScrollViewInstance | null>(null);
 
   // Solar is the always-present series; interior rides along as
   // number|null (never drops a bucket).

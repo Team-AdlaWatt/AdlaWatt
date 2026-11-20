@@ -12,7 +12,7 @@ import {
   Animated,
   Easing,
   Pressable,
-  ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   View,
 } from "react-native";
@@ -27,7 +27,6 @@ import AppText from "@/components/ui/AppText";
 import { DropdownModal, RadioOptionRow, TintedOptionRow } from "@/components/ui/DropdownModal";
 import ActivityLogCard, { ACTIVITY_LOG_GAP } from "@/components/ActivityLogCard";
 import EmptyState from "@/components/ui/EmptyState";
-import ErrorState from "@/components/ui/ErrorState";
 import { useSafeAsync } from "@/hooks/useSafeAsync";
 import { useTableRealtimeRefresh } from "@/hooks/useTableRealtimeRefresh";
 
@@ -139,7 +138,7 @@ export default function ActivityLogsScreen() {
   // ==========================================================
 
   const scrollRef =
-    useRef<ScrollView>(null);
+    useRef<ScrollViewInstance>(null);
 
   const scrollToTop =
     useScrollToTopController(scrollRef);
@@ -617,10 +616,13 @@ export default function ActivityLogsScreen() {
         )}
 
         {loadError && !hasLoadedData && (
-          <ErrorState
-            message={loadError}
-            onRetry={retryLoad}
-          />
+          <View style={styles.statusBlock}>
+            <EmptyState
+              icon="document-text-outline"
+              title={t("shared.emptyTitle")}
+              description={t("shared.emptyDescription")}
+            />
+          </View>
         )}
 
         {/* Activity Cards */}

@@ -2,17 +2,14 @@ import { Slot } from "expo-router";
 import { useEffect } from "react";
 import { LogBox, Platform } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import * as Sentry from "@sentry/react-native";
+
 
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 
 import AccountSessionGuard from "@/components/auth/AccountSessionGuard";
 import AppUpdateGuard from "@/components/updates/AppUpdateGuard";
 
-import {
-  initSentry,
-  setSentryUser,
-} from "@/services/sentry";
+
 
 import {
   registerForPushNotificationsAsync,
@@ -22,9 +19,6 @@ import {
 // instantly; the saved language applies when loaded).
 import "@/services/i18n";
 
-// Init once at module load (guarded no-op without DSN,
-// on web, or under Jest) so early boot crashes report.
-initSentry();
 
 // Canonical web-only CSS entry (Expo-accepted location).
 // Guarded so native OTA bundles skip CSS at runtime; Metro + tsc
@@ -42,20 +36,6 @@ LogBox.ignoreLogs([
   "Cannot record touch end without a touch start",
 ]);
 
-// Syncs the anonymous Sentry user id with auth state.
-// Runs inside AuthProvider so useAuth is available. Calls
-// the Sentry SDK only (no React state), so no cascading
-// render concern.
-function SentryUserSync() {
-  const { user } = useAuth();
-  const userId = user?.id ?? null;
-
-  useEffect(() => {
-    setSentryUser(userId);
-  }, [userId]);
-
-  return null;
-}
 
 // Registers this install for remote push once a user session
 // exists. Same shape as SentryUserSync: it only calls a service
@@ -102,7 +82,6 @@ function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <SentryUserSync />
         <PushRegistrationSync />
 
         <Slot />
@@ -119,4 +98,4 @@ function RootLayout() {
   );
 }
 
-export default Sentry.wrap(RootLayout);
+export default RootLayout;

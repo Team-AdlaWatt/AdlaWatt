@@ -30,7 +30,6 @@ import {
   RadioOptionRow,
 } from "@/components/ui/DropdownModal";
 import EmptyState from "@/components/ui/EmptyState";
-import ErrorState from "@/components/ui/ErrorState";
 import PasswordInput from "@/components/ui/PasswordInput";
 import { Card, Control, Touch, useScreenPadding } from "@/constants/sizing";
 import { useAuth } from "@/context/AuthContext";
@@ -236,6 +235,7 @@ export default function AddDeviceScreen() {
   const [assignmentRetryKey, setAssignmentRetryKey] = useState(0);
 
   const assignmentRequestSeqRef = useRef(0);
+  const assignmentFailureRetriesRef = useRef(0);
   const sendInFlightRef = useRef(false);
 
   const currentUserId = user?.id ?? null;
@@ -255,6 +255,10 @@ export default function AddDeviceScreen() {
     resolvedAssignment.result.status === "found"
       ? resolvedAssignment.result.monitorId
       : null;
+  const assignmentReady =
+    assignmentState === "found" && effectiveMonitorId != null;
+  const assignmentLoading =
+    assignmentState === "checking_user" || assignmentState === "retrieving";
 
   const [bleState, setBleState] = useState<BleState | "checking">("checking");
   const [blePermissions, setBlePermissions] =
@@ -442,6 +446,9 @@ export default function AddDeviceScreen() {
       if (cancelled || assignmentRequestSeqRef.current !== requestSeq) {
         return;
       }
+      if (result.status === "found") {
+        assignmentFailureRetriesRef.current = 0;
+      }
       setResolvedAssignment({
         userId: targetUserId,
         retryKey: targetRetryKey,
@@ -454,13 +461,23 @@ export default function AddDeviceScreen() {
     };
   }, [assignmentRetryKey, currentUserId, isLoaded, resolvedAssignment]);
 
-  const handleRetryAssignment = () => {
-    if (!isLoaded || !currentUserId) {
+  useEffect(() => {
+    if (!isLoaded || !currentUserId || assignmentLoading || assignmentReady) {
       return;
     }
-    setResolvedAssignment(null);
-    setAssignmentRetryKey((current) => current + 1);
-  };
+
+    if (assignmentFailureRetriesRef.current >= 2) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      assignmentFailureRetriesRef.current += 1;
+      setResolvedAssignment(null);
+      setAssignmentRetryKey((current) => current + 1);
+    }, 400 * (assignmentFailureRetriesRef.current + 1));
+
+    return () => clearTimeout(timer);
+  }, [assignmentLoading, assignmentReady, assignmentState, currentUserId, isLoaded]);
 
   const openBluetoothSettings = async () => {
     try {
@@ -756,8 +773,6 @@ export default function AddDeviceScreen() {
   );
 
   const canScan = isReady && !operationBusy && !permissionBusy && !enableBusy;
-  const assignmentReady =
-    assignmentState === "found" && effectiveMonitorId != null;
   const canSend =
     !operationBusy &&
     !sendBusy &&
@@ -766,9 +781,6 @@ export default function AddDeviceScreen() {
     !!ssid.trim() &&
     !!password &&
     isReady;
-
-  const assignmentLoading =
-    assignmentState === "checking_user" || assignmentState === "retrieving";
 
   const accountContent: React.ReactNode = assignmentLoading ? (
     <View style={styles.inlineRow}>
@@ -793,22 +805,28 @@ export default function AddDeviceScreen() {
       </AppText>
     </View>
   ) : (
-    <ErrorState
-      message={t(
-        assignmentState === "session_expired"
-          ? "dashboard.addDevice.assignmentSessionExpired"
-          : assignmentState === "not_found"
-            ? "dashboard.addDevice.assignmentMissing"
-            : assignmentState === "query_failed"
-              ? "dashboard.addDevice.assignmentQueryFailed"
-              : assignmentState === "ambiguous"
-                ? "dashboard.addDevice.assignmentAmbiguous"
-                : assignmentState === "invalid"
-                  ? "dashboard.addDevice.assignmentInvalid"
-                  : "dashboard.addDevice.assignmentError",
-      )}
-      onRetry={handleRetryAssignment}
-    />
+    <View style={styles.inlineRow}>
+      <Ionicons
+        name="information-circle-outline"
+        size={Touch.iconInline}
+        color={colors.textSecondary}
+      />
+      <AppText variant="caption" style={styles.inlineText}>
+        {t(
+          assignmentState === "session_expired"
+            ? "dashboard.addDevice.assignmentSessionExpired"
+            : assignmentState === "not_found"
+              ? "dashboard.addDevice.assignmentMissing"
+              : assignmentState === "query_failed"
+                ? "dashboard.addDevice.assignmentQueryFailed"
+                : assignmentState === "ambiguous"
+                  ? "dashboard.addDevice.assignmentAmbiguous"
+                  : assignmentState === "invalid"
+                    ? "dashboard.addDevice.assignmentInvalid"
+                    : "dashboard.addDevice.assignmentError",
+        )}
+      </AppText>
+    </View>
   );
 
   const showTurnOn = readiness === "poweredOff" && Platform.OS === "android";

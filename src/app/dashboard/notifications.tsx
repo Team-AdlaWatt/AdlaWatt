@@ -12,7 +12,7 @@ import {
   Animated,
   Easing,
   Pressable,
-  ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   View,
 } from "react-native";
@@ -35,7 +35,6 @@ import Pagination from "@/components/ui/Pagination";
 import AppText from "@/components/ui/AppText";
 
 import EmptyState from "@/components/ui/EmptyState";
-import ErrorState from "@/components/ui/ErrorState";
 import PullRefreshScroll from "@/components/PullRefreshScroll";
 import { useSafeAsync } from "@/hooks/useSafeAsync";
 import { useTableRealtimeRefresh } from "@/hooks/useTableRealtimeRefresh";
@@ -135,7 +134,7 @@ export default function NotificationsScreen() {
   // ==========================================================
 
   const scrollRef =
-    useRef<ScrollView>(null);
+    useRef<ScrollViewInstance>(null);
 
   const scrollToTop =
     useScrollToTopController(scrollRef);
@@ -778,10 +777,13 @@ export default function NotificationsScreen() {
         )}
 
         {loadError && !hasLoadedData && (
-          <ErrorState
-            message={loadError}
-            onRetry={retryLoad}
-          />
+          <View style={styles.statusBlock}>
+            <EmptyState
+              icon="notifications-outline"
+              title={t("shared.emptyTitle")}
+              description={t("shared.emptyDescription")}
+            />
+          </View>
         )}
 
         {/* Recent */}

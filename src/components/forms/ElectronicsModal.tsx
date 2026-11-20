@@ -10,6 +10,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   View,
 } from "react-native";
@@ -257,7 +258,7 @@ export default function ElectronicsModal({
   // and closing mid-fetch cannot set state for a dead open.
   const loadSeq = useRef(0);
 
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
 
   const scrollToTop =
     useScrollToTopController(scrollRef);

@@ -1,4 +1,8 @@
 import * as Notifications from "expo-notifications";
+import {
+  AndroidImportance,
+  AndroidNotificationPriority,
+} from "expo-notifications";
 import { Platform } from "react-native";
 import { router } from "expo-router";
 
@@ -45,8 +49,7 @@ Notifications.setNotificationHandler({
     shouldPlaySound: true,
     shouldSetBadge: true,
     priority:
-      Notifications.AndroidNotificationPriority
-        .DEFAULT,
+      AndroidNotificationPriority.DEFAULT,
   }),
 });
 
@@ -62,8 +65,7 @@ const ensureReminderChannel =
         {
           name: "AdlaWatt Reminders",
           importance:
-            Notifications.AndroidImportance
-              .DEFAULT,
+            AndroidImportance.DEFAULT,
           vibrationPattern: [0, 400, 2000],
           sound: "default",
           enableVibrate: true,
