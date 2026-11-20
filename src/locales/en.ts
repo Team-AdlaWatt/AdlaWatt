@@ -562,8 +562,6 @@ const en = {
       subtitle:
         "System activity and electronics events will appear here.",
       total: "Total Activity Logs:",
-      loadFailed:
-        "Activity logs are temporarily unavailable. They'll load automatically when the connection returns.",
       timeRange: "Time Range",
       activityType: "Activity Type",
       timeAll: "All",
@@ -582,8 +580,6 @@ const en = {
       subtitle:
         "System notifications and important alerts will appear here.",
       total: "Total Notifications:",
-      loadFailed:
-        "Notifications are temporarily unavailable. They'll load automatically when the connection returns.",
       markFailed:
         "Couldn't mark notifications as read. Please try again.",
       markError:
@@ -616,12 +612,6 @@ const en = {
     emptyTitle: "No Activity Logs",
     emptyDescription:
       "No activities match the selected filters.",
-    quietUnavailableTitle: "Temporarily unavailable",
-    quietUnavailableMessage:
-      "We're retrying automatically. The app is still usable.",
-    quietOfflineTitle: "Working offline",
-    quietOfflineMessage:
-      "We'll sync automatically when the connection returns.",
     paginationPrev: "Prev",
     paginationNext: "Next",
     paginationPage: "Page {{current}} of {{total}}",

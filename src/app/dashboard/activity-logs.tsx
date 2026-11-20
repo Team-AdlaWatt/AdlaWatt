@@ -27,8 +27,8 @@ import AppText from "@/components/ui/AppText";
 import { DropdownModal, RadioOptionRow, TintedOptionRow } from "@/components/ui/DropdownModal";
 import ActivityLogCard, { ACTIVITY_LOG_GAP } from "@/components/ActivityLogCard";
 import EmptyState from "@/components/ui/EmptyState";
-import AutoRetryNotice from "@/components/ui/AutoRetryNotice";
 import { useSafeAsync } from "@/hooks/useSafeAsync";
+import { useSilentRetry } from "@/hooks/useSilentRetry";
 import { useTableRealtimeRefresh } from "@/hooks/useTableRealtimeRefresh";
 
 import {
@@ -202,7 +202,7 @@ export default function ActivityLogsScreen() {
         });
 
       if (error) {
-        throw new Error(t("dashboard.logs.loadFailed"));
+        throw new Error("load failed");
       }
 
       const logs: ActivityLog[] = (data ?? []).map(
@@ -280,6 +280,12 @@ export default function ActivityLogsScreen() {
   const hasLoadedData = activityLogs.length > 0;
   const showList =
     hasLoadedData || (!isLoading && !loadError);
+
+  useSilentRetry({
+    attempts: loadAttempt,
+    onRetry: retryLoad,
+    enabled: !!loadError && !hasLoadedData,
+  });
 
   // ============================================
   // FILTER ACTIVITY LOGS
@@ -615,14 +621,6 @@ export default function ActivityLogsScreen() {
               color={colors.accentContent}
             />
           </View>
-        )}
-
-        {loadError && !hasLoadedData && (
-          <AutoRetryNotice
-            message={loadError}
-            initialAttempts={loadAttempt}
-            onRetry={retryLoad}
-          />
         )}
 
         {/* Activity Cards */}

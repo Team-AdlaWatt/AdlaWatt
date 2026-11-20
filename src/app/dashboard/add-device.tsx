@@ -30,7 +30,6 @@ import {
   RadioOptionRow,
 } from "@/components/ui/DropdownModal";
 import EmptyState from "@/components/ui/EmptyState";
-import AutoRetryNotice from "@/components/ui/AutoRetryNotice";
 import PasswordInput from "@/components/ui/PasswordInput";
 import { Card, Control, Touch, useScreenPadding } from "@/constants/sizing";
 import { useAuth } from "@/context/AuthContext";
@@ -38,6 +37,7 @@ import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
+import { useSilentRetry } from "@/hooks/useSilentRetry";
 import {
   DEVICE_NAME_PREFIX,
   PROVISIONING_TIMEOUT_MS,
@@ -770,6 +770,12 @@ export default function AddDeviceScreen() {
   const assignmentLoading =
     assignmentState === "checking_user" || assignmentState === "retrieving";
 
+  useSilentRetry({
+    attempts: assignmentRetryKey,
+    onRetry: handleRetryAssignment,
+    enabled: !assignmentLoading && !assignmentReady,
+  });
+
   const accountContent: React.ReactNode = assignmentLoading ? (
     <View style={styles.inlineRow}>
       <ActivityIndicator size="small" color={colors.accentContent} />
@@ -792,25 +798,7 @@ export default function AddDeviceScreen() {
         {t("dashboard.addDevice.assignmentVerified")}
       </AppText>
     </View>
-  ) : (
-    <AutoRetryNotice
-      initialAttempts={assignmentRetryKey}
-      message={t(
-        assignmentState === "session_expired"
-          ? "dashboard.addDevice.assignmentSessionExpired"
-          : assignmentState === "not_found"
-            ? "dashboard.addDevice.assignmentMissing"
-            : assignmentState === "query_failed"
-              ? "dashboard.addDevice.assignmentQueryFailed"
-              : assignmentState === "ambiguous"
-                ? "dashboard.addDevice.assignmentAmbiguous"
-                : assignmentState === "invalid"
-                  ? "dashboard.addDevice.assignmentInvalid"
-                  : "dashboard.addDevice.assignmentError",
-      )}
-      onRetry={handleRetryAssignment}
-    />
-  );
+  ) : null;
 
   const showTurnOn = readiness === "poweredOff" && Platform.OS === "android";
 

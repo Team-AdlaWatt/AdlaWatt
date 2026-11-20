@@ -1,5 +1,5 @@
 import { Slot } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { LogBox, Platform } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as Sentry from "@sentry/react-native";
@@ -8,7 +8,7 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 
 import AccountSessionGuard from "@/components/auth/AccountSessionGuard";
 import AppUpdateGuard from "@/components/updates/AppUpdateGuard";
-import CrashFallback from "@/components/ui/CrashFallback";
+import SilentBoundaryFallback from "@/components/ui/SilentBoundaryFallback";
 
 import {
   initSentry,
@@ -100,10 +100,18 @@ function PushRegistrationSync() {
 // ============================================================
 
 function RootLayout() {
+  const attemptsRef = useRef(0);
+
   return (
     <Sentry.GlobalErrorBoundary
       fallback={({ resetError }) => (
-        <CrashFallback onRetry={resetError} />
+        <SilentBoundaryFallback
+          attempts={attemptsRef.current}
+          onRetry={() => {
+            attemptsRef.current += 1;
+            resetError();
+          }}
+        />
       )}
     >
       <SafeAreaProvider>

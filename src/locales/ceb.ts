@@ -579,8 +579,6 @@ const ceb = {
       title: "Activity Logs",
       subtitle: "Dinhi makita ang aktibidad sa system ug mga event sa electronics.",
       total: "Tibuok Activity Logs:",
-      loadFailed:
-        "Temporary dili magamit ang activity logs. Awtomatiko kini nga makita kon mobalik ang koneksyon.",
       timeRange: "Sakop sa Oras",
       activityType: "Matang sa Aktibidad",
       timeAll: "Tanan",
@@ -598,8 +596,6 @@ const ceb = {
       title: "Mga Notification",
       subtitle: "Dinhi makita ang mga notification sa system ug importanteng mga alerto.",
       total: "Tibuok Notification:",
-      loadFailed:
-        "Temporary dili magamit ang mga notification. Awtomatiko kini nga makita kon mobalik ang koneksyon.",
       markFailed: "Dili ma-mark as read ang mga notification. Palihug sulayi pag-usab.",
       markError: "Dili ma-mark as read. Susiha ang imong koneksyon ug sulayi pag-usab.",
       marking: "Gina-mark...",
@@ -628,12 +624,6 @@ const ceb = {
     notifications: "Mga Notification",
     emptyTitle: "Walay Activity Logs",
     emptyDescription: "Walay aktibidad nga motugma sa mga filter.",
-    quietUnavailableTitle: "Temporary dili magamit",
-    quietUnavailableMessage:
-      "Awtomatiko kami mosulay pag-usab. Magamit gihapon ang app.",
-    quietOfflineTitle: "Nagtrabaho offline",
-    quietOfflineMessage:
-      "Awtomatikong mag-sync kon mobalik ang koneksyon.",
     paginationPrev: "Miagi",
     paginationNext: "Sunod",
     paginationPage: "Pahina {{current}} sa {{total}}",

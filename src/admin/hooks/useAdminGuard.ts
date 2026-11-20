@@ -21,6 +21,7 @@ import { getCurrentUserProfile } from "@/services/auth";
 let lastRoleCheckAt = 0;
 let inFlightRoleCheck: Promise<boolean> | null = null;
 const ROLE_CHECK_COOLDOWN_MS = 5000;
+const ROLE_CHECK_TIMEOUT_MS = 5000;
 
 async function checkIsAdmin(): Promise<boolean> {
   const now = Date.now();
@@ -68,16 +69,31 @@ export function useAdminGuard() {
     }
 
     let cancelled = false;
+    let settled = false;
     setRoleLoaded(false);
+
+    const timeout = setTimeout(() => {
+      if (cancelled || settled) {
+        return;
+      }
+
+      settled = true;
+      setIsAdmin(false);
+      setRoleLoaded(true);
+      router.replace(Routes.DASHBOARD);
+    }, ROLE_CHECK_TIMEOUT_MS);
 
     void (async () => {
       try {
         const admin = await checkIsAdmin();
 
-        if (cancelled) {
+        clearTimeout(timeout);
+
+        if (cancelled || settled) {
           return;
         }
 
+        settled = true;
         setIsAdmin(admin);
         setRoleLoaded(true);
 
@@ -85,10 +101,13 @@ export function useAdminGuard() {
           router.replace(Routes.DASHBOARD);
         }
       } catch {
-        if (cancelled) {
+        clearTimeout(timeout);
+
+        if (cancelled || settled) {
           return;
         }
 
+        settled = true;
         setIsAdmin(false);
         setRoleLoaded(true);
         router.replace(Routes.DASHBOARD);
@@ -97,6 +116,7 @@ export function useAdminGuard() {
 
     return () => {
       cancelled = true;
+      clearTimeout(timeout);
     };
   }, [isLoaded, isSignedIn]);
 

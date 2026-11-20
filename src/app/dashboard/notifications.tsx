@@ -35,9 +35,9 @@ import Pagination from "@/components/ui/Pagination";
 import AppText from "@/components/ui/AppText";
 
 import EmptyState from "@/components/ui/EmptyState";
-import AutoRetryNotice from "@/components/ui/AutoRetryNotice";
 import PullRefreshScroll from "@/components/PullRefreshScroll";
 import { useSafeAsync } from "@/hooks/useSafeAsync";
+import { useSilentRetry } from "@/hooks/useSilentRetry";
 import { useTableRealtimeRefresh } from "@/hooks/useTableRealtimeRefresh";
 
 import {
@@ -193,7 +193,7 @@ export default function NotificationsScreen() {
         });
 
       if (error) {
-        throw new Error(t("dashboard.notifications.loadFailed"));
+        throw new Error("load failed");
       }
 
       // Dedupe by content (title + description), keeping the
@@ -319,6 +319,12 @@ export default function NotificationsScreen() {
   const hasLoadedData = notifications.length > 0;
   const showList =
     hasLoadedData || (!isLoading && !loadError);
+
+  useSilentRetry({
+    attempts: loadAttempt,
+    onRetry: retryLoad,
+    enabled: !!loadError && !hasLoadedData,
+  });
 
   // ============================================
   // TOTAL NOTIFICATIONS
@@ -776,14 +782,6 @@ export default function NotificationsScreen() {
               color={colors.accentContent}
             />
           </View>
-        )}
-
-        {loadError && !hasLoadedData && (
-          <AutoRetryNotice
-            message={loadError}
-            initialAttempts={loadAttempt}
-            onRetry={retryLoad}
-          />
         )}
 
         {/* Recent */}

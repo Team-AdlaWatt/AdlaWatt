@@ -1,44 +1,10 @@
 import * as Sentry from "@sentry/react-native";
-import React, {
-  useEffect,
-  useRef,
-} from "react";
+import React, { useRef } from "react";
+
+import SilentBoundaryFallback from "@/components/ui/SilentBoundaryFallback";
 
 interface RouteErrorBoundaryProps {
   children: React.ReactNode;
-}
-
-interface SilentRetryProps {
-  attempts: number;
-  onRetry: () => void;
-}
-
-const MAX_ATTEMPTS = 2;
-
-function SilentRetry({
-  attempts,
-  onRetry,
-}: SilentRetryProps) {
-  const onRetryRef = useRef(onRetry);
-
-  useEffect(() => {
-    onRetryRef.current = onRetry;
-  }, [onRetry]);
-
-  useEffect(() => {
-    if (attempts >= MAX_ATTEMPTS) {
-      return;
-    }
-
-    const timer = setTimeout(
-      () => onRetryRef.current(),
-      300 * (attempts + 1),
-    );
-
-    return () => clearTimeout(timer);
-  }, [attempts]);
-
-  return null;
 }
 
 export default function RouteErrorBoundary({
@@ -49,7 +15,7 @@ export default function RouteErrorBoundary({
   return (
     <Sentry.ErrorBoundary
       fallback={({ resetError }) => (
-        <SilentRetry
+        <SilentBoundaryFallback
           attempts={attemptsRef.current}
           onRetry={() => {
             attemptsRef.current += 1;
