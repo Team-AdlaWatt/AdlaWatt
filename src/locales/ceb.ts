@@ -723,18 +723,12 @@ const ceb = {
     },
   },
 
-  electronicsModal: {
-    selectionLimit:
-      "Makapili ka hangtod sa {{max}} ka electronics.",
-  },
-
   recommendationResult: {
     title: "Rekomendasyon",
     status: {
       empty: "Walay napiling electronics",
       waiting: "Naghulat sa data sa baterya",
       blocked: "Kinahanglan i-check ang baterya",
-      tooMany: "Sobra kaayo nga electronics",
       ready: "Hiniusang rekomendasyon",
     },
     verdict: {
@@ -746,7 +740,7 @@ const ceb = {
     badgeA11y: "Rekomendasyon: {{label}}",
     reason: {
       empty:
-        "Pilia hangtod sa 3 ka electronics aron makita ang rekomendasyon.",
+        "Pilia ang electronics aron makita ang rekomendasyon.",
       waiting:
         "Naghulat ug bag-ong pagbasa sa baterya.",
       offline:
@@ -755,8 +749,6 @@ const ceb = {
         "Daang kaayo ang pagbasa sa baterya. Naghulat ug bag-ong data.",
       blocked:
         "Ang pagbasa sa baterya naa sa gawas sa luwas nga limitasyon.",
-      tooMany:
-        "Pilia dili mosobra sa 3 ka electronics.",
       invalidWattage:
         "Usa o daghang wattage ang dili balido.",
       overCap:

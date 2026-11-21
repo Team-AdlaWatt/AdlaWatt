@@ -23,12 +23,9 @@ import {
   formatDuration,
 } from "@/utils/estimatedTimeRemaining";
 
-export const MAX_SELECTED_ELECTRONICS = 3;
-
 export type SelectionStatus =
   | "waiting"
   | "blocked"
-  | "tooMany"
   | "ready";
 
 export type SelectionReasonKey =
@@ -37,7 +34,6 @@ export type SelectionReasonKey =
   | "offline"
   | "stale"
   | "blocked"
-  | "tooMany"
   | "invalidWattage"
   | "overCap"
   | "unsafeVoltage"
@@ -98,7 +94,6 @@ export interface SelectionBatteryNormalization {
 export interface EvaluateSelectionOptions {
   deviceOnline?: boolean;
   now?: number;
-  maxSelections?: number;
   alternativesPool?: SelectionAppliance[];
   alternativesLimit?: number;
 }
@@ -126,24 +121,12 @@ const displayWatts = (
   item: SelectionAppliance,
 ): string => item.watts ?? item.wattage ?? "";
 
-export const validateSelection = (
+export const normalizeSelection = (
   ids: string[],
-  maxSelections: number = MAX_SELECTED_ELECTRONICS,
-): {
-  valid: boolean;
-  ids: string[];
-  rejected: string[];
-} => {
-  const unique = Array.from(
+): string[] =>
+  Array.from(
     new Set(ids.filter((id) => id.length > 0)),
   );
-
-  return {
-    valid: unique.length <= maxSelections,
-    ids: unique.slice(0, maxSelections),
-    rejected: unique.slice(maxSelections),
-  };
-};
 
 export const normalizeBatteryForSelection = (
   battery: BatteryStateInput | null,
@@ -346,20 +329,6 @@ export const evaluateSelection = (
     return emptyEvaluation(
       "waiting",
       "empty",
-      stack,
-      totalPeakWatts,
-    );
-  }
-
-  const validation = validateSelection(
-    selectedIds,
-    options.maxSelections,
-  );
-
-  if (!validation.valid) {
-    return emptyEvaluation(
-      "tooMany",
-      "tooMany",
       stack,
       totalPeakWatts,
     );

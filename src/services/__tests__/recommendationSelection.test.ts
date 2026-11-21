@@ -2,7 +2,7 @@ import { BATTERY_CAPACITY_WH } from "@/constants/battery";
 import {
   evaluateSelection,
   normalizeBatteryForSelection,
-  validateSelection,
+  normalizeSelection,
   type SelectionAppliance,
 } from "@/services/recommendationSelection";
 import type { BatteryStateInput } from "@/services/recommendation";
@@ -25,21 +25,18 @@ const led: SelectionAppliance = {
   area: "General",
 };
 
-describe("validateSelection", () => {
-  test("dedupes ids and enforces the three-item cap", () => {
-    const result = validateSelection([
-      "a",
-      "b",
-      "a",
-      "c",
-      "d",
-    ]);
-
-    expect(result).toEqual({
-      valid: false,
-      ids: ["a", "b", "c"],
-      rejected: ["d"],
-    });
+describe("normalizeSelection", () => {
+  test("dedupes ids without limiting the count", () => {
+    expect(
+      normalizeSelection([
+        "a",
+        "b",
+        "a",
+        "c",
+        "d",
+        "e",
+      ]),
+    ).toEqual(["a", "b", "c", "d", "e"]);
   });
 });
 
@@ -93,7 +90,7 @@ describe("evaluateSelection", () => {
     expect(result.verdict).toBeNull();
   });
 
-  test("blocks more than three selections", () => {
+  test("evaluates more than three selections", () => {
     const result = evaluateSelection(
       freshBattery(),
       [
@@ -117,9 +114,8 @@ describe("evaluateSelection", () => {
       { alternativesLimit: 0 },
     );
 
-    expect(result.status).toBe("tooMany");
-    expect(result.reasonKey).toBe("tooMany");
-    expect(result.verdict).toBeNull();
+    expect(result.status).toBe("ready");
+    expect(result.verdict).not.toBeNull();
   });
 
   test("blocks unsafe battery readings", () => {

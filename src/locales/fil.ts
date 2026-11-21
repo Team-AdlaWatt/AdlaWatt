@@ -725,18 +725,12 @@ const fil = {
     },
   },
 
-  electronicsModal: {
-    selectionLimit:
-      "Maaari kang pumili ng hanggang {{max}} electronics.",
-  },
-
   recommendationResult: {
     title: "Rekomendasyon",
     status: {
       empty: "Walang napiling electronics",
       waiting: "Naghihintay ng data ng baterya",
       blocked: "Kailangang i-check ang baterya",
-      tooMany: "Maraming electronics",
       ready: "Pinagsamang rekomendasyon",
     },
     verdict: {
@@ -748,7 +742,7 @@ const fil = {
     badgeA11y: "Rekomendasyon: {{label}}",
     reason: {
       empty:
-        "Pumili ng hanggang 3 electronics para makita ang rekomendasyon.",
+        "Pumili ng electronics para makita ang rekomendasyon.",
       waiting:
         "Naghihintay ng bagong pagbasa ng baterya.",
       offline:
@@ -757,8 +751,6 @@ const fil = {
         "Too old ang pagbasa ng baterya. Naghihintay ng bagong data.",
       blocked:
         "Nasa labas ng ligtas na limitasyon ang pagbasa ng baterya.",
-      tooMany:
-        "Pumili ng hindi hihigit sa 3 electronics.",
       invalidWattage:
         "May invalid na wattage value.",
       overCap:

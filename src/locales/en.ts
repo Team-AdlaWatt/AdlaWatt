@@ -710,18 +710,12 @@ const en = {
     },
   },
 
-  electronicsModal: {
-    selectionLimit:
-      "You can select up to {{max}} electronics.",
-  },
-
   recommendationResult: {
     title: "Recommendation",
     status: {
       empty: "No electronics selected",
       waiting: "Waiting for battery data",
       blocked: "Battery check needed",
-      tooMany: "Too many electronics",
       ready: "Combined recommendation",
     },
     verdict: {
@@ -733,7 +727,7 @@ const en = {
     badgeA11y: "Recommendation: {{label}}",
     reason: {
       empty:
-        "Select up to 3 electronics to see a recommendation.",
+        "Select electronics to see a recommendation.",
       waiting:
         "Waiting for a fresh battery reading.",
       offline:
@@ -742,8 +736,6 @@ const en = {
         "Battery reading is too old. Waiting for fresh data.",
       blocked:
         "Battery readings are outside safe limits.",
-      tooMany:
-        "Select no more than 3 electronics.",
       invalidWattage:
         "One or more wattage values are invalid.",
       overCap:

@@ -92,13 +92,13 @@
 
 #### 2.2 Manual Appliance Selection
 
-**Verified: Partial** — Appliance selection and persistence work, but the one/two/three appliance limit is not enforced and combined wattage is not shown as a selection result.
+**Verified: Partial** — Appliance selection and persistence work, but combined wattage is not shown as a selection result.
 
 - [ ] Allow users to select appliances from the mobile application.
-- [ ] Allow users to select one, two, or three appliances.
+- [ ] Allow users to select any number of appliances.
 - [ ] Calculate the combined wattage of the selected appliances.
-  - [ ] Enforce a hard cap of three selected appliances in toggle, Select All, and save flows.
-  - [ ] Show a `2/3 selected` counter and live total watts in the selection modal.
+  - [ ] Allow unlimited selected appliances in toggle, Select All, and save flows.
+  - [ ] Show a live `N selected` counter and total watts in the selection modal.
   - [ ] Reuse `ElectronicsBox` and `ElectronicsModal` semantics instead of adding a new selection component.
 
 #### 2.3 Recommendation Results
@@ -122,7 +122,7 @@
 - [ ] Prevent excessive power consumption.
 - [ ] Maximize battery usage and efficiency.
   - [ ] Apply reserve floor, charge-scaled watt cap, projected voltage, stale-data fail-safe, and current-load checks to the whole selected set.
-  - [ ] Add tests for the 3-item cap, no-data state, combined evaluator, and alternative suggestions.
+  - [ ] Add tests for unlimited selection, no-data state, combined evaluator, and alternative suggestions.
   - [ ] Keep the exact verdict labels so the result remains consistent across screens.
 
 #### 2.5 Design Alignment Contract
@@ -175,9 +175,9 @@ SELECTION MODAL
 DropdownModal / ElectronicsModal shell
   themed header + 48px close
   AppText body: "Battery: 72%  |  Usable: 518 Wh"
-  AppText caption: "Select 1 to 3 appliances."
+  AppText caption: "Select appliances."
 
-  selection counter: 2/3
+  selection counter: N selected
   [x] Fan          40 W
   [x] TV           120 W
   [ ] Rice cooker  800 W
