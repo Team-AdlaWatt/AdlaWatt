@@ -42,6 +42,17 @@ const en = {
       "Please agree to the Terms and Conditions.",
     termsRequiredLong:
       "Please agree to the Terms and Conditions before creating your account.",
+    pinRequired: "Please enter your TFT PIN.",
+    pinNumbersOnly: "TFT PIN must contain numbers only.",
+    pinLength: "TFT PIN must be exactly 4 digits.",
+    pinWeak:
+      "That TFT PIN is too easy to guess. Choose another 4-digit PIN.",
+    pinMismatch:
+      "TFT PINs do not match. Please check both PIN fields.",
+    pinAlreadyUsed:
+      "That TFT PIN is already in use. Choose a different 4-digit PIN.",
+    pinUnavailable:
+      "No TFT PINs are available right now. Please try again later.",
   },
 
   passwordInput: {
@@ -64,6 +75,67 @@ const en = {
     visibleLive:
       "Password visible, hides in {{seconds}} seconds",
     visibleHint: "Showing password… hides in {{seconds}}s",
+  },
+
+  pin: {
+    label: "TFT PIN",
+    labelConfirm: "Confirm TFT PIN",
+    labelNew: "New TFT PIN",
+    labelConfirmNew: "Confirm New TFT PIN",
+    placeholder: "4-digit PIN",
+    hint: "4 digits. Numbers only. Must be unique.",
+    generatedNotice:
+      "A PIN has been generated for your account. Confirm your password to view it.",
+    infoA11y: "Show TFT PIN information",
+    infoTitle: "About your TFT PIN",
+    infoIntro:
+      "Your TFT PIN unlocks your AdlaWatt dashboard on the display.",
+    infoRule1: "Use exactly 4 digits.",
+    infoRule2: "Only numbers are allowed.",
+    infoRule3: "Leading zeros are allowed.",
+    infoRule4: "Your PIN must be unique.",
+    infoRule5: "Repeated PINs like 8888 are not allowed.",
+    infoRule6: "Sequential PINs like 1234 are not allowed.",
+    gotIt: "Got it",
+    showA11y: "Show TFT PIN for 5 seconds",
+    showHint: "Shows TFT PIN for 5 seconds",
+    hideA11y:
+      "Hide TFT PIN, auto-hides in {{seconds}} seconds",
+    hideHint:
+      "TFT PIN is visible and will hide automatically",
+    visibleLive:
+      "TFT PIN visible, hides in {{seconds}} seconds",
+    reveal: "Reveal PIN",
+    hide: "Hide PIN",
+    displayRevealA11y:
+      "Reveal TFT PIN after password confirmation",
+    displayHideA11y: "Hide TFT PIN",
+    displayHideHint: "TFT PIN auto-hides after 5 seconds",
+    revealedLive:
+      "TFT PIN visible, hides in {{seconds}} seconds",
+    revealedHint: "Hides in 5s",
+    privateHint: "Do not share this PIN.",
+    notAvailable: "No PIN is available on this device yet.",
+    update: "Update PIN",
+    updateA11y: "Update TFT PIN",
+    passwordBody:
+      "Enter your account password to continue.",
+    passwordInvalid:
+      "Incorrect password. Please try again.",
+    masked: "••••",
+    confirmRevealTitle:
+      "Confirm Password to Reveal PIN",
+    confirmUpdateTitle:
+      "Confirm Password to Update PIN",
+    changeTitle: "Change TFT PIN?",
+    changeBody:
+      "Changing your TFT PIN will immediately replace the old PIN. The AdlaWatt display must use the new PIN.",
+    changeCancel: "Cancel",
+    changeContinue: "Continue",
+    changeCancelA11y: "Cancel PIN change",
+    changeContinueA11y: "Continue to change PIN",
+    updatedTitle: "PIN Updated",
+    updatedMessage: "Your TFT PIN has been changed.",
   },
 
   auth: {
@@ -361,17 +433,27 @@ const en = {
     },
     addDevice: {
       title: "Add Device",
-      subtitle: "Connect and configure your AdlaWatt monitoring device.",
+      subtitle: "Connect and set up your AdlaWatt monitoring device.",
       deviceLabel: "AdlaWatt Device",
-      deviceName: "AW-01 · ESP32-S3",
+      deviceName: "AW-01 ? ESP32-S3",
       bluetoothName: "Bluetooth device: AdlaWatt-AW-01",
-      readyToScan: "Ready to scan",
+      bluetoothHint: "Looks for nearby AdlaWatt devices ({{prefix}}). You do not need to pair in phone settings.",
+      bluetoothReadyShort: "Bluetooth ready",
+      bluetoothNotReadyShort: "Bluetooth not ready",
+      scanSection: "Find Your Device",
+      scanSectionHint: "Turn on Bluetooth and allow permission, then scan for your AdlaWatt device.",
+      readyToScan: "Bluetooth is ready. Tap Scan for Devices to continue.",
+      scanBlocked: "Turn on Bluetooth and allow permission to scan.",
       scan: "Scan for Devices",
+      scanAgain: "Scan Again",
+      showDevices: "Show Devices",
       scanning: "Scanning...",
+      scanningHint: "Looking for nearby AdlaWatt devices...",
       scanTitle: "Select Device",
       noDevices: "No devices found",
       noDevicesDescription:
-        "Keep the device powered on and nearby, then scan again.",
+        "Keep your AdlaWatt device powered on and nearby, then try scanning again.",
+      noDevicesHint: "No AdlaWatt devices were found. Make sure the device is on and close by, then tap Scan Again.",
       selectDevice: "Select a Bluetooth device",
       selectedDevice: "Selected device",
       wifiSection: "Wi-Fi Configuration",
@@ -383,33 +465,115 @@ const en = {
       wifiPasswordRequired: "Enter your Wi-Fi password.",
       accountSection: "Account",
       loggedInAs: "Logged in as",
-      assignmentChecking: "Checking your monitoring assignment...",
+      assignmentCheckingUser: "Checking your account...",
+      assignmentChecking: "Retrieving your monitoring assignment...",
       assignmentVerified: "Monitoring assignment verified",
       assignmentMissing:
         "No monitoring assignment found for this account.",
       assignmentError:
         "Unable to verify your monitoring assignment.",
+      assignmentSessionExpired:
+        "Your session is unavailable or has expired. Sign in again and try again.",
+      assignmentQueryFailed:
+        "Unable to retrieve your monitoring assignment. We'll retry automatically.",
+      assignmentAmbiguous:
+        "Your monitoring assignment could not be determined. Please contact support.",
+      assignmentInvalid:
+        "Your monitoring assignment is invalid. Please contact support.",
       loginRequired: "Sign in to configure a device.",
       send: "Send Configuration",
       sending: "Sending...",
       retry: "Retry",
+      assignmentRetry: "Retry assignment",
       previewTitle: "Preview status",
       previewOpen: "Open status preview",
       previewNote: "Preview mode - not a real device status",
+      bluetoothNotReady: "Bluetooth is not ready. Turn it on and allow permission, then try again.",
+      turnOnBluetooth: "Turn On Bluetooth",
+      turningOnBluetooth: "Turning on...",
+      openBluetoothSettings: "Open Bluetooth Settings",
+      openSettings: "Open Settings",
+      grantPermission: "Grant Permission",
+      checkingPermissions: "Checking...",
+      bluetoothEnableDeclined:
+        "Bluetooth was not turned on. Turn it on to find your AdlaWatt device.",
+      bluetoothIosInstructions:
+        "To turn on Bluetooth, open Control Center or Settings, then come back here.",
+      readiness_checking: "Checking Bluetooth",
+      readiness_checking_body:
+        "Checking Bluetooth and permission status...",
+      readiness_unknown: "Checking Bluetooth",
+      readiness_unknown_body:
+        "Waiting for Bluetooth status...",
+      readiness_resetting: "Bluetooth is resetting",
+      readiness_resetting_body:
+        "Bluetooth is restarting. Please wait a moment.",
+      readiness_unsupported: "Bluetooth not supported",
+      readiness_unsupported_body:
+        "This device does not support Bluetooth needed to connect to AdlaWatt.",
+      readiness_unauthorized: "Bluetooth not available",
+      readiness_unauthorized_body:
+        "AdlaWatt cannot use Bluetooth on this device. Check your system settings and try again.",
+      readiness_poweredOff: "Bluetooth is turned off",
+      readiness_poweredOff_body:
+        "Bluetooth is needed to find and connect to your AdlaWatt monitoring device. Turn on Bluetooth to continue.",
+      readiness_permission_required: "Bluetooth permission needed",
+      readiness_permission_required_body:
+        "Allow Bluetooth permission so AdlaWatt can find and connect to your device.",
+      readiness_permission_denied: "Bluetooth permission denied",
+      readiness_permission_denied_body:
+        "Bluetooth permission is needed to scan for your AdlaWatt device. You can allow it and try again.",
+      readiness_permission_blocked: "Bluetooth permission blocked",
+      readiness_permission_blocked_body:
+        "Bluetooth permission is blocked in system settings. Open Settings to allow it, then return here.",
+      readiness_ready: "Bluetooth is ready",
+      readiness_ready_body:
+        "You can scan for nearby AdlaWatt devices now.",
+      provisioning: "Setting up device",
+      success: "Configuration saved successfully",
+      connectionFailed: "Connection failed",
       status_idle: "Ready to configure",
       status_scanning: "Scanning for devices",
       status_connecting: "Connecting to device",
-      status_received: "Configuration received",
-      status_busy: "Device is currently processing another request",
-      status_wifi_connected: "Wi-Fi connected",
-      status_wifi_failed: "Connection failed",
+      status_connected: "Connected to AW-01 over Bluetooth",
+      status_subscribed: "Device status notifications are ready",
+      status_writing: "Sending Wi-Fi configuration and monitor ID to AW-01",
+      status_received: "Configuration received by device",
+      status_busy: "Device is processing the request",
+      status_wifi_connected: "Device connected to Wi-Fi",
+      status_wifi_failed: "Wi-Fi connection failed",
       status_wifi_lost: "Wi-Fi connection lost",
       status_configured: "Configuration saved successfully",
       status_error: "Provisioning error",
       status_disconnected: "Bluetooth disconnected",
+      status_timeout: "Setup timed out",
+      timeout: "Setup timed out",
+      timeoutBody:
+        "The device did not finish setup within {{seconds}} seconds. Keep it powered on and nearby, then try again.",
+      validationSsidRequired: "Enter a Wi-Fi network name.",
+      validationSsidTooLong: "The Wi-Fi network name is too long.",
+      validationPasswordTooLong: "The Wi-Fi password is too long.",
+      validationMonitorIdInvalid: "The monitor ID is invalid.",
+      validationInvalidText: "The Wi-Fi details contain an invalid character.",
       errorTitle: "Provisioning failed",
       errorBody:
         "The device could not complete the request. Check the details and try again.",
+      bleWriteNotPermitted:
+        "AW-01 does not accept this Bluetooth write mode. Update the device firmware and try again.",
+      bleTxDescriptorMissing:
+        "AW-01 is missing the status notification descriptor. Update the device firmware and try again.",
+      bleCharacteristicNotFound:
+        "A required Bluetooth characteristic was not found. Keep the device nearby and try again.",
+      bleServiceNotFound:
+        "The AW-01 Bluetooth service was not found. Power-cycle the device and try again.",
+      bleOperationTimeout:
+        "The Bluetooth operation timed out. Keep the device powered on and nearby, then try again.",
+      bleOperationCancelled:
+        "The Bluetooth operation was cancelled. Try again.",
+      bleDisconnected:
+        "Bluetooth disconnected during setup. Keep the device powered on and nearby, then try again.",
+      bleGattError:
+        "The device rejected the Bluetooth write. Update the device firmware and try again.",
       permissionDenied:
         "Bluetooth permission is required to find the device.",
       bluetoothOff: "Turn on Bluetooth to continue.",
@@ -490,8 +654,6 @@ const en = {
       subtitle:
         "System activity and electronics events will appear here.",
       total: "Total Activity Logs:",
-      loadFailed:
-        "We couldn't load your activity logs. Check your connection and try again.",
       timeRange: "Time Range",
       activityType: "Activity Type",
       timeAll: "All",
@@ -510,8 +672,6 @@ const en = {
       subtitle:
         "System notifications and important alerts will appear here.",
       total: "Total Notifications:",
-      loadFailed:
-        "We couldn't load your notifications. Check your connection and try again.",
       markFailed:
         "Couldn't mark notifications as read. Please try again.",
       markError:
@@ -544,8 +704,6 @@ const en = {
     emptyTitle: "No Activity Logs",
     emptyDescription:
       "No activities match the selected filters.",
-    errorTitle: "Couldn't load data",
-    retry: "Try Again",
     paginationPrev: "Prev",
     paginationNext: "Next",
     paginationPage: "Page {{current}} of {{total}}",
@@ -642,6 +800,94 @@ const en = {
       title: "You're All Set",
       subtitle: "Your power, in your hands.",
     },
+  },
+
+  batteryEnergy: {
+    title: "Usable energy",
+    value: "{{wh}} Wh",
+    ofUsable: "of {{capacity}} Wh usable",
+    reserve: "{{wh}} Wh protected reserve",
+    status: {
+      normal: "Healthy",
+      warning: "Low energy",
+      critical: "Critical",
+      waiting: "Waiting for data",
+    },
+    selectedLoad:
+      "Selected: {{ac}} W AC · {{battery}} W from battery",
+  },
+
+  batteryProtection: {
+    warningTitle: "Usable energy is low",
+    warningBody:
+      "Only {{wh}} Wh of usable energy remains. Avoid switching on new appliances.",
+    criticalTitle:
+      "Unplug unnecessary electronics",
+    criticalBody:
+      "Usable energy is down to {{percent}}%. Unplug all nonessential loads now.",
+    newLoadTitle: "Unlisted load detected",
+    newLoadBody:
+      "Live draw is about {{watts}} W above the selected load. Check what is plugged in.",
+    review: "Review electronics",
+    dismiss: "Got it",
+    blocked:
+      "New selections are paused while battery protection is active. You can still remove appliances.",
+    closeA11y:
+      "Dismiss battery protection notice",
+    reviewTitle: "Electronics review",
+    reviewBody:
+      "These are the appliances counted in the current recommendation.",
+    done: "Done",
+  },
+
+  recommendationResult: {
+    title: "Recommendation",
+    status: {
+      empty: "No electronics selected",
+      waiting: "Waiting for battery data",
+      blocked: "Battery check needed",
+      ready: "Combined recommendation",
+    },
+    verdict: {
+      recommended: "OK to use",
+      care: "Use with care",
+      notRecommended: "Not advisable",
+      unknown: "Waiting",
+    },
+    badgeA11y: "Recommendation: {{label}}",
+    reason: {
+      empty:
+        "Select electronics to see a recommendation.",
+      waiting:
+        "Waiting for a fresh battery reading.",
+      offline:
+        "Waiting for the device to come online.",
+      stale:
+        "Battery reading is too old. Waiting for fresh data.",
+      blocked:
+        "Battery readings are outside safe limits.",
+      invalidWattage:
+        "One or more wattage values are invalid.",
+      overCap:
+        "Combined peak load exceeds the safe cap.",
+      unsafeVoltage:
+        "Combined peak load would drop voltage below safe levels.",
+      highDrain:
+        "This combination uses too much usable energy per hour.",
+      care: "Usable with care — keep the load light.",
+      recommended:
+        "Safe to use with this battery level.",
+    },
+    remainingBattery:
+      "Estimated remaining usable energy",
+    estimatedRuntime: "Estimated runtime",
+    combinedPeak: "Combined peak load (battery side)",
+    currentLoad: "Current load",
+    alternativesTitle: "Better options",
+    noAlternatives:
+      "No alternatives available right now.",
+    estimateNote:
+      "Estimates use catalog wattage, not live appliance detection.",
   },
 } as const;
 

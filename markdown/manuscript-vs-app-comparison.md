@@ -36,7 +36,7 @@ become matches.
 
 | Topic | Ruling | Fix lands in |
 |---|---|---|
-| Battery energy basis | Manuscript-literal: **12 V × 60 Ah = 720 Wh total**, 20% reserve (**144 Wh**), **576 Wh usable**. The manuscript states only "12 V, 60 Ah" and no usable figure, so the app adopts the manuscript-literal basis. (The 640.8 Wh figure previously attributed to the paper does not appear anywhere in the docx.) | App: `src/constants/battery.ts` and dependents |
+| Battery energy basis | Current bank basis: **12.6 V × 60 Ah = 756 Wh total**, 20% reserve (**151.2 Wh**), **604.8 Wh usable**. Runtime also models a **6 W** inverter idle draw at **90%** efficiency. The manuscript states only "12 V, 60 Ah" and no usable figure. | App: `src/constants/battery.ts` and dependents |
 | Appliance wattage limit | Manuscript's **600 W** is authoritative: hard cap **600 W** for a single appliance and combined load stack, warning tier at **480 W**. | App: `src/services/recommendation.ts`, `notificationService.ts`, `customElectronicsValidation.ts` |
 | Inverter rating | **1500 W** (Table 1 + Figures 3/5/7) is the real rating; the "Inverter 1000" phrase in the 3.3 design text is a manuscript typo. | Manuscript: 3.3 design text corrected |
 | Admin | **No admin.** The app removes all admin code, routes, guards, and login-screen references (Supabase `users.role` column and role migrations stay untouched). The manuscript removes the Admin actor, Admin Dashboard definition, and web-dashboard scope sentences. | App: delete `src/app/admin/`, `src/admin/`; Manuscript: Definition of Terms, 1.4, 3.2, Figure 4, 3.4 |
@@ -77,12 +77,12 @@ All Household User use-cases are covered.
    **600 W**; the app's engine warns at **800 W** and hard-caps at **1000 W**
    (`src/services/recommendation.ts:152,231`).
    *Ruled:* app moves to a 600 W hard cap with a 480 W warning.
-2. **Battery usable energy** — the code used **604.8 Wh** usable on a 756 Wh
+2. **Battery usable energy** — the app uses **604.8 Wh** usable on a 756 Wh
    basis (`src/constants/battery.ts`). Note: the "640.8 Wh usable" figure
    previously attributed to the paper (via `SYSTEM-STATUS.md`) **does not
    appear anywhere in the docx** — the manuscript only specifies a 12 V,
-   60 Ah bank. *Ruled:* app adopts the manuscript-literal basis of
-   720 Wh total / 144 Wh reserve (20%) / 576 Wh usable.
+   60 Ah bank. *Current basis:* 12.6 V × 60 Ah = 756 Wh total, with a
+   151.2 Wh reserve (20%) and 604.8 Wh usable.
 3. **Admin dashboard** — the manuscript describes a *web-based* platform for
    researchers; the app has an *in-app* role-gated shell with login/logout
    only. *Ruled:* there is no admin — the app removes admin code entirely
@@ -125,13 +125,13 @@ Section tally: 3 Match · 1 Mismatch · 3 N/A
 | SPD PVSPD1-40 surge protective device | None | N/A |
 | Breaker FXBZ-63 (20–30 A DC) | None | N/A |
 | W88-C PWM charge controller, 30 A | Charging state implied via `battery_status` (Charging / Discharging / Idle) | N/A — hardware |
-| Zenova 12 V 30 Ah x2 parallel = 60 Ah bank | `BATTERY_CAPACITY_WH = 756` (12.6 V x 60 Ah), reserve 151.2 Wh (20%), usable 604.8 Wh (80%) — `src/constants/battery.ts` | Partial — *Ruled:* manuscript wins; app adopts 720 Wh total / 144 Wh reserve / 576 Wh usable (manuscript states only 12 V 60 Ah; no usable figure exists in the docx) |
+| Zenova 12 V 30 Ah x2 parallel = 60 Ah bank | `BATTERY_CAPACITY_WH = 756` (12.6 V x 60 Ah), reserve 151.2 Wh (20%), usable 604.8 Wh (80%) — `src/constants/battery.ts` | Match — current app basis is 756 Wh total / 151.2 Wh reserve / 604.8 Wh usable |
 | Inverter, 1500 W, 12 V DC to 220 V AC | Load model: 800 W warning / 1000 W hard cap (`src/services/recommendation.ts`) | Partial — *Ruled:* 1500 W is the true rating; the "Inverter 1000" phrase in the manuscript's 3.3 text is a typo to fix in Word; app load caps become 600 W / 480 W per the appliance ruling |
 | Built-in AC outlet, 220 V, 600 W appliance limit | Engine caps loads at 1000 W (800 W warning) | Mismatch — *Ruled:* manuscript wins; app moves to 600 W hard cap / 480 W warning |
 | ESP32-S3 (44-pin), Wi-Fi + BT | `monitoring` row designed to be ESP32-written; realtime subscription on the app side; **no firmware sources in this repo** | Partial — app side ready, device feed not wired end-to-end |
 | INA219 — battery voltage/current | `voltage`, `watt_hours`, `battery_level` | Match |
 | INA228 x2 — solar-side and load-side V/I/power | `solar_input`, `solar_voltage`, `solar_current`, `current_load`, `total_energy` | Match |
-| DS18B20 x2 — battery & solar panel temperature | `battery_temperature`, `solar_temperature` (+ status each) | Match |
+| DS18B20 x2 — battery & solar panel temperature | `solar_temperature` (+ status); battery temperature no longer tracked in app | Partial — *Ruled:* app intentionally omits battery temperature |
 | DHT22 — interior temperature **and humidity** | `interior_temp` only; **no humidity field** in the monitoring model (humidity appears only in weather data) | Partial — *Ruled:* documented as a limitation (no code change now; no firmware yet to feed it) |
 | Relay module 5 V (1 channel) | Component status card (`src/app/dashboard/components.tsx`) | Match |
 | 5 V DC fans x2 | Component status card | Match |
@@ -139,7 +139,7 @@ Section tally: 3 Match · 1 Mismatch · 3 N/A
 | Double-sided perfboard PCB, 22 AWG wires | None | N/A |
 | SPI TFT touchscreen (local display) | Component status card ("SPI TFT Display") | Match |
 
-Section tally: 6 Match · 4 Partial · 1 Mismatch · 6 N/A
+Section tally: 5 Match · 5 Partial · 1 Mismatch · 6 N/A
 
 ---
 
@@ -173,7 +173,7 @@ descriptions) vs `MonitoringData` in `src/services/monitoringService.ts:49-114`.
 | Solar input | `solar_input` | Match |
 | Solar voltage | `solar_voltage` | Match |
 | Solar current | `solar_current` | Match |
-| Temperature readings | `battery_temperature`, `solar_temperature`, `interior_temp` (+ status each) | Match |
+| Temperature readings | `solar_temperature`, `interior_temp` (+ status each); battery temperature removed | Partial — *Ruled:* app intentionally omits battery temperature |
 | Depth of discharge | `dod_status` (Safe / Unsafe) | Match |
 | Device status | `device_status` (Online / Offline) | Match |
 | Energy generation (solar) | `solar_input`, `total_energy` | Match |
@@ -182,7 +182,7 @@ descriptions) vs `MonitoringData` in `src/services/monitoringService.ts:49-114`.
 | Enclosure humidity (DHT22, Figure 3 sensors) | Not in the monitoring data model | Not in app — *Ruled:* documented as a limitation (no code change now) |
 | — | `time_remaining`, `solar_timer`, `solar_status`, per-temperature status bands, offline cache + 60 s stale-reading tripwire + connectivity banner | Extra |
 
-Section tally: 12 Match · 1 Not in app · 1 Extra
+Section tally: 11 Match · 1 Partial · 1 Not in app · 1 Extra
 
 ---
 
@@ -352,8 +352,8 @@ comparison):
   `SYSTEM-STATUS.md:67` is *not present anywhere in the manuscript docx*.
   A full-text scan of `word/document.xml` (including headers/footers) found
   no usable-energy or reserve percentage; the manuscript specifies only a
-  12 V, 60 Ah bank. The November 10 ruling therefore uses the
-  manuscript-literal 720 Wh basis.
+  12 V, 60 Ah bank. The current app uses the calibrated 12.6 V, 60 Ah
+  basis: 756 Wh total, 151.2 Wh reserve, 604.8 Wh usable.
 - **Reconciliation rulings (November 10, 2026):** manuscript is authoritative
   for hardware values, the app is authoritative for features, there is no
   admin, and the system is Android-only. Details in the Reconciliation

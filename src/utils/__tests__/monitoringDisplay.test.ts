@@ -8,7 +8,9 @@ import {
   SENSOR_FAULT_VALUE,
   formatLastSeen,
   formatMetric,
+  fitTextFontSize,
   formatTemperature,
+  formatTemperatureStatusLabel,
   hasTemperatureReading,
   isDeviceOnline,
 } from "@/utils/monitoringDisplay";
@@ -47,6 +49,27 @@ describe("temperature display", () => {
   });
 });
 
+describe("temperature status label", () => {
+  test("shortens only the sensor fault status for display", () => {
+    expect(
+      formatTemperatureStatusLabel(
+        "Critical (sensor fault)",
+      ),
+    ).toBe("Critical");
+    expect(
+      formatTemperatureStatusLabel(
+        "Critical (rapid rise)",
+      ),
+    ).toBe("Critical (rapid rise)");
+    expect(formatTemperatureStatusLabel("Critical")).toBe(
+      "Critical",
+    );
+    expect(formatTemperatureStatusLabel("Nominal")).toBe(
+      "Nominal",
+    );
+  });
+});
+
 describe("metric display", () => {
   test("renders values with units and null as --", () => {
     expect(formatMetric(12.6, "V")).toBe("12.6V");
@@ -61,6 +84,24 @@ describe("metric display", () => {
       MISSING_VALUE,
     );
     expect(MISSING_VALUE).toBe("--");
+  });
+});
+
+describe("fit text font size", () => {
+  test("keeps the current size when the text already fits", () => {
+    expect(fitTextFontSize(80, 88, 30, 10)).toBe(30);
+    expect(fitTextFontSize(88, 88, 30, 10)).toBe(30);
+    expect(fitTextFontSize(0, 88, 30, 10)).toBe(30);
+  });
+
+  test("shrinks long values proportionally", () => {
+    expect(fitTextFontSize(140, 88, 30, 10)).toBe(18);
+    expect(fitTextFontSize(98, 88, 21, 10)).toBe(18);
+  });
+
+  test("never shrinks below the minimum", () => {
+    expect(fitTextFontSize(400, 88, 18, 10)).toBe(10);
+    expect(fitTextFontSize(400, 88, 8, 10)).toBe(8);
   });
 });
 

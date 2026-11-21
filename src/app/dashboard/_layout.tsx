@@ -12,6 +12,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useHouseholdGuard } from "@/hooks/useHouseholdGuard";
 import { useAlertVibration } from "@/hooks/useAlertVibration";
+import NeutralShell from "@/components/ui/NeutralShell";
 import RouteErrorBoundary from "@/components/ui/RouteErrorBoundary";
 import VibrationGuidancePanel from "@/components/guidance/VibrationGuidancePanel";
 import { useLocalReminders } from "@/hooks/useLocalReminders";
@@ -102,7 +103,7 @@ function ThemedDashboard() {
   );
 
   if (!isLoaded || !isSignedIn || !canRenderHousehold) {
-    return null;
+    return <NeutralShell />;
   }
 
   return (

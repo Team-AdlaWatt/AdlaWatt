@@ -7,7 +7,9 @@
     "icon": "./assets/images/adlawatt-icon.png",
     "scheme": "adlawatt",
     "userInterfaceStyle": "automatic",
-    "runtimeVersion": "e552de68cf047f8c4681281ab6000865d965616a",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
     "updates": {
       "url": "https://u.expo.dev/ba375929-16f4-4a21-b339-8b43e93ecfd2"
     },
@@ -73,14 +75,6 @@
       "expo-font",
       "expo-image",
       "expo-status-bar",
-      [
-        "@sentry/react-native/expo",
-        {
-          "organization": "adlawatt",
-          "project": "adlawatt-kr",
-          "url": "https://sentry.io/"
-        }
-      ],
       [
         "expo-build-properties",
         {

@@ -2,7 +2,8 @@ import React, { useMemo } from "react";
 import {
   Pressable,
   StyleSheet,
-  ViewStyle,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
 
 import {
@@ -16,7 +17,7 @@ interface AppButtonProps {
   title: string;
   onPress: () => void;
   disabled?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }
 
 export default function AppButton({

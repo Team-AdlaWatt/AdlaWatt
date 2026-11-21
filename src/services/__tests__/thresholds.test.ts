@@ -42,8 +42,6 @@ const mon = (
     total_energy: 1200,
     current_load: 50,
     device_status: "Online",
-    battery_temperature: 30,
-    battery_temperature_status: "Nominal",
     dod_status: "Safe",
     solar_temperature: 35,
     solar_temperature_status: "Nominal",

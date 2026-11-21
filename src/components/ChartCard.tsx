@@ -10,6 +10,7 @@ import {
   AccessibilityInfo,
   Animated,
   Easing,
+  LayoutChangeEvent,
   Linking,
   Pressable,
   StyleSheet,
@@ -22,6 +23,8 @@ import Svg, {
 } from "react-native-svg";
 
 import AppText from "@/components/ui/AppText";
+import GroupedCardShell from "@/components/ui/GroupedCardShell";
+import { useSettings } from "@/context/SettingsContext";
 import {
   BATTERY_CAPACITY_WH,
   BATTERY_RESERVE_WH,
@@ -39,12 +42,16 @@ import type {
   MonitoringData,
   TemperatureStatus,
 } from "@/services/monitoringSchema";
+import { isBatteryReadingError } from "@/services/monitoringSchema";
 import {
   MISSING_VALUE,
+  fitTextFontSize,
   formatMetric,
   formatTemperature,
+  formatTemperatureStatusLabel,
   hasValue,
 } from "@/utils/monitoringDisplay";
+import { getEstimatedTimeRemaining } from "@/utils/estimatedTimeRemaining";
 
 import {
   formatBestSunSummary,
@@ -73,7 +80,6 @@ type ChartType =
   | "solar_timer"
   | "load"
   | "weather"
-  | "temperature"
   | "solar_temperature"
   | "dod";
 
@@ -205,6 +211,13 @@ const CHARGING_GLOW_STROKE_OFFSET = 5;
 
 const SUN_RADIUS = 52;
 
+const SOLAR_LABEL_MAX_FONT_SIZE = 30;
+
+const SOLAR_LABEL_MIN_FONT_SIZE = 10;
+
+const SOLAR_LABEL_TARGET_WIDTH =
+  SUN_RADIUS * 2 - 16;
+
 const SUN_RAYS_STROKE = STROKE;
 
 // Short capsule rays that float with a clear distance from the
@@ -287,6 +300,63 @@ export default function ChartCard({
 }: ChartCardProps) {
 
   const colors = useAppColors();
+
+  const { prefs } = useSettings();
+
+  const solarInput =
+    loading
+      ? "—"
+      : formatMetric(
+          monitoring?.solar_input,
+          "W",
+        );
+
+  const solarLabelKey =
+    `${solarInput}|${prefs.fontFamily}|${prefs.fontSize}`;
+
+  const [
+    solarLabelFit,
+    setSolarLabelFit,
+  ] = useState({
+    key: solarLabelKey,
+    fontSize: SOLAR_LABEL_MAX_FONT_SIZE,
+  });
+
+  const solarLabelFontSize =
+    solarLabelFit.key === solarLabelKey
+      ? solarLabelFit.fontSize
+      : SOLAR_LABEL_MAX_FONT_SIZE;
+
+  const handleSolarLabelLayout = (
+    event: LayoutChangeEvent,
+  ): void => {
+    setSolarLabelFit((current) => {
+      const currentFontSize =
+        current.key === solarLabelKey
+          ? current.fontSize
+          : SOLAR_LABEL_MAX_FONT_SIZE;
+
+      const nextFontSize =
+        fitTextFontSize(
+          event.nativeEvent.layout.width,
+          SOLAR_LABEL_TARGET_WIDTH,
+          currentFontSize,
+          SOLAR_LABEL_MIN_FONT_SIZE,
+        );
+
+      if (
+        current.key === solarLabelKey &&
+        current.fontSize === nextFontSize
+      ) {
+        return current;
+      }
+
+      return {
+        key: solarLabelKey,
+        fontSize: nextFontSize,
+      };
+    });
+  };
 
   const styles = useMemo(
     () => getStyles(colors),
@@ -595,9 +665,9 @@ export default function ChartCard({
   // ==========================================================
   // BATTERY MONITORING GROUP
   //
-  // The battery gauge block (ring + percentage + time remaining
+  // The battery gauge block (ring + percentage + estimated time remaining
   // + status badges) was merged into this card's left column.
-  // Voltage, Watt-hour, and Load Now fill the right 2 × 3 grid.
+  // Voltage, Watt-hour, Load Now, and Interior fill the right 2 × 2 grid.
   // ==========================================================
 
   if (type === "voltage") {
@@ -642,6 +712,9 @@ export default function ChartCard({
 
     const isIdle =
       batteryStatus === "Idle";
+
+    const isBatteryError =
+      isBatteryReadingError(batteryStatus);
 
     const dodStatus =
       monitoring?.dod_status ??
@@ -702,19 +775,24 @@ export default function ChartCard({
         styles,
       );
 
+    const estimatedTimeRemaining =
+      getEstimatedTimeRemaining({
+        batteryStatus:
+          monitoring?.battery_status ?? null,
+        wattHours:
+          monitoring?.watt_hours ?? null,
+        batteryLevel:
+          monitoring?.battery_level ?? null,
+        currentLoad:
+          monitoring?.current_load ?? null,
+        solarInput:
+          monitoring?.solar_input ?? null,
+      });
+
     const interiorTemperatureStatus =
       monitoring
         ?.interior_temp_status ??
       null;
-
-    const batteryTemperatureData =
-      getCardData(
-        "temperature",
-        monitoring,
-        weather ?? null,
-        loading,
-        styles,
-      );
 
     const interiorTemperatureValue =
       loading
@@ -740,56 +818,12 @@ export default function ChartCard({
         : null;
 
     return (
-      <View
-        style={[
-          styles.monitorCard,
-          styles.groupMonitoringCard,
-        ]}
+      <GroupedCardShell
+        icon="flash-outline"
+        title="Battery Monitoring"
       >
-
-        {/* ==================================================
-            BATTERY HEADER / ACCENT PANEL
-            ================================================== */}
-
         <View
-          style={
-            styles.groupHeaderPanel
-          }
-        >
-
-          <View
-            style={
-              styles.groupHeaderLeft
-            }
-          >
-
-            <Ionicons
-              name="flash-outline"
-              size={30}
-              color={colors.headerContent}
-            />
-
-            <AppText
-              variant="heading"
-              style={
-                styles.groupHeaderTitle
-              }
-            >
-              Battery Monitoring
-            </AppText>
-
-          </View>
-
-        </View>
-
-        {/* ==================================================
-            BATTERY BODY ROW
-            ================================================== */}
-
-        <View
-          style={
-            styles.batteryBodyRow
-          }
+          style={styles.batteryBodyRow}
         >
 
           {/* ==================================================
@@ -917,7 +951,7 @@ export default function ChartCard({
             </View>
 
             {/* ==============================================
-                TIME REMAINING
+                ESTIMATED TIME REMAINING
                 ============================================== */}
 
             <AppText
@@ -926,12 +960,8 @@ export default function ChartCard({
                 styles.remainingText
               }
             >
-              Time Remaining:{" "}
-              {loading
-                ? "—"
-                : monitoring
-                    ?.time_remaining ??
-                  "—"}
+              Estimated Time Remaining:{" "}
+              {loading ? "—" : estimatedTimeRemaining}
             </AppText>
 
             {/* ==============================================
@@ -945,13 +975,13 @@ export default function ChartCard({
             >
 
               {/* Battery Status: icon + label so state never
-                  relies on color alone (Idle vs
-                  Charging/Discharging). */}
+                  relies on color alone (Idle/Reading Error
+                  vs Charging/Discharging). */}
 
               <View
                 style={[
                   styles.batteryStatus,
-                  isIdle
+                  isIdle || isBatteryError
                     ? styles.batteryStatusIdle
                     : null,
                 ]}
@@ -1000,7 +1030,7 @@ export default function ChartCard({
           </View>
 
           {/* ==================================================
-              RIGHT — BATTERY 2 × 3 MEASUREMENT GRID
+              RIGHT — BATTERY 2 × 2 MEASUREMENT GRID
               ================================================== */}
 
           <View
@@ -1104,67 +1134,6 @@ export default function ChartCard({
             </View>
 
             {/* ==============================================
-                RESERVED CELL (for future data)
-                ============================================== */}
-
-            <View
-              style={
-                styles.batteryMetricCell
-              }
-            />
-
-            {/* ==============================================
-                TEMPERATURE (battery temperature)
-                ============================================== */}
-
-            <View
-              style={
-                styles.batteryMetricCell
-              }
-            >
-
-              <AppText
-                variant="caption"
-                style={
-                  styles.batteryMetricLabel
-                }
-              >
-                Temperature
-              </AppText>
-
-              <AppText
-                variant="heading"
-                style={
-                  styles.batteryMetricValue
-                }
-              >
-                {batteryTemperatureData.value}
-              </AppText>
-
-              {batteryTemperatureData.badge && (
-                <View
-                  style={[
-                    styles.statusBadge,
-                    batteryTemperatureData.badgeStyle,
-                  ]}
-                >
-
-                  <AppText
-                    variant="caption"
-                    style={[
-                      styles.statusBadgeText,
-                      batteryTemperatureData.badgeTextStyle,
-                    ]}
-                  >
-                    {batteryTemperatureData.badge}
-                  </AppText>
-
-                </View>
-              )}
-
-            </View>
-
-            {/* ==============================================
                 INTERIOR TEMPERATURE
                 ============================================== */}
 
@@ -1207,7 +1176,9 @@ export default function ChartCard({
                       interiorTemperatureBadgeText,
                     ]}
                   >
-                    {interiorTemperatureStatus}
+                    {formatTemperatureStatusLabel(
+                      interiorTemperatureStatus,
+                    )}
                   </AppText>
 
                 </View>
@@ -1216,10 +1187,8 @@ export default function ChartCard({
             </View>
 
           </View>
-
         </View>
-
-      </View>
+      </GroupedCardShell>
     );
   }
 
@@ -1228,7 +1197,7 @@ export default function ChartCard({
   //
   // Solar Input (inside the sun gauge), Timer, and the status
   // badge fill the left column. Voltage, Current, Total Energy,
-  // and Solar Panel Temperature fill the right 2 × 3 grid.
+  // and Solar Panel Temperature fill the right 2 × 2 grid.
   // The Temperature Monitoring card no longer exists.
   // ==========================================================
 
@@ -1241,14 +1210,6 @@ export default function ChartCard({
     const solarTimer =
       monitoring?.solar_timer ??
       null;
-
-    const solarInput =
-      loading
-        ? "—"
-        : formatMetric(
-            monitoring?.solar_input,
-            "W",
-          );
 
     const solarVoltage =
       loading
@@ -1409,9 +1370,15 @@ export default function ChartCard({
 
                 <AppText
                   variant="heading"
-                  style={
-                    styles.solarCenterText
-                  }
+                  numberOfLines={1}
+                  ellipsizeMode="clip"
+                  onLayout={handleSolarLabelLayout}
+                  style={[
+                    styles.solarCenterText,
+                    {
+                      fontSize: solarLabelFontSize,
+                    },
+                  ]}
                 >
                   {solarInput}
                 </AppText>
@@ -1480,7 +1447,7 @@ export default function ChartCard({
           </View>
 
           {/* ================================================
-              RIGHT — SOLAR 2 × 3 MEASUREMENT GRID
+              RIGHT — SOLAR 2 × 2 MEASUREMENT GRID
               ================================================ */}
 
           <View
@@ -1580,16 +1547,6 @@ export default function ChartCard({
             </View>
 
             {/* ==============================================
-                RESERVED CELL (for future data)
-                ============================================== */}
-
-            <View
-              style={
-                styles.batteryMetricCell
-              }
-            />
-
-            {/* ==============================================
                 SOLAR PANEL TEMPERATURE
                 (moved from Temperature Monitoring)
                 ============================================== */}
@@ -1640,16 +1597,6 @@ export default function ChartCard({
               )}
 
             </View>
-
-            {/* ==============================================
-                RESERVED CELL (for future data)
-                ============================================== */}
-
-            <View
-              style={
-                styles.batteryMetricCell
-              }
-            />
 
           </View>
 
@@ -2429,8 +2376,7 @@ export default function ChartCard({
     type === "solar_timer" ||
     type === "load" ||
     type === "dod" ||
-    type === "solar_temperature" ||
-    type === "temperature"
+    type === "solar_temperature"
   ) {
     return null;
   }
@@ -2893,52 +2839,6 @@ function getCardData(
       };
 
     // ========================================================
-    // BATTERY TEMPERATURE
-    // ========================================================
-
-    case "temperature": {
-
-      const status =
-        monitoring
-          ?.battery_temperature_status ??
-        null;
-
-      return {
-        icon:
-          "thermometer-outline",
-
-        label:
-          "Battery Temp",
-
-        value:
-          loading
-            ? "—"
-            : formatTemperature(
-                monitoring?.battery_temperature,
-              ),
-
-        ...(status
-          ? {
-              badge:
-                status,
-
-              badgeStyle:
-                getTemperatureBadgeStyle(
-                  status,
-                  themedStyles,
-                ),
-
-              badgeTextStyle:
-                getTemperatureBadgeTextStyle(
-                  status,
-                  themedStyles,
-                ),
-            }
-          : {}),
-      };
-    }
-
-    // ========================================================
     // SOLAR PANEL TEMPERATURE
     // ========================================================
 
@@ -2966,7 +2866,9 @@ function getCardData(
         ...(status
           ? {
               badge:
-                status,
+                formatTemperatureStatusLabel(
+                  status,
+                ),
 
               badgeStyle:
                 getTemperatureBadgeStyle(
@@ -3312,9 +3214,10 @@ const getStyles = (colors: AppColors) =>
   // theme and goes light in dark mode, unreadable on yellow.
   solarCenterText: {
     color: Colors.light.text,
-    fontSize: 30,
+    fontSize: SOLAR_LABEL_MAX_FONT_SIZE,
     fontWeight: "800",
-    lineHeight: 26,
+    textAlign: "center",
+    includeFontPadding: false,
   },
 
   // Frozen: dark ink on the moderate (amber) solar badge.
@@ -3389,10 +3292,9 @@ const getStyles = (colors: AppColors) =>
   },
 
   // ==========================================================
-  // RIGHT — BATTERY 2 × 3 MEASUREMENT GRID
+  // RIGHT — MONITORING 2 × 2 MEASUREMENT GRID
   //
-  // Flex-wraps six equal cells (two per row × three rows).
-  // The bottom three cells are reserved for future data.
+  // Flex-wraps four equal cells (two per row × two rows).
   // ==========================================================
 
   batteryMetricGrid: {

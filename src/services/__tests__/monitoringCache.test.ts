@@ -39,8 +39,6 @@ const DATA: MonitoringData = {
   solar_voltage: 18,
   solar_current: 5,
   total_energy: 1200,
-  battery_temperature: 30,
-  battery_temperature_status: "Nominal",
   dod_status: "Safe",
   solar_temperature: 35,
   solar_temperature_status: "Nominal",
@@ -53,28 +51,30 @@ const ROW: MonitoringRow = {
   monitor_id: 1,
   user_id: USER_ID,
   "INA219 Voltage Percentage": 77,
-  "INA228 Load Battery status": "Discharging",
-  "INA228 Load battery time remaining": "4h 30m",
-  "INA228 Solar Side input": 80,
-  "INA228 Solar Side timer": "00:00:00",
-  "INA228 Solar Side voltage": 17,
-  "INA228 Solar Side current": 4,
-  "INA228 Load Side total energy": 1100,
-  "INA228 Solar Side solar status": "Moderate",
-  "INA228 Load Side battery load": 60,
+  "INA219 Load Battery status": "Discharging",
+  "INA219 Load battery time remaining": "4h 30m",
+  "INA219 Solar Side input": 80,
+  "INA219 Solar Side timer": "00:00:00",
+  "INA219 Solar Side voltage": 17,
+  "INA219 Solar Side current": 4,
+  "INA219 Load Side total energy": 1100,
+  "INA219 Solar Side solar status": "Moderate",
+  "INA219 Load Side battery load": 60,
   "ESP32S3 Status": "Online",
   "ESP32S3 Last seen": "2026-11-12T10:00:00.000Z",
-  "DS18B20 1 Battery Temp": 31,
-  "DS18B20 1 Battery Temp Status": "Nominal",
-  "INA228 Load Side dod_status": "Safe",
+  "INA219 Load Side dod_status": "Safe",
   "DS18B20 2 Solar Temp": 36,
   "DS18B20 2 Solar Temp Status": "Nominal",
   "DHT22 Interior Temp": 29,
   "DHT22 Interior Temp Status": "Nominal",
   "INA219 Voltage": 12.4,
-  "INA228 Load Side battery watt_hour": 480,
+  "INA219 Load Side battery watt_hour": 480,
   cumulative_energy_input_wh: 1000,
   cumulative_energy_output_wh: 900,
+  heartbeat_expires_at:
+    "2026-11-12T10:00:10.000Z",
+  "ESP32S3 Sampled at":
+    "2026-11-12T10:00:00.000Z",
 };
 
 const chain: Record<string, jest.Mock> = {
@@ -138,14 +138,14 @@ describe("monitoring cache round-trip", () => {
     ).toBe("number");
     expect(
       cached?.schemaVersion,
-    ).toBe(3);
+    ).toBe(5);
   });
 
   test("load re-normalizes untrusted shapes", async () => {
     await AsyncStorage.setItem(
       CACHE_KEY,
       JSON.stringify({
-        schemaVersion: 3,
+        schemaVersion: 5,
         data: {
           battery_level: "high",
           battery_status: "bogus",
@@ -185,8 +185,8 @@ describe("monitoring cache round-trip", () => {
   test.each([
     ["missing key", null],
     ["corrupt JSON", "{not json"],
-    ["non-finite savedAt", '{"schemaVersion":3,"data":{},"savedAt":"x"}'],
-    ["absent savedAt", '{"schemaVersion":3,"data":{}}'],
+    ["non-finite savedAt", '{"schemaVersion":4,"data":{},"savedAt":"x"}'],
+    ["absent savedAt", '{"schemaVersion":4,"data":{}}'],
     ["missing schemaVersion", '{"data":{},"savedAt":123}'],
   ])("%s loads as null", async (_label, raw) => {
     if (raw !== null) {

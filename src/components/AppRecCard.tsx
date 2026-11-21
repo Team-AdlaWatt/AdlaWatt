@@ -1,17 +1,23 @@
 import { Ionicons } from "@expo/vector-icons";
 
 import React, {
+  useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
 import {
   Animated,
+  FlatList,
   Platform,
   Pressable,
   StyleSheet,
   View,
+  type LayoutChangeEvent,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from "react-native";
 
 import { Image } from "expo-image";
@@ -30,6 +36,7 @@ import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
+import { useTableRealtimeRefresh } from "@/hooks/useTableRealtimeRefresh";
 import { Radius } from "@/constants/theme";
 import { Control } from "@/constants/sizing";
 import {
@@ -42,8 +49,10 @@ import {
 } from "@/services/electronicsPhotoService";
 import {
   type BatteryStateInput,
-  recommendElectronics,
 } from "@/services/recommendation";
+import {
+  evaluateSelection,
+} from "@/services/recommendationSelection";
 
 type Status =
   | "advisable"
@@ -172,7 +181,17 @@ export default function AppRecCard({
   const electronicsCardStyles =
     useElectronicsCardStyles();
 
-  const [index, setIndex] = useState(0);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageWidth, setPageWidth] = useState(0);
+  const [autoAdvanceKey, setAutoAdvanceKey] =
+    useState(0);
+
+  const pagerRef =
+    useRef<FlatList<DecoratedElectronics[]> | null>(
+      null,
+    );
+
+  const pageIndexRef = useRef(0);
 
   const [electronics, setElectronics] =
     useState<Electronics[]>([]);
@@ -189,62 +208,27 @@ export default function AppRecCard({
     () => new Animated.Value(1),
   );
 
-  // ============================================
-  // DECORATE ELECTRONICS WITH RECOMMENDATION STATUS
-  //
-  // When a live battery reading exists the engine
-  // verdict decides the badge. Without one the legacy
-  // wattage-only heuristic keeps the prior behavior.
-  // ============================================
-
   const decoratedElectronics =
-    useMemo((): DecoratedElectronics[] => {
-      if (!battery) {
-        return electronics.map((item) => {
-          const values =
-            String(item.watts)
-              .match(/\d+/g)
-              ?.map(Number) ?? [];
-
-          const maxWatts = Math.max(
-            ...values,
-            0,
-          );
-
-          const status =
-            maxWatts > 300
-              ? "notAdvisable"
-              : "advisable";
-
-          return {
-            ...item,
-            status,
-            color:
-              badgeMeta(
-                status,
-                colors,
-              ).color,
-          };
-        });
-      }
-
-      return electronics.map((item) => {
-        const recommendation =
-          recommendElectronics(
-            battery,
+    useMemo((): DecoratedElectronics[] =>
+      electronics.map((item) => {
+        const evaluation = evaluateSelection(
+          battery ?? null,
+          [
             {
               id: item.id,
               name: item.name,
-              wattage: item.watts,
+              watts: item.watts,
+              imageKey: item.imageKey,
             },
-          );
+          ],
+          { alternativesLimit: 0 },
+        );
 
         const status =
-          recommendation.verdict ===
+          evaluation.verdict ===
           "notRecommended"
             ? "notAdvisable"
-            : recommendation.verdict ===
-                "care"
+            : evaluation.verdict === "care"
               ? "care"
               : "advisable";
 
@@ -257,8 +241,7 @@ export default function AppRecCard({
               colors,
             ).color,
         };
-      });
-    }, [electronics, battery, colors]);
+      }), [electronics, battery, colors]);
 
   // ============================================
   // CONTENT-AWARE STATUS SEGMENTS
@@ -354,31 +337,331 @@ export default function AppRecCard({
   // CAROUSEL ITEMS
   // ============================================
 
-  const currentElectronics = useMemo(() => {
-    if (filteredElectronics.length === 0) {
+  const pages = useMemo(() => {
+    const result: DecoratedElectronics[][] = [];
+
+    for (
+      let i = 0;
+      i < filteredElectronics.length;
+      i += 2
+    ) {
+      result.push(
+        filteredElectronics.slice(i, i + 2),
+      );
+    }
+
+    return result;
+  }, [filteredElectronics]);
+
+  const pageCount = pages.length;
+  const maxPageIndex = Math.max(0, pageCount - 1);
+  const safePageIndex = Math.min(
+    pageIndex,
+    maxPageIndex,
+  );
+
+  const indicatorCount = Math.min(10, pageCount);
+
+  const indicatorPages = useMemo(() => {
+    if (indicatorCount === 0) {
       return [];
     }
 
-    const count = Math.min(
-      2,
-      filteredElectronics.length,
-    );
+    if (pageCount <= indicatorCount) {
+      return Array.from(
+        { length: pageCount },
+        (_, dotIndex) => dotIndex,
+      );
+    }
 
     return Array.from(
-      { length: count },
-      (_, offset) =>
-        filteredElectronics[
-        (index + offset) %
-        filteredElectronics.length
-        ],
+      { length: indicatorCount },
+      (_, dotIndex) =>
+        Math.round(
+          (dotIndex * (pageCount - 1)) /
+          (indicatorCount - 1),
+        ),
     );
-  }, [filteredElectronics, index]);
+  }, [indicatorCount, pageCount]);
+
+  const activeIndicator = useMemo(() => {
+    if (indicatorPages.length === 0) {
+      return 0;
+    }
+
+    return indicatorPages.reduce(
+      (bestIndex, page, dotIndex) =>
+        Math.abs(page - safePageIndex) <
+          Math.abs(
+            indicatorPages[bestIndex] -
+            safePageIndex,
+          )
+          ? dotIndex
+          : bestIndex,
+      0,
+    );
+  }, [indicatorPages, safePageIndex]);
+
+  const activePageColor =
+    pages[safePageIndex]?.[0]?.color ??
+    colors.border;
+
+  const restartAutoAdvance = useCallback(() => {
+    setAutoAdvanceKey((current) => current + 1);
+  }, []);
+
+  const setCurrentPage = useCallback(
+    (next: number) => {
+      pageIndexRef.current = next;
+      setPageIndex(next);
+    },
+    [],
+  );
+
+  const handleModeChange = useCallback(
+    (nextMode: Status) => {
+      setMode(nextMode);
+      setCurrentPage(0);
+
+      if (pageCount > 1 && pageWidth > 0) {
+        pagerRef.current?.scrollToOffset({
+          offset: 0,
+          animated: false,
+        });
+      }
+
+      restartAutoAdvance();
+    },
+    [
+      pageCount,
+      pageWidth,
+      restartAutoAdvance,
+      setCurrentPage,
+    ],
+  );
+
+  const handlePagerLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      const next = event.nativeEvent.layout.width;
+
+      if (next > 0 && next !== pageWidth) {
+        setPageWidth(next);
+      }
+    },
+    [pageWidth],
+  );
+
+  const updatePageFromOffset = useCallback(
+    (offset: number) => {
+      if (pageWidth <= 0 || pageCount === 0) {
+        return;
+      }
+
+      const next = Math.min(
+        maxPageIndex,
+        Math.max(
+          0,
+          Math.round(offset / pageWidth),
+        ),
+      );
+
+      if (next !== pageIndexRef.current) {
+        setCurrentPage(next);
+      }
+    },
+    [maxPageIndex, pageCount, pageWidth, setCurrentPage],
+  );
+
+  const handleScroll = useCallback(
+    (
+      event: NativeSyntheticEvent<NativeScrollEvent>,
+    ) => {
+      updatePageFromOffset(
+        event.nativeEvent.contentOffset.x,
+      );
+    },
+    [updatePageFromOffset],
+  );
+
+  const handleScrollEnd = useCallback(
+    (
+      event: NativeSyntheticEvent<NativeScrollEvent>,
+    ) => {
+      updatePageFromOffset(
+        event.nativeEvent.contentOffset.x,
+      );
+      restartAutoAdvance();
+    },
+    [restartAutoAdvance, updatePageFromOffset],
+  );
+
+  const handleScrollToIndexFailed = useCallback(
+    ({ index }: { index: number }) => {
+      if (pageWidth <= 0 || pageCount === 0) {
+        return;
+      }
+
+      const next = Math.min(
+        Math.max(0, index),
+        maxPageIndex,
+      );
+
+      setCurrentPage(next);
+      pagerRef.current?.scrollToOffset({
+        offset: next * pageWidth,
+        animated: false,
+      });
+    },
+    [maxPageIndex, pageCount, pageWidth, setCurrentPage],
+  );
+
+  const handleIndicatorPress = useCallback(
+    (page: number) => {
+      if (
+        pageCount <= 1 ||
+        pageWidth <= 0 ||
+        page < 0 ||
+        page > maxPageIndex
+      ) {
+        return;
+      }
+
+      setCurrentPage(page);
+      pagerRef.current?.scrollToIndex({
+        index: page,
+        animated: true,
+      });
+      restartAutoAdvance();
+    },
+    [
+      maxPageIndex,
+      pageCount,
+      pageWidth,
+      restartAutoAdvance,
+      setCurrentPage,
+    ],
+  );
+
+  const renderPage = useCallback(
+    ({ item }: { item: DecoratedElectronics[] }) => (
+      <View
+        style={[
+          styles.electronicsPage,
+          { width: pageWidth },
+          isTightMode && styles.electronicsPageTight,
+        ]}
+      >
+        {item.map((electronics) => {
+          const meta = badgeMeta(
+            electronics.status,
+            colors,
+          );
+
+          return (
+            <View
+              key={electronics.id}
+              style={[
+                electronics.status !==
+                "notAdvisable"
+                  ? electronicsCardStyles.box
+                  : electronicsCardStyles.boxTight,
+                {
+                  borderColor: meta.color,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  electronicsCardStyles.imageContainer,
+                  {
+                    borderColor: meta.color,
+                  },
+                ]}
+              >
+                <Image
+                  source={
+                    electronics.imageUrl
+                      ? {
+                          uri: electronics.imageUrl,
+                        }
+                      : (
+                          (electronics.imageKey
+                            ? CATALOG_IMAGES[
+                                electronics.imageKey
+                              ]
+                            : undefined) ?? defaultImage
+                        )
+                  }
+                  style={
+                    electronicsCardStyles.image
+                  }
+                  contentFit="contain"
+                  cachePolicy="memory-disk"
+                />
+              </View>
+
+              <AppText
+                variant="caption"
+                style={electronicsCardStyles.name}
+                numberOfLines={2}
+              >
+                {electronics.name}
+              </AppText>
+
+              <AppText
+                variant="caption"
+                style={electronicsCardStyles.watts}
+                numberOfLines={1}
+              >
+                {electronics.watts}
+              </AppText>
+
+              {electronics.status !==
+                "notAdvisable" && (
+                <View
+                  style={[
+                    electronicsCardStyles.status,
+                    {
+                      backgroundColor: meta.color,
+                    },
+                  ]}
+                >
+                  <Ionicons
+                    name={meta.icon}
+                    size={13}
+                    color={colors.onPrimary}
+                  />
+
+                  <AppText
+                    variant="caption"
+                    style={
+                      electronicsCardStyles.statusText
+                    }
+                    numberOfLines={1}
+                  >
+                    {meta.label}
+                  </AppText>
+                </View>
+              )}
+            </View>
+          );
+        })}
+      </View>
+    ),
+    [
+      colors,
+      electronicsCardStyles,
+      isTightMode,
+      pageWidth,
+      styles,
+    ],
+  );
 
   // ============================================
   // LOAD USER ELECTRONICS
   // ============================================
 
-  const loadElectronics = async () => {
+  const loadElectronics = useCallback(async () => {
     try {
       const { fetchSelectedElectronics } = await import(
         "@/services/electronicsService"
@@ -477,7 +760,13 @@ export default function AppRecCard({
     prefetchElectronicsPhotos(
       mapped.map((item) => item.imageUrl),
     );
-  };
+  }, []);
+
+  useTableRealtimeRefresh({
+    table: "electronics",
+    topic: "dashboard-electronics-carousel",
+    onRefresh: loadElectronics,
+  });
 
   // ============================================
   // INITIAL LOAD
@@ -486,36 +775,62 @@ export default function AppRecCard({
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- initial Supabase fetch on mount (external sync); results settle in async callbacks
     loadElectronics();
-  }, []);
-
-  // ============================================
-  // RESET CAROUSEL
-  // ============================================
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset carousel position when tab changes (intentional UI reset)
-    setIndex(0);
-  }, [mode]);
+  }, [loadElectronics]);
 
   // ============================================
   // ELECTRONICS CAROUSEL
   // ============================================
 
   useEffect(() => {
-    if (filteredElectronics.length <= 1) {
+    if (pageCount === 0) {
+      return;
+    }
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset pager state when the visible page count changes
+    setPageIndex(0);
+    pageIndexRef.current = 0;
+
+    if (pageCount > 1 && pageWidth > 0) {
+      pagerRef.current?.scrollToOffset({
+        offset: 0,
+        animated: false,
+      });
+    }
+  }, [pageCount, pageWidth]);
+
+  useEffect(() => {
+    if (pageCount <= 1 || pageWidth <= 0) {
       return;
     }
 
     const timer = setInterval(() => {
-      setIndex(
-        (currentIndex) =>
-          currentIndex + 1,
+      if (pageCount <= 1 || pageWidth <= 0) {
+        return;
+      }
+
+      const current = Math.min(
+        pageIndexRef.current,
+        maxPageIndex,
       );
+      const next =
+        current >= maxPageIndex ? 0 : current + 1;
+
+      pageIndexRef.current = next;
+      setPageIndex(next);
+      pagerRef.current?.scrollToIndex({
+        index: next,
+        animated: true,
+      });
     }, 5000);
 
     return () =>
       clearInterval(timer);
-  }, [filteredElectronics.length]);
+  }, [
+    autoAdvanceKey,
+    maxPageIndex,
+    pageCount,
+    pageWidth,
+  ]);
 
   // ============================================
   // OPEN / CLOSE ELECTRONICS MODAL
@@ -637,7 +952,7 @@ export default function AppRecCard({
               Only segments with content render. */}
           <SlidingToggle<Status>
             value={effectiveMode}
-            onChange={setMode}
+            onChange={handleModeChange}
             style={styles.toggleColors}
             options={visibleToggleMeta.map(
               ({
@@ -674,158 +989,74 @@ export default function AppRecCard({
           >
             <View
               style={[
-                styles.electronicsRow,
+                styles.pagerContainer,
                 isTightMode &&
-                  styles.electronicsRowTight,
+                  styles.pagerContainerTight,
               ]}
+              onLayout={handlePagerLayout}
             >
-              {currentElectronics.map(
-                (electronics) => {
-                  const meta =
-                    badgeMeta(
-                      electronics.status,
-                      colors,
-                    );
-
-                  return (
-                  <View
-                    key={electronics.id}
-                    style={[
-                      electronics.status !==
-                      "notAdvisable"
-                        ? electronicsCardStyles.box
-                        : electronicsCardStyles.boxTight,
-                      {
-                        borderColor:
-                          meta.color,
-                      },
-                    ]}
-                  >
-                    {/* Fixed Image Area */}
-                    <View
-                      style={[
-                        electronicsCardStyles.imageContainer,
-                        {
-                          borderColor:
-                            meta.color,
-                        },
-                      ]}
-                    >
-                      <Image
-                        source={
-                          electronics.imageUrl
-                            ? {
-                                uri: electronics.imageUrl,
-                              }
-                            : (
-                                (electronics.imageKey
-                                  ? CATALOG_IMAGES[
-                                      electronics.imageKey
-                                    ]
-                                  : undefined) ??
-                                defaultImage
-                              )
-                        }
-                        style={
-                          electronicsCardStyles.image
-                        }
-                        contentFit="contain"
-                        cachePolicy="memory-disk"
-                      />
-                    </View>
-
-                    {/* Bounded Appliance Name */}
-                    <AppText
-                      variant="caption"
-                      style={
-                        electronicsCardStyles.name
-                      }
-                      numberOfLines={2}
-                    >
-                      {electronics.name}
-                    </AppText>
-
-                    {/* Wattage */}
-                    <AppText
-                      variant="caption"
-                      style={
-                        electronicsCardStyles.watts
-                      }
-                      numberOfLines={1}
-                    >
-                      {electronics.watts}
-                    </AppText>
-
-                    {/* Status (not-advisable items show
-                        no pill: the active toggle segment
-                        already states it, so the red pill
-                        is redundant) */}
-                    {electronics.status !==
-                      "notAdvisable" && (
-                      <View
-                        style={[
-                          electronicsCardStyles.status,
-                          {
-                            backgroundColor:
-                              meta.color,
-                          },
-                        ]}
-                      >
-                        <Ionicons
-                          name={meta.icon}
-                          size={13}
-                          color={colors.onPrimary}
-                        />
-
-                        <AppText
-                          variant="caption"
-                          style={
-                            electronicsCardStyles.statusText
-                          }
-                          numberOfLines={1}
-                        >
-                          {meta.label}
-                        </AppText>
-                      </View>
-                    )}
-                  </View>
-                  );
-                },
-              )}
+              {pageWidth > 0 ? (
+                <FlatList
+                  ref={pagerRef}
+                  data={pages}
+                  horizontal
+                  pagingEnabled
+                  bounces={false}
+                  showsHorizontalScrollIndicator={
+                    false
+                  }
+                  keyExtractor={(_, page) =>
+                    String(page)
+                  }
+                  onScroll={handleScroll}
+                  onMomentumScrollEnd={handleScrollEnd}
+                  onScrollEndDrag={handleScrollEnd}
+                  onScrollToIndexFailed={
+                    handleScrollToIndexFailed
+                  }
+                  scrollEventThrottle={16}
+                  renderItem={renderPage}
+                  style={styles.pager}
+                />
+              ) : null}
             </View>
 
-            {/* Carousel Indicator */}
             <View style={styles.indicator}>
-              {Array.from({
-                length: Math.min(
-                  10,
-                  Math.ceil(filteredElectronics.length / 2),
+              {indicatorPages.map(
+                (page, dotIndex) => (
+                  <Pressable
+                    key={`${page}-${dotIndex}`}
+                    onPress={() =>
+                      handleIndicatorPress(page)
+                    }
+                    style={styles.dotButton}
+                    hitSlop={{
+                      top: 12,
+                      bottom: 12,
+                      left: 18,
+                      right: 18,
+                    }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Go to page ${page + 1} of ${pageCount}`}
+                    accessibilityState={{
+                      selected:
+                        dotIndex === activeIndicator,
+                    }}
+                  >
+                    <View
+                      style={[
+                        styles.dot,
+                        {
+                          backgroundColor:
+                            dotIndex === activeIndicator
+                              ? activePageColor
+                              : colors.border,
+                        },
+                      ]}
+                    />
+                  </Pressable>
                 ),
-              }).map((_, itemIndex) => {
-                const indicatorCount = Math.min(
-                  10,
-                  Math.ceil(filteredElectronics.length / 2),
-                );
-
-                const activeIndicator =
-                  Math.floor(index / 2) % indicatorCount;
-
-                return (
-                  <View
-                    key={itemIndex}
-                    style={[
-                      styles.dot,
-                      {
-                        backgroundColor:
-                          itemIndex === activeIndicator
-                            ? currentElectronics[0]
-                                .color
-                            : colors.border,
-                      },
-                    ]}
-                  />
-                );
-              })}
+              )}
             </View>
           </View>
         ) : (
@@ -986,17 +1217,34 @@ const getStyles = (colors: AppColors) =>
   // ELECTRONICS CAROUSEL / EMPTY STATE SLOT
   // ============================================
 
-  electronicsRow: {
+  pagerContainer: {
+    width: "100%",
+    height: 240,
+    overflow: "hidden",
+  },
+
+  pagerContainerTight: {
+    height: 202,
+  },
+
+  pager: {
+    width: "100%",
+    height: "100%",
+  },
+
+  electronicsPage: {
     width: "100%",
     height: 240,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "flex-start",
+    paddingHorizontal: 8,
     gap: 12,
   },
 
-  electronicsRowTight: {
+  electronicsPageTight: {
     height: 202,
+    alignItems: "center",
   },
 
   // ============================================
@@ -1011,8 +1259,14 @@ const getStyles = (colors: AppColors) =>
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 5,
     marginTop: 8,
+  },
+
+  dotButton: {
+    width: 12,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   dot: {

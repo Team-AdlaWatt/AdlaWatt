@@ -17,18 +17,7 @@ declare const __DEV__: boolean | undefined;
 // removing, or renaming a column fails typecheck or tests.
 // ============================================================
 
-export const MONITORING_SCHEMA_VERSION = 3;
-
-// The database allows a distinct set of status values per
-// temperature sensor. The battery sensor cannot have a rapid
-// rise, while the solar and interior sensors can.
-
-export type BatteryTemperatureStatus =
-  | "Nominal"
-  | "Elevated"
-  | "High"
-  | "Critical"
-  | "Critical (sensor fault)";
+export const MONITORING_SCHEMA_VERSION = 5;
 
 export type SolarTemperatureStatus =
   | "Nominal"
@@ -40,19 +29,22 @@ export type SolarTemperatureStatus =
 
 export type InteriorTemperatureStatus = SolarTemperatureStatus;
 
-// Shared alias for display helpers that accept any sensor.
+// Shared alias for display helpers that accept either sensor.
 export type TemperatureStatus =
-  | BatteryTemperatureStatus
-  | SolarTemperatureStatus;
+  SolarTemperatureStatus;
 
 export type DeviceStatus =
   | "Online"
   | "Offline";
 
+export const BATTERY_STATUS_READING_ERROR =
+  "Reading Error" as const;
+
 export type BatteryStatus =
   | "Charging"
   | "Discharging"
-  | "Idle";
+  | "Idle"
+  | typeof BATTERY_STATUS_READING_ERROR;
 
 export type SolarStatus =
   | "Low"
@@ -62,14 +54,6 @@ export type SolarStatus =
 export type DoDStatus =
   | "Safe"
   | "Unsafe";
-
-export const BATTERY_TEMPERATURE_STATUS_VALUES = [
-  "Nominal",
-  "Elevated",
-  "High",
-  "Critical",
-  "Critical (sensor fault)",
-] as const satisfies readonly BatteryTemperatureStatus[];
 
 export const SOLAR_TEMPERATURE_STATUS_VALUES = [
   "Nominal",
@@ -103,7 +87,12 @@ export const BATTERY_STATUS_VALUES = [
   "Charging",
   "Discharging",
   "Idle",
+  BATTERY_STATUS_READING_ERROR,
 ] as const satisfies readonly BatteryStatus[];
+
+export const isBatteryReadingError = (
+  status: string | null | undefined,
+): boolean => status === BATTERY_STATUS_READING_ERROR;
 
 export const SOLAR_STATUS_VALUES = [
   "Low",
@@ -117,35 +106,35 @@ export const DOD_STATUS_VALUES = [
 ] as const satisfies readonly DoDStatus[];
 
 // ============================================================
-// RAW ROW (all 25 live columns)
+// RAW ROW (all 27 live columns)
 // ============================================================
 
 export interface MonitoringRow {
   monitor_id: number;
   user_id: string;
   "INA219 Voltage Percentage": number | null;
-  "INA228 Load Battery status": string | null;
-  "INA228 Load battery time remaining": string | null;
-  "INA228 Solar Side input": number | null;
-  "INA228 Solar Side timer": string | null;
-  "INA228 Solar Side voltage": number | null;
-  "INA228 Solar Side current": number | null;
-  "INA228 Load Side total energy": number | null;
-  "INA228 Solar Side solar status": string | null;
-  "INA228 Load Side battery load": number | null;
+  "INA219 Load Battery status": string | null;
+  "INA219 Load battery time remaining": string | null;
+  "INA219 Solar Side input": number | null;
+  "INA219 Solar Side timer": string | null;
+  "INA219 Solar Side voltage": number | null;
+  "INA219 Solar Side current": number | null;
+  "INA219 Load Side total energy": number | null;
+  "INA219 Solar Side solar status": string | null;
+  "INA219 Load Side battery load": number | null;
   "ESP32S3 Status": string | null;
   "ESP32S3 Last seen": string | null;
-  "DS18B20 1 Battery Temp": number | null;
-  "DS18B20 1 Battery Temp Status": string | null;
-  "INA228 Load Side dod_status": string | null;
+  "INA219 Load Side dod_status": string | null;
   "DS18B20 2 Solar Temp": number | null;
   "DS18B20 2 Solar Temp Status": string | null;
   "DHT22 Interior Temp": number | null;
   "DHT22 Interior Temp Status": string | null;
   "INA219 Voltage": number | null;
-  "INA228 Load Side battery watt_hour": number | null;
+  "INA219 Load Side battery watt_hour": number | null;
   cumulative_energy_input_wh: number | null;
   cumulative_energy_output_wh: number | null;
+  heartbeat_expires_at: string | null;
+  "ESP32S3 Sampled at": string | null;
 }
 
 export type MonitoringColumn = keyof MonitoringRow;
@@ -182,9 +171,6 @@ export interface MonitoringData {
   solar_current: number | null;
   total_energy: number | null;
 
-  battery_temperature: number | null;
-  battery_temperature_status: BatteryTemperatureStatus | null;
-
   dod_status: DoDStatus | null;
 
   solar_temperature: number | null;
@@ -208,6 +194,8 @@ export const INTERNAL_MONITORING_COLUMNS = [
 export const NON_UI_MONITORING_COLUMNS = [
   "cumulative_energy_input_wh",
   "cumulative_energy_output_wh",
+  "heartbeat_expires_at",
+  "ESP32S3 Sampled at",
 ] as const satisfies readonly MonitoringColumn[];
 
 type InternalMonitoringColumn =
@@ -226,26 +214,24 @@ type RenamedMonitoringColumn = Exclude<
 
 export const MONITORING_RAW_TO_UI = {
   "INA219 Voltage Percentage": "battery_level",
-  "INA228 Load Battery status": "battery_status",
-  "INA228 Load battery time remaining": "time_remaining",
-  "INA228 Solar Side input": "solar_input",
-  "INA228 Solar Side timer": "solar_timer",
-  "INA228 Solar Side voltage": "solar_voltage",
-  "INA228 Solar Side current": "solar_current",
-  "INA228 Load Side total energy": "total_energy",
-  "INA228 Solar Side solar status": "solar_status",
-  "INA228 Load Side battery load": "current_load",
+  "INA219 Load Battery status": "battery_status",
+  "INA219 Load battery time remaining": "time_remaining",
+  "INA219 Solar Side input": "solar_input",
+  "INA219 Solar Side timer": "solar_timer",
+  "INA219 Solar Side voltage": "solar_voltage",
+  "INA219 Solar Side current": "solar_current",
+  "INA219 Load Side total energy": "total_energy",
+  "INA219 Solar Side solar status": "solar_status",
+  "INA219 Load Side battery load": "current_load",
   "ESP32S3 Status": "device_status",
   "ESP32S3 Last seen": "last_seen",
-  "DS18B20 1 Battery Temp": "battery_temperature",
-  "DS18B20 1 Battery Temp Status": "battery_temperature_status",
-  "INA228 Load Side dod_status": "dod_status",
+  "INA219 Load Side dod_status": "dod_status",
   "DS18B20 2 Solar Temp": "solar_temperature",
   "DS18B20 2 Solar Temp Status": "solar_temperature_status",
   "DHT22 Interior Temp": "interior_temp",
   "DHT22 Interior Temp Status": "interior_temp_status",
   "INA219 Voltage": "voltage",
-  "INA228 Load Side battery watt_hour": "watt_hours",
+  "INA219 Load Side battery watt_hour": "watt_hours",
 } as const satisfies Record<
   RenamedMonitoringColumn,
   keyof MonitoringData
@@ -485,17 +471,6 @@ const normalizeMonitoringDataFields = (
   total_energy: normalizeNumber(
     row.total_energy,
     "total_energy",
-  ),
-
-  battery_temperature: normalizeNumber(
-    row.battery_temperature,
-    "battery_temperature",
-  ),
-
-  battery_temperature_status: normalizeStatus(
-    row.battery_temperature_status,
-    BATTERY_TEMPERATURE_STATUS_VALUES,
-    "battery_temperature_status",
   ),
 
   dod_status: normalizeStatus(

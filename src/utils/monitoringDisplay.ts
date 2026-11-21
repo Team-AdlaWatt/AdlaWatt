@@ -20,6 +20,11 @@ export const hasTemperatureReading = (
   value: number | null | undefined,
 ): value is number => hasValue(value);
 
+export const formatTemperatureStatusLabel = (
+  status: string,
+): string =>
+  status === "Critical (sensor fault)" ? "Critical" : status;
+
 export const formatMetric = (
   value: number | null | undefined,
   unit = "",
@@ -34,6 +39,32 @@ export const formatMetric = (
     decimals === undefined ? String(value) : value.toFixed(decimals);
 
   return unit ? `${rendered}${unit}` : rendered;
+};
+
+export const fitTextFontSize = (
+  measuredWidth: number,
+  targetWidth: number,
+  currentFontSize: number,
+  minFontSize: number,
+): number => {
+  if (
+    !Number.isFinite(measuredWidth) ||
+    !Number.isFinite(targetWidth) ||
+    !Number.isFinite(currentFontSize) ||
+    measuredWidth <= 0 ||
+    targetWidth <= 0 ||
+    currentFontSize <= 0 ||
+    measuredWidth <= targetWidth
+  ) {
+    return currentFontSize;
+  }
+
+  return Math.max(
+    Math.min(minFontSize, currentFontSize),
+    Math.floor(
+      (currentFontSize * targetWidth) / measuredWidth,
+    ),
+  );
 };
 
 export const formatTemperature = (

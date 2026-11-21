@@ -15,7 +15,7 @@ import {
   StyleSheet,
   TextInput,
   View,
-  type ScrollView,
+  type ScrollViewInstance,
 } from "react-native";
 
 import AppText from "@/components/ui/AppText";
@@ -175,7 +175,7 @@ export default function CustomElectronicsModal({
         : CUSTOM_ELECTRONICS_HINT
       : "";
 
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
 
   useEffect(() => {
     if (!visible) {

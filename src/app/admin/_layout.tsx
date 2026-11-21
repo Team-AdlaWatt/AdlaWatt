@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useAdminGuard } from "@/admin/hooks/useAdminGuard";
 import { useAppFonts } from "@/hooks/useAppFonts";
+import NeutralShell from "@/components/ui/NeutralShell";
 import RouteErrorBoundary from "@/components/ui/RouteErrorBoundary";
 
 // ============================================================
@@ -41,7 +42,7 @@ function ThemedAdmin() {
     !isSignedIn ||
     !canRenderAdmin
   ) {
-    return null;
+    return <NeutralShell />;
   }
 
   return (

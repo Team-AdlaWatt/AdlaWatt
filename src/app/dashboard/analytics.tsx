@@ -57,7 +57,6 @@ import {
   generateAdlaWattPdf,
   getBatteryChartRangeData,
   getBatteryActivityData,
-  getBatteryTemperatureData,
   getBestSunDaysData,
   getDefaultRange,
   getEnergyInputChartData,
@@ -95,12 +94,12 @@ import {
   Easing,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   View,
   type LayoutChangeEvent,
+  type ScrollViewInstance,
 } from "react-native";
-import { captureAppError } from "@/services/sentry";
+
 import { useLocalSearchParams } from "expo-router";
 
 /* ============================================================
@@ -161,7 +160,7 @@ export default function AnalyticsScreen() {
      QUICK-NAV SCROLL TARGETS
      ========================================================== */
 
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
 
   const scrollToTop =
     useScrollToTopController(scrollRef);
@@ -540,22 +539,6 @@ export default function AnalyticsScreen() {
   }, [
     monitoringHistory,
     coverageFrequency,
-  ]);
-
-  const battTempPoints = useMemo(() => {
-    const buckets =
-      groupMonitoringHistory(
-        monitoringHistory,
-        tempFrequency,
-      );
-
-    return getBatteryTemperatureData(
-      buckets,
-      tempFrequency,
-    );
-  }, [
-    monitoringHistory,
-    tempFrequency,
   ]);
 
   const solarTempPoints = useMemo(() => {
@@ -955,13 +938,7 @@ export default function AnalyticsScreen() {
             });
 
             return;
-          } catch (error) {
-            captureAppError(error, {
-              flow: "analytics-report",
-              platform: "web",
-              reportType,
-            });
-
+          } catch {
             setExportStatus({
               kind: "error",
               message:
@@ -1054,13 +1031,7 @@ export default function AnalyticsScreen() {
             kind: "success",
             message: `${reportType} report opened — allow folder access to save a copy.`,
           });
-        } catch (error) {
-          captureAppError(error, {
-            flow: "analytics-report",
-            platform: Platform.OS,
-            reportType,
-          });
-
+        } catch {
           setExportStatus({
             kind: "error",
             message:
@@ -1113,13 +1084,7 @@ export default function AnalyticsScreen() {
 
       try {
         await openReportDirectly(saved);
-      } catch (error) {
-        captureAppError(error, {
-          flow: "analytics-report",
-          platform: Platform.OS,
-          reportType: "open",
-        });
-
+      } catch {
         setExportStatus({
           kind: "error",
           message:
@@ -1528,7 +1493,6 @@ export default function AnalyticsScreen() {
           }
         >
           <TemperaturesChart
-            battPoints={battTempPoints}
             solarPoints={solarTempPoints}
             interiorPoints={interiorTempPoints}
           />

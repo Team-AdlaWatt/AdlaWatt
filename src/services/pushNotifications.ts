@@ -22,6 +22,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
+import { AndroidImportance } from "expo-notifications";
 import { Platform } from "react-native";
 
 // ============================================================
@@ -89,8 +90,7 @@ const ensureAlertChannel =
         {
           name: "AdlaWatt Alerts",
           importance:
-            Notifications.AndroidImportance
-              .HIGH,
+            AndroidImportance.HIGH,
           vibrationPattern: [0, 400, 2000],
           sound: "default",
           enableVibrate: true,

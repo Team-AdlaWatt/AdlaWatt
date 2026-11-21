@@ -12,6 +12,8 @@ import type { Session, User } from "@supabase/supabase-js";
 
 import { supabase } from "@/lib/supabase";
 import { getCurrentUserProfile } from "@/services/auth";
+import { logAuth } from "@/services/activityLogService";
+import { clearMonitoringSessionCache } from "@/services/monitoringService";
 
 // ============================================================
 // AUTH CONTEXT
@@ -69,6 +71,7 @@ export function AuthProvider({
   // Serializes overlapping loads (sign-in storm, StrictMode
   // remount): only the latest request may write.
   const profileRequestId = useRef(0);
+  const previousUserIdRef = useRef<string | null>(null);
 
   const clearRecoverySession = useCallback(() => {
     setIsRecoverySession(false);
@@ -136,6 +139,13 @@ export function AuthProvider({
       .getSession()
       .then(({ data: { session: current } }) => {
         if (mounted) {
+          const nextUserId = current?.user?.id ?? null;
+          const previousUserId = previousUserIdRef.current;
+          if (previousUserId && previousUserId !== nextUserId) {
+            clearMonitoringSessionCache(previousUserId);
+          }
+          previousUserIdRef.current = nextUserId;
+
           setSession(current);
           setIsLoaded(true);
           void loadProfile(current !== null);
@@ -152,6 +162,24 @@ export function AuthProvider({
     } = supabase.auth.onAuthStateChange(
       (event, nextSession) => {
         if (mounted) {
+          const nextUserId = nextSession?.user?.id ?? null;
+          const previousUserId = previousUserIdRef.current;
+          if (previousUserId && previousUserId !== nextUserId) {
+            clearMonitoringSessionCache(previousUserId);
+          }
+          if (event === "SIGNED_OUT") {
+            clearMonitoringSessionCache(previousUserId ?? undefined);
+            clearMonitoringSessionCache();
+          }
+          previousUserIdRef.current = nextUserId;
+
+          if (event === "SIGNED_IN" && nextSession?.user) {
+            logAuth.loggedIn(
+              nextSession.user.id,
+              nextSession.access_token,
+            );
+          }
+
           if (event === "PASSWORD_RECOVERY") {
             setIsRecoverySession(true);
           } else if (event === "SIGNED_OUT") {
@@ -179,9 +207,13 @@ export function AuthProvider({
 
   const signOut = useCallback(async () => {
     profileRequestId.current += 1;
+    const currentUserId = previousUserIdRef.current;
     // Clear local state first so any consumer awaiting signOut
     // is not blocked on the network round-trip; the SIGNED_OUT
     // event then re-confirms the null session.
+    clearMonitoringSessionCache(currentUserId ?? undefined);
+    clearMonitoringSessionCache();
+    previousUserIdRef.current = null;
     setProfileUsername(null);
     setSession(null);
     setIsRecoverySession(false);

@@ -12,7 +12,10 @@ import {
   getAuthenticatedUserSafe,
   supabase,
 } from "@/lib/supabase";
-import { withTimeout } from "@/lib/withTimeout";
+import {
+  DEFAULT_REQUEST_TIMEOUT_MS,
+  withTimeout,
+} from "@/lib/withTimeout";
 import { requestManager, RequestManager } from "@/services/requestManager";
 import { memoryCache, CACHE_TTL } from "@/services/memoryCache";
 import {
@@ -214,6 +217,70 @@ export const clearMonitoringSessionCache = (
     return;
   }
   monitorIdByUser.clear();
+};
+
+export type ProvisioningMonitorAssignment =
+  | { status: "found"; monitorId: number }
+  | { status: "not_found" }
+  | { status: "ambiguous" }
+  | { status: "invalid" }
+  | { status: "query_failed" }
+  | { status: "session_expired" };
+
+export const resolveProvisioningMonitorIdForUser = async (
+  userId?: string,
+): Promise<ProvisioningMonitorAssignment> => {
+  const trimmedUserId = userId?.trim();
+
+  const resolvedUserId =
+    trimmedUserId ||
+    (await getAuthenticatedUserSafe())?.id ||
+    null;
+
+  if (!resolvedUserId) {
+    return { status: "session_expired" };
+  }
+
+  const response = await withTimeout(
+    supabase
+      .from("monitoring")
+      .select("monitor_id")
+      .eq("user_id", resolvedUserId)
+      .limit(2),
+    DEFAULT_REQUEST_TIMEOUT_MS,
+    "Monitoring assignment lookup timed out.",
+  ).catch(() => ({
+    data: null,
+    error: { message: "timeout" },
+  }));
+
+  const { data, error } = response;
+
+  if (error) {
+    return { status: "query_failed" };
+  }
+
+  if (!Array.isArray(data) || data.length === 0) {
+    return { status: "not_found" };
+  }
+
+  if (data.length > 1) {
+    return { status: "ambiguous" };
+  }
+
+  const record = data[0] as { monitor_id?: unknown } | null;
+  const raw = record?.monitor_id;
+  const monitorId = typeof raw === "number" ? raw : NaN;
+
+  if (
+    !Number.isInteger(monitorId) ||
+    monitorId <= 0 ||
+    monitorId > 0xffffffff
+  ) {
+    return { status: "invalid" };
+  }
+
+  return { status: "found", monitorId };
 };
 
 // Back-compat export: resolve monitor_id for callers that need it.

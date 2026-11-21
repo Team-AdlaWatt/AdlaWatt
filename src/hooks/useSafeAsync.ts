@@ -28,6 +28,7 @@ interface SafeAsyncState<T> {
   data: T | null;
   error: string | null;
   loading: boolean;
+  attempt: number;
   retry: () => void;
   refresh: () => Promise<void>;
 }
@@ -118,5 +119,12 @@ export function useSafeAsync<T>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, attempt]);
 
-  return { data, error, loading, retry, refresh };
+  return {
+    data,
+    error,
+    loading,
+    attempt,
+    retry,
+    refresh,
+  };
 }

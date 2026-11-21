@@ -43,8 +43,6 @@ const row = (
     current_load: null,
     device_status: "Online",
     last_seen: null,
-    battery_temperature: null,
-    battery_temperature_status: null,
     dod_status: null,
     solar_temperature: null,
     solar_temperature_status: null,

@@ -44,12 +44,12 @@
 Using AdlaWatt requires an AdlaWatt account. Download the Android app, then sign in or create an account.
 
 <p align="center">
-  <a href="https://drive.google.com/file/d/12auCzAkhCYNv_5iDn2_eoy-XgYcXLrAW/view?usp=sharing">
+  <a href="https://drive.google.com/file/d/1OU-o7K0NxLU5B2fuiVyrTMxbY3-TYjZO/view?usp=sharing">
     <img src="assets/images/adlawatt-app-qr.png" alt="QR code to download the AdlaWatt Android app" width="220">
   </a>
 </p>
 
-<p align="center"><a href="https://drive.google.com/file/d/12auCzAkhCYNv_5iDn2_eoy-XgYcXLrAW/view?usp=sharing"><strong>Open the download page</strong></a></p>
+<p align="center"><a href="https://drive.google.com/file/d/1OU-o7K0NxLU5B2fuiVyrTMxbY3-TYjZO/view?usp=sharing"><strong>Open the download page</strong></a></p>
 
 1. Scan the QR code or open the download page.
 2. Tap **Install**.
@@ -103,7 +103,7 @@ The power path and the data path are separate. Solar energy charges the battery 
 
 ### Weather Location (implementation addition)
 
-The weather card uses the device's live GPS fix. Within 10 km of one of the 24 configured Bukidnon points (22 Manolo Fortich barangays plus Lingi-on and Balubal), the app requests OpenWeather at that sample's exact coordinates for both current weather and forecast, then displays the resolved location label. Outside coverage, it keeps the raw GPS fix and shows a non-blocking notice. The forecast rows show condition, high temperature with Celsius units, daily max feels-like temperature, and solar outlook without rain-chance percentages.
+The weather card uses the device's live GPS fix. Within 10 km of one of the 467 configured Bukidnon places, the app requests OpenWeather at that place's exact coordinates for both current weather and forecast, and displays the configured place label instead of OpenWeather's nearby station name. Outside coverage, it keeps the raw GPS fix and OpenWeather's city name, and shows a non-blocking notice. The forecast rows show condition, high temperature with Celsius units, daily max feels-like temperature, and solar outlook without rain-chance percentages.
 
 ---
 
@@ -116,7 +116,7 @@ The weather card uses the device's live GPS fix. Within 10 km of one of the 24 c
 | Mobile App | Expo 57 (React Native 0.86) with Expo Router |
 | Language | TypeScript |
 | Backend | Supabase (PostgreSQL, Auth, Realtime, Edge Functions, Storage) |
-| Weather | OpenWeatherMap API (current + 5-day forecast) |
+| Weather | OpenWeatherMap API (current + 5-day feed, 4 upcoming days shown) |
 | Charts | react-native-gifted-charts |
 | Reports | jsPDF (web) and expo-print (native), plus CSV |
 | Alerts | In-app + AgentMail email via a Supabase Edge Function |
@@ -199,7 +199,7 @@ AdlaWatt/
 |---|---|
 | ESP32-S3 | Main controller and Wi-Fi communication |
 | INA228 (Solar / Load) | Monitors solar and load voltage/current |
-| DS18B20 (Battery / Solar) | Monitors temperatures |
+| DS18B20 | Monitors solar panel temperature |
 | DHT22 | Monitors interior temperature and humidity |
 | INA219 | Monitors battery voltage and current |
 | Relay Module | Controls load and cooling fans |
@@ -373,7 +373,7 @@ AdlaWatt was developed by the AdlaWatt Research and Development Team at Northern
 - **4-day forecast** — daily rows now show high temperature in Celsius plus feels-like temperature, with rain-chance percentages removed.
 - **5-day solar forecast** — daily solar outlook with a "best day to charge" summary and hot/cold flags.
 - **Appliance catalog refresh** — updated to the current appliance list with corrected wattage ranges and new images.
-- **Battery model** — the app uses 720 Wh nominal / 144 Wh reserve / 576 Wh usable for its calculations, matching the manuscript's 12 V, 60 Ah battery bank.
+- **Battery model** — the app uses 756 Wh nominal / 151.2 Wh reserve / 604.8 Wh usable (12.6 V × 60 Ah at 80% DoD) and models a 6 W inverter idle draw at 90% efficiency.
 - **Self-hosted auth links** — confirmation and recovery emails now route back into the app, with clearer create-account copy.
 - **Language support** — English, Filipino, and Cebuano.
 - **Analytics** — 17 charts across five sections with CSV and PDF export.

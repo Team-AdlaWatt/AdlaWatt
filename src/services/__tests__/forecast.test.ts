@@ -47,7 +47,7 @@ afterEach(() => {
 });
 
 describe("getForecast upcoming days", () => {
-  test("excludes today, returns next days sorted from live OWM list", async () => {
+  test("queries the snapped place coordinates and returns the next 4 days", async () => {
     const tz = 28800;
 
     mockFetch.mockResolvedValue({
@@ -85,8 +85,8 @@ describe("getForecast upcoming days", () => {
     const url = String(
       mockFetch.mock.calls[0]?.[0] ?? "",
     );
-    expect(url).toContain("lat=8.368");
-    expect(url).toContain("lon=124.873");
+    expect(url).toContain("lat=8.37");
+    expect(url).toContain("lon=124.86");
 
     // No calibration offset (tempOffsetC 0 in weather.json).
     expect(result.upcoming[0].tempMax).toBe(32 + 1);

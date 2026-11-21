@@ -39,9 +39,9 @@ Scope boundary with activity logs: **notifications record what the hardware did;
 
 ## Final List Alignment (monitoring-table based)
 
-Normal: Battery Fully Charged, Battery Charging, Battery Discharging, Battery Idle, Solar Input Low / Moderate / High, Solar Charging Activity (50 W), Load Activity Detected (50 W), Runtime Updated (hourly), Battery Temperature Elevated / High, Solar Temperature Elevated / High, Device Online, Device Offline.
+Normal: Battery Fully Charged, Battery Charging, Battery Discharging, Battery Idle, Solar Input Low / Moderate / High, Solar Charging Activity (50 W), Load Activity Detected (50 W), Runtime Updated (hourly), Solar Temperature Elevated / High, Device Online, Device Offline.
 
-Alert: Battery Normal-Use Cutoff Reached (≤ 20%), Battery Critically Low (< 20%, > 0), Battery Empty (= 0), Unsafe Depth of Discharge, Critical Battery Temperature, Critical Solar Temperature.
+Alert: Battery Normal-Use Cutoff Reached (≤ 20%), Battery Critically Low (< 20%, > 0), Battery Empty (= 0), Unsafe Depth of Discharge, Critical Solar Temperature.
 
 ---
 
@@ -82,11 +82,9 @@ Alert: Battery Normal-Use Cutoff Reached (≤ 20%), Battery Critically Low (< 20
 
 | Title | Type | Trigger |
 |---|---|---|
-| Battery Temperature Nominal / Elevated / High | `normal` | Status transitions |
-| Critical Battery Temperature | `alert` | Status → any `Critical…` variant |
 | Solar Temperature Nominal / Elevated / High | `normal` | Status transitions |
 | Critical Solar Temperature | `alert` | Status → any `Critical…` variant |
-| Battery / Solar Temperature Reading Zero | `alert` | Sensor reads 0 (disconnected) |
+| Solar Temperature Reading Zero | `alert` | Sensor reads 0 (disconnected) |
 
 - These cover sensor temperatures only. Forecast-weather alerts (storms, heavy rain from the OpenWeatherMap feed) do not exist — proposed below.
 

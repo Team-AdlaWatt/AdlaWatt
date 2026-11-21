@@ -6,6 +6,7 @@ import React, {
 import {
   AccessibilityInfo,
   Animated,
+  Platform,
   Pressable,
   StyleSheet,
   View,
@@ -105,12 +106,21 @@ export function SlidingToggle<T extends string>({
   }, []);
 
   useEffect(() => {
+    if (options.length < 2) {
+      return;
+    }
+
     Animated.timing(glide, {
       toValue: activeIndex,
       duration: reduceMotion ? 0 : GLIDE_MS,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== "web",
     }).start();
-  }, [activeIndex, glide, reduceMotion]);
+  }, [
+    activeIndex,
+    glide,
+    options.length,
+    reduceMotion,
+  ]);
 
   const active = options[activeIndex];
 

@@ -1,9 +1,14 @@
 // Recommendation engine unit tests (pure module — no mocks).
 //
-// Locks the battery safety contract: 20% SoC cutoff, 144 Wh
+// Locks the battery safety contract: 20% SoC cutoff, 151.2 Wh
 // reserve floor, voltage guards, and the budget verdict bands
 // the Electronics UI and notification rules both depend on.
 
+import {
+  BATTERY_CAPACITY_WH,
+  INVERTER_EFFICIENCY,
+  INVERTER_IDLE_W,
+} from "@/constants/battery";
 import {
   BATTERY_NOMINAL_WH,
   BUDGET_CARE_MAX_RATIO,
@@ -23,6 +28,7 @@ import {
   parseWattageRange,
   recommendElectronics,
   recommendElectronicsBatch,
+  toBatterySideWatts,
   verdictToBadge,
   type BatteryStateInput,
 } from "@/services/recommendation";
@@ -31,7 +37,7 @@ const healthyBattery: BatteryStateInput =
   {
     soc: 80,
     voltage: 12.6,
-    remainingWh: 600,
+    remainingWh: BATTERY_CAPACITY_WH,
     dod: "Safe",
     // Fresh reading: the fail-safe blocks missing/stale
     // data, so every non-blocking case needs a timestamp.
@@ -46,7 +52,7 @@ describe("classifyBatteryState", () => {
 
     expect(result.tier).toBe("Safe");
     expect(result.usableWh).toBe(
-      600 - RESERVE_WH,
+      BATTERY_CAPACITY_WH - RESERVE_WH,
     );
     expect(result.blocked).toBe(false);
     expect(result.reasons).toHaveLength(0);
@@ -153,8 +159,8 @@ describe("classifyBatteryState", () => {
   });
 
   test("respects nominal capacity constant", () => {
-    expect(BATTERY_NOMINAL_WH).toBe(720);
-    expect(RESERVE_WH).toBe(144);
+    expect(BATTERY_NOMINAL_WH).toBe(756);
+    expect(RESERVE_WH).toBe(151.2);
   });
 
   test("missing reading fails safe to Unsafe blocked", () => {
@@ -221,6 +227,17 @@ describe("parseWattageRange", () => {
 });
 
 describe("runtime helpers", () => {
+  test("toBatterySideWatts adds inverter loss and idle draw", () => {
+    expect(
+      toBatterySideWatts(90),
+    ).toBeCloseTo(
+      90 / INVERTER_EFFICIENCY + INVERTER_IDLE_W,
+      2,
+    );
+    expect(toBatterySideWatts(0)).toBe(0);
+    expect(toBatterySideWatts(-10)).toBe(0);
+  });
+
   test("estimateRuntime divides usable energy by watts", () => {
     expect(
       estimateRuntime(576, 100),
@@ -333,7 +350,7 @@ describe("recommendElectronics", () => {
   });
 
   test("moderate draw lands in care band", () => {
-    // usableWh 456; mid 60W -> ratio ~0.13 (10-25% band).
+    // usableWh 604.8; battery-side 72.7W -> ratio ~0.12 (10-25% band).
     const result = recommendElectronics(
       healthyBattery,
       {
@@ -466,14 +483,23 @@ describe("recommendElectronics", () => {
       },
     );
 
-    // usableWh 456, inverter efficiency 0.9 -> effective 410.4:
-    // 410.4/80=5.13 min, 410.4/30=13.68 max.
+    // usableWh 604.8; divide by battery-side watts including
+    // the 6 W inverter idle draw.
+    const usableWh =
+      BATTERY_CAPACITY_WH - RESERVE_WH;
+
     expect(
       result.runtime.minHours,
-    ).toBeCloseTo(5.13, 1);
+    ).toBeCloseTo(
+      usableWh / toBatterySideWatts(80),
+      1,
+    );
     expect(
       result.runtime.maxHours,
-    ).toBeCloseTo(13.68, 1);
+    ).toBeCloseTo(
+      usableWh / toBatterySideWatts(30),
+      1,
+    );
     expect(result.displayRuntime).toMatch(
       /hrs/,
     );
@@ -526,7 +552,11 @@ describe("recommendElectronicsBatch + computeLoadStack", () => {
     );
     expect(
       stack.runtimeMidHours,
-    ).toBeCloseTo(456 / 411, 2);
+    ).toBeCloseTo(
+      (BATTERY_CAPACITY_WH - RESERVE_WH) /
+        411,
+      2,
+    );
   });
 
   test("load stack flags stacks over the inverter", () => {

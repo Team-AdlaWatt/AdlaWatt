@@ -10,6 +10,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   View,
 } from "react-native";
@@ -34,6 +35,8 @@ import ScrollToTopButton from "@/components/layout/ScrollToTopButton";
 
 import {
   BATTERY_CAPACITY_WH,
+  BATTERY_RESERVE_WH,
+  BATTERY_USABLE_WH,
 } from "@/constants/battery";
 import { Colors } from "@/constants/colors";
 import {
@@ -43,6 +46,9 @@ import {
   type CatalogItem,
 } from "@/constants/electronicsCatalog";
 import { logElectronics } from "@/services/activityLogService";
+import {
+  normalizeSelection,
+} from "@/services/recommendationSelection";
 import {
   useAppColors,
   type AppColors,
@@ -80,6 +86,8 @@ type ElectronicsModalProps = {
   ) => void;
   onCustomDelete?: (id: string) => void;
   selectedElectronics?: Electronics[];
+  selectionBlocked?: boolean;
+  blockedReason?: string | null;
 };
 
 /*
@@ -157,6 +165,8 @@ export default function ElectronicsModal({
   onCustomUpdate,
   onCustomDelete,
   onSave,
+  selectionBlocked = false,
+  blockedReason,
 }: ElectronicsModalProps) {
   const [selected, setSelected] = useState<
     string[]
@@ -257,7 +267,7 @@ export default function ElectronicsModal({
   // and closing mid-fetch cannot set state for a dead open.
   const loadSeq = useRef(0);
 
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
 
   const scrollToTop =
     useScrollToTopController(scrollRef);
@@ -586,13 +596,28 @@ export default function ElectronicsModal({
   // ============================================================
 
   const toggleElectronics = (id: string) => {
-    setSelected((current) =>
-      current.includes(id)
-        ? current.filter(
+    if (selected.includes(id)) {
+      setSelected((current) =>
+        current.filter(
           (item) => item !== id,
-        )
-        : [...current, id],
+        ),
+      );
+      setCustomError("");
+      return;
+    }
+
+    if (selectionBlocked) {
+      setCustomError(
+        blockedReason ??
+          "New selections are paused while battery protection is active.",
+      );
+      return;
+    }
+
+    setSelected(
+      normalizeSelection([...selected, id]),
     );
+    setCustomError("");
   };
 
   // ============================================================
@@ -664,7 +689,10 @@ export default function ElectronicsModal({
     setIsSaving(true);
     setCustomError("");
 
-    const selectedSet = new Set(selected);
+    const selectedIds = normalizeSelection(selected);
+    setSelected(selectedIds);
+
+    const selectedSet = new Set(selectedIds);
 
     if (selectedSet.size === 0) {
       const { error: resetError } = await supabase.rpc(
@@ -746,7 +774,7 @@ export default function ElectronicsModal({
     }
 
     const selectedItems = displayElectronics.filter(
-      (item) => selected.includes(item.id),
+      (item) => selectedIds.includes(item.id),
     );
 
     logElectronics.selectionSaved(selectedItems.length);
@@ -775,6 +803,14 @@ export default function ElectronicsModal({
   // ============================================================
 
   const handleAddOpen = () => {
+    if (selectionBlocked) {
+      setCustomError(
+        blockedReason ??
+          "New selections are paused while battery protection is active.",
+      );
+      return;
+    }
+
     setEditingCustom(null);
     setCustomName("");
     setCustomWatts("");
@@ -800,6 +836,14 @@ export default function ElectronicsModal({
   // ============================================================
 
   const handleCustomAdd = async () => {
+    if (selectionBlocked) {
+      setCustomError(
+        blockedReason ??
+          "New selections are paused while battery protection is active.",
+      );
+      return;
+    }
+
     const validation = validateCustomElectronics(
       customName,
       customWatts,
@@ -932,6 +976,11 @@ export default function ElectronicsModal({
           : imageUrl,
     };
 
+    const selectedIds = normalizeSelection([
+      ...selected,
+      electronics.id,
+    ]);
+
     onCustomAdd?.(electronics);
 
     logElectronics.added(name, electronics.watts);
@@ -941,9 +990,7 @@ export default function ElectronicsModal({
       electronics,
     ]);
 
-    setSelected((current) => [
-      ...new Set([...current, electronics.id]),
-    ]);
+    setSelected(selectedIds);
 
     setCustomName("");
     setCustomWatts("");
@@ -1717,6 +1764,14 @@ export default function ElectronicsModal({
   // ============================================================
 
   const handleSelectAll = () => {
+    if (selectionBlocked) {
+      setCustomError(
+        blockedReason ??
+          "New selections are paused while battery protection is active.",
+      );
+      return;
+    }
+
     const target = normalizedSearch
       ? filteredElectronics
       : displayElectronics;
@@ -1725,12 +1780,13 @@ export default function ElectronicsModal({
       return;
     }
 
-    setSelected((current) => [
-      ...new Set([
-        ...current,
+    setSelected(
+      normalizeSelection([
+        ...selected,
         ...target.map(({ id }) => id),
       ]),
-    ]);
+    );
+    setCustomError("");
   };
 
   return (
@@ -1823,8 +1879,8 @@ export default function ElectronicsModal({
                       variant="body"
                       style={styles.advisoryTitle}
                     >
-                      Battery Capacity:{" "}
-                      {BATTERY_CAPACITY_WH} Wh
+                      Battery budget:{" "}
+                      {BATTERY_USABLE_WH} Wh usable
                     </AppText>
 
                     <AppText
@@ -1833,9 +1889,11 @@ export default function ElectronicsModal({
                         styles.advisoryDescription
                       }
                     >
-                      Select the electronics you want to use
-                      and keep them within the available
-                      energy capacity.
+                      {BATTERY_CAPACITY_WH} Wh total ·{" "}
+                      {BATTERY_RESERVE_WH} Wh protected
+                      reserve. Select the electronics you
+                      want to use and stay within the usable
+                      energy budget.
                     </AppText>
                   </View>
                 </View>

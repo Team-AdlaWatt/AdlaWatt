@@ -19,38 +19,32 @@ const here = dirname(
 const root = resolve(here, "..");
 
 const NON_NEGATIVE_COLUMNS = [
-  "INA228 Solar Side input",
-  "INA228 Solar Side voltage",
-  "INA228 Solar Side current",
-  "INA228 Load Side total energy",
-  "INA228 Load Side battery load",
+  "INA219 Solar Side input",
+  "INA219 Solar Side voltage",
+  "INA219 Solar Side current",
+  "INA219 Load Side total energy",
+  "INA219 Load Side battery load",
   "DHT22 Interior Temp",
   "INA219 Voltage",
-  "INA228 Load Side battery watt_hour",
+  "INA219 Load Side battery watt_hour",
   "cumulative_energy_input_wh",
   "cumulative_energy_output_wh",
 ];
 
 const STATUS_COLUMNS = {
-  "INA228 Load Battery status": [
+  "INA219 Load Battery status": [
     "Charging",
     "Discharging",
     "Idle",
+    "Reading Error",
   ],
-  "INA228 Solar Side solar status": [
+  "INA219 Solar Side solar status": [
     "Low",
     "Moderate",
     "High",
   ],
   "ESP32S3 Status": ["Online", "Offline"],
-  "INA228 Load Side dod_status": ["Safe", "Unsafe"],
-  "DS18B20 1 Battery Temp Status": [
-    "Nominal",
-    "Elevated",
-    "High",
-    "Critical",
-    "Critical (sensor fault)",
-  ],
+  "INA219 Load Side dod_status": ["Safe", "Unsafe"],
   "DS18B20 2 Solar Temp Status": [
     "Nominal",
     "Elevated",

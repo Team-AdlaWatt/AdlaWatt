@@ -54,11 +54,11 @@ Use voltage for immediate voltage monitoring and safety logic, but **do not** le
 | Battery model                       | ZENOVA 12 V 30 Ah lithium battery       |
 | Battery quantity                    | 2                                       |
 | Configuration                       | Parallel                                |
-| Bank voltage                        | 12 V nominal                            |
+| Bank voltage                        | 12.6 V nominal                          |
 | Bank capacity                       | 60 Ah                                   |
-| Nominal stored energy               | 720 Wh                                  |
-| Usable energy target                | 576 Wh (80%)                          |
-| Energy reserve                      | 144 Wh (20%)                          |
+| Nominal stored energy               | 756 Wh                                  |
+| Usable energy target                | 604.8 Wh (80%)                          |
+| Energy reserve                      | 151.2 Wh (20%)                          |
 | Maximum preferred DoD               | 80%                                     |
 | Minimum preferred SoC               | 20%                                     |
 | Label operating-voltage range       | 8.4 – 12.6 V                            |
@@ -70,9 +70,9 @@ Use voltage for immediate voltage monitoring and safety logic, but **do not** le
 ### Energy calculations
 
 ```
-12 V × 60 Ah = 720 Wh (nominal)
-720 Wh × 0.80 = 576 Wh (usable)
-720 Wh × 0.20 = 144 Wh (reserve)
+12.6 V × 60 Ah = 756 Wh (nominal)
+756 Wh × 0.80 = 604.8 Wh (usable)
+756 Wh × 0.20 = 151.2 Wh (reserve)
 ```
 
 ---
@@ -83,8 +83,8 @@ Use voltage for immediate voltage monitoring and safety logic, but **do not** le
 |-------------------|-----------------------------|----------------------------------------------------------------|
 | SoC               | —                           | Percentage of estimated energy remaining                      |
 | DoD               | —                           | Percentage of capacity already used                           |
-| Remaining energy  | (SoC / 100) × 720 Wh        | Estimated watt-hours still stored                             |
-| Used energy       | (DoD / 100) × 720 Wh        | Estimated watt-hours removed                                  |
+| Remaining energy  | (SoC / 100) × 756 Wh        | Estimated watt-hours still stored                             |
+| Used energy       | (DoD / 100) × 756 Wh        | Estimated watt-hours removed                                  |
 
 **Do not** redefine 20% SoC as 0%. Show the actual SoC and separately identify whether the DoD safety limit has been reached.
 
@@ -180,8 +180,8 @@ SoC_new = SoC_old + ((Ah_charged - Ah_discharged) / 60 Ah) × 100
 Or use energy directly:
 
 ```
-E_remaining = 720 Wh + E_charged - E_discharged
-SoC = 100 × (E_remaining / 720 Wh)
+E_remaining = 756 Wh + E_charged - E_discharged
+SoC = 100 × (E_remaining / 756 Wh)
 ```
 
 - Clamp the estimate to **0 – 100%**.
@@ -252,11 +252,11 @@ Do **not** apply a universal 30-second SoC lock. Keep live voltage visible, labe
 
 ## Provisional 1% SoC Table
 
-Provides 1% display steps from 100% to 0% for the 720 Wh bank.
+Provides 1% display steps from 100% to 0% for the 756 Wh bank.
 
-> **Remaining Wh = 720 × (SoC / 100)**
+> **Remaining Wh = 756 × (SoC / 100)**
 >
-> The voltage column is a **provisional rested-voltage estimate**. It is not a factory-verified ZENOVA curve and must be replaced by values from a controlled discharge test of the actual battery bank.
+> The voltage column is a **provisional rested-voltage estimate**. It is not a factory-verified ZENOVA curve and must be replaced by values from a controlled discharge test of the actual battery bank. Energy values in the rows below are legacy 720 Wh-basis estimates; recompute them as SoC% × 756 Wh during the next calibration pass.
 
 ### 100% – 70%
 
@@ -387,7 +387,7 @@ Provides 1% display steps from 100% to 0% for the 720 Wh bank.
 - Call the result **"Voltage-Based SoC Estimate"** — do not call the voltage values factory verified or exact.
 - Use the **INA228 energy count** as the primary long-term SoC source.
 - Use live voltage mainly for monitoring, voltage safety, and connection detection.
-- Use **20% SoC / 144 Wh / 80% DoD** as the preferred normal-use cutoff.
+- Use **20% SoC / 151.2 Wh / 80% DoD** as the preferred normal-use cutoff.
 - Treat the **8.4 V** label boundary as an absolute low limit, not a daily operating target.
 
 ---

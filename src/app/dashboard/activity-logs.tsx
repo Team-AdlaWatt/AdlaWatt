@@ -12,7 +12,7 @@ import {
   Animated,
   Easing,
   Pressable,
-  ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   View,
 } from "react-native";
@@ -27,8 +27,9 @@ import AppText from "@/components/ui/AppText";
 import { DropdownModal, RadioOptionRow, TintedOptionRow } from "@/components/ui/DropdownModal";
 import ActivityLogCard, { ACTIVITY_LOG_GAP } from "@/components/ActivityLogCard";
 import EmptyState from "@/components/ui/EmptyState";
-import ErrorState from "@/components/ui/ErrorState";
 import { useSafeAsync } from "@/hooks/useSafeAsync";
+import { useSilentRetry } from "@/hooks/useSilentRetry";
+import { useTableRealtimeRefresh } from "@/hooks/useTableRealtimeRefresh";
 
 import {
   useAppColors,
@@ -138,7 +139,7 @@ export default function ActivityLogsScreen() {
   // ==========================================================
 
   const scrollRef =
-    useRef<ScrollView>(null);
+    useRef<ScrollViewInstance>(null);
 
   const scrollToTop =
     useScrollToTopController(scrollRef);
@@ -201,7 +202,7 @@ export default function ActivityLogsScreen() {
         });
 
       if (error) {
-        throw new Error(t("dashboard.logs.loadFailed"));
+        throw new Error("load failed");
       }
 
       const logs: ActivityLog[] = (data ?? []).map(
@@ -253,6 +254,7 @@ export default function ActivityLogsScreen() {
     data: loadedLogs,
     error: loadError,
     loading: isLoading,
+    attempt: loadAttempt,
     retry: retryLoad,
     refresh: refreshLogs,
   } = useSafeAsync(loadActivityLogs, [i18n.language]);
@@ -264,6 +266,12 @@ export default function ActivityLogsScreen() {
     onRefresh: onLogsRefresh,
   } = usePullToRefresh(refreshLogs);
 
+  useTableRealtimeRefresh({
+    table: "activity_logs",
+    topic: "dashboard-activity-logs",
+    onRefresh: refreshLogs,
+  });
+
   const activityLogs = useMemo(
     () => loadedLogs ?? [],
     [loadedLogs],
@@ -272,6 +280,12 @@ export default function ActivityLogsScreen() {
   const hasLoadedData = activityLogs.length > 0;
   const showList =
     hasLoadedData || (!isLoading && !loadError);
+
+  useSilentRetry({
+    attempts: loadAttempt,
+    onRetry: retryLoad,
+    enabled: !!loadError && !hasLoadedData,
+  });
 
   // ============================================
   // FILTER ACTIVITY LOGS
@@ -607,13 +621,6 @@ export default function ActivityLogsScreen() {
               color={colors.accentContent}
             />
           </View>
-        )}
-
-        {loadError && !hasLoadedData && (
-          <ErrorState
-            message={loadError}
-            onRetry={retryLoad}
-          />
         )}
 
         {/* Activity Cards */}

@@ -288,9 +288,13 @@ describe("resolveWeatherLocation", () => {
     });
 
     expect(result.place?.id).toBe("tankulan");
-    expect(result.coordinates).toEqual({
+    expect(result.fix).toEqual({
       lat: 8.3679,
       lon: 124.8732,
+    });
+    expect(result.coordinates).toEqual({
+      lat: 8.37,
+      lon: 124.86,
     });
     expect(result.label).toBe(
       "Manolo Fortich, Bukidnon",
@@ -319,7 +323,7 @@ describe("resolveWeatherLocation", () => {
 // ============================================================
 
 describe("getWeather coordinates", () => {
-  test("uses a fresh fix and snaps to the nearest sample", async () => {
+  test("uses a fresh fix and queries the nearest place's exact coordinates", async () => {
     grantLocation(8.36789, 124.87321);
 
     mockFetch.mockResolvedValue({
@@ -345,13 +349,39 @@ describe("getWeather coordinates", () => {
       mockFetch.mock.calls[0]?.[0] ?? "",
     );
 
-    expect(url).toContain("lat=8.3679");
-    expect(url).toContain("lon=124.8732");
+    expect(url).toContain("lat=8.37");
+    expect(url).toContain("lon=124.86");
     expect(data.city).toBe(
-      "Malaybalay",
+      "Manolo Fortich, Bukidnon",
     );
     expect(data.localPlaceId).toBe("tankulan");
     expect(data.outsideScope).toBe(false);
+  });
+
+  test("shows the configured place label instead of the OWM station name", async () => {
+    const damilag = getLocalPlaces().find(
+      (place) => place.id === "damilag",
+    );
+
+    expect(damilag).toBeDefined();
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () =>
+        owmOk({ name: "Malaybalay" }),
+    });
+
+    const data = await getWeather({
+      coordinates: {
+        lat: damilag!.lat,
+        lon: damilag!.lon,
+      },
+    });
+
+    expect(data.city).toBe(
+      "Damilag, Manolo Fortich, Bukidnon",
+    );
+    expect(data.localPlaceId).toBe("damilag");
   });
 
   test("rounds raw coordinates outside coverage", async () => {
@@ -911,7 +941,7 @@ describe("fetch retry", () => {
 
     expect(mockFetch).toHaveBeenCalledTimes(3);
     expect(data.city).toBe(
-      "Malaybalay",
+      "Manolo Fortich, Bukidnon",
     );
   });
 
