@@ -21,6 +21,7 @@ type BatteryEnergyHighlightProps = {
   snapshot: BatteryEnergySnapshot;
   evaluation?: SelectionEvaluation | null;
   style?: StyleProp<ViewStyle>;
+  variant?: "standalone" | "body";
 };
 
 const formatWh = (value: number) =>
@@ -43,6 +44,7 @@ export default function BatteryEnergyHighlight({
   snapshot,
   evaluation,
   style,
+  variant = "standalone",
 }: BatteryEnergyHighlightProps) {
   const { t } = useTranslation();
   const colors = useAppColors();
@@ -70,9 +72,14 @@ export default function BatteryEnergyHighlight({
         })
       : null;
 
+  const isBody = variant === "body";
+
   return (
     <View
-      style={[styles.card, style]}
+      style={[
+        isBody ? styles.body : styles.card,
+        style,
+      ]}
       accessibilityRole="text"
       accessibilityLabel={[
         t("batteryEnergy.title"),
@@ -90,36 +97,62 @@ export default function BatteryEnergyHighlight({
         .filter(Boolean)
         .join(". ")}
     >
-      <View style={styles.header}>
-        <Ionicons
-          name={statusIcon(snapshot.status)}
-          size={20}
-          color={tone}
-        />
+      {isBody ? (
+        <View style={styles.statusRow}>
+          <Ionicons
+            name={statusIcon(snapshot.status)}
+            size={18}
+            color={tone}
+          />
 
-        <AppText
-          variant="caption"
-          style={styles.title}
-        >
-          {t("batteryEnergy.title")}
-        </AppText>
+          <View
+            style={[
+              styles.statusChip,
+              { backgroundColor: tone },
+            ]}
+          >
+            <AppText
+              variant="caption"
+              style={styles.statusText}
+            >
+              {t(
+                `batteryEnergy.status.${snapshot.status}`,
+              )}
+            </AppText>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.header}>
+          <Ionicons
+            name={statusIcon(snapshot.status)}
+            size={20}
+            color={tone}
+          />
 
-        <View
-          style={[
-            styles.statusChip,
-            { backgroundColor: tone },
-          ]}
-        >
           <AppText
             variant="caption"
-            style={styles.statusText}
+            style={styles.title}
           >
-            {t(
-              `batteryEnergy.status.${snapshot.status}`,
-            )}
+            {t("batteryEnergy.title")}
           </AppText>
+
+          <View
+            style={[
+              styles.statusChip,
+              { backgroundColor: tone },
+            ]}
+          >
+            <AppText
+              variant="caption"
+              style={styles.statusText}
+            >
+              {t(
+                `batteryEnergy.status.${snapshot.status}`,
+              )}
+            </AppText>
+          </View>
         </View>
-      </View>
+      )}
 
       <View style={styles.valueRow}>
         <AppText
@@ -195,6 +228,15 @@ const createStyles = (colors: AppColors) =>
       gap: 8,
       marginBottom: 14,
       padding: 14,
+    },
+    body: {
+      gap: 8,
+      padding: 14,
+    },
+    statusRow: {
+      alignItems: "center",
+      flexDirection: "row",
+      gap: 8,
     },
     header: {
       alignItems: "center",

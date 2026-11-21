@@ -23,7 +23,7 @@ import Svg, {
 } from "react-native-svg";
 
 import AppText from "@/components/ui/AppText";
-import BatteryEnergyHighlight from "@/components/recommendation/BatteryEnergyHighlight";
+import GroupedCardShell from "@/components/ui/GroupedCardShell";
 import { useSettings } from "@/context/SettingsContext";
 import {
   BATTERY_CAPACITY_WH,
@@ -36,11 +36,7 @@ import {
   type AppColors,
 } from "@/hooks/useAppColors";
 
-import type {
-  BatteryEnergySnapshot,
-} from "@/services/batteryEnergy";
 import type { ForecastResult } from "@/services/forecast";
-import type { SelectionEvaluation } from "@/services/recommendationSelection";
 
 import type {
   MonitoringData,
@@ -145,8 +141,6 @@ interface ChartCardProps {
   // present with no reading, the weather card renders an
   // explicit error/location state instead of blank sky.
   weatherError?: { code: string; message: string } | null;
-  batteryEnergy?: BatteryEnergySnapshot;
-  batteryEvaluation?: SelectionEvaluation;
 }
 
 // ============================================================
@@ -303,8 +297,6 @@ export default function ChartCard({
   onRefreshToday,
   todayRefreshing = false,
   weatherError = null,
-  batteryEnergy,
-  batteryEvaluation,
 }: ChartCardProps) {
 
   const colors = useAppColors();
@@ -826,63 +818,12 @@ export default function ChartCard({
         : null;
 
     return (
-      <View
-        style={[
-          styles.monitorCard,
-          styles.groupMonitoringCard,
-        ]}
+      <GroupedCardShell
+        icon="flash-outline"
+        title="Battery Monitoring"
       >
-
-        {/* ==================================================
-            BATTERY HEADER / ACCENT PANEL
-            ================================================== */}
-
         <View
-          style={
-            styles.groupHeaderPanel
-          }
-        >
-
-          <View
-            style={
-              styles.groupHeaderLeft
-            }
-          >
-
-            <Ionicons
-              name="flash-outline"
-              size={30}
-              color={colors.headerContent}
-            />
-
-            <AppText
-              variant="heading"
-              style={
-                styles.groupHeaderTitle
-              }
-            >
-              Battery Monitoring
-            </AppText>
-
-          </View>
-
-          </View>
-
-          {batteryEnergy ? (
-            <BatteryEnergyHighlight
-              snapshot={batteryEnergy}
-              evaluation={batteryEvaluation}
-            />
-          ) : null}
-
-          {/* ==================================================
-              BATTERY BODY ROW
-              ================================================== */}
-
-        <View
-          style={
-            styles.batteryBodyRow
-          }
+          style={styles.batteryBodyRow}
         >
 
           {/* ==================================================
@@ -1246,10 +1187,8 @@ export default function ChartCard({
             </View>
 
           </View>
-
         </View>
-
-      </View>
+      </GroupedCardShell>
     );
   }
 

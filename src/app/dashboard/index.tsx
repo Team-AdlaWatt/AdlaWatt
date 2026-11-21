@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 
 import React, {
   useCallback,
@@ -9,22 +10,17 @@ import React, {
 } from "react";
 
 import {
-  Animated,
   AppState,
-  Easing,
-  Pressable,
   type ScrollViewInstance,
   StyleSheet,
   View,
-  type ViewInstance,
 } from "react-native";
 
 import ActivityCard from "@/components/ActivityCard";
-import AppRecCard from "@/components/AppRecCard";
 import ChartCard from "@/components/ChartCard";
 import PullRefreshScroll from "@/components/PullRefreshScroll";
+import BatteryEnergyCard from "@/components/recommendation/BatteryEnergyCard";
 import BatteryProtectionPanels from "@/components/recommendation/BatteryProtectionPanels";
-import RecommendationResultPanel from "@/components/recommendation/RecommendationResultPanel";
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
 import ScreenContainer2 from "@/components/layout/ScreenContainer2";
@@ -35,8 +31,8 @@ import {
 } from "@/hooks/useAppColors";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useScrollToTopController } from "@/hooks/useScrollToTopController";
-import { Radius } from "@/constants/theme";
-import { Control, useScreenPadding } from "@/constants/sizing";
+import { Routes } from "@/constants/routes";
+import { useScreenPadding } from "@/constants/sizing";
 import {
   type ResolvedElectronics,
 } from "@/constants/electronicsCatalog";
@@ -96,19 +92,13 @@ const FORECAST_REFRESH_INTERVAL_MS =
   weatherJson.timing.forecastRefreshMs;
 
 // ============================================================
-// QUICK-NAV SCROLL
-// ============================================================
-
-const QUICK_NAV_SCROLL_MS = 1500;
-const QUICK_NAV_SCROLL_INSET = 12;
-
-// ============================================================
 // DASHBOARD SCREEN
 // ============================================================
 
 export default function DashboardScreen() {
   const { t } = useTranslation();
   const colors = useAppColors();
+  const router = useRouter();
 
   // Responsive gutter: 16/20/24 by phone width (UI-STANDARDS.md).
   const screenPadding = useScreenPadding();
@@ -117,31 +107,11 @@ export default function DashboardScreen() {
     () => getStyles(colors),
     [colors],
   );
-  // ==========================================================
-  // QUICK-NAV SCROLL TARGETS
-  // ==========================================================
-
   const scrollRef =
     useRef<ScrollViewInstance>(null);
 
   const scrollToTop =
     useScrollToTopController(scrollRef);
-
-  const monitoringRef =
-    useRef<ViewInstance>(null);
-
-  const electronicsRef =
-    useRef<ViewInstance>(null);
-
-  const scrollYRef =
-    useRef(0);
-
-  // Stable Animated driver for the 1.5s scroll transition.
-  // useState initializer (not useRef().current) per
-  // react-hooks/refs: ref values must not be read on render.
-  const [scrollOffset] = useState(
-    () => new Animated.Value(0),
-  );
 
   // ==========================================================
   // ADLAWATT MONITORING
@@ -710,82 +680,6 @@ export default function DashboardScreen() {
   }, [fetchFreshWeatherSession, loadForecast, loadWeather]);
 
   // ==========================================================
-  // SMOOTH SCROLL-TO-SECTION
-  // ==========================================================
-
-  // Drive the ScrollView with an Animated.Value so the
-  // scroll transition can run for a fixed 1.5s duration.
-  useEffect(() => {
-    const scrollListenerId =
-      scrollOffset.addListener(
-        ({ value }) => {
-          scrollRef.current?.scrollTo({
-            y: value,
-            animated: false,
-          });
-        },
-      );
-
-    return () => {
-      scrollOffset.removeListener(
-        scrollListenerId,
-      );
-    };
-  }, [scrollOffset]);
-
-  const scrollToSection = (
-    sectionRef: React.RefObject<ViewInstance | null>,
-  ) => {
-    const section = sectionRef.current;
-    const scroll = scrollRef.current;
-
-    if (!section || !scroll) {
-      return;
-    }
-
-    const nativeScroll =
-      scroll.getNativeScrollRef();
-
-    if (!nativeScroll) {
-      return;
-    }
-
-    // Measure both views in window coordinates so the
-    // target scroll offset stays correct no matter the
-    // current scroll position, on native and web.
-    section.measureInWindow(
-      (_sx, sectionWindowY) => {
-        nativeScroll.measureInWindow(
-          (_fx, scrollWindowY) => {
-            const target = Math.max(
-              sectionWindowY -
-                scrollWindowY +
-                scrollYRef.current -
-                QUICK_NAV_SCROLL_INSET,
-              0,
-            );
-
-            scrollOffset.setValue(
-              scrollYRef.current,
-            );
-
-            Animated.timing(scrollOffset, {
-              toValue: target,
-              duration:
-                QUICK_NAV_SCROLL_MS,
-              easing:
-                Easing.inOut(
-                  Easing.cubic,
-                ),
-              useNativeDriver: false,
-            }).start();
-          },
-        );
-      },
-    );
-  };
-
-  // ==========================================================
   // RENDER
   // ==========================================================
 
@@ -809,12 +703,7 @@ export default function DashboardScreen() {
           { paddingHorizontal: screenPadding },
         ]}
         showsVerticalScrollIndicator={false}
-        onScroll={(event) => {
-          scrollYRef.current =
-            event.nativeEvent.contentOffset.y;
-
-          scrollToTop.reportScroll(event);
-        }}
+        onScroll={scrollToTop.reportScroll}
         scrollEventThrottle={16}
         refreshing={sessionRefreshing}
         onRefresh={onPullRefresh}
@@ -844,44 +733,6 @@ export default function DashboardScreen() {
           >
             {t("dashboard.home.subtitle")}
           </AppText>
-        </View>
-
-        {/* ==================================================
-            QUICK NAV BUTTONS
-            ================================================== */}
-
-        <View
-          style={styles.quickNavRow}
-        >
-          <Pressable
-            onPress={() =>
-              scrollToSection(
-                electronicsRef,
-              )
-            }
-            accessibilityRole="button"
-            accessibilityLabel={t(
-              "dashboard.home.goToElectronicsRecommendation",
-            )}
-            style={({ pressed }) => [
-              styles.quickNavButton,
-              pressed &&
-              styles.quickNavButtonPressed,
-            ]}
-          >
-            <AppText
-              variant="caption"
-              style={styles.quickNavButtonText}
-            >
-              {t("dashboard.home.electronicsRecommendation")}
-            </AppText>
-
-            <Ionicons
-              name="arrow-forward"
-              size={16}
-              color={colors.onPrimary}
-            />
-          </Pressable>
         </View>
 
         {/* ==================================================
@@ -929,7 +780,7 @@ export default function DashboardScreen() {
           usableWh={batteryEnergy.usableWh}
           usablePercent={batteryEnergy.usablePercent}
           onReview={() =>
-            scrollToSection(electronicsRef)
+            router.push(Routes.ELECTRONICS)
           }
         />
 
@@ -938,7 +789,6 @@ export default function DashboardScreen() {
             ================================================== */}
 
         <View
-          ref={monitoringRef}
           style={styles.section}
         >
           <AppText
@@ -976,6 +826,15 @@ export default function DashboardScreen() {
               />
             </View>
 
+            <View
+              style={styles.fullWidthCard}
+            >
+              <BatteryEnergyCard
+                snapshot={batteryEnergy}
+                evaluation={combinedRecommendation}
+              />
+            </View>
+
             {/* ==============================================
                 BATTERY MONITORING
 
@@ -997,10 +856,6 @@ export default function DashboardScreen() {
                 type="voltage"
                 monitoring={monitoring}
                 loading={loading}
-                batteryEnergy={batteryEnergy}
-                batteryEvaluation={
-                  combinedRecommendation
-                }
               />
             </View>
 
@@ -1058,56 +913,7 @@ export default function DashboardScreen() {
         </View>
 
         {/* ==================================================
-            APPLIANCE RECOMMENDATION
-            ================================================== */}
-
-        <View
-          ref={electronicsRef}
-          style={styles.section}
-        >
-          <AppText
-            variant="body"
-            style={styles.sectionTitle}
-          >
-            {t("dashboard.home.electronicsRecommendation")}
-          </AppText>
-
-          <AppRecCard
-            battery={
-              monitoring
-                ? {
-                    soc:
-                      monitoring.battery_level ?? 0,
-                    voltage:
-                      monitoring.voltage ?? 0,
-                    remainingWh:
-                      monitoring.watt_hours ?? 0,
-                    dod:
-                      monitoring.dod_status ??
-                      undefined,
-                    currentLoadW:
-                      monitoring.current_load ??
-                      undefined,
-                    lastUpdated:
-                      deviceOnline &&
-                      monitoring.last_seen
-                        ? Date.parse(
-                            monitoring.last_seen,
-                          )
-                        : null,
-                  }
-                 : undefined
-             }
-           />
-
-           <RecommendationResultPanel
-             result={combinedRecommendation}
-             style={styles.recommendationPanel}
-           />
-         </View>
-
-         {/* ==================================================
-             RECENT ACTIVITY
+            RECENT ACTIVITY
             ================================================== */}
 
         <View
@@ -1205,35 +1011,6 @@ const getStyles = (colors: AppColors) =>
     marginTop: 2,
   },
 
-  quickNavRow: {
-    width: "100%",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 18,
-  },
-
-  quickNavButton: {
-    width: "100%",
-    maxWidth: 360,
-    minHeight: Control.button,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    backgroundColor: colors.primary,
-    borderRadius: Radius.md,
-  },
-
-  quickNavButtonText: {
-    color: colors.onPrimary,
-    fontSize: 16,
-    fontWeight: "700",
-  },
-
-  quickNavButtonPressed: {
-    backgroundColor: colors.primaryPressed,
-  },
-
   section: {
     width: "100%",
     marginBottom:
@@ -1244,10 +1021,6 @@ const getStyles = (colors: AppColors) =>
     color: colors.text,
     fontWeight: "700",
     marginBottom: 10,
-  },
-
-  recommendationPanel: {
-    marginTop: 12,
   },
 
   monitorGrid: {

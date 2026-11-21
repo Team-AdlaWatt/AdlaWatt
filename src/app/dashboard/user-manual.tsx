@@ -464,13 +464,10 @@ export default function UserManualScreen() {
             </ManualCallout>
 
             <Para>
-              Quick-navigation buttons
-              scroll to each section; new
-              users get a welcome greeting
-              with an Add Electronics
-              button in the recommendation
-              card. The bell icon carries
-              the unread badge.
+              Use the Electronics tab for
+              recommendations and setup.
+              The bell icon carries the
+              unread badge.
             </Para>
           </ManualSectionCard>
         </View>
@@ -503,15 +500,16 @@ export default function UserManualScreen() {
                 toggleRow("s7.1")
               }
             >
-              <Step n="1" text="Dashboard: tap Electronics Recommendation, then Add Electronics — or open Electronics and tap Select Electronics." />
+              <Step n="1" text="Open Electronics and tap Select Electronics." />
               <Step n="2" text="Scroll the catalog, or use the search box." />
               <Step n="3" text="Tap boxes to select (tap again to deselect)." />
               <Step n="4" text="Tap Add — picks come back rated advisable or not." />
               <Para>
                 Selection circles mark what
                 you plan to run and feed
-                the dashboard summary —
-                plus a safety alert if the
+                the Electronics
+                recommendations — plus a
+                safety alert if the
                 combined load exceeds the
                 safe limit at 20% or below.
               </Para>

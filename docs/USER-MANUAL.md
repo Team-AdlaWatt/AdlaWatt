@@ -53,7 +53,7 @@ Follow these steps the first time you open the app:
 2. **Confirm your email.** Check your inbox for the confirmation link and tap it. You cannot sign in until your email is confirmed.
 3. **Sign in.** Enter your username or email and password, then tap **Sign In**. See [Section 4](#4-signing-in).
 4. **Read your battery.** On the Dashboard, look at the battery gauge at the top. It shows your current battery percentage and whether the battery is Charging, Discharging, or Idle.
-5. **Check one electronics item.** Scroll to Electronics Recommendation on the Dashboard or open the **Electronics** tab. A badge of **OK to use** means safe; **Not advisable** means wait for more charge. See [Section 7](#7-electronics-what-can-i-safely-use).
+5. **Check one electronics item.** Open the **Electronics** tab. A badge of **OK to use** means safe; **Not advisable** means wait for more charge. See [Section 7](#7-electronics-what-can-i-safely-use).
 
 That is enough to start monitoring. The rest of this manual explains each screen in detail.
 
@@ -133,9 +133,9 @@ The Dashboard is the home screen. It updates in real time whenever the AdlaWatt 
 - **Temperatures** — solar panel and interior, each rated *Nominal*, *Elevated*, *High*, or *Critical*, including *Critical (rapid rise)* and *Critical (sensor fault)*. *Critical* triggers an alert — check the unit when safe. A failed sensor shows **Sensor fault**; other unavailable readings show `--`.
 - **Device status** — *Online* (fresh heartbeat within the last 10 seconds) or *Offline* (no heartbeat for over 10 seconds — see troubleshooting).
 
-### Quick navigation
+### Dashboard navigation
 
-Buttons near the top scroll the Dashboard to each section, including the **Electronics Recommendation** card. If you are new and have no electronics yet, that card shows a welcome greeting with an **Add Electronics** button that takes you straight to setup (see [Section 7.1](#71-picking-electronics-from-the-catalog)). The top bar shows a notification bell with an unread-count badge — tap it to open Notifications.
+Use the **Electronics** tab for electronics recommendations and setup. The top bar shows a notification bell with an unread-count badge — tap it to open Notifications.
 
 <!-- SCREENSHOT: Dashboard with numbered callouts per card -->
 
@@ -152,13 +152,13 @@ Each row shows the power range (e.g. `35-75W`) and estimated runtime from your u
 
 ### 7.1. Picking electronics from the catalog
 
-1. On the Dashboard, tap the **Electronics Recommendation** button (it scrolls you to the recommendation card), then tap **Add Electronics**. Or open the **Electronics** tab directly and tap **Select Electronics**.
+1. Open the **Electronics** tab and tap **Select Electronics**.
 2. A selection modal appears with the electronics catalog — scroll through it.
 3. Use the **search box** to find electronics by name instead of scrolling.
 4. Tap the boxes to select what you plan to use; tap again to deselect.
 5. Tap **Add**. The modal closes and your picks are now rated advisable or not advisable.
 
-**Why selection matters:** the boxes' selection circles mark what you plan to run. Selection feeds the dashboard recommendation summary — and a safety alert if your combined selected load exceeds the safe limit while the battery is at 20% or below.
+**Why selection matters:** the boxes' selection circles mark what you plan to run. Selection feeds the Electronics recommendations — and a safety alert if your combined selected load exceeds the safe limit while the battery is at 20% or below.
 
 ### 7.2. Adding a custom electronics item
 
