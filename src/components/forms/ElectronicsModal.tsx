@@ -5,6 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Modal,
@@ -44,6 +45,10 @@ import {
   type CatalogItem,
 } from "@/constants/electronicsCatalog";
 import { logElectronics } from "@/services/activityLogService";
+import {
+  MAX_SELECTED_ELECTRONICS,
+  validateSelection,
+} from "@/services/recommendationSelection";
 import {
   useAppColors,
   type AppColors,
@@ -262,6 +267,13 @@ export default function ElectronicsModal({
 
   const scrollToTop =
     useScrollToTopController(scrollRef);
+
+  const { t } = useTranslation();
+
+  const selectionLimitMessage = t(
+    "electronicsModal.selectionLimit",
+    { max: MAX_SELECTED_ELECTRONICS },
+  );
 
   const colors = useAppColors();
 
@@ -587,13 +599,28 @@ export default function ElectronicsModal({
   // ============================================================
 
   const toggleElectronics = (id: string) => {
-    setSelected((current) =>
-      current.includes(id)
-        ? current.filter(
+    if (selected.includes(id)) {
+      setSelected((current) =>
+        current.filter(
           (item) => item !== id,
-        )
-        : [...current, id],
-    );
+        ),
+      );
+      setCustomError("");
+      return;
+    }
+
+    const validation = validateSelection([
+      ...selected,
+      id,
+    ]);
+
+    if (!validation.valid) {
+      setCustomError(selectionLimitMessage);
+      return;
+    }
+
+    setSelected(validation.ids);
+    setCustomError("");
   };
 
   // ============================================================
@@ -665,7 +692,15 @@ export default function ElectronicsModal({
     setIsSaving(true);
     setCustomError("");
 
-    const selectedSet = new Set(selected);
+    const validation = validateSelection(selected);
+
+    if (!validation.valid) {
+      setSelected(validation.ids);
+      setCustomError(selectionLimitMessage);
+      return;
+    }
+
+    const selectedSet = new Set(validation.ids);
 
     if (selectedSet.size === 0) {
       const { error: resetError } = await supabase.rpc(
@@ -747,7 +782,7 @@ export default function ElectronicsModal({
     }
 
     const selectedItems = displayElectronics.filter(
-      (item) => selected.includes(item.id),
+      (item) => validation.ids.includes(item.id),
     );
 
     logElectronics.selectionSaved(selectedItems.length);
@@ -933,6 +968,11 @@ export default function ElectronicsModal({
           : imageUrl,
     };
 
+    const selectionValidation = validateSelection([
+      ...selected,
+      electronics.id,
+    ]);
+
     onCustomAdd?.(electronics);
 
     logElectronics.added(name, electronics.watts);
@@ -942,9 +982,7 @@ export default function ElectronicsModal({
       electronics,
     ]);
 
-    setSelected((current) => [
-      ...new Set([...current, electronics.id]),
-    ]);
+    setSelected(selectionValidation.ids);
 
     setCustomName("");
     setCustomWatts("");
@@ -961,6 +999,10 @@ export default function ElectronicsModal({
     setTimeout(() => {
       setSuccessMessage("");
     }, 5000);
+
+    if (!selectionValidation.valid) {
+      setCustomError(selectionLimitMessage);
+    }
   };
 
   // ============================================================
@@ -1726,12 +1768,17 @@ export default function ElectronicsModal({
       return;
     }
 
-    setSelected((current) => [
-      ...new Set([
-        ...current,
-        ...target.map(({ id }) => id),
-      ]),
+    const validation = validateSelection([
+      ...selected,
+      ...target.map(({ id }) => id),
     ]);
+
+    setSelected(validation.ids);
+    setCustomError(
+      validation.valid
+        ? ""
+        : selectionLimitMessage,
+    );
   };
 
   return (

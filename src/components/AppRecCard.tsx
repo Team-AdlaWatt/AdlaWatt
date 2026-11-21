@@ -49,8 +49,10 @@ import {
 } from "@/services/electronicsPhotoService";
 import {
   type BatteryStateInput,
-  recommendElectronics,
 } from "@/services/recommendation";
+import {
+  evaluateSelection,
+} from "@/services/recommendationSelection";
 
 type Status =
   | "advisable"
@@ -206,62 +208,27 @@ export default function AppRecCard({
     () => new Animated.Value(1),
   );
 
-  // ============================================
-  // DECORATE ELECTRONICS WITH RECOMMENDATION STATUS
-  //
-  // When a live battery reading exists the engine
-  // verdict decides the badge. Without one the legacy
-  // wattage-only heuristic keeps the prior behavior.
-  // ============================================
-
   const decoratedElectronics =
-    useMemo((): DecoratedElectronics[] => {
-      if (!battery) {
-        return electronics.map((item) => {
-          const values =
-            String(item.watts)
-              .match(/\d+/g)
-              ?.map(Number) ?? [];
-
-          const maxWatts = Math.max(
-            ...values,
-            0,
-          );
-
-          const status =
-            maxWatts > 300
-              ? "notAdvisable"
-              : "advisable";
-
-          return {
-            ...item,
-            status,
-            color:
-              badgeMeta(
-                status,
-                colors,
-              ).color,
-          };
-        });
-      }
-
-      return electronics.map((item) => {
-        const recommendation =
-          recommendElectronics(
-            battery,
+    useMemo((): DecoratedElectronics[] =>
+      electronics.map((item) => {
+        const evaluation = evaluateSelection(
+          battery ?? null,
+          [
             {
               id: item.id,
               name: item.name,
-              wattage: item.watts,
+              watts: item.watts,
+              imageKey: item.imageKey,
             },
-          );
+          ],
+          { alternativesLimit: 0 },
+        );
 
         const status =
-          recommendation.verdict ===
+          evaluation.verdict ===
           "notRecommended"
             ? "notAdvisable"
-            : recommendation.verdict ===
-                "care"
+            : evaluation.verdict === "care"
               ? "care"
               : "advisable";
 
@@ -274,8 +241,7 @@ export default function AppRecCard({
               colors,
             ).color,
         };
-      });
-    }, [electronics, battery, colors]);
+      }), [electronics, battery, colors]);
 
   // ============================================
   // CONTENT-AWARE STATUS SEGMENTS

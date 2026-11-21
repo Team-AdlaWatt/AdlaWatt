@@ -709,6 +709,64 @@ const en = {
       subtitle: "Your power, in your hands.",
     },
   },
+
+  electronicsModal: {
+    selectionLimit:
+      "You can select up to {{max}} electronics.",
+  },
+
+  recommendationResult: {
+    title: "Recommendation",
+    status: {
+      empty: "No electronics selected",
+      waiting: "Waiting for battery data",
+      blocked: "Battery check needed",
+      tooMany: "Too many electronics",
+      ready: "Combined recommendation",
+    },
+    verdict: {
+      recommended: "OK to use",
+      care: "Use with care",
+      notRecommended: "Not advisable",
+      unknown: "Waiting",
+    },
+    badgeA11y: "Recommendation: {{label}}",
+    reason: {
+      empty:
+        "Select up to 3 electronics to see a recommendation.",
+      waiting:
+        "Waiting for a fresh battery reading.",
+      offline:
+        "Waiting for the device to come online.",
+      stale:
+        "Battery reading is too old. Waiting for fresh data.",
+      blocked:
+        "Battery readings are outside safe limits.",
+      tooMany:
+        "Select no more than 3 electronics.",
+      invalidWattage:
+        "One or more wattage values are invalid.",
+      overCap:
+        "Combined peak load exceeds the safe cap.",
+      unsafeVoltage:
+        "Combined peak load would drop voltage below safe levels.",
+      highDrain:
+        "This combination uses too much usable energy per hour.",
+      care: "Usable with care — keep the load light.",
+      recommended:
+        "Safe to use with this battery level.",
+    },
+    remainingBattery:
+      "Estimated remaining battery",
+    estimatedRuntime: "Estimated runtime",
+    combinedPeak: "Combined peak load",
+    currentLoad: "Current load",
+    alternativesTitle: "Better options",
+    noAlternatives:
+      "No alternatives available right now.",
+    estimateNote:
+      "Estimates use catalog wattage, not live appliance detection.",
+  },
 } as const;
 
 export default en;

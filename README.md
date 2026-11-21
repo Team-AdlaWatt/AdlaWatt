@@ -44,12 +44,12 @@
 Using AdlaWatt requires an AdlaWatt account. Download the Android app, then sign in or create an account.
 
 <p align="center">
-  <a href="https://drive.google.com/file/d/12auCzAkhCYNv_5iDn2_eoy-XgYcXLrAW/view?usp=sharing">
+  <a href="https://drive.google.com/file/d/1OU-o7K0NxLU5B2fuiVyrTMxbY3-TYjZO/view?usp=sharing">
     <img src="assets/images/adlawatt-app-qr.png" alt="QR code to download the AdlaWatt Android app" width="220">
   </a>
 </p>
 
-<p align="center"><a href="https://drive.google.com/file/d/12auCzAkhCYNv_5iDn2_eoy-XgYcXLrAW/view?usp=sharing"><strong>Open the download page</strong></a></p>
+<p align="center"><a href="https://drive.google.com/file/d/1OU-o7K0NxLU5B2fuiVyrTMxbY3-TYjZO/view?usp=sharing"><strong>Open the download page</strong></a></p>
 
 1. Scan the QR code or open the download page.
 2. Tap **Install**.

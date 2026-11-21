@@ -722,6 +722,65 @@ const ceb = {
       subtitle: "Ang imong kuryente, sa imong mga kamot.",
     },
   },
+
+  electronicsModal: {
+    selectionLimit:
+      "Makapili ka hangtod sa {{max}} ka electronics.",
+  },
+
+  recommendationResult: {
+    title: "Rekomendasyon",
+    status: {
+      empty: "Walay napiling electronics",
+      waiting: "Naghulat sa data sa baterya",
+      blocked: "Kinahanglan i-check ang baterya",
+      tooMany: "Sobra kaayo nga electronics",
+      ready: "Hiniusang rekomendasyon",
+    },
+    verdict: {
+      recommended: "OK gamiton",
+      care: "Gamita uban ang pag-amping",
+      notRecommended: "Dili maayo gamiton",
+      unknown: "Naghulat",
+    },
+    badgeA11y: "Rekomendasyon: {{label}}",
+    reason: {
+      empty:
+        "Pilia hangtod sa 3 ka electronics aron makita ang rekomendasyon.",
+      waiting:
+        "Naghulat ug bag-ong pagbasa sa baterya.",
+      offline:
+        "Naghulat nga ma-online ang device.",
+      stale:
+        "Daang kaayo ang pagbasa sa baterya. Naghulat ug bag-ong data.",
+      blocked:
+        "Ang pagbasa sa baterya naa sa gawas sa luwas nga limitasyon.",
+      tooMany:
+        "Pilia dili mosobra sa 3 ka electronics.",
+      invalidWattage:
+        "Usa o daghang wattage ang dili balido.",
+      overCap:
+        "Ang hiniusang peak load milapas sa luwas nga limitasyon.",
+      unsafeVoltage:
+        "Ang hiniusang peak load magpaubos sa voltage ubos sa luwas nga lebel.",
+      highDrain:
+        "Kini nga kombinasyon nagagamit ug daghang magamit nga enerhiya kada oras.",
+      care:
+        "Magamit uban ang pag-amping — ipagaan ang load.",
+      recommended:
+        "Luwas gamiton niining lebel sa baterya.",
+    },
+    remainingBattery:
+      "Gitantya nga nahabilin nga baterya",
+    estimatedRuntime:
+      "Gitantya nga oras sa paggamit",
+    combinedPeak: "Hiniusang peak load",
+    currentLoad: "Karon nga load",
+    alternativesTitle: "Mas maayong mga kapilian",
+    noAlternatives: "Walay alternatibo karon.",
+    estimateNote:
+      "Ang mga tantya naggamit sa catalog wattage, dili aktuwal nga pag-detect sa appliance.",
+  },
 } as const;
 
 export default ceb;

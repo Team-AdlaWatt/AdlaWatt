@@ -488,6 +488,47 @@ Codes stay backend-bound; labels map for display. Dates localize in format only 
 | `dashboard.analytics.sectionHealth` | Health | Kalusugan | Panglawas | section header |
 | `dashboard.analytics.sectionUsage` | Usage | Paggamit | Paggamit | section header |
 
+## Electronics Modal (1 key)
+
+| Key | English | Filipino | Cebuano | Notes |
+|---|---|---|---|---|
+| `electronicsModal.selectionLimit` | You can select up to {{max}} electronics. | Maaari kang pumili ng hanggang {{max}} electronics. | Makapili ka hangtod sa {{max}} ka electronics. | selection cap |
+
+## Recommendation Result (30 keys)
+
+| Key | English | Filipino | Cebuano | Notes |
+|---|---|---|---|---|
+| `recommendationResult.title` | Recommendation | Rekomendasyon | Rekomendasyon |  |
+| `recommendationResult.status.empty` | No electronics selected | Walang napiling electronics | Walay napiling electronics |  |
+| `recommendationResult.status.waiting` | Waiting for battery data | Naghihintay ng data ng baterya | Naghulat sa data sa baterya |  |
+| `recommendationResult.status.blocked` | Battery check needed | Kailangang i-check ang baterya | Kinahanglan i-check ang baterya |  |
+| `recommendationResult.status.tooMany` | Too many electronics | Maraming electronics | Sobra kaayo nga electronics |  |
+| `recommendationResult.status.ready` | Combined recommendation | Pinagsamang rekomendasyon | Hiniusang rekomendasyon |  |
+| `recommendationResult.verdict.recommended` | OK to use | OK gamitin | OK gamiton |  |
+| `recommendationResult.verdict.care` | Use with care | Gamitin nang may pag-iingat | Gamita uban ang pag-amping |  |
+| `recommendationResult.verdict.notRecommended` | Not advisable | Hindi inirerekomenda | Dili maayo gamiton |  |
+| `recommendationResult.verdict.unknown` | Waiting | Naghihintay | Naghulat |  |
+| `recommendationResult.badgeA11y` | Recommendation: {{label}} | Rekomendasyon: {{label}} | Rekomendasyon: {{label}} | accessibility label |
+| `recommendationResult.reason.empty` | Select up to 3 electronics to see a recommendation. | Pumili ng hanggang 3 electronics para makita ang rekomendasyon. | Pilia hangtod sa 3 ka electronics aron makita ang rekomendasyon. |  |
+| `recommendationResult.reason.waiting` | Waiting for a fresh battery reading. | Naghihintay ng bagong pagbasa ng baterya. | Naghulat ug bag-ong pagbasa sa baterya. |  |
+| `recommendationResult.reason.offline` | Waiting for the device to come online. | Naghihintay na mag-online ang device. | Naghulat nga ma-online ang device. |  |
+| `recommendationResult.reason.stale` | Battery reading is too old. Waiting for fresh data. | Too old ang pagbasa ng baterya. Naghihintay ng bagong data. | Daang kaayo ang pagbasa sa baterya. Naghulat ug bag-ong data. |  |
+| `recommendationResult.reason.blocked` | Battery readings are outside safe limits. | Nasa labas ng ligtas na limitasyon ang pagbasa ng baterya. | Ang pagbasa sa baterya naa sa gawas sa luwas nga limitasyon. |  |
+| `recommendationResult.reason.tooMany` | Select no more than 3 electronics. | Pumili ng hindi hihigit sa 3 electronics. | Pilia dili mosobra sa 3 ka electronics. |  |
+| `recommendationResult.reason.invalidWattage` | One or more wattage values are invalid. | May invalid na wattage value. | Usa o daghang wattage ang dili balido. |  |
+| `recommendationResult.reason.overCap` | Combined peak load exceeds the safe cap. | Lumampas sa ligtas na limitasyon ang pinagsamang peak load. | Ang hiniusang peak load milapas sa luwas nga limitasyon. |  |
+| `recommendationResult.reason.unsafeVoltage` | Combined peak load would drop voltage below safe levels. | Ibaba ng pinagsamang peak load ang voltage sa ibaba ng ligtas na antas. | Ang hiniusang peak load magpaubos sa voltage ubos sa luwas nga lebel. |  |
+| `recommendationResult.reason.highDrain` | This combination uses too much usable energy per hour. | Gumagamit ng sobrang usable energy kada oras ang kombinasyong ito. | Kini nga kombinasyon nagagamit ug daghang magamit nga enerhiya kada oras. |  |
+| `recommendationResult.reason.care` | Usable with care — keep the load light. | Pwede gamitin nang may pag-iingat — i-lighten ang load. | Magamit uban ang pag-amping — ipagaan ang load. |  |
+| `recommendationResult.reason.recommended` | Safe to use with this battery level. | Ligtas gamitin sa antas ng bateryang ito. | Luwas gamiton niining lebel sa baterya. |  |
+| `recommendationResult.remainingBattery` | Estimated remaining battery | Tinantyang natitirang baterya | Gitantya nga nahabilin nga baterya |  |
+| `recommendationResult.estimatedRuntime` | Estimated runtime | Tinantyang oras ng paggamit | Gitantya nga oras sa paggamit |  |
+| `recommendationResult.combinedPeak` | Combined peak load | Pinagsamang peak load | Hiniusang peak load |  |
+| `recommendationResult.currentLoad` | Current load | Kasalukuyang load | Karon nga load |  |
+| `recommendationResult.alternativesTitle` | Better options | Mas mahusay na mga opsyon | Mas maayong mga kapilian |  |
+| `recommendationResult.noAlternatives` | No alternatives available right now. | Walang available na alternatibo sa ngayon. | Walay alternatibo karon. |  |
+| `recommendationResult.estimateNote` | Estimates use catalog wattage, not live appliance detection. | Gumagamit ng catalog wattage ang mga tantya, hindi live na pag-detect ng appliance. | Ang mga tantya naggamit sa catalog wattage, dili aktuwal nga pag-detect sa appliance. |  |
+
 ## Backend-bound (stays English by policy, Phase 1)
 
 - DB status enums: `Online`/`Offline`, `Charging`/`Discharging`/`Idle`, `Safe`/`Unsafe`, solar/temperature statuses — compared with `===` and written by ESP32/cron. Temperature critical checks match any status starting with `Critical` (plain, `Critical (rapid rise)`, `Critical (sensor fault)`).

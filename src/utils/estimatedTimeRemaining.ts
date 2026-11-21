@@ -44,7 +44,7 @@ const resolveRemainingWh = (
   return null;
 };
 
-const formatDuration = (hours: number): string => {
+export const formatDuration = (hours: number): string => {
   const totalMinutes = Math.max(
     0,
     Math.floor(hours * 60),

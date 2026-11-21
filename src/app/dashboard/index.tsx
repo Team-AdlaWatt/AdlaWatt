@@ -23,6 +23,7 @@ import ActivityCard from "@/components/ActivityCard";
 import AppRecCard from "@/components/AppRecCard";
 import ChartCard from "@/components/ChartCard";
 import PullRefreshScroll from "@/components/PullRefreshScroll";
+import RecommendationResultPanel from "@/components/recommendation/RecommendationResultPanel";
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
 import ScreenContainer2 from "@/components/layout/ScreenContainer2";
@@ -35,6 +36,9 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useScrollToTopController } from "@/hooks/useScrollToTopController";
 import { Radius } from "@/constants/theme";
 import { Control, useScreenPadding } from "@/constants/sizing";
+import {
+  type ResolvedElectronics,
+} from "@/constants/electronicsCatalog";
 
 import weatherJson from "@/data/weather.json";
 
@@ -55,6 +59,15 @@ import {
 } from "@/services/weatherForecast";
 
 import { useMonitoringContext } from "@/context/MonitoringContext";
+import {
+  fetchSelectedElectronics,
+} from "@/services/electronicsService";
+import {
+  type BatteryStateInput,
+} from "@/services/recommendation";
+import {
+  evaluateSelection,
+} from "@/services/recommendationSelection";
 import { formatLastSeen } from "@/utils/monitoringDisplay";
 import { useConnectivity } from "@/hooks/useConnectivity";
 import { maybeScheduleLowSunAdvisory } from "@/services/reminderService";
@@ -140,6 +153,86 @@ export default function DashboardScreen() {
     refresh: refreshMonitoring,
     deviceOnline,
   } = useMonitoringContext();
+
+  const [
+    dashboardElectronics,
+    setDashboardElectronics,
+  ] = useState<ResolvedElectronics[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchSelectedElectronics()
+      .then((items) => {
+        if (!cancelled) {
+          setDashboardElectronics(items);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDashboardElectronics([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const recommendationBattery =
+    useMemo<BatteryStateInput | null>(
+      () =>
+        monitoring
+          ? {
+              soc:
+                monitoring.battery_level ?? 0,
+              voltage:
+                monitoring.voltage ?? 0,
+              remainingWh:
+                monitoring.watt_hours ?? 0,
+              dod:
+                monitoring.dod_status ??
+                undefined,
+              currentLoadW:
+                monitoring.current_load ??
+                undefined,
+              lastUpdated:
+                deviceOnline &&
+                monitoring.last_seen
+                  ? Date.parse(
+                      monitoring.last_seen,
+                    )
+                  : null,
+            }
+          : null,
+      [monitoring, deviceOnline],
+    );
+
+  const combinedRecommendation = useMemo(
+    () =>
+      evaluateSelection(
+        recommendationBattery,
+        dashboardElectronics.map((item) => ({
+          id: item.id,
+          name: item.name,
+          watts: item.display,
+          area: item.area,
+          imageKey:
+            item.source === "catalog"
+              ? item.id
+              : null,
+          imageUrl: item.imageUrl ?? null,
+        })),
+        {
+          deviceOnline: deviceOnline ?? false,
+        },
+      ),
+    [
+      recommendationBattery,
+      dashboardElectronics,
+      deviceOnline,
+    ],
+  );
 
   // Phone-side connectivity (distinct from device status):
   // offline shows the cached readings plus a banner instead
@@ -943,13 +1036,18 @@ export default function DashboardScreen() {
                           )
                         : null,
                   }
-                : undefined
-            }
-          />
-        </View>
+                 : undefined
+             }
+           />
 
-        {/* ==================================================
-            RECENT ACTIVITY
+           <RecommendationResultPanel
+             result={combinedRecommendation}
+             style={styles.recommendationPanel}
+           />
+         </View>
+
+         {/* ==================================================
+             RECENT ACTIVITY
             ================================================== */}
 
         <View
@@ -1086,6 +1184,10 @@ const getStyles = (colors: AppColors) =>
     color: colors.text,
     fontWeight: "700",
     marginBottom: 10,
+  },
+
+  recommendationPanel: {
+    marginTop: 12,
   },
 
   monitorGrid: {

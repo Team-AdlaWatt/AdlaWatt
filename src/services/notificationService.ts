@@ -13,9 +13,12 @@ import {
   type MonitoringData,
 } from "@/services/monitoringSchema";
 import {
-  classifyBatteryState,
-  computeWattCap,
+  type BatteryStateInput,
 } from "@/services/recommendation";
+import {
+  evaluateSelection,
+  type SelectionAppliance,
+} from "@/services/recommendationSelection";
 import {
   subscribeResilientChannel,
   type ResilientSubscription,
@@ -1697,14 +1700,119 @@ const checkDepthOfDischarge =
   };
 
 
+const toSelectionBattery = (
+  row: MonitoringRuleData,
+): BatteryStateInput => {
+  const lastSeenMs = row.last_seen
+    ? Date.parse(row.last_seen)
+    : NaN;
+
+  return {
+    soc: row.battery_level,
+    voltage: row.voltage,
+    remainingWh: row.watt_hours,
+    dod:
+      row.dod_status === "Safe" ||
+      row.dod_status === "Unsafe"
+        ? row.dod_status
+        : undefined,
+    currentLoadW: row.current_load,
+    lastUpdated: Number.isFinite(lastSeenMs)
+      ? lastSeenMs
+      : null,
+  };
+};
+
+
+const loadSelectionForRules = async (
+  userId: string,
+): Promise<SelectionAppliance[]> => {
+
+  try {
+
+    const { fetchSelectedElectronics } = await import(
+      "@/services/electronicsService"
+    );
+    const resolved = await fetchSelectedElectronics();
+
+    return resolved.map((item) => ({
+      id: item.id,
+      name: item.name,
+      watts: item.display,
+      area: item.area,
+      imageKey:
+        item.source === "catalog"
+          ? item.id
+          : null,
+      imageUrl: item.imageUrl ?? null,
+    }));
+
+  } catch {
+
+    const { data, error } = await supabase
+      .from("electronics")
+      .select(
+        "app_id, electronics_name, wattage_min, wattage_max, catalog_key",
+      )
+      .eq("user_id", userId)
+      .eq("selection", true);
+
+    if (error) {
+
+      console.error(
+        "Electronics selection rule check error:",
+        error.message,
+      );
+
+      return [];
+    }
+
+    const rows = (data ?? []) as {
+      app_id: string | null;
+      electronics_name: string | null;
+      wattage_min: number | string | null;
+      wattage_max: number | string | null;
+      catalog_key: string | null;
+    }[];
+
+    return rows
+      .map((row): SelectionAppliance | null => {
+        const min = Number(row.wattage_min);
+        const max = Number(row.wattage_max);
+
+        if (
+          !Number.isFinite(min) ||
+          !Number.isFinite(max) ||
+          min <= 0 ||
+          max < min
+        ) {
+          return null;
+        }
+
+        return {
+          id: String(row.app_id),
+          name: String(
+            row.electronics_name ?? "Electronics",
+          ),
+          watts: `${min}-${max}W`,
+          imageKey: row.catalog_key ?? null,
+        };
+      })
+      .filter(
+        (item): item is SelectionAppliance =>
+          item !== null,
+      );
+  }
+};
+
+
 // ------------------------------------------------------------
 // ELECTRONICS BECAME ADVISABLE
 // ------------------------------------------------------------
 //
-// Fires when the battery tier recovers to Safe while the
-// user still has selected electronics waiting. Tier comes
-// from the shared recommendation engine so the rule and
-// the UI verdicts can never disagree.
+// Fires when the shared evaluator changes from a non-recommended
+// verdict to "recommended" for the current selection. The rule
+// and the UI verdicts use the same evaluator by construction.
 // ------------------------------------------------------------
 
 const checkElectronicsBecameAdvisable = async (
@@ -1717,49 +1825,28 @@ const checkElectronicsBecameAdvisable = async (
     return;
   }
 
-  const toTier = (row: MonitoringRuleData): string =>
-    classifyBatteryState({
-      soc: row.battery_level,
-      voltage: row.voltage,
-      remainingWh: row.watt_hours,
-      dod: row.dod_status,
-    }).tier;
+  const selection = await loadSelectionForRules(userId);
 
-  if (
-    toTier(previous) === "Safe" ||
-    toTier(current) !== "Safe"
-  ) {
+  if (selection.length <= 0) {
     return;
   }
 
-  try {
-    const { fetchSelectedElectronics } = await import(
-      "@/services/electronicsService"
-    );
-    const resolved = await fetchSelectedElectronics();
+  const previousEvaluation = evaluateSelection(
+    toSelectionBattery(previous),
+    selection,
+    { alternativesLimit: 0 },
+  );
+  const currentEvaluation = evaluateSelection(
+    toSelectionBattery(current),
+    selection,
+    { alternativesLimit: 0 },
+  );
 
-    if (resolved.length <= 0) {
-      return;
-    }
-  } catch {
-    const { count, error } = await supabase
-      .from("electronics")
-      .select("app_id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("selection", true);
-
-    if (error) {
-      console.error(
-        "Electronics-became-advisable check error:",
-        error.message,
-      );
-
-      return;
-    }
-
-    if ((count ?? 0) <= 0) {
-      return;
-    }
+  if (
+    previousEvaluation.verdict === "recommended" ||
+    currentEvaluation.verdict !== "recommended"
+  ) {
+    return;
   }
 
   await createNotification(
@@ -1778,10 +1865,10 @@ const checkElectronicsBecameAdvisable = async (
 // HIGH LOAD WHILE BATTERY LOW
 // ------------------------------------------------------------
 //
-// Compares the combined mid-wattage of selected electronics
-// against the charge-scaled safe cap while SoC is at or
-// below the 20% cutoff. The 10-minute notification cooldown
-// protects against refires while the condition persists.
+// Fires when the shared evaluator rejects the current selection
+// while SoC is at or below the 20% cutoff. The 10-minute
+// notification cooldown protects against refires while the
+// condition persists.
 // ------------------------------------------------------------
 
 const checkHighLoadWhileBatteryLow = async (
@@ -1795,64 +1882,22 @@ const checkHighLoadWhileBatteryLow = async (
     return;
   }
 
-  let combinedMidWatts = 0;
+  const selection = await loadSelectionForRules(userId);
 
-  try {
-    const { fetchSelectedElectronics } = await import(
-      "@/services/electronicsService"
-    );
-    const resolved = await fetchSelectedElectronics();
-
-    combinedMidWatts = resolved.reduce(
-      (total, item) => total + (item.wattMin + item.wattMax) / 2,
-      0,
-    );
-  } catch {
-    const { data, error } = await supabase
-      .from("electronics")
-      .select("wattage_min, wattage_max")
-      .eq("user_id", userId)
-      .eq("selection", true);
-
-    if (error) {
-      console.error(
-        "High-load-while-low check error:",
-        error.message,
-      );
-
-      return;
-    }
-
-    combinedMidWatts = (data ?? []).reduce((total, row) => {
-      const min = Number(
-        (row as { wattage_min?: unknown }).wattage_min,
-      );
-      const max = Number(
-        (row as { wattage_max?: unknown }).wattage_max,
-      );
-
-      if (
-        !Number.isFinite(min) ||
-        !Number.isFinite(max) ||
-        min <= 0 ||
-        max < min
-      ) {
-        return total;
-      }
-
-      return total + (min + max) / 2;
-    }, 0);
-  }
-
-  if (combinedMidWatts <= 0) {
+  if (selection.length <= 0) {
     return;
   }
 
-  const safeCap = Math.round(
-    computeWattCap(level),
+  const evaluation = evaluateSelection(
+    toSelectionBattery(current),
+    selection,
+    { alternativesLimit: 0 },
   );
 
-  if (combinedMidWatts <= safeCap) {
+  if (
+    evaluation.status !== "ready" ||
+    evaluation.verdict !== "notRecommended"
+  ) {
     return;
   }
 
@@ -1861,7 +1906,7 @@ const checkHighLoadWhileBatteryLow = async (
     {
       title: "High Load While Battery Low",
       description:
-        `Selected electronics draw about ${combinedMidWatts}W against a ${safeCap}W safe cap at ${level}% battery.`,
+        `Selected electronics draw about ${Math.round(evaluation.totalMidWatts)}W with a ${Math.round(evaluation.combinedPeakWatts)}W peak at ${level}% battery.`,
       type: "alert",
     },
   );

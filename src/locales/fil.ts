@@ -724,6 +724,66 @@ const fil = {
       subtitle: "Ang iyong power, nasa iyong mga kamay.",
     },
   },
+
+  electronicsModal: {
+    selectionLimit:
+      "Maaari kang pumili ng hanggang {{max}} electronics.",
+  },
+
+  recommendationResult: {
+    title: "Rekomendasyon",
+    status: {
+      empty: "Walang napiling electronics",
+      waiting: "Naghihintay ng data ng baterya",
+      blocked: "Kailangang i-check ang baterya",
+      tooMany: "Maraming electronics",
+      ready: "Pinagsamang rekomendasyon",
+    },
+    verdict: {
+      recommended: "OK gamitin",
+      care: "Gamitin nang may pag-iingat",
+      notRecommended: "Hindi inirerekomenda",
+      unknown: "Naghihintay",
+    },
+    badgeA11y: "Rekomendasyon: {{label}}",
+    reason: {
+      empty:
+        "Pumili ng hanggang 3 electronics para makita ang rekomendasyon.",
+      waiting:
+        "Naghihintay ng bagong pagbasa ng baterya.",
+      offline:
+        "Naghihintay na mag-online ang device.",
+      stale:
+        "Too old ang pagbasa ng baterya. Naghihintay ng bagong data.",
+      blocked:
+        "Nasa labas ng ligtas na limitasyon ang pagbasa ng baterya.",
+      tooMany:
+        "Pumili ng hindi hihigit sa 3 electronics.",
+      invalidWattage:
+        "May invalid na wattage value.",
+      overCap:
+        "Lumampas sa ligtas na limitasyon ang pinagsamang peak load.",
+      unsafeVoltage:
+        "Ibaba ng pinagsamang peak load ang voltage sa ibaba ng ligtas na antas.",
+      highDrain:
+        "Gumagamit ng sobrang usable energy kada oras ang kombinasyong ito.",
+      care:
+        "Pwede gamitin nang may pag-iingat — i-lighten ang load.",
+      recommended:
+        "Ligtas gamitin sa antas ng bateryang ito.",
+    },
+    remainingBattery:
+      "Tinantyang natitirang baterya",
+    estimatedRuntime:
+      "Tinantyang oras ng paggamit",
+    combinedPeak: "Pinagsamang peak load",
+    currentLoad: "Kasalukuyang load",
+    alternativesTitle: "Mas mahusay na mga opsyon",
+    noAlternatives:
+      "Walang available na alternatibo sa ngayon.",
+    estimateNote:
+      "Gumagamit ng catalog wattage ang mga tantya, hindi live na pag-detect ng appliance.",
+  },
 } as const;
 
 export default fil;
