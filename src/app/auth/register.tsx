@@ -11,6 +11,8 @@ import {
 
 import AppInput from "@/components/ui/AppInput";
 import PasswordInput from "@/components/ui/PasswordInput";
+import PinInput from "@/components/ui/PinInput";
+import PinInfoModal from "@/components/ui/PinInfoModal";
 import GoogleGIcon from "@/components/ui/GoogleGIcon";
 import TermsModal from "@/components/forms/TermsModal";
 import AuthFooter from "@/components/layout/AuthFooter";
@@ -37,6 +39,10 @@ import {
   signInWithGoogle,
 } from "@/services/auth";
 import { useTranslation } from "react-i18next";
+import {
+  validatePin,
+  validatePinPair,
+} from "@/lib/pinValidation";
 
 // Completes the pending auth session on Android when the
 // in-app browser redirects back to adlawatt://auth/callback.
@@ -46,6 +52,9 @@ export default function RegisterScreen() {
   const { t } = useTranslation();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
+  const [pin, setPin] = useState("");
+  const [confirmPin, setConfirmPin] = useState("");
+  const [pinInfoVisible, setPinInfoVisible] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -75,6 +84,8 @@ export default function RegisterScreen() {
   const [resendCooldown, setResendCooldown] = useState(0);
 
   const emailRef = useRef<TextInputInstance>(null);
+  const pinRef = useRef<TextInputInstance>(null);
+  const confirmPinRef = useRef<TextInputInstance>(null);
   const passwordRef = useRef<TextInputInstance>(null);
   const confirmPasswordRef =
     useRef<TextInputInstance>(null);
@@ -127,6 +138,27 @@ export default function RegisterScreen() {
     ) {
       showWarning(
         t("validation.emailInvalid"),
+      );
+      return false;
+    }
+
+    const pinResult = validatePin(pin);
+
+    if (!pinResult.valid) {
+      showWarning(
+        t(`validation.${pinResult.error}`),
+      );
+      return false;
+    }
+
+    const pinPairResult = validatePinPair(
+      pin,
+      confirmPin,
+    );
+
+    if (!pinPairResult.valid) {
+      showWarning(
+        t(`validation.${pinPairResult.error}`),
       );
       return false;
     }
@@ -402,9 +434,54 @@ export default function RegisterScreen() {
             importantForAutofill="no"
             returnKeyType="next"
             onSubmitEditing={() =>
-              passwordRef.current?.focus()
+              pinRef.current?.focus()
             }
             inputRef={emailRef}
+          />
+
+          <PinInput
+            label={t("pin.label")}
+            value={pin}
+            onChangeText={(text) => {
+              setPin(text);
+              setWarning("");
+            }}
+            onInvalidInput={() =>
+              showWarning(
+                t("validation.pinNumbersOnly"),
+              )
+            }
+            placeholder={t("pin.placeholder")}
+            helper={t("pin.hint")}
+            infoAccessibilityLabel={t("pin.infoA11y")}
+            onInfoPress={() =>
+              setPinInfoVisible(true)
+            }
+            returnKeyType="next"
+            onSubmitEditing={() =>
+              confirmPinRef.current?.focus()
+            }
+            inputRef={pinRef}
+          />
+
+          <PinInput
+            label={t("pin.labelConfirm")}
+            value={confirmPin}
+            onChangeText={(text) => {
+              setConfirmPin(text);
+              setWarning("");
+            }}
+            onInvalidInput={() =>
+              showWarning(
+                t("validation.pinNumbersOnly"),
+              )
+            }
+            placeholder={t("pin.placeholder")}
+            returnKeyType="next"
+            onSubmitEditing={() =>
+              passwordRef.current?.focus()
+            }
+            inputRef={confirmPinRef}
           />
 
           <PasswordInput
@@ -673,6 +750,13 @@ export default function RegisterScreen() {
           setTermsModalVisible(false)
         }
         onAgree={handleTermsAgree}
+      />
+
+      <PinInfoModal
+        visible={pinInfoVisible}
+        onClose={() =>
+          setPinInfoVisible(false)
+        }
       />
     </ScreenContainer>
   );

@@ -42,6 +42,17 @@ const en = {
       "Please agree to the Terms and Conditions.",
     termsRequiredLong:
       "Please agree to the Terms and Conditions before creating your account.",
+    pinRequired: "Please enter your TFT PIN.",
+    pinNumbersOnly: "TFT PIN must contain numbers only.",
+    pinLength: "TFT PIN must be exactly 4 digits.",
+    pinWeak:
+      "That TFT PIN is too easy to guess. Choose another 4-digit PIN.",
+    pinMismatch:
+      "TFT PINs do not match. Please check both PIN fields.",
+    pinAlreadyUsed:
+      "That TFT PIN is already in use. Choose a different 4-digit PIN.",
+    pinUnavailable:
+      "No TFT PINs are available right now. Please try again later.",
   },
 
   passwordInput: {
@@ -64,6 +75,67 @@ const en = {
     visibleLive:
       "Password visible, hides in {{seconds}} seconds",
     visibleHint: "Showing password… hides in {{seconds}}s",
+  },
+
+  pin: {
+    label: "TFT PIN",
+    labelConfirm: "Confirm TFT PIN",
+    labelNew: "New TFT PIN",
+    labelConfirmNew: "Confirm New TFT PIN",
+    placeholder: "4-digit PIN",
+    hint: "4 digits. Numbers only. Must be unique.",
+    generatedNotice:
+      "A PIN has been generated for your account. Confirm your password to view it.",
+    infoA11y: "Show TFT PIN information",
+    infoTitle: "About your TFT PIN",
+    infoIntro:
+      "Your TFT PIN unlocks your AdlaWatt dashboard on the display.",
+    infoRule1: "Use exactly 4 digits.",
+    infoRule2: "Only numbers are allowed.",
+    infoRule3: "Leading zeros are allowed.",
+    infoRule4: "Your PIN must be unique.",
+    infoRule5: "Repeated PINs like 8888 are not allowed.",
+    infoRule6: "Sequential PINs like 1234 are not allowed.",
+    gotIt: "Got it",
+    showA11y: "Show TFT PIN for 5 seconds",
+    showHint: "Shows TFT PIN for 5 seconds",
+    hideA11y:
+      "Hide TFT PIN, auto-hides in {{seconds}} seconds",
+    hideHint:
+      "TFT PIN is visible and will hide automatically",
+    visibleLive:
+      "TFT PIN visible, hides in {{seconds}} seconds",
+    reveal: "Reveal PIN",
+    hide: "Hide PIN",
+    displayRevealA11y:
+      "Reveal TFT PIN after password confirmation",
+    displayHideA11y: "Hide TFT PIN",
+    displayHideHint: "TFT PIN auto-hides after 5 seconds",
+    revealedLive:
+      "TFT PIN visible, hides in {{seconds}} seconds",
+    revealedHint: "Hides in 5s",
+    privateHint: "Do not share this PIN.",
+    notAvailable: "No PIN is available on this device yet.",
+    update: "Update PIN",
+    updateA11y: "Update TFT PIN",
+    passwordBody:
+      "Enter your account password to continue.",
+    passwordInvalid:
+      "Incorrect password. Please try again.",
+    masked: "••••",
+    confirmRevealTitle:
+      "Confirm Password to Reveal PIN",
+    confirmUpdateTitle:
+      "Confirm Password to Update PIN",
+    changeTitle: "Change TFT PIN?",
+    changeBody:
+      "Changing your TFT PIN will immediately replace the old PIN. The AdlaWatt display must use the new PIN.",
+    changeCancel: "Cancel",
+    changeContinue: "Continue",
+    changeCancelA11y: "Cancel PIN change",
+    changeContinueA11y: "Continue to change PIN",
+    updatedTitle: "PIN Updated",
+    updatedMessage: "Your TFT PIN has been changed.",
   },
 
   auth: {

@@ -46,6 +46,17 @@ const fil = {
       "Pakisang-ayunan ang Terms and Conditions.",
     termsRequiredLong:
       "Pakisang-ayunan ang Terms and Conditions bago likhain ang iyong account.",
+    pinRequired: "Pakilagay ang iyong TFT PIN.",
+    pinNumbersOnly: "Ang TFT PIN ay maaari lamang maglaman ng mga numero.",
+    pinLength: "Ang TFT PIN ay dapat na eksaktong 4 na digit.",
+    pinWeak:
+      "Masyadong madaling hulaan ang TFT PIN na ito. Pumili ng ibang 4-digit na PIN.",
+    pinMismatch:
+      "Hindi tugma ang mga TFT PIN. Pakisuri ang parehong PIN field.",
+    pinAlreadyUsed:
+      "Ginamit na ang TFT PIN na ito. Pumili ng ibang 4-digit na PIN.",
+    pinUnavailable:
+      "Walang available na TFT PIN sa ngayon. Pakisubukang muli.",
   },
 
   passwordInput: {
@@ -73,6 +84,68 @@ const fil = {
       "Nakikitang password, magtatago sa loob ng {{seconds}} segundo",
     visibleHint:
       "Ipinapakita ang password… magtatago sa loob ng {{seconds}}s",
+  },
+
+  pin: {
+    label: "TFT PIN",
+    labelConfirm: "Kumpirmahin ang TFT PIN",
+    labelNew: "Bagong TFT PIN",
+    labelConfirmNew: "Kumpirmahin ang Bagong TFT PIN",
+    placeholder: "4-digit na PIN",
+    hint: "4 na digit. Mga numero lamang. Dapat natatangi.",
+    generatedNotice:
+      "May PIN na nabuo para sa iyong account. Kumpirmahin ang iyong password upang makita ito.",
+    infoA11y: "Ipakita ang impormasyon ng TFT PIN",
+    infoTitle: "Tungkol sa iyong TFT PIN",
+    infoIntro:
+      "Ang iyong TFT PIN ay nagbubukas ng AdlaWatt dashboard sa display.",
+    infoRule1: "Gumamit ng eksaktong 4 na digit.",
+    infoRule2: "Mga numero lamang ang pinapayagan.",
+    infoRule3: "Pinapayagan ang nangungunang zero.",
+    infoRule4: "Dapat natatangi ang iyong PIN.",
+    infoRule5: "Hindi pinapayagan ang paulit-ulit na PIN tulad ng 8888.",
+    infoRule6: "Hindi pinapayagan ang sunud-sunod na PIN tulad ng 1234.",
+    gotIt: "Naiintindihan",
+    showA11y: "Ipakita ang TFT PIN sa loob ng 5 segundo",
+    showHint: "Ipinapakita ang TFT PIN sa loob ng 5 segundo",
+    hideA11y:
+      "Itago ang TFT PIN, awtomatikong magtatago sa loob ng {{seconds}} segundo",
+    hideHint:
+      "Nakikita ang TFT PIN at awtomatikong magtatago",
+    visibleLive:
+      "Nakikitang TFT PIN, magtatago sa loob ng {{seconds}} segundo",
+    reveal: "Ipakita ang PIN",
+    hide: "Itago ang PIN",
+    displayRevealA11y:
+      "Ipakita ang TFT PIN pagkatapos kumpirmahin ang password",
+    displayHideA11y: "Itago ang TFT PIN",
+    displayHideHint:
+      "Awtomatikong nagtatago ang TFT PIN pagkatapos ng 5 segundo",
+    revealedLive:
+      "Nakikitang TFT PIN, magtatago sa loob ng {{seconds}} segundo",
+    revealedHint: "Magtatago sa 5s",
+    privateHint: "Huwag ibahagi ang PIN na ito.",
+    notAvailable: "Wala pang PIN na available sa device na ito.",
+    update: "I-update ang PIN",
+    updateA11y: "I-update ang TFT PIN",
+    passwordBody:
+      "Ilagay ang iyong account password upang magpatuloy.",
+    passwordInvalid:
+      "Mali ang password. Pakisubukang muli.",
+    masked: "••••",
+    confirmRevealTitle:
+      "Kumpirmahin ang Password para Ipakita ang PIN",
+    confirmUpdateTitle:
+      "Kumpirmahin ang Password para I-update ang PIN",
+    changeTitle: "Baguhin ang TFT PIN?",
+    changeBody:
+      "Ang pagbabago ng TFT PIN ay agad na papalitan ang lumang PIN. Ang AdlaWatt display ay dapat gumamit ng bagong PIN.",
+    changeCancel: "Kanselahin",
+    changeContinue: "Magpatuloy",
+    changeCancelA11y: "Kanselahin ang pagbabago ng PIN",
+    changeContinueA11y: "Magpatuloy sa pagbabago ng PIN",
+    updatedTitle: "Na-update ang PIN",
+    updatedMessage: "Nabago na ang iyong TFT PIN.",
   },
 
   auth: {
