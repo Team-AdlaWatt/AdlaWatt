@@ -652,7 +652,7 @@ const ceb = {
     analytics: {
       title: "Analytics ug Trends",
       subtitle:
-        "Susiha ang performance sa system, paggamit sa enerhiya, temperatura, ug datos sa electronics sa paglabay sa panahon.",
+        "Susiha ang solar, paggamit sa load, ug kalihokan sa baterya alang sa napiling sakup.",
       sectionBattery: "Baterya",
       sectionSolar: "Solar",
       sectionEnergy: "Enerhiya",

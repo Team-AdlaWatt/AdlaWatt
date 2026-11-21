@@ -17,8 +17,8 @@
 // the presentation forks.
 //
 // Charts are intentionally excluded (would need view-capture
-// plumbing); the PDF carries KPIs + data tables, and the CSV
-// carries the complete untruncated dataset.
+// plumbing); both exports carry the same three card-aligned
+// sections: Solar, Load, and Battery.
 // ============================================================
 
 import { Asset } from "expo-asset";
@@ -29,7 +29,6 @@ import {
 import * as Print from "expo-print";
 
 import {
-  formatNumber,
   formatReportDate,
   generateAdlaWattCsv,
   getCsvReportFilename,
@@ -120,80 +119,38 @@ export const buildReportHtml = (
   reportData: AnalyticsReportData,
   logoDataUrl: string | null,
 ): string => {
-  const { summary } = reportData;
-
-  const totalRows =
-    reportData.monitoringRows.length;
-
-  const shownRows =
-    reportData.monitoringRows.slice(
-      0,
-      PRINT_MAX_ROWS,
-    );
-
-  const truncated =
-    totalRows > PRINT_MAX_ROWS;
-
-  const kpi = (
-    label: string,
-    value: string,
-  ): string => `
-    <div class="kpi">
-      <div class="kpi-label">${escapeHtml(label)}</div>
-      <div class="kpi-value">${escapeHtml(value)}</div>
-    </div>`;
-
-  const tableRows = shownRows
+  const sectionsHtml = reportData.sections
     .map(
-      (row) => `
-      <tr>
-        <td>${escapeHtml(row.recordedAt)}</td>
-        <td>${escapeHtml(row.batteryLevel)}</td>
-        <td>${escapeHtml(row.batteryStatus)}</td>
-        <td>${escapeHtml(row.solarInput)}</td>
-        <td>${escapeHtml(row.currentLoad)}</td>
-        <td>${escapeHtml(row.deviceStatus)}</td>
-        <td>${escapeHtml(row.solarTemperature)}</td>
-        <td>${escapeHtml(row.solarTimer)}</td>
-        <td>${escapeHtml(row.solarVoltage)}</td>
-        <td>${escapeHtml(row.solarCurrent)}</td>
-        <td>${escapeHtml(row.totalEnergy)}</td>
-      </tr>`,
-    )
-    .join("");
-
-  // Derived analytics, rendered from the shared ReportKpi list so
-  // the native PDF shows the same metrics as the web PDF + CSV.
-  const kpiRows = reportData.kpis
-    .map((entry) =>
-      kpi(
-        entry.label,
-        entry.unit
-          ? `${entry.value} ${entry.unit}`
-          : entry.value,
-      ),
-    )
-    .join("");
-
-  // Chart-aligned per-bucket aggregates, from the same
-  // ReportPeriodRow list the CSV exports.
-  const periodRows = reportData.periods
-    .map(
-      (period) => `
-      <tr>
-        <td>${escapeHtml(period.periodLabel)}</td>
-        <td>${period.sampleCount}</td>
-        <td>${formatNumber(period.avgBatteryLevel)}</td>
-        <td>${formatNumber(period.minBatteryLevel)}</td>
-        <td>${formatNumber(period.maxBatteryLevel)}</td>
-        <td>${formatNumber(period.energyInputWh)}</td>
-        <td>${formatNumber(period.energyOutputWh)}</td>
-        <td>${formatNumber(period.netEnergyWh)}</td>
-        <td>${formatNumber(period.solarCoveragePct)}</td>
-        <td>${formatNumber(period.uptimePct)}</td>
-        <td>${period.unsafeSampleCount}</td>
-        <td>${formatNumber(period.sunHours)}</td>
-      </tr>`,
+      (section) => `
+    <div class="section-title">${escapeHtml(section.title)}</div>
+    <table>
+      <thead>
+        <tr>
+          ${section.headers
+            .map(
+              (header) =>
+                `<th>${escapeHtml(header)}</th>`,
+            )
+            .join("")}
+        </tr>
+      </thead>
+      <tbody>
+        ${section.rows
+          .slice(0, PRINT_MAX_ROWS)
+          .map(
+            (row) => `
+        <tr>
+          ${row
+            .map(
+              (value) =>
+                `<td>${escapeHtml(value)}</td>`,
+            )
+            .join("")}
+        </tr>`,
+          )
+          .join("")}
+      </tbody>
+    </table>`,
     )
     .join("");
 
@@ -209,16 +166,11 @@ export const buildReportHtml = (
   .header p { font-size: 12px; margin: 4px 0 0; opacity: 0.9; }
   .accent { height: 4px; background: ${PRINT_SECONDARY}; border-radius: 0 0 10px 10px; margin: -2px 0 16px; }
   .section-title { font-size: 15px; font-weight: bold; color: ${PRINT_PRIMARY}; margin: 20px 0 10px; text-transform: uppercase; }
-  .kpi-grid { display: flex; flex-wrap: wrap; gap: 8px; }
-  .kpi { background: ${PRINT_BACKGROUND}; border-radius: 8px; padding: 8px 12px; min-width: 140px; flex: 1; }
-  .kpi-label { font-size: 10px; color: ${PRINT_MUTED}; text-transform: uppercase; }
-  .kpi-value { font-size: 16px; font-weight: bold; margin-top: 2px; }
   table { width: 100%; border-collapse: collapse; font-size: 9px; margin-top: 6px; }
   thead { display: table-header-group; }
   th { background: ${PRINT_PRIMARY}; color: #ffffff; padding: 5px 4px; text-align: left; }
   td { padding: 4px; border-bottom: 1px solid #e5e0cf; }
   tr:nth-child(even) td { background: ${PRINT_BACKGROUND}; }
-  .footnote { font-size: 10px; color: ${PRINT_MUTED}; margin-top: 8px; }
   .footer { font-size: 10px; color: ${PRINT_MUTED}; margin-top: 20px; border-top: 1px solid #e5e0cf; padding-top: 8px; }
 </style>
 </head>
@@ -231,74 +183,7 @@ export const buildReportHtml = (
     </div>
   </div>
   <div class="accent"></div>
-
-  <div class="section-title">Summary</div>
-  <div class="kpi-grid">
-    ${kpi("Monitoring records", String(summary.sampleCount))}
-    ${kpi("Avg battery", `${formatNumber(summary.averageBatteryLevel)}%`)}
-    ${kpi("Min battery", `${formatNumber(summary.minimumBatteryLevel)}%`)}
-    ${kpi("Max battery", `${formatNumber(summary.maximumBatteryLevel)}%`)}
-    ${kpi("Avg solar", `${formatNumber(summary.averageSolarInput)} W`)}
-    ${kpi("Max solar", `${formatNumber(summary.maximumSolarInput)} W`)}
-    ${kpi("Avg load", `${formatNumber(summary.averageCurrentLoad)} W`)}
-    ${kpi("Max load", `${formatNumber(summary.maximumCurrentLoad)} W`)}
-    ${kpi("Energy in", `${formatNumber(summary.totalEnergyInputWh)} Wh`)}
-    ${kpi("Energy out", `${formatNumber(summary.totalEnergyOutputWh)} Wh`)}
-    ${kpi("Device", summary.latestDeviceStatus)}
-    ${kpi("Time remaining", summary.latestTimeRemaining)}
-  </div>
-
-  <div class="section-title">Key Metrics</div>
-  <div class="kpi-grid">
-    ${kpiRows}
-  </div>
-
-  <div class="section-title">Aggregated Periods</div>
-  <table>
-    <thead>
-      <tr>
-        <th>Period</th>
-        <th>Samples</th>
-        <th>Avg Batt %</th>
-        <th>Min %</th>
-        <th>Max %</th>
-        <th>Energy In Wh</th>
-        <th>Energy Out Wh</th>
-        <th>Net Wh</th>
-        <th>Coverage %</th>
-        <th>Uptime %</th>
-        <th>Unsafe</th>
-        <th>Sun h</th>
-      </tr>
-    </thead>
-    <tbody>${periodRows}</tbody>
-  </table>
-
-  <div class="section-title">Monitoring History</div>
-  <table>
-    <thead>
-      <tr>
-        <th>Recorded At</th>
-        <th>Battery %</th>
-        <th>Battery</th>
-        <th>Solar W</th>
-        <th>Load W</th>
-        <th>Device</th>
-        <th>Solar C</th>
-        <th>Sol Timer</th>
-        <th>Sol V</th>
-        <th>Sol A</th>
-        <th>Total Wh</th>
-      </tr>
-    </thead>
-    <tbody>${tableRows}</tbody>
-  </table>
-  ${
-    truncated
-      ? `<div class="footnote">Showing first ${PRINT_MAX_ROWS} of ${totalRows} records — see the CSV export for the complete dataset.</div>`
-      : `<div class="footnote">${totalRows} records in this period.</div>`
-  }
-
+  ${sectionsHtml}
   <div class="footer">AdlaWatt Analytics Report | ${escapeHtml(formatReportDate(reportData.range.start))} - ${escapeHtml(formatReportDate(reportData.range.end))} | ${escapeHtml(reportData.frequency)} Report</div>
 </body>
 </html>`;

@@ -440,6 +440,36 @@ describe("prepareReportData schema", () => {
     expect(data.kpis.length).toBeGreaterThan(0);
     expect(data.frequency).toBe("Daily");
 
+    expect(data.sections.map((section) => section.key)).toEqual([
+      "solar",
+      "load",
+      "battery",
+    ]);
+    expect(data.sections.map((section) => section.title)).toEqual([
+      "SOLAR — ENERGY COLLECTED",
+      "LOAD — ENERGY USED",
+      "BATTERY — VOLTAGE",
+    ]);
+    expect(data.sections[0].headers).toEqual([
+      "Period",
+      "Energy Collected (Wh)",
+      "Peak Output (W)",
+      "Peak Sun (h)",
+      "Charge Start",
+    ]);
+    expect(data.sections[1].headers).toEqual([
+      "Period",
+      "Energy Used (Wh)",
+      "Avg Load (W)",
+      "Peak Load (W)",
+    ]);
+    expect(data.sections[2].headers).toEqual([
+      "Period",
+      "Avg Voltage (V)",
+      "Min Voltage (V)",
+      "Max Voltage (V)",
+    ]);
+
     // Raw history retained for CSV depth.
     expect(data.monitoringHistory).toBe(
       twoDayRows,
@@ -535,115 +565,48 @@ describe("generateAdlaWattCsv", () => {
       line.startsWith(title),
     );
 
-  test("writes summary, KPI, period and history blocks", () => {
-    expect(
-      lines.some((line) =>
-        line.startsWith("Metric,Value"),
-      ),
-    ).toBe(true);
+  test("writes the report title and three chart-aligned sections", () => {
+    expect(lines[0]).toContain(data.reportTitle);
 
-    expect(
-      titleIndex("DERIVED ANALYTICS KPIs"),
-    ).toBeGreaterThan(-1);
-
-    expect(
-      titleIndex("AGGREGATED PERIODS"),
-    ).toBeGreaterThan(-1);
-
-    expect(
-      titleIndex("MONITORING HISTORY"),
-    ).toBeGreaterThan(-1);
-  });
-
-  test("monitoring block carries full monitoring_history parity", () => {
-    const start = titleIndex(
-      "MONITORING HISTORY",
-    );
-
-    const header = parseCsvLine(
-      lines[start + 1],
-    );
-
-    expect(header).toHaveLength(24);
-    expect(header).toContain("Time Remaining");
-    expect(header).toContain("Solar Status");
-    expect(header).toContain("Last Seen");
-    expect(header).toContain("Interior C");
-    expect(header).toContain("Watt Hours");
-    expect(header).toContain("Cumulative In Wh");
-    expect(header).toContain(
-      "Cumulative Out Wh",
-    );
-
-    // Every data row matches the header width (no ragged grid).
-    for (
-      let i = start + 2;
-      i < start + 2 + 4;
-      i += 1
-    ) {
+    for (const section of data.sections) {
       expect(
-        parseCsvLine(lines[i]),
-      ).toHaveLength(24);
+        titleIndex(section.title),
+      ).toBeGreaterThan(-1);
     }
   });
 
-  test("KPI block lists the derived analytics", () => {
-    const start = titleIndex(
+  test("section headers and rows match the analytics cards", () => {
+    for (const section of data.sections) {
+      const start = titleIndex(section.title);
+      const header = parseCsvLine(
+        lines[start + 1],
+      );
+
+      expect(
+        header.slice(0, section.headers.length),
+      ).toEqual(section.headers);
+
+      section.rows.forEach((expected, index) => {
+        expect(
+          parseCsvLine(lines[start + 2 + index]).slice(
+            0,
+            expected.length,
+          ),
+        ).toEqual(expected.map(String));
+      });
+    }
+  });
+
+  test("omits the legacy summary, KPI, period, and history blocks", () => {
+    for (const legacyTitle of [
+      "Metric,Value",
       "DERIVED ANALYTICS KPIs",
-    );
-
-    const block = lines
-      .slice(
-        start,
-        start + 2 + data.kpis.length,
-      )
-      .join("\n");
-
-    expect(block).toContain("Solar coverage");
-    expect(block).toContain("Device uptime");
-    expect(block).toContain(
-      "Unsafe discharge samples",
-    );
-    expect(block).toContain("Best sun day");
-  });
-
-  test("period block is one aggregated row per bucket", () => {
-    const start = titleIndex(
       "AGGREGATED PERIODS",
-    );
-
-    const header = parseCsvLine(
-      lines[start + 1],
-    );
-
-    expect(header).toHaveLength(19);
-    expect(header[0]).toBe("Period");
-
-    const day1 = parseCsvLine(lines[start + 2]);
-    const day2 = parseCsvLine(lines[start + 3]);
-
-    expect(day1).toHaveLength(19);
-    expect(day2).toHaveLength(19);
-
-    // Net energy column (index 9): +50 Wh then -100 Wh.
-    expect(day1[9]).toBe("50.0");
-    expect(day2[9]).toBe("-100.0");
-  });
-
-  test("caps monitoring rows with a truncation notice", () => {
-    const manyRows = Array.from(
-      { length: 20005 },
-      () => data.monitoringRows[0],
-    );
-
-    const oversized = {
-      ...data,
-      monitoringRows: manyRows,
-    };
-
-    const out = generateAdlaWattCsv(oversized);
-
-    expect(out).toContain("Showing first 20000 of 20005 records");
+      "MONITORING HISTORY",
+      "Showing first 20000 of 20005 records",
+    ]) {
+      expect(csv).not.toContain(legacyTitle);
+    }
   });
 });
 

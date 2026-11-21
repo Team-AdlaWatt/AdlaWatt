@@ -481,7 +481,7 @@ Codes stay backend-bound; labels map for display. Dates localize in format only 
 | `dashboard.components.title` | Components | Mga Komponente | Mga Komponente |  |
 | `dashboard.components.subtitle` | Monitor AdlaWatt system components. | I-monitor ang mga component ng AdlaWatt system. | I-monitor ang mga component sa AdlaWatt system. |  |
 | `dashboard.analytics.title` | Analytics & Trends | Analytics at Trends | Analytics ug Trends |  |
-| `dashboard.analytics.subtitle` | Analyze system performance, energy usage, temperature, and electronics data over time. | Suriin ang performance ng system, paggamit ng enerhiya, temperatura, at datos ng electronics sa paglipas ng panahon. | Susiha ang performance sa system, paggamit sa enerhiya, temperatura, ug datos sa electronics sa paglabay sa panahon. |  |
+| `dashboard.analytics.subtitle` | Review solar collection, load use, and battery activity for the selected range. | Suriin ang solar, paggamit ng load, at aktibidad ng baterya para sa napiling saklaw. | Susiha ang solar, paggamit sa load, ug kalihokan sa baterya alang sa napiling sakup. |  |
 | `dashboard.analytics.sectionBattery` | Battery | Baterya | Baterya | section header |
 | `dashboard.analytics.sectionSolar` | Solar | Solar | Solar | section header |
 | `dashboard.analytics.sectionEnergy` | Energy | Enerhiya | Enerhiya | section header |

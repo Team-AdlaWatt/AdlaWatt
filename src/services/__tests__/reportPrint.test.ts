@@ -88,66 +88,62 @@ const html = buildReportHtml(
 );
 
 describe("buildReportHtml", () => {
-  test("renders the shared schema sections", () => {
-    expect(html).toContain("Summary");
-    expect(html).toContain("Key Metrics");
-    expect(html).toContain("Aggregated Periods");
-    expect(html).toContain("Monitoring History");
+  test("renders the three card-aligned export sections", () => {
+    for (const title of [
+      "SOLAR — ENERGY COLLECTED",
+      "LOAD — ENERGY USED",
+      "BATTERY — VOLTAGE",
+    ]) {
+      expect(html).toContain(title);
+    }
   });
 
-  test("carries the derived analytics KPIs", () => {
-    expect(html).toContain("Solar coverage");
-    expect(html).toContain("Device uptime");
-    expect(html).toContain(
-      "Unsafe discharge samples",
-    );
-    expect(html).toContain("Best sun day");
-    expect(html).toContain("Temperature alerts");
-  });
-
-  test("aggregated periods table mirrors the schema columns", () => {
-    expect(html).toContain("<th>Period</th>");
-    expect(html).toContain("<th>Coverage %</th>");
-    expect(html).toContain("<th>Uptime %</th>");
-    expect(html).toContain("<th>Sun h</th>");
-  });
-
-  test("monitoring columns match the web PDF curated set", () => {
+  test("uses the analytics card table headers", () => {
     for (const header of [
-      "<th>Battery %</th>",
-      "<th>Solar W</th>",
-      "<th>Load W</th>",
-      "<th>Sol Timer</th>",
-      "<th>Sol V</th>",
-      "<th>Sol A</th>",
-      "<th>Total Wh</th>",
+      "<th>Energy Collected (Wh)</th>",
+      "<th>Peak Output (W)</th>",
+      "<th>Peak Sun (h)</th>",
+      "<th>Charge Start</th>",
+      "<th>Energy Used (Wh)</th>",
+      "<th>Avg Load (W)</th>",
+      "<th>Peak Load (W)</th>",
+      "<th>Avg Voltage (V)</th>",
+      "<th>Min Voltage (V)</th>",
+      "<th>Max Voltage (V)</th>",
     ]) {
       expect(html).toContain(header);
     }
-
-    // The previously divergent native-only headers are gone.
-    expect(html).not.toContain("<th>Volt</th>");
-    expect(html).not.toContain("<th>In Wh</th>");
-    expect(html).not.toContain("<th>Out Wh</th>");
   });
 
-  test("footnotes the row count and truncates past the cap", () => {
-    expect(html).toContain(
-      `${reportData.monitoringRows.length} records in this period.`,
-    );
+  test("omits the legacy summary, period, and monitoring blocks", () => {
+    for (const legacyTitle of [
+      "Summary",
+      "Key Metrics",
+      "Aggregated Periods",
+      "Monitoring History",
+      "<th>Battery %</th>",
+    ]) {
+      expect(html).not.toContain(legacyTitle);
+    }
+  });
 
+  test("caps oversized section rows at the print limit", () => {
     const many = {
       ...reportData,
-      monitoringRows: Array.from(
-        { length: PRINT_MAX_ROWS + 5 },
-        () => reportData.monitoringRows[0],
-      ),
+      sections: reportData.sections.map((section) => ({
+        ...section,
+        rows: Array.from(
+          { length: PRINT_MAX_ROWS + 5 },
+          () => section.rows[0],
+        ),
+      })),
     };
 
     const capped = buildReportHtml(many, null);
+    const renderedRows = capped.match(/<tr>/g) ?? [];
 
-    expect(capped).toContain(
-      `Showing first ${PRINT_MAX_ROWS} of ${PRINT_MAX_ROWS + 5} records`,
+    expect(renderedRows).toHaveLength(
+      reportData.sections.length * (PRINT_MAX_ROWS + 1),
     );
   });
 
