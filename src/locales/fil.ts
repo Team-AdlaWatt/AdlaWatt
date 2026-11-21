@@ -654,14 +654,12 @@ const fil = {
     analytics: {
       title: "Analytics at Trends",
       subtitle:
-        "Suriin ang solar, paggamit ng load, at aktibidad ng baterya para sa napiling saklaw.",
+        "Suriin ang performance ng system, paggamit ng enerhiya, temperatura, at datos ng electronics sa paglipas ng panahon.",
       sectionBattery: "Baterya",
       sectionSolar: "Solar",
       sectionEnergy: "Enerhiya",
       sectionHealth: "Kalusugan",
       sectionUsage: "Paggamit",
-      generateReport: "Generate Report",
-      goToGenerateReport: "Pumunta sa Generate Report",
       reportSavedTitle: "Nai-save na ang report",
       reportSavedTo: "Nai-save sa",
       reportPreviewTitle: "Preview ng report",

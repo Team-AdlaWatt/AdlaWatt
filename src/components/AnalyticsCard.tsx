@@ -1,5 +1,6 @@
 import React, {
   useMemo,
+  useState,
 } from "react";
 import {
   Pressable,
@@ -8,6 +9,9 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import AppText from "@/components/ui/AppText";
+import {
+  CalendarModal,
+} from "@/components/ui/CalendarModal";
 import ReportSavedModal, {
   type SavedReport,
 } from "@/components/ui/ReportSavedModal";
@@ -16,15 +20,109 @@ import {
   type AppColors,
 } from "@/hooks/useAppColors";
 import {
+  ANALYTICS_PRESETS,
+  AnalyticsRange,
+  ReportFrequency,
   ReportType,
+  formatReportDate,
 } from "@/services/analyticsService";
-import { Control } from "@/constants/sizing";
+import { Control, OptionRow } from "@/constants/sizing";
+
+/* ============================================================
+   DATE PICKER
+   ============================================================ */
+
+interface DatePickerFieldProps {
+  label: string;
+  value: Date;
+  onChange: (date: Date) => void;
+}
+
+function DatePickerField({
+  label,
+  value,
+  onChange,
+}: DatePickerFieldProps) {
+  const [
+    calendarVisible,
+    setCalendarVisible,
+  ] = useState(false);
+
+  const colors = useAppColors();
+
+  const styles = useMemo(
+    () => getStyles(colors),
+    [colors],
+  );
+
+  return (
+    <View
+      style={
+        styles.reportControl
+      }
+    >
+      <AppText
+        variant="caption"
+        style={
+          styles.reportControlLabel
+        }
+      >
+        {label}
+      </AppText>
+
+      <Pressable
+        style={({ pressed }) => [
+          styles.dateFieldButton,
+          pressed &&
+            styles.buttonPressed,
+        ]}
+        onPress={() =>
+          setCalendarVisible(true)
+        }
+      >
+        <AppText
+          variant="caption"
+          style={
+            styles.dateFieldText
+          }
+        >
+          {formatReportDate(value)}
+        </AppText>
+
+        <Ionicons
+          name="calendar-outline"
+          size={16}
+          color={colors.accentContent}
+        />
+      </Pressable>
+
+      <CalendarModal
+        visible={calendarVisible}
+        title={label}
+        value={value}
+        maximumDate={new Date()}
+        onChange={onChange}
+        onClose={() =>
+          setCalendarVisible(false)
+        }
+      />
+    </View>
+  );
+}
 
 /* ============================================================
    PROPS
    ============================================================ */
 
 export interface AnalyticsCardsProps {
+  reportFrequency: ReportFrequency;
+  setReportModalVisible: React.Dispatch<
+    React.SetStateAction<boolean>
+  >;
+  range: AnalyticsRange;
+  onFromDateChange: (date: Date) => void;
+  onToDateChange: (date: Date) => void;
+  onPresetSelect?: (days: number) => void;
   generateReport: (
     reportType: ReportType,
   ) => Promise<void>;
@@ -66,6 +164,12 @@ const noop = () => {};
    ============================================================ */
 
 export default function AnalyticsCards({
+  reportFrequency,
+  setReportModalVisible,
+  range,
+  onFromDateChange,
+  onToDateChange,
+  onPresetSelect,
   generateReport,
   exporting = false,
   exportingType = null,
@@ -129,9 +233,107 @@ export default function AnalyticsCards({
               styles.reportSubtitle
             }
           >
-            Exports the Solar, Load, and Battery sections for the
-            selected analytics range.
+            Choose a frequency and pick a custom from/to date range
+            for the report export.
           </AppText>
+
+          {onPresetSelect ? (
+            <View style={styles.presetRow}>
+              {ANALYTICS_PRESETS.map(
+                (preset) => (
+                  <Pressable
+                    key={preset.days}
+                    style={({ pressed }) => [
+                      styles.presetChip,
+                      pressed &&
+                        styles.buttonPressed,
+                    ]}
+                    onPress={() =>
+                      onPresetSelect(
+                        preset.days,
+                      )
+                    }
+                  >
+                    <AppText
+                      variant="caption"
+                      style={
+                        styles.presetChipText
+                      }
+                    >
+                      {preset.label}
+                    </AppText>
+                  </Pressable>
+                ),
+              )}
+            </View>
+          ) : null}
+
+          <View
+            style={
+              styles.reportControls
+            }
+          >
+            <View
+              style={
+                styles.reportControl
+              }
+            >
+              <AppText
+                variant="caption"
+                style={
+                  styles.reportControlLabel
+                }
+              >
+                Frequency
+              </AppText>
+
+              <Pressable
+                style={({ pressed }) => [
+                  styles.reportSelect,
+                  pressed &&
+                    styles.buttonPressed,
+                ]}
+                onPress={() =>
+                  setReportModalVisible(
+                    true,
+                  )
+                }
+              >
+                <AppText
+                  variant="caption"
+                  style={
+                    styles.reportSelectText
+                  }
+                >
+                  {reportFrequency}
+                </AppText>
+
+                <Ionicons
+                  name="chevron-down-outline"
+                  size={15}
+                  color={
+                    colors.accentContent
+                  }
+                />
+              </Pressable>
+            </View>
+
+            <DatePickerField
+              label="From Date"
+              value={range.start}
+              onChange={
+                onFromDateChange
+              }
+            />
+
+            <DatePickerField
+              label="To Date"
+              value={range.end}
+              onChange={
+                onToDateChange
+              }
+            />
+          </View>
 
           <View
             style={
@@ -346,6 +548,86 @@ export const analyticsDimensions = {
       color:
         colors.textSecondary,
       lineHeight: 19,
+    },
+
+    reportControls: {
+      width: "100%",
+      marginTop: 14,
+      gap: 10,
+    },
+
+    presetRow: {
+      width: "100%",
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 8,
+      marginTop: 12,
+    },
+
+    presetChip: {
+      minHeight: 34,
+      paddingHorizontal: 14,
+      borderRadius: 999,
+      borderWidth: 2,
+      borderColor: colors.primary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+
+    presetChipText: {
+      color: colors.primary,
+      fontWeight: "700",
+    },
+
+    reportControl: {
+      width: "100%",
+    },
+
+    reportControlLabel: {
+      color:
+        colors.textSecondary,
+      fontWeight: "600",
+      marginBottom: 5,
+    },
+
+    reportSelect: {
+      width: "100%",
+      minHeight: OptionRow.minHeight,
+      borderWidth: 2,
+      borderColor:
+        colors.primary,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "space-between",
+    },
+
+    reportSelectText: {
+      color: colors.text,
+      fontWeight: "600",
+    },
+
+    dateFieldButton: {
+      width: "100%",
+      minHeight: OptionRow.minHeight,
+      backgroundColor:
+        colors.selectedWash,
+      borderWidth: 1,
+      borderColor:
+        colors.border,
+      borderRadius: 12,
+      paddingHorizontal: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent:
+        "space-between",
+    },
+
+    dateFieldText: {
+      color: colors.text,
+      fontWeight: "600",
     },
 
     exportRow: {
