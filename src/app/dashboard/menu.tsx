@@ -48,7 +48,10 @@ import {
   validatePin,
   validatePinPair,
 } from "@/lib/pinValidation";
-import { supabase } from "@/lib/supabase";
+import {
+  updateMyTftPin,
+  verifyPinPassword,
+} from "@/services/pinService";
 
 import { useAuth } from "@/context/AuthContext";
 import { useTypography } from "@/hooks/useTypography";
@@ -132,6 +135,7 @@ export default function SettingsScreen() {
     useState("");
   const [confirmingPinPassword, setConfirmingPinPassword] =
     useState(false);
+  const [updatingPin, setUpdatingPin] = useState(false);
 
   const pinHideTimer = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -166,7 +170,9 @@ export default function SettingsScreen() {
   };
 
   const passwordBusy =
-    confirmingAccountUpdate || confirmingPinPassword;
+    confirmingAccountUpdate ||
+    confirmingPinPassword ||
+    updatingPin;
 
   const clearPinTimers = useCallback(() => {
     if (pinHideTimer.current) {
@@ -229,6 +235,7 @@ export default function SettingsScreen() {
 
       setUsername(loadedUsername);
       setEmail(loadedEmail);
+      setPinValue(result.tftPin ?? "");
 
       setEditUsername(loadedUsername);
       setEditEmail(loadedEmail);
@@ -494,7 +501,11 @@ export default function SettingsScreen() {
     setPinUpdateVisible(false);
   };
 
-  const handleSubmitPinUpdate = () => {
+  const handleSubmitPinUpdate = async () => {
+    if (updatingPin) {
+      return;
+    }
+
     const pinResult = validatePin(newPin);
 
     if (!pinResult.valid) {
@@ -516,17 +527,32 @@ export default function SettingsScreen() {
       return;
     }
 
-    hidePin();
-    setPinValue(newPin);
-    setNewPin("");
-    setConfirmNewPin("");
     setPinWarning("");
-    setPinUpdateVisible(false);
+    setUpdatingPin(true);
 
-    Alert.alert(
-      tMenu("pin.updatedTitle"),
-      tMenu("pin.updatedMessage"),
-    );
+    try {
+      const result = await updateMyTftPin(newPin);
+
+      if (!result.success) {
+        setPinWarning(result.error);
+        return;
+      }
+
+      hidePin();
+      setPinValue(result.pin);
+      setNewPin("");
+      setConfirmNewPin("");
+      setPinUpdateVisible(false);
+
+      Alert.alert(
+        tMenu("pin.updatedTitle"),
+        tMenu("pin.updatedMessage"),
+      );
+    } catch {
+      setPinWarning(tMenu("menu.updateFailedNow"));
+    } finally {
+      setUpdatingPin(false);
+    }
   };
 
   const handleConfirmPinPassword = async () => {
@@ -552,28 +578,13 @@ export default function SettingsScreen() {
       return;
     }
 
-    const cleanEmail = email.trim().toLowerCase();
-
-    if (!cleanEmail) {
-      setConfirmationWarning(
-        tMenu("menu.updateFailed"),
-      );
-      return;
-    }
-
     try {
       setConfirmingPinPassword(true);
 
-      const { error } =
-        await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password,
-        });
+      const verified = await verifyPinPassword(password);
 
-      if (error) {
-        setConfirmationWarning(
-          tMenu("pin.passwordInvalid"),
-        );
+      if (!verified.success) {
+        setConfirmationWarning(verified.error);
         return;
       }
 
@@ -1465,12 +1476,14 @@ export default function SettingsScreen() {
           <View style={styles.modalFooter}>
             <Pressable
               onPress={handleCancelPinUpdate}
+              disabled={updatingPin}
               accessibilityRole="button"
               accessibilityLabel={tMenu("menu.cancel")}
               style={({ pressed }) => [
                 styles.modalFooterButton,
                 styles.modalCancelButton,
                 pressed && styles.pressed,
+                updatingPin && styles.disabled,
               ]}
             >
               <AppText
@@ -1485,12 +1498,14 @@ export default function SettingsScreen() {
 
             <Pressable
               onPress={handleSubmitPinUpdate}
+              disabled={updatingPin}
               accessibilityRole="button"
               accessibilityLabel={tMenu("menu.confirm")}
               style={({ pressed }) => [
                 styles.modalFooterButton,
                 styles.modalSubmitButton,
                 pressed && styles.pressed,
+                updatingPin && styles.disabled,
               ]}
             >
               <AppText
@@ -1977,6 +1992,10 @@ const getStyles = (colors: AppColors) =>
   modalSubmitButton: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
+  },
+
+  disabled: {
+    opacity: 0.6,
   },
 
   modalSubmitButtonText: {

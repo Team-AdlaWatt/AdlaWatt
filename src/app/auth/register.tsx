@@ -212,7 +212,8 @@ export default function RegisterScreen() {
         username,
         email,
         password,
-        termsAgreed
+        termsAgreed,
+        pin
       );
 
       if (!result.success) {

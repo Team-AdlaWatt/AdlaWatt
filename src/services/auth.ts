@@ -13,6 +13,10 @@ import {
 } from "@/services/activityLogService";
 import { Routes } from "@/constants/routes";
 import i18n from "@/services/i18n";
+import {
+  sanitizePinInput,
+  validatePin,
+} from "@/lib/pinValidation";
 
 // ============================================================
 // SHARED AUTH HELPERS
@@ -361,6 +365,7 @@ export async function registerUser(
     email: string,
     password: string,
     termsAgreed: boolean,
+    tftPin: string,
 ) {
     try {
         const cleanUsername = username.trim().toLowerCase();
@@ -433,6 +438,16 @@ export async function registerUser(
             };
         }
 
+        const cleanPin = sanitizePinInput(tftPin);
+        const pinResult = validatePin(cleanPin);
+
+        if (!pinResult.valid) {
+            return {
+                success: false,
+                error: i18n.t(`validation.${pinResult.error}`),
+            };
+        }
+
         /*
          * Create the authentication account.
          *
@@ -450,6 +465,7 @@ export async function registerUser(
                     data: {
                         username: cleanUsername,
                         terms_agreed: termsAgreed,
+                        tft_pin: cleanPin,
                     },
                     // Return to the app, not the Supabase Site URL
                     // (localhost by default) — see getAuthRedirect.
@@ -540,7 +556,7 @@ export async function getCurrentUserProfile() {
             await supabase
                 .from("users")
                 .select(
-                    "id, username, email, terms_agreed, created_at, email_notifications, role, onboarding_completed, monitor_id",
+                    "id, username, email, terms_agreed, created_at, email_notifications, role, onboarding_completed, monitor_id, tft_pin",
                 )
                 .eq("id", user.id)
                 .single();
@@ -586,6 +602,10 @@ export async function getCurrentUserProfile() {
             monitorId:
                 typeof profile?.monitor_id === "number"
                     ? profile.monitor_id
+                    : null,
+            tftPin:
+                typeof profile?.tft_pin === "string"
+                    ? profile.tft_pin
                     : null,
         };
     } catch (error) {
