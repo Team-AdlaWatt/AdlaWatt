@@ -814,6 +814,45 @@ const ceb = {
     },
   },
 
+  batteryEnergy: {
+    title: "Magamit nga enerhiya",
+    value: "{{wh}} Wh",
+    ofUsable: "sa {{capacity}} Wh nga magamit",
+    reserve: "{{wh}} Wh nga protektadong reserve",
+    status: {
+      normal: "Maayo",
+      warning: "Ubos ang enerhiya",
+      critical: "Kritikal",
+      waiting: "Naghulat sa data",
+    },
+    selectedLoad:
+      "Napili: {{ac}} W AC · {{battery}} W gikan sa baterya",
+  },
+
+  batteryProtection: {
+    warningTitle: "Ubos na ang magamit nga enerhiya",
+    warningBody:
+      "{{wh}} Wh na lang ang nahabilin nga magamit nga enerhiya. Likayi ang pag-on ug bag-ong appliances.",
+    criticalTitle:
+      "I-unplug ang dili kinahanglan nga electronics",
+    criticalBody:
+      "Ang magamit nga enerhiya nakaabot na sa {{percent}}%. I-unplug dayon ang tanan nga dili kinahanglan nga load.",
+    newLoadTitle:
+      "Adunay bag-ong load nga wala nalista",
+    newLoadBody:
+      "Ang live draw mga {{watts}} W nga mas taas kaysa sa napiling load. Susiha ang mga naka-plug.",
+    review: "Susiha ang electronics",
+    dismiss: "Sabot na",
+    blocked:
+      "Gihunong ang bag-ong selection samtang aktibo ang battery protection. Mahimo ka gihapon mokuha ug appliances.",
+    closeA11y:
+      "Isara ang pahibalo sa battery protection",
+    reviewTitle: "Pagsusi sa electronics",
+    reviewBody:
+      "Kini ang mga appliances nga giihap sa karon nga rekomendasyon.",
+    done: "Tapos",
+  },
+
   recommendationResult: {
     title: "Rekomendasyon",
     status: {
@@ -854,10 +893,11 @@ const ceb = {
         "Luwas gamiton niining lebel sa baterya.",
     },
     remainingBattery:
-      "Gitantya nga nahabilin nga baterya",
+      "Gitantya nga nahabilin nga magamit nga enerhiya",
     estimatedRuntime:
       "Gitantya nga oras sa paggamit",
-    combinedPeak: "Hiniusang peak load",
+    combinedPeak:
+      "Hiniusang peak load (kilid sa baterya)",
     currentLoad: "Karon nga load",
     alternativesTitle: "Mas maayong mga kapilian",
     noAlternatives: "Walay alternatibo karon.",

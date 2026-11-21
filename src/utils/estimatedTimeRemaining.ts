@@ -3,7 +3,6 @@ import {
   BATTERY_RESERVE_WH,
 } from "@/constants/battery";
 import type { BatteryStatus } from "@/services/monitoringSchema";
-import { DEFAULT_RECOMMENDATION_CONFIG } from "@/services/recommendation";
 import { hasValue } from "@/utils/monitoringDisplay";
 
 export const MISSING_ETR = "—";
@@ -18,9 +17,6 @@ export interface EstimatedTimeRemainingInput {
   currentLoad: number | null;
   solarInput: number | null;
 }
-
-const INVERTER_EFFICIENCY =
-  DEFAULT_RECOMMENDATION_CONFIG.inverterEfficiency;
 
 const resolveRemainingWh = (
   input: EstimatedTimeRemainingInput,
@@ -85,13 +81,14 @@ export const getEstimatedTimeRemaining = (
     return MISSING_ETR;
   }
 
-  const effectiveWh =
-    Math.max(remainingWh - BATTERY_RESERVE_WH, 0) *
-    INVERTER_EFFICIENCY;
+  const usableWh = Math.max(
+    remainingWh - BATTERY_RESERVE_WH,
+    0,
+  );
 
-  if (effectiveWh <= 0) {
+  if (usableWh <= 0) {
     return DEPLETED_ETR;
   }
 
-  return formatDuration(effectiveWh / netLoadW);
+  return formatDuration(usableWh / netLoadW);
 };

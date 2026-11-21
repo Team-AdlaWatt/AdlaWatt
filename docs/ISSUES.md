@@ -354,6 +354,10 @@ all.
 
 ### 11. [Chore] Hardware values now follow the manuscript (720 Wh / 600 W)
 
+> **Superseded:** The current app basis is 756 Wh total / 151.2 Wh reserve /
+> 604.8 Wh usable, with a 6 W inverter idle draw at 90% efficiency. This entry
+> is retained as a historical issue record.
+
 **Summary**
 The app's battery and electronics limits had drifted from the manuscript, and
 some screens and docs disagreed with each other. The bank is 12 V × 60 Ah =

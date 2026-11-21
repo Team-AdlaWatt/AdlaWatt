@@ -4,10 +4,10 @@
 // Pure calculation module — no network calls and no React
 // Native imports, so it can be verified anywhere.
 //
-// Battery capacity reference (ZENOVA 12V 30Ah x2 parallel):
-//   - Nominal energy             : 720 Wh
-//   - 20% SoC reserve floor      : 144 Wh
-//   - 80% depth of discharge     : 576 Wh usable window
+// Battery capacity reference:
+//   - Nominal energy             : 756 Wh
+//   - 20% SoC reserve floor      : 151.2 Wh
+//   - 80% depth of discharge     : 604.8 Wh usable window
 //
 // The engine performs the full analysis:
 //   - Battery tier classification
@@ -29,6 +29,8 @@
 import {
   BATTERY_CAPACITY_WH,
   BATTERY_RESERVE_WH,
+  INVERTER_EFFICIENCY,
+  INVERTER_IDLE_W,
 } from "@/constants/battery";
 
 // ============================================================
@@ -180,7 +182,7 @@ export const RUNTIME_CARE_MIN_HOURS =
 // DEFAULT_RECOMMENDATION_CONFIG). Thresholds are NOT admin
 // published — this object is the single place to tune them.
 // Shared with the TFT firmware to avoid drift: unsafe
-// 10.6V, caution 10.75V, 144Wh reserve, 480W warn, 600W
+// 10.6V, caution 10.75V, 151.2Wh reserve, 480W warn, 600W
 // cap (see the firmware notes in zenova_battery.md).
 // ============================================================
 
@@ -209,6 +211,8 @@ export interface RecommendationConfig {
   voltageDropStepVolts: number;
   // Inverter efficiency applied to runtime estimates.
   inverterEfficiency: number;
+  // Fixed inverter idle draw added to AC appliance load.
+  inverterIdleW: number;
   // Motor/compressor startup peak multiplier.
   motorSurgeMultiplier: number;
   // Parser rejects any single wattage above this.
@@ -237,15 +241,32 @@ export const DEFAULT_RECOMMENDATION_CONFIG: RecommendationConfig =
       VOLTAGE_DROP_STEP_WATTS,
     voltageDropStepVolts:
       VOLTAGE_DROP_STEP_VOLTS,
-    inverterEfficiency: 0.9,
+    inverterEfficiency: INVERTER_EFFICIENCY,
+    inverterIdleW: INVERTER_IDLE_W,
     motorSurgeMultiplier: 3,
     maxElectronicsWatts: 5000,
     staleReadingMs: 60000,
     allDayHours: ALL_DAY_HOURS_LIMIT,
   };
 
+export const toBatterySideWatts = (
+  acWatts: number,
+  config: RecommendationConfig = DEFAULT_RECOMMENDATION_CONFIG,
+): number => {
+  const safeWatts = Math.max(0, acWatts);
+
+  if (safeWatts === 0) {
+    return 0;
+  }
+
+  return (
+    safeWatts / config.inverterEfficiency +
+    config.inverterIdleW
+  );
+};
+
 // No-data state: never "OK". Supersedes the old optimistic
-// DEFAULT_BATTERY_STATE (100%/12.6V/720Wh with no reading),
+// DEFAULT_BATTERY_STATE (100%/12.6V/756Wh with no reading),
 // which made everything advisable on missing data. A missing
 // or stale lastUpdated blocks via classifyBatteryState.
 export const NO_BATTERY_DATA: BatteryStateInput =
@@ -608,12 +629,12 @@ export const parseWattageRange = (
 // ============================================================
 // 3. RUNTIME CALCULATION
 //
-// usable_Wh = remaining_Wh - 144  (the 20% reserve floor).
+// usable_Wh = remaining_Wh - 151.2  (the 20% reserve floor).
 //
 // Higher wattage consumes energy faster, so:
-//   runtime_min = usable_Wh / max_wattage  (safety floor)
-//   runtime_mid = usable_Wh / mid_wattage  (primary estimate)
-//   runtime_max = usable_Wh / min_wattage  (eco / best case)
+//   runtime_min = usable_Wh / max_battery_watts  (safety floor)
+//   runtime_mid = usable_Wh / mid_battery_watts  (primary estimate)
+//   runtime_max = usable_Wh / min_battery_watts  (eco / best case)
 // ============================================================
 
 export const estimateRuntime = (
@@ -778,8 +799,8 @@ export const verdictToBadge = (
 // electronics. The voltage projection is the exception: the
 // measured voltage already sags under the current load,
 // so only the electronics peak is subtracted (no
-// double-count). Runtime applies inverter efficiency to
-// the usable energy.
+// double-count). Runtime divides usable energy by
+// battery-side load (AC watts / efficiency + idle draw).
 // ============================================================
 
 export const recommendElectronics = (
@@ -818,35 +839,38 @@ export const recommendElectronics = (
     ? wattRange.max * surge
     : 0;
 
-  const combinedMidWatts = wattRange
-    ? currentLoadW + wattRange.mid
-    : currentLoadW;
+  const midBatterySideWatts = wattRange
+    ? toBatterySideWatts(wattRange.mid, config)
+    : 0;
 
-  const combinedPeakWatts = wattRange
-    ? currentLoadW + peakWatts
-    : currentLoadW;
+  const peakBatterySideWatts = wattRange
+    ? toBatterySideWatts(peakWatts, config)
+    : 0;
 
-  const effectiveWh =
-    usableWh * config.inverterEfficiency;
+  const combinedMidWatts =
+    currentLoadW + midBatterySideWatts;
+
+  const combinedPeakWatts =
+    currentLoadW + peakBatterySideWatts;
 
   const minHours = wattRange
     ? estimateRuntime(
-        effectiveWh,
-        wattRange.max,
+        usableWh,
+        toBatterySideWatts(wattRange.max, config),
       )
     : 0;
 
   const midHours = wattRange
     ? estimateRuntime(
-        effectiveWh,
-        wattRange.mid,
+        usableWh,
+        midBatterySideWatts,
       )
     : 0;
 
   const maxHours = wattRange
     ? estimateRuntime(
-        effectiveWh,
-        wattRange.min,
+        usableWh,
+        toBatterySideWatts(wattRange.min, config),
       )
     : 0;
 
@@ -862,7 +886,7 @@ export const recommendElectronics = (
   const projectedVoltage = wattRange
     ? normalizeNumber(battery.voltage) -
       estimateVoltageDrop(
-        peakWatts,
+        peakBatterySideWatts,
         config,
       )
     : normalizeNumber(battery.voltage);

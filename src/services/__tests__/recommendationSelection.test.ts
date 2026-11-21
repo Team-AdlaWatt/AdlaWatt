@@ -1,4 +1,9 @@
-import { BATTERY_CAPACITY_WH } from "@/constants/battery";
+import {
+  BATTERY_CAPACITY_WH,
+  BATTERY_USABLE_WH,
+  INVERTER_EFFICIENCY,
+  INVERTER_IDLE_W,
+} from "@/constants/battery";
 import {
   evaluateSelection,
   normalizeBatteryForSelection,
@@ -12,7 +17,7 @@ const freshBattery = (
 ): BatteryStateInput => ({
   soc: 80,
   voltage: 12.6,
-  remainingWh: 600,
+  remainingWh: BATTERY_CAPACITY_WH,
   dod: "Safe",
   lastUpdated: Date.now(),
   ...overrides,
@@ -63,7 +68,7 @@ describe("normalizeBatteryForSelection", () => {
 });
 
 describe("evaluateSelection", () => {
-  test("reports remaining percent from usable Wh over full capacity", () => {
+  test("reports remaining percent against the usable energy budget", () => {
     const result = evaluateSelection(
       freshBattery(),
       [led],
@@ -71,8 +76,18 @@ describe("evaluateSelection", () => {
     );
 
     expect(result.status).toBe("ready");
-    expect(result.remainingPercent).toBe(
-      Math.round((456 / BATTERY_CAPACITY_WH) * 100),
+    expect(result.remainingPercent).toBe(100);
+    expect(result.usableRemainingWh).toBe(
+      BATTERY_USABLE_WH,
+    );
+    expect(result.usableCapacityWh).toBe(
+      BATTERY_USABLE_WH,
+    );
+    expect(result.inverterIdleW).toBe(
+      INVERTER_IDLE_W,
+    );
+    expect(result.inverterEfficiency).toBe(
+      INVERTER_EFFICIENCY,
     );
     expect(result.runtimeLabel).toMatch(
       /^\d+h \d{2}m$/,
@@ -161,6 +176,9 @@ describe("evaluateSelection", () => {
 
     expect(result.verdict).toBe("notRecommended");
     expect(result.reasonKey).toBe("overCap");
-    expect(result.combinedPeakWatts).toBe(500);
+    expect(result.combinedPeakWatts).toBeCloseTo(
+      500 / INVERTER_EFFICIENCY + INVERTER_IDLE_W,
+      2,
+    );
   });
 });

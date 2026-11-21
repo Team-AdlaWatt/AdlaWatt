@@ -55,10 +55,10 @@ describe("getEstimatedTimeRemaining", () => {
         currentLoad: 196,
         solarInput: 40,
       }),
-    ).toBe("3h 00m");
+    ).toBe("3h 17m");
   });
 
-  test("applies the reserve floor and inverter efficiency", () => {
+  test("applies the reserve floor to total stored energy", () => {
     expect(
       getEstimatedTimeRemaining({
         ...baseInput,
@@ -66,7 +66,7 @@ describe("getEstimatedTimeRemaining", () => {
         currentLoad: 100,
         solarInput: 0,
       }),
-    ).toBe("4h 30m");
+    ).toBe("4h 55m");
   });
 
   test("reports depleted energy at the reserve floor", () => {
@@ -98,7 +98,7 @@ describe("getEstimatedTimeRemaining", () => {
         currentLoad: 108,
         solarInput: 0,
       }),
-    ).toBe("1h 48m");
+    ).toBe("2h 06m");
   });
 
   test("returns the unavailable value for missing readings", () => {

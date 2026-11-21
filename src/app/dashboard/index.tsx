@@ -23,6 +23,7 @@ import ActivityCard from "@/components/ActivityCard";
 import AppRecCard from "@/components/AppRecCard";
 import ChartCard from "@/components/ChartCard";
 import PullRefreshScroll from "@/components/PullRefreshScroll";
+import BatteryProtectionPanels from "@/components/recommendation/BatteryProtectionPanels";
 import RecommendationResultPanel from "@/components/recommendation/RecommendationResultPanel";
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
@@ -65,6 +66,12 @@ import {
 import {
   type BatteryStateInput,
 } from "@/services/recommendation";
+import {
+  computeBatteryEnergy,
+} from "@/services/batteryEnergy";
+import {
+  deriveProtectionState,
+} from "@/services/batteryProtection";
 import {
   evaluateSelection,
 } from "@/services/recommendationSelection";
@@ -231,6 +238,46 @@ export default function DashboardScreen() {
       recommendationBattery,
       dashboardElectronics,
       deviceOnline,
+    ],
+  );
+
+  const batteryEnergy = useMemo(
+    () =>
+      computeBatteryEnergy({
+        wattHours:
+          monitoring?.watt_hours ?? null,
+        batteryLevel:
+          monitoring?.battery_level ?? null,
+        deviceOnline: deviceOnline ?? false,
+        lastUpdated:
+          deviceOnline &&
+          monitoring?.last_seen
+            ? Date.parse(monitoring.last_seen)
+            : null,
+      }),
+    [monitoring, deviceOnline],
+  );
+
+  const batteryProtection = useMemo(
+    () =>
+      deriveProtectionState({
+        energy: batteryEnergy,
+        voltage:
+          monitoring?.voltage ?? null,
+        dodStatus:
+          monitoring?.dod_status ?? null,
+        currentLoadW:
+          monitoring?.current_load ?? null,
+        selectedBatterySideW:
+          combinedRecommendation.status ===
+          "ready"
+            ? combinedRecommendation.selectedBatterySideW
+            : 0,
+      }),
+    [
+      batteryEnergy,
+      combinedRecommendation,
+      monitoring,
     ],
   );
 
@@ -877,6 +924,15 @@ export default function DashboardScreen() {
           </View>
         ) : null}
 
+        <BatteryProtectionPanels
+          protection={batteryProtection}
+          usableWh={batteryEnergy.usableWh}
+          usablePercent={batteryEnergy.usablePercent}
+          onReview={() =>
+            scrollToSection(electronicsRef)
+          }
+        />
+
         {/* ==================================================
             REAL-TIME MONITORING
             ================================================== */}
@@ -941,6 +997,10 @@ export default function DashboardScreen() {
                 type="voltage"
                 monitoring={monitoring}
                 loading={loading}
+                batteryEnergy={batteryEnergy}
+                batteryEvaluation={
+                  combinedRecommendation
+                }
               />
             </View>
 

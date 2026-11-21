@@ -35,6 +35,8 @@ import ScrollToTopButton from "@/components/layout/ScrollToTopButton";
 
 import {
   BATTERY_CAPACITY_WH,
+  BATTERY_RESERVE_WH,
+  BATTERY_USABLE_WH,
 } from "@/constants/battery";
 import { Colors } from "@/constants/colors";
 import {
@@ -84,6 +86,8 @@ type ElectronicsModalProps = {
   ) => void;
   onCustomDelete?: (id: string) => void;
   selectedElectronics?: Electronics[];
+  selectionBlocked?: boolean;
+  blockedReason?: string | null;
 };
 
 /*
@@ -161,6 +165,8 @@ export default function ElectronicsModal({
   onCustomUpdate,
   onCustomDelete,
   onSave,
+  selectionBlocked = false,
+  blockedReason,
 }: ElectronicsModalProps) {
   const [selected, setSelected] = useState<
     string[]
@@ -600,6 +606,14 @@ export default function ElectronicsModal({
       return;
     }
 
+    if (selectionBlocked) {
+      setCustomError(
+        blockedReason ??
+          "New selections are paused while battery protection is active.",
+      );
+      return;
+    }
+
     setSelected(
       normalizeSelection([...selected, id]),
     );
@@ -789,6 +803,14 @@ export default function ElectronicsModal({
   // ============================================================
 
   const handleAddOpen = () => {
+    if (selectionBlocked) {
+      setCustomError(
+        blockedReason ??
+          "New selections are paused while battery protection is active.",
+      );
+      return;
+    }
+
     setEditingCustom(null);
     setCustomName("");
     setCustomWatts("");
@@ -814,6 +836,14 @@ export default function ElectronicsModal({
   // ============================================================
 
   const handleCustomAdd = async () => {
+    if (selectionBlocked) {
+      setCustomError(
+        blockedReason ??
+          "New selections are paused while battery protection is active.",
+      );
+      return;
+    }
+
     const validation = validateCustomElectronics(
       customName,
       customWatts,
@@ -1734,6 +1764,14 @@ export default function ElectronicsModal({
   // ============================================================
 
   const handleSelectAll = () => {
+    if (selectionBlocked) {
+      setCustomError(
+        blockedReason ??
+          "New selections are paused while battery protection is active.",
+      );
+      return;
+    }
+
     const target = normalizedSearch
       ? filteredElectronics
       : displayElectronics;
@@ -1841,8 +1879,8 @@ export default function ElectronicsModal({
                       variant="body"
                       style={styles.advisoryTitle}
                     >
-                      Battery Capacity:{" "}
-                      {BATTERY_CAPACITY_WH} Wh
+                      Battery budget:{" "}
+                      {BATTERY_USABLE_WH} Wh usable
                     </AppText>
 
                     <AppText
@@ -1851,9 +1889,11 @@ export default function ElectronicsModal({
                         styles.advisoryDescription
                       }
                     >
-                      Select the electronics you want to use
-                      and keep them within the available
-                      energy capacity.
+                      {BATTERY_CAPACITY_WH} Wh total ·{" "}
+                      {BATTERY_RESERVE_WH} Wh protected
+                      reserve. Select the electronics you
+                      want to use and stay within the usable
+                      energy budget.
                     </AppText>
                   </View>
                 </View>

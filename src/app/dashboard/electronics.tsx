@@ -22,6 +22,12 @@ import {
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
 import PullRefreshScroll from "@/components/PullRefreshScroll";
+import BatteryEnergyBar from "@/components/recommendation/BatteryEnergyBar";
+import BatteryEnergyHighlight from "@/components/recommendation/BatteryEnergyHighlight";
+import BatteryProtectionPanels from "@/components/recommendation/BatteryProtectionPanels";
+import ElectronicsReviewModal, {
+  type ReviewItem,
+} from "@/components/recommendation/ElectronicsReviewModal";
 import RecommendationResultPanel from "@/components/recommendation/RecommendationResultPanel";
 import ScreenContainer2 from "@/components/layout/ScreenContainer2";
 import AppText from "@/components/ui/AppText";
@@ -55,6 +61,12 @@ import {
 import {
   type BatteryStateInput,
 } from "@/services/recommendation";
+import {
+  computeBatteryEnergy,
+} from "@/services/batteryEnergy";
+import {
+  deriveProtectionState,
+} from "@/services/batteryProtection";
 import {
   evaluateSelection,
 } from "@/services/recommendationSelection";
@@ -224,6 +236,11 @@ export default function ElectronicsScreen() {
   const [
     electronicsModalVisible,
     setElectronicsModalVisible,
+  ] = useState(false);
+
+  const [
+    reviewModalVisible,
+    setReviewModalVisible,
   ] = useState(false);
 
   const [powerFilter, setPowerFilter] =
@@ -435,6 +452,54 @@ export default function ElectronicsScreen() {
     ],
   );
 
+  const batteryEnergy = useMemo(
+    () =>
+      computeBatteryEnergy({
+        wattHours:
+          monitoring?.watt_hours ?? null,
+        batteryLevel:
+          monitoring?.battery_level ?? null,
+        deviceOnline: deviceOnline ?? false,
+        lastUpdated:
+          deviceOnline &&
+          monitoring?.last_seen
+            ? Date.parse(monitoring.last_seen)
+            : null,
+      }),
+    [monitoring, deviceOnline],
+  );
+
+  const batteryProtection = useMemo(
+    () =>
+      deriveProtectionState({
+        energy: batteryEnergy,
+        voltage:
+          monitoring?.voltage ?? null,
+        dodStatus:
+          monitoring?.dod_status ?? null,
+        currentLoadW:
+          monitoring?.current_load ?? null,
+        selectedBatterySideW:
+          combinedRecommendation.status ===
+          "ready"
+            ? combinedRecommendation.selectedBatterySideW
+            : 0,
+      }),
+    [
+      batteryEnergy,
+      combinedRecommendation,
+      monitoring,
+    ],
+  );
+
+  const selectionBlocked =
+    batteryProtection.level === "warning" ||
+    batteryProtection.level === "critical";
+
+  const selectionBlockedReason = t(
+    "batteryProtection.blocked",
+  );
+
   const handlePowerFilter = (
     filter: PowerLevel,
   ) => {
@@ -493,6 +558,19 @@ export default function ElectronicsScreen() {
       return "advisable";
     },
     [recommendationBattery, deviceOnline],
+  );
+
+  const reviewItems = useMemo<ReviewItem[]>(
+    () =>
+      selectedElectronics.map((electronics) => ({
+        id: electronics.id,
+        name: electronics.name,
+        watts: electronics.watts,
+        status: statusMeta(
+          getElectronicsStatus(electronics),
+        ).label,
+      })),
+    [selectedElectronics, getElectronicsStatus],
   );
 
   // ==========================================================
@@ -641,11 +719,52 @@ export default function ElectronicsScreen() {
             variant="caption"
             style={styles.subtitle}
           >
-            {t("dashboard.electronics.subtitle")}
-          </AppText>
-        </View>
+          {t("dashboard.electronics.subtitle")}
+        </AppText>
+      </View>
 
-        {/* Controls */}
+      <BatteryEnergyHighlight
+        snapshot={batteryEnergy}
+        evaluation={combinedRecommendation}
+      />
+
+      <BatteryProtectionPanels
+        protection={batteryProtection}
+        usableWh={batteryEnergy.usableWh}
+        usablePercent={batteryEnergy.usablePercent}
+        onReview={() =>
+          setReviewModalVisible(true)
+        }
+      />
+
+      <Pressable
+        onPress={() =>
+          setReviewModalVisible(true)
+        }
+        style={({ pressed }) => [
+          styles.addButton,
+          pressed && styles.pressed,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={t(
+          "batteryProtection.review",
+        )}
+      >
+        <Ionicons
+          name="list-outline"
+          size={18}
+          color={colors.onPrimary}
+        />
+
+        <AppText
+          variant="caption"
+          style={styles.addButtonText}
+        >
+          {t("batteryProtection.review")}
+        </AppText>
+      </Pressable>
+
+      {/* Controls */}
         {/* Select Electronics (full spread, above the filters) */}
         <Pressable
           onPress={() =>
@@ -767,6 +886,12 @@ export default function ElectronicsScreen() {
           )}
         />
 
+        <BatteryEnergyBar
+          energy={batteryEnergy}
+          evaluation={combinedRecommendation}
+          style={styles.recommendationPanel}
+        />
+
         <RecommendationResultPanel
           result={combinedRecommendation}
           style={styles.recommendationPanel}
@@ -846,6 +971,18 @@ export default function ElectronicsScreen() {
         }
         onSave={handleElectronicsSave}
         selectedElectronics={selectedElectronics}
+        selectionBlocked={selectionBlocked}
+        blockedReason={selectionBlockedReason}
+      />
+
+      <ElectronicsReviewModal
+        visible={reviewModalVisible}
+        onClose={() =>
+          setReviewModalVisible(false)
+        }
+        items={reviewItems}
+        blocked={selectionBlocked}
+        blockedReason={selectionBlockedReason}
       />
 
       {/* ========================================================

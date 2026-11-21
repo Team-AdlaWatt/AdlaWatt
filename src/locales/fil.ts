@@ -818,6 +818,45 @@ const fil = {
     },
   },
 
+  batteryEnergy: {
+    title: "Magagamit na enerhiya",
+    value: "{{wh}} Wh",
+    ofUsable: "ng {{capacity}} Wh na magagamit",
+    reserve: "{{wh}} Wh na protektadong reserve",
+    status: {
+      normal: "Normal",
+      warning: "Mababa ang enerhiya",
+      critical: "Kritikal",
+      waiting: "Naghihintay ng data",
+    },
+    selectedLoad:
+      "Napili: {{ac}} W AC · {{battery}} W mula sa baterya",
+  },
+
+  batteryProtection: {
+    warningTitle: "Mababa na ang magagamit na enerhiya",
+    warningBody:
+      "{{wh}} Wh na lang ang natitirang magagamit na enerhiya. Iwasang mag-on ng bagong appliances.",
+    criticalTitle:
+      "I-unplug ang hindi kinakailangang electronics",
+    criticalBody:
+      "Ang magagamit na enerhiya ay nasa {{percent}}% na lang. I-unplug agad ang lahat ng hindi mahalagang load.",
+    newLoadTitle:
+      "May natukoy na hindi nalistang load",
+    newLoadBody:
+      "Ang live draw ay humigit-kumulang {{watts}} W na mas mataas kaysa sa napiling load. Suriin ang mga naka-plug.",
+    review: "Suriin ang electronics",
+    dismiss: "Gets ko",
+    blocked:
+      "Hintay muna ang bagong selection habang aktibo ang battery protection. Pwede mo pa ring tanggalin ang appliances.",
+    closeA11y:
+      "Isara ang abiso ng battery protection",
+    reviewTitle: "Pagsusuri sa electronics",
+    reviewBody:
+      "Ito ang mga appliances na kasama sa kasalukuyang rekomendasyon.",
+    done: "Tapos",
+  },
+
   recommendationResult: {
     title: "Rekomendasyon",
     status: {
@@ -858,10 +897,11 @@ const fil = {
         "Ligtas gamitin sa antas ng bateryang ito.",
     },
     remainingBattery:
-      "Tinantyang natitirang baterya",
+      "Tinantyang natitirang magagamit na enerhiya",
     estimatedRuntime:
       "Tinantyang oras ng paggamit",
-    combinedPeak: "Pinagsamang peak load",
+    combinedPeak:
+      "Pinagsamang peak load (panig ng baterya)",
     currentLoad: "Kasalukuyang load",
     alternativesTitle: "Mas mahusay na mga opsyon",
     noAlternatives:

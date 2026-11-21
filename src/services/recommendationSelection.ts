@@ -1,4 +1,9 @@
-import { BATTERY_CAPACITY_WH } from "@/constants/battery";
+import {
+  BATTERY_RESERVE_WH,
+  BATTERY_USABLE_WH,
+  INVERTER_EFFICIENCY,
+  INVERTER_IDLE_W,
+} from "@/constants/battery";
 import { GIVEN_CATALOG } from "@/constants/electronicsCatalog";
 import type {
   BatteryStateInput,
@@ -17,6 +22,7 @@ import {
   estimateVoltageDrop,
   parseWattageRange,
   recommendElectronicsBatch,
+  toBatterySideWatts,
 } from "@/services/recommendation";
 import {
   MISSING_ETR,
@@ -81,6 +87,13 @@ export interface SelectionEvaluation {
   runtimeHours: number | null;
   runtimeLabel: string;
   remainingPercent: number | null;
+  usableRemainingWh: number;
+  usableCapacityWh: number;
+  reserveWh: number;
+  selectedAcW: number;
+  selectedBatterySideW: number;
+  inverterIdleW: number;
+  inverterEfficiency: number;
   alternatives: SelectionAlternative[];
   recommendations: ElectronicsRecommendation[];
 }
@@ -287,6 +300,15 @@ const emptyEvaluation = (
   runtimeHours: null,
   runtimeLabel: MISSING_ETR,
   remainingPercent: null,
+  usableRemainingWh: 0,
+  usableCapacityWh: BATTERY_USABLE_WH,
+  reserveWh: BATTERY_RESERVE_WH,
+  selectedAcW: totals.totalMidWatts,
+  selectedBatterySideW: toBatterySideWatts(
+    totals.totalMidWatts,
+  ),
+  inverterIdleW: INVERTER_IDLE_W,
+  inverterEfficiency: INVERTER_EFFICIENCY,
   alternatives: [],
   recommendations: [],
 });
@@ -371,15 +393,17 @@ export const evaluateSelection = (
     activeBattery.currentLoadW ?? 0,
   );
 
-  const effectiveWh =
-    classification.usableWh *
-    config.inverterEfficiency;
+  const selectedBatterySideW =
+    toBatterySideWatts(stack.totalMidWatts, config);
+
+  const selectedPeakBatterySideW =
+    toBatterySideWatts(totalPeakWatts, config);
 
   const runtimeHours =
     stack.totalMidWatts > 0
       ? estimateRuntime(
-          effectiveWh,
-          stack.totalMidWatts,
+          classification.usableWh,
+          selectedBatterySideW,
         )
       : 0;
 
@@ -389,17 +413,17 @@ export const evaluateSelection = (
       0,
       Math.round(
         (classification.usableWh /
-          BATTERY_CAPACITY_WH) *
+          BATTERY_USABLE_WH) *
           100,
       ),
     ),
   );
 
   const combinedMidWatts =
-    currentLoadW + stack.totalMidWatts;
+    currentLoadW + selectedBatterySideW;
 
   const combinedPeakWatts =
-    currentLoadW + totalPeakWatts;
+    currentLoadW + selectedPeakBatterySideW;
 
   const wattCap = computeWattCap(
     activeBattery.soc,
@@ -409,7 +433,7 @@ export const evaluateSelection = (
   const projectedVoltage =
     activeBattery.voltage -
     estimateVoltageDrop(
-      totalPeakWatts,
+      selectedPeakBatterySideW,
       config,
     );
 
@@ -476,6 +500,13 @@ export const evaluateSelection = (
     runtimeHours,
     runtimeLabel: formatDuration(runtimeHours),
     remainingPercent,
+    usableRemainingWh: classification.usableWh,
+    usableCapacityWh: BATTERY_USABLE_WH,
+    reserveWh: config.reserveWh,
+    selectedAcW: stack.totalMidWatts,
+    selectedBatterySideW,
+    inverterIdleW: config.inverterIdleW,
+    inverterEfficiency: config.inverterEfficiency,
     alternatives,
     recommendations,
   };

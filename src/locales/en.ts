@@ -802,6 +802,44 @@ const en = {
     },
   },
 
+  batteryEnergy: {
+    title: "Usable energy",
+    value: "{{wh}} Wh",
+    ofUsable: "of {{capacity}} Wh usable",
+    reserve: "{{wh}} Wh protected reserve",
+    status: {
+      normal: "Healthy",
+      warning: "Low energy",
+      critical: "Critical",
+      waiting: "Waiting for data",
+    },
+    selectedLoad:
+      "Selected: {{ac}} W AC · {{battery}} W from battery",
+  },
+
+  batteryProtection: {
+    warningTitle: "Usable energy is low",
+    warningBody:
+      "Only {{wh}} Wh of usable energy remains. Avoid switching on new appliances.",
+    criticalTitle:
+      "Unplug unnecessary electronics",
+    criticalBody:
+      "Usable energy is down to {{percent}}%. Unplug all nonessential loads now.",
+    newLoadTitle: "Unlisted load detected",
+    newLoadBody:
+      "Live draw is about {{watts}} W above the selected load. Check what is plugged in.",
+    review: "Review electronics",
+    dismiss: "Got it",
+    blocked:
+      "New selections are paused while battery protection is active. You can still remove appliances.",
+    closeA11y:
+      "Dismiss battery protection notice",
+    reviewTitle: "Electronics review",
+    reviewBody:
+      "These are the appliances counted in the current recommendation.",
+    done: "Done",
+  },
+
   recommendationResult: {
     title: "Recommendation",
     status: {
@@ -841,9 +879,9 @@ const en = {
         "Safe to use with this battery level.",
     },
     remainingBattery:
-      "Estimated remaining battery",
+      "Estimated remaining usable energy",
     estimatedRuntime: "Estimated runtime",
-    combinedPeak: "Combined peak load",
+    combinedPeak: "Combined peak load (battery side)",
     currentLoad: "Current load",
     alternativesTitle: "Better options",
     noAlternatives:
