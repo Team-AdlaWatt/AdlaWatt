@@ -21,9 +21,22 @@ const CONNECT_TIMEOUT_MS = 15000;
 const SUBSCRIBE_TIMEOUT_MS = 10000;
 const WRITE_TIMEOUT_MS = 10000;
 const WRITE_CHUNK_SIZE = 512;
+const FALLBACK_MTU = 517;
 const MAX_SSID_BYTES = 32;
 const MAX_PASSWORD_BYTES = 64;
 const MAX_MONITOR_ID = 0xffffffff;
+
+const normalizeUuid = (value: unknown): string =>
+  typeof value === "string" ? value.toLowerCase() : "";
+
+const debugProvisioning = (
+  event: string,
+  details: Record<string, unknown>,
+): void => {
+  if (__DEV__) {
+    console.debug(`[provisioning] ${event}`, details);
+  }
+};
 
 export const PROVISIONING_STATUSES = [
   "received",
@@ -43,6 +56,9 @@ const APP_STATUSES = [
   "idle",
   "scanning",
   "connecting",
+  "connected",
+  "subscribed",
+  "writing",
   "timeout",
 ] as const;
 
@@ -94,6 +110,7 @@ export interface ProvisioningConfig {
 
 export interface ProvisioningOptions {
   timeoutMs?: number;
+  onSession?: (session: ProvisioningSession) => void;
 }
 
 export interface ProvisioningSession {
@@ -144,6 +161,54 @@ export class ProvisioningTimeoutError extends Error {
     this.name = "ProvisioningTimeoutError";
   }
 }
+
+export type ProvisioningBleIssue =
+  | "ble_error"
+  | "write_not_permitted"
+  | "tx_descriptor_missing"
+  | "characteristic_not_found"
+  | "service_not_found"
+  | "operation_timeout"
+  | "operation_cancelled"
+  | "disconnected"
+  | "gatt_error";
+
+export class ProvisioningBleError extends Error {
+  readonly issue: ProvisioningBleIssue;
+
+  constructor(issue: ProvisioningBleIssue, message?: string) {
+    super(message ?? issue);
+    this.name = "ProvisioningBleError";
+    this.issue = issue;
+  }
+}
+
+const BLE_ERROR_ISSUE_BY_CODE: Record<string, ProvisioningBleIssue> = {
+  WRITE_NOT_PERMITTED: "write_not_permitted",
+  DESCRIPTOR_NOT_FOUND: "tx_descriptor_missing",
+  CHARACTERISTIC_NOT_FOUND: "characteristic_not_found",
+  SERVICE_NOT_FOUND: "service_not_found",
+  OPERATION_TIMEOUT: "operation_timeout",
+  OPERATION_CANCELLED: "operation_cancelled",
+  DISCONNECTED: "disconnected",
+  GATT_ERROR: "gatt_error",
+  INVALID_ATTRIBUTE_LENGTH: "gatt_error",
+  INVALID_ARGUMENT: "gatt_error",
+};
+
+const readBleErrorIssue = (error: unknown): ProvisioningBleIssue | null => {
+  if (!error || typeof error !== "object") {
+    return null;
+  }
+
+  const code = (error as { code?: unknown }).code;
+
+  if (typeof code !== "string") {
+    return null;
+  }
+
+  return BLE_ERROR_ISSUE_BY_CODE[code] ?? "ble_error";
+};
 
 const KNOWN_STATUSES = new Set<string>(PROVISIONING_STATUSES);
 
@@ -492,12 +557,13 @@ export async function provisionDevice(
     }
   };
 
-  const dispose = async (): Promise<void> => {
+  const dispose = async (reason = "manual"): Promise<void> => {
     if (disposed) {
       return;
     }
 
     disposed = true;
+    debugProvisioning("dispose_start", { reason });
     controller.abort();
     clearTimeoutTimer();
 
@@ -516,16 +582,21 @@ export async function provisionDevice(
     connectionListener = null;
     txSubscription = null;
 
+    const shouldDisconnect =
+      peripheral.state === "connected" || peripheral.state === "connecting";
+
     try {
-      if (
-        peripheral.state === "connected" ||
-        peripheral.state === "connecting"
-      ) {
+      if (shouldDisconnect) {
         await peripheral.disconnect();
       }
     } catch {
       void 0;
     }
+
+    debugProvisioning("dispose_complete", {
+      reason,
+      disconnect_attempted: shouldDisconnect,
+    });
   };
 
   const finish = async (
@@ -539,8 +610,11 @@ export async function provisionDevice(
     terminalReported = true;
     clearTimeoutTimer();
     emit(status, ack);
-    await dispose();
+    await dispose(status);
   };
+
+  const session: ProvisioningSession = { dispose };
+  options.onSession?.(session);
 
   timeoutTimer = setTimeout(() => {
     timedOut = true;
@@ -557,6 +631,13 @@ export async function provisionDevice(
     if (update.status === null) {
       return;
     }
+
+    debugProvisioning("notification", {
+      status: update.status,
+      raw_length: update.raw.length,
+      ack_present: update.ack !== undefined,
+      ack_issue: update.ack?.issue ?? null,
+    });
 
     if (update.status === "configured") {
       const ack = validateConfiguredAck(
@@ -596,10 +677,65 @@ export async function provisionDevice(
     });
 
     emit("connecting");
+    debugProvisioning("connecting", { peripheral_id: deviceId });
 
     await peripheral.connect({
       timeoutMs: CONNECT_TIMEOUT_MS,
       signal: controller.signal,
+    });
+
+    emit("connected");
+    debugProvisioning("connected", {
+      peripheral_id: deviceId,
+      device_id: DEVICE_ID,
+    });
+
+    const reportedMtu = (peripheral as { mtu?: unknown }).mtu;
+    const mtu =
+      typeof reportedMtu === "number" && reportedMtu > 0
+        ? reportedMtu
+        : FALLBACK_MTU;
+    const chunkSize = Math.min(
+      WRITE_CHUNK_SIZE,
+      Math.max(1, mtu - 3),
+    );
+
+    const discoveredServices = (
+      peripheral as {
+        services?: readonly {
+          uuid?: unknown;
+          characteristics?: readonly { uuid?: unknown }[];
+        }[];
+      }
+    ).services;
+
+    const serviceFound =
+      discoveredServices?.some(
+        (service) => normalizeUuid(service.uuid) === SERVICE_UUID,
+      ) ?? false;
+    const rxFound =
+      discoveredServices?.some(
+        (service) =>
+          service.characteristics?.some(
+            (characteristic) =>
+              normalizeUuid(characteristic.uuid) === RX_UUID,
+          ) ?? false,
+      ) ?? false;
+    const txFound =
+      discoveredServices?.some(
+        (service) =>
+          service.characteristics?.some(
+            (characteristic) =>
+              normalizeUuid(characteristic.uuid) === TX_UUID,
+          ) ?? false,
+      ) ?? false;
+
+    debugProvisioning("discovery", {
+      service_found: serviceFound,
+      rx_found: rxFound,
+      tx_found: txFound,
+      mtu,
+      chunk_size: chunkSize,
     });
 
     txSubscription = await peripheral.subscribe(
@@ -612,9 +748,29 @@ export async function provisionDevice(
       },
     );
 
-    const payload = new TextEncoder().encode(
-      buildProvisioningPayload(config),
-    );
+    emit("subscribed");
+    debugProvisioning("subscribed", {
+      service_uuid: SERVICE_UUID,
+      tx_uuid: TX_UUID,
+    });
+
+    const payloadText = buildProvisioningPayload(config);
+    const payload = new TextEncoder().encode(payloadText);
+
+    debugProvisioning("writing", {
+      service_uuid: SERVICE_UUID,
+      rx_uuid: RX_UUID,
+      bytes: payload.byteLength,
+      mtu,
+      chunk_size: chunkSize,
+      chunks: Math.ceil(payload.byteLength / chunkSize),
+      device_id: DEVICE_ID,
+      monitor_id: config.monitorId,
+      wifi_ssid_bytes: new TextEncoder().encode(config.wifiSsid).byteLength,
+      wifi_password_bytes: new TextEncoder().encode(config.wifiPassword)
+        .byteLength,
+    });
+    emit("writing");
 
     await peripheral.writeStream(
       SERVICE_UUID,
@@ -624,19 +780,34 @@ export async function provisionDevice(
         timeoutMs: WRITE_TIMEOUT_MS,
         signal: controller.signal,
         withResponse: true,
-        chunkSize: WRITE_CHUNK_SIZE,
+        chunkSize,
       },
     );
 
-    return { dispose };
+    debugProvisioning("write_complete", { bytes: payload.byteLength });
+
+    return session;
   } catch (error) {
     clearTimeoutTimer();
+    debugProvisioning("failed", {
+      message: error instanceof Error ? error.message : String(error),
+    });
 
     if (timedOut) {
       throw new ProvisioningTimeoutError();
     }
 
-    await dispose();
+    const bleIssue = readBleErrorIssue(error);
+
+    if (bleIssue) {
+      await dispose("error");
+      throw new ProvisioningBleError(
+        bleIssue,
+        error instanceof Error ? error.message : String(error),
+      );
+    }
+
+    await dispose("error");
     throw error;
   }
 }

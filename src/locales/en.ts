@@ -412,6 +412,7 @@ const en = {
       send: "Send Configuration",
       sending: "Sending...",
       retry: "Retry",
+      assignmentRetry: "Retry assignment",
       previewTitle: "Preview status",
       previewOpen: "Open status preview",
       previewNote: "Preview mode - not a real device status",
@@ -462,6 +463,9 @@ const en = {
       status_idle: "Ready to configure",
       status_scanning: "Scanning for devices",
       status_connecting: "Connecting to device",
+      status_connected: "Connected to AW-01 over Bluetooth",
+      status_subscribed: "Device status notifications are ready",
+      status_writing: "Sending Wi-Fi configuration and monitor ID to AW-01",
       status_received: "Configuration received by device",
       status_busy: "Device is processing the request",
       status_wifi_connected: "Device connected to Wi-Fi",
@@ -482,6 +486,22 @@ const en = {
       errorTitle: "Provisioning failed",
       errorBody:
         "The device could not complete the request. Check the details and try again.",
+      bleWriteNotPermitted:
+        "AW-01 does not accept this Bluetooth write mode. Update the device firmware and try again.",
+      bleTxDescriptorMissing:
+        "AW-01 is missing the status notification descriptor. Update the device firmware and try again.",
+      bleCharacteristicNotFound:
+        "A required Bluetooth characteristic was not found. Keep the device nearby and try again.",
+      bleServiceNotFound:
+        "The AW-01 Bluetooth service was not found. Power-cycle the device and try again.",
+      bleOperationTimeout:
+        "The Bluetooth operation timed out. Keep the device powered on and nearby, then try again.",
+      bleOperationCancelled:
+        "The Bluetooth operation was cancelled. Try again.",
+      bleDisconnected:
+        "Bluetooth disconnected during setup. Keep the device powered on and nearby, then try again.",
+      bleGattError:
+        "The device rejected the Bluetooth write. Update the device firmware and try again.",
       permissionDenied:
         "Bluetooth permission is required to find the device.",
       bluetoothOff: "Turn on Bluetooth to continue.",

@@ -431,6 +431,7 @@ const ceb = {
       send: "Ipadala ang Configuration",
       sending: "Gipapadala...",
       retry: "Sulayi Pag-usab",
+      assignmentRetry: "Sulayi pag-usab ang assignment",
       previewTitle: "Preview status",
       previewOpen: "Ablihi ang status preview",
       previewNote: "Preview mode - dili tinuod nga status sa device",
@@ -481,6 +482,9 @@ const ceb = {
       status_idle: "Andam i-configure",
       status_scanning: "Nangita ug device",
       status_connecting: "Nagkonekta sa device",
+      status_connected: "Konektado sa AW-01 pinaagi sa Bluetooth",
+      status_subscribed: "Andam na ang status notifications sa device",
+      status_writing: "Gipapadala ang configuration sa Wi-Fi ug monitor ID sa AW-01",
       status_received: "Nadawat sa device ang configuration",
       status_busy: "Giproseso sa device ang request",
       status_wifi_connected: "Nakakonekta ang device sa Wi-Fi",
@@ -501,6 +505,22 @@ const ceb = {
       errorTitle: "Napakyas ang provisioning",
       errorBody:
         "Dili mahuman sa device ang request. Susiha ang detalye ug sulayi pag-usab.",
+      bleWriteNotPermitted:
+        "Dili gidawat sa AW-01 kini nga Bluetooth write mode. I-update ang firmware sa device ug sulayi pag-usab.",
+      bleTxDescriptorMissing:
+        "Nawala ang status notification descriptor sa AW-01. I-update ang firmware sa device ug sulayi pag-usab.",
+      bleCharacteristicNotFound:
+        "Wala makit-an ang gikinahanglan nga Bluetooth characteristic. Himoa nga duol ang device ug sulayi pag-usab.",
+      bleServiceNotFound:
+        "Wala makit-an ang Bluetooth service sa AW-01. I-restart ang device ug sulayi pag-usab.",
+      bleOperationTimeout:
+        "Nag-time out ang Bluetooth operation. Ipadayon nga naka-on ug duol ang device, unya sulayi pag-usab.",
+      bleOperationCancelled:
+        "Gikansela ang Bluetooth operation. Sulayi pag-usab.",
+      bleDisconnected:
+        "Nawala ang Bluetooth connection sa pag-setup. Ipadayon nga naka-on ug duol ang device, unya sulayi pag-usab.",
+      bleGattError:
+        "Gibalibaran sa device ang Bluetooth write. I-update ang firmware sa device ug sulayi pag-usab.",
       permissionDenied:
         "Kinahanglan ang permiso sa Bluetooth aron makita ang device.",
       bluetoothOff: "I-on ang Bluetooth aron magpadayon.",

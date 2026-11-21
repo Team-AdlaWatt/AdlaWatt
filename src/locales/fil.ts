@@ -431,6 +431,7 @@ const fil = {
       send: "Ipadala ang Configuration",
       sending: "Ipinapadala...",
       retry: "Subukang Muli",
+      assignmentRetry: "Subukang muli ang assignment",
       previewTitle: "Preview status",
       previewOpen: "Buksan ang status preview",
       previewNote: "Preview mode - hindi tunay na status ng device",
@@ -481,6 +482,9 @@ const fil = {
       status_idle: "Handang i-configure",
       status_scanning: "Nagha-hanap ng device",
       status_connecting: "Kumukonekta sa device",
+      status_connected: "Nakonekta sa AW-01 sa pamamagitan ng Bluetooth",
+      status_subscribed: "Handa na ang status notifications ng device",
+      status_writing: "Ipinapadala ang configuration ng Wi-Fi at monitor ID sa AW-01",
       status_received: "Natanggap ng device ang configuration",
       status_busy: "Pinoproseso ng device ang request",
       status_wifi_connected: "Nakakonekta ang device sa Wi-Fi",
@@ -501,6 +505,22 @@ const fil = {
       errorTitle: "Nabigo ang provisioning",
       errorBody:
         "Hindi natapos ng device ang request. Suriin ang detalye at subukang muli.",
+      bleWriteNotPermitted:
+        "Hindi tinatanggap ng AW-01 ang Bluetooth write mode na ito. I-update ang firmware ng device at subukang muli.",
+      bleTxDescriptorMissing:
+        "Nawawala ang status notification descriptor ng AW-01. I-update ang firmware ng device at subukang muli.",
+      bleCharacteristicNotFound:
+        "Hindi natagpuan ang kinakailangang Bluetooth characteristic. Panatilihing malapit ang device at subukang muli.",
+      bleServiceNotFound:
+        "Hindi natagpuan ang Bluetooth service ng AW-01. I-restart ang device at subukang muli.",
+      bleOperationTimeout:
+        "Nag-time out ang Bluetooth operation. Panatilihing naka-on at malapit ang device, pagkatapos ay subukang muli.",
+      bleOperationCancelled:
+        "Kinansela ang Bluetooth operation. Subukang muli.",
+      bleDisconnected:
+        "Nawala ang Bluetooth connection habang sine-set up. Panatilihing naka-on at malapit ang device, pagkatapos ay subukang muli.",
+      bleGattError:
+        "Tinanggihan ng device ang Bluetooth write. I-update ang firmware ng device at subukang muli.",
       permissionDenied:
         "Kailangan ang pahintulot sa Bluetooth para hanapin ang device.",
       bluetoothOff: "I-on ang Bluetooth para magpatuloy.",

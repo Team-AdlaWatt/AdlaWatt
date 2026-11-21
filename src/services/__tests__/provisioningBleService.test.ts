@@ -234,8 +234,15 @@ describe("BLE readiness", () => {
 });
 
 describe("provisionDevice", () => {
+  let debugSpy: jest.SpyInstance;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    debugSpy = jest.spyOn(console, "debug").mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    debugSpy.mockRestore();
   });
 
   test("rejects invalid config before touching BLE", async () => {
@@ -287,12 +294,30 @@ describe("provisionDevice", () => {
       }),
     );
 
+    const writeCall = (peripheral.writeStream as jest.Mock).mock.calls[0];
+    const sentPayload = new TextDecoder().decode(
+      writeCall[2] as Uint8Array,
+    );
+
+    expect(JSON.parse(sentPayload)).toEqual({
+      device_code: "482913",
+      device_id: "AW-01",
+      wifi_ssid: validConfig.wifiSsid,
+      wifi_password: validConfig.wifiPassword,
+      monitor_id: validConfig.monitorId,
+    });
+
     const notifyNow = notify as ((value: Uint8Array) => void) | undefined;
     notifyNow?.(encode("configured"));
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(statuses).toContain("connecting");
-    expect(statuses).toContain("configured");
+    expect(statuses).toEqual([
+      "connecting",
+      "connected",
+      "subscribed",
+      "writing",
+      "configured",
+    ]);
     expect(peripheral.disconnect).toHaveBeenCalled();
 
     await session.dispose();

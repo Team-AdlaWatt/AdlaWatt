@@ -42,6 +42,7 @@ import {
   PROVISIONING_TIMEOUT_MS,
   TERMINAL_STATUSES,
   UI_STATUSES,
+  ProvisioningBleError,
   ProvisioningTimeoutError,
   ProvisioningValidationError,
   getBlePermissions,
@@ -52,6 +53,7 @@ import {
   startDeviceScan,
   subscribeBleState,
   type BleReadiness,
+  type ProvisioningBleIssue,
   type ProvisioningSession,
   type ProvisioningValidationIssue,
   type ScannedDevice,
@@ -78,9 +80,13 @@ type ScanPhase = "idle" | "scanning" | "completed_empty" | "devices_found";
 const IN_FLIGHT_STATUSES: UiStatus[] = [
   "scanning",
   "connecting",
+  "connected",
+  "subscribed",
+  "writing",
   "received",
   "busy",
   "wifi_connected",
+  "wifi_lost",
 ];
 
 const FAILED_STATUSES: UiStatus[] = [
@@ -109,6 +115,8 @@ function toneForReadiness(readiness: BleReadiness): ToneKey {
 
 function toneForStatus(status: UiStatus): ToneKey {
   if (
+    status === "connected" ||
+    status === "subscribed" ||
     status === "received" ||
     status === "wifi_connected" ||
     status === "configured"
@@ -156,8 +164,12 @@ function iconForStatus(status: UiStatus): keyof typeof Ionicons.glyphMap {
     case "scanning":
       return "scan-outline";
     case "connecting":
+    case "connected":
     case "disconnected":
       return "bluetooth-outline";
+    case "subscribed":
+      return "checkmark-circle-outline";
+    case "writing":
     case "received":
     case "busy":
     case "wifi_connected":
@@ -214,6 +226,16 @@ function assignmentDetailKey(
   }
 }
 
+function assignmentStateDetailKey(state: AssignmentState): string {
+  if (state === "checking_user") {
+    return "dashboard.addDevice.assignmentCheckingUser";
+  }
+  if (state === "retrieving") {
+    return "dashboard.addDevice.assignmentChecking";
+  }
+  return assignmentDetailKey(state);
+}
+
 function validationDetailKey(
   issue: ProvisioningValidationIssue,
 ): string {
@@ -228,6 +250,29 @@ function validationDetailKey(
       return "dashboard.addDevice.validationMonitorIdInvalid";
     default:
       return "dashboard.addDevice.validationInvalidText";
+  }
+}
+
+function bleErrorDetailKey(issue: ProvisioningBleIssue): string {
+  switch (issue) {
+    case "write_not_permitted":
+      return "dashboard.addDevice.bleWriteNotPermitted";
+    case "tx_descriptor_missing":
+      return "dashboard.addDevice.bleTxDescriptorMissing";
+    case "characteristic_not_found":
+      return "dashboard.addDevice.bleCharacteristicNotFound";
+    case "service_not_found":
+      return "dashboard.addDevice.bleServiceNotFound";
+    case "operation_timeout":
+      return "dashboard.addDevice.bleOperationTimeout";
+    case "operation_cancelled":
+      return "dashboard.addDevice.bleOperationCancelled";
+    case "disconnected":
+      return "dashboard.addDevice.bleDisconnected";
+    case "gatt_error":
+      return "dashboard.addDevice.bleGattError";
+    default:
+      return "dashboard.addDevice.errorBody";
   }
 }
 
@@ -250,6 +295,11 @@ export default function AddDeviceScreen() {
     result: ProvisioningMonitorAssignment;
   } | null>(null);
   const [assignmentRetryKey, setAssignmentRetryKey] = useState(0);
+  const [assignmentRetryExhaustedFor, setAssignmentRetryExhaustedFor] =
+    useState<{
+      userId: string;
+      retryKey: number;
+    } | null>(null);
 
   const assignmentRequestSeqRef = useRef(0);
   const assignmentFailureRetriesRef = useRef(0);
@@ -276,6 +326,10 @@ export default function AddDeviceScreen() {
     assignmentState === "found" && effectiveMonitorId != null;
   const assignmentLoading =
     assignmentState === "checking_user" || assignmentState === "retrieving";
+  const assignmentRetryExhausted =
+    !!currentUserId &&
+    assignmentRetryExhaustedFor?.userId === currentUserId &&
+    assignmentRetryExhaustedFor.retryKey === assignmentRetryKey;
 
   const [bleState, setBleState] = useState<BleState | "checking">("checking");
   const [blePermissions, setBlePermissions] =
@@ -446,6 +500,10 @@ export default function AddDeviceScreen() {
       return;
     }
 
+    if (resolvedAssignment && resolvedAssignment.userId !== currentUserId) {
+      assignmentFailureRetriesRef.current = 0;
+    }
+
     if (
       resolvedAssignment?.userId === currentUserId &&
       resolvedAssignment.retryKey === assignmentRetryKey
@@ -463,8 +521,16 @@ export default function AddDeviceScreen() {
       if (cancelled || assignmentRequestSeqRef.current !== requestSeq) {
         return;
       }
+      if (__DEV__) {
+        console.debug("[add-device] monitor_assignment", {
+          user_present: true,
+          status: result.status,
+          monitor_id: result.status === "found" ? result.monitorId : null,
+        });
+      }
       if (result.status === "found") {
         assignmentFailureRetriesRef.current = 0;
+        setAssignmentRetryExhaustedFor(null);
       }
       setResolvedAssignment({
         userId: targetUserId,
@@ -484,17 +550,45 @@ export default function AddDeviceScreen() {
     }
 
     if (assignmentFailureRetriesRef.current >= 2) {
+      setAssignmentRetryExhaustedFor({
+        userId: currentUserId,
+        retryKey: assignmentRetryKey,
+      });
       return;
     }
 
     const timer = setTimeout(() => {
       assignmentFailureRetriesRef.current += 1;
+      if (assignmentFailureRetriesRef.current >= 2) {
+        setAssignmentRetryExhaustedFor({
+          userId: currentUserId,
+          retryKey: assignmentRetryKey + 1,
+        });
+      }
       setResolvedAssignment(null);
       setAssignmentRetryKey((current) => current + 1);
     }, 400 * (assignmentFailureRetriesRef.current + 1));
 
     return () => clearTimeout(timer);
-  }, [assignmentLoading, assignmentReady, assignmentState, currentUserId, isLoaded]);
+  }, [
+    assignmentLoading,
+    assignmentReady,
+    assignmentRetryKey,
+    assignmentState,
+    currentUserId,
+    isLoaded,
+  ]);
+
+  const handleRetryAssignment = useCallback(() => {
+    if (!currentUserId) {
+      return;
+    }
+
+    assignmentFailureRetriesRef.current = 0;
+    setAssignmentRetryExhaustedFor(null);
+    setResolvedAssignment(null);
+    setAssignmentRetryKey((current) => current + 1);
+  }, [currentUserId]);
 
   const openBluetoothSettings = async () => {
     try {
@@ -631,6 +725,7 @@ export default function AddDeviceScreen() {
   };
 
   const handleSelectDevice = (device: ScannedDevice) => {
+    stopScan();
     setSelectedDevice(device);
     setScanOpen(false);
     setStatus("idle");
@@ -681,51 +776,34 @@ export default function AddDeviceScreen() {
       const authUserId = user?.id ?? null;
 
       if (!authUserId) {
-        setResolvedAssignment(null);
         setStatus("error");
         setStatusDetail(t("dashboard.addDevice.assignmentSessionExpired"));
         return;
       }
-
-      const resolveSeq = ++assignmentRequestSeqRef.current;
-      setResolvedAssignment(null);
-
-      const result = await resolveProvisioningMonitorIdForUser(authUserId);
-
-      if (assignmentRequestSeqRef.current !== resolveSeq) {
-        return;
-      }
-
-      if (user?.id !== authUserId) {
-        setStatus("error");
-        setStatusDetail(t("dashboard.addDevice.assignmentSessionExpired"));
-        return;
-      }
-
-      setResolvedAssignment({
-        userId: authUserId,
-        retryKey: assignmentRetryKey,
-        result,
-      });
-
-      if (
-        result.status !== "found" ||
-        !Number.isInteger(result.monitorId) ||
-        result.monitorId <= 0 ||
-        result.monitorId > 0xffffffff
-      ) {
-        setStatus("error");
-        setStatusDetail(t(assignmentDetailKey(result.status)));
-        return;
-      }
-
-      const monitorId = result.monitorId;
 
       stopProvisioning();
+
+      if (!assignmentReady || effectiveMonitorId == null) {
+        setStatus("error");
+        setStatusDetail(t(assignmentStateDetailKey(assignmentState)));
+        return;
+      }
+
+      const monitorId = effectiveMonitorId;
+
+      if (__DEV__) {
+        console.debug("[add-device] send_start", {
+          peripheral_id: selectedDevice.id,
+          monitor_id: monitorId,
+          ssid_bytes: new TextEncoder().encode(ssid.trim()).byteLength,
+          password_bytes: new TextEncoder().encode(password).byteLength,
+        });
+      }
+
       setStatus("connecting");
       setStatusDetail(t("dashboard.addDevice.status_connecting"));
 
-      const session = await provisionDevice(
+      await provisionDevice(
         selectedDevice.id,
         {
           wifiSsid: ssid.trim(),
@@ -751,6 +829,16 @@ export default function AddDeviceScreen() {
                 seconds: Math.round(PROVISIONING_TIMEOUT_MS / 1000),
               }),
             );
+          } else if (nextStatus === "connected") {
+            setStatusDetail(
+              t("dashboard.addDevice.status_connected"),
+            );
+          } else if (nextStatus === "subscribed") {
+            setStatusDetail(
+              t("dashboard.addDevice.status_subscribed"),
+            );
+          } else if (nextStatus === "writing") {
+            setStatusDetail(t("dashboard.addDevice.status_writing"));
           } else if (
             nextStatus === "received" ||
             nextStatus === "busy"
@@ -764,9 +852,12 @@ export default function AddDeviceScreen() {
             setStatusDetail(null);
           }
         },
+        {
+          onSession: (session) => {
+            provisionSessionRef.current = session;
+          },
+        },
       );
-
-      provisionSessionRef.current = session;
     } catch (error) {
       if (error instanceof ProvisioningTimeoutError) {
         setStatus("timeout");
@@ -775,6 +866,9 @@ export default function AddDeviceScreen() {
             seconds: Math.round(PROVISIONING_TIMEOUT_MS / 1000),
           }),
         );
+      } else if (error instanceof ProvisioningBleError) {
+        setStatus("error");
+        setStatusDetail(t(bleErrorDetailKey(error.issue)));
       } else if (error instanceof ProvisioningValidationError) {
         setStatus("error");
         setStatusDetail(t(validationDetailKey(error.issue)));
@@ -844,19 +938,7 @@ export default function AddDeviceScreen() {
         color={colors.textSecondary}
       />
       <AppText variant="caption" style={styles.inlineText}>
-        {t(
-          assignmentState === "session_expired"
-            ? "dashboard.addDevice.assignmentSessionExpired"
-            : assignmentState === "not_found"
-              ? "dashboard.addDevice.assignmentMissing"
-              : assignmentState === "query_failed"
-                ? "dashboard.addDevice.assignmentQueryFailed"
-                : assignmentState === "ambiguous"
-                  ? "dashboard.addDevice.assignmentAmbiguous"
-                  : assignmentState === "invalid"
-                    ? "dashboard.addDevice.assignmentInvalid"
-                    : "dashboard.addDevice.assignmentError",
-        )}
+        {t(assignmentStateDetailKey(assignmentState))}
       </AppText>
     </View>
   );
@@ -1235,6 +1317,18 @@ export default function AddDeviceScreen() {
             {profileUsername ?? user?.email ?? "-"}
           </AppText>
           {accountContent}
+          {!assignmentLoading &&
+          !assignmentReady &&
+          assignmentRetryExhausted &&
+          !!currentUserId &&
+          assignmentState !== "session_expired" ? (
+            <View style={styles.retryArea}>
+              <AppButton
+                title={t("dashboard.addDevice.assignmentRetry")}
+                onPress={handleRetryAssignment}
+              />
+            </View>
+          ) : null}
         </View>
 
         {showOperationStatus ? (

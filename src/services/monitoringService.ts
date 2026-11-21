@@ -12,7 +12,10 @@ import {
   getAuthenticatedUserSafe,
   supabase,
 } from "@/lib/supabase";
-import { withTimeout } from "@/lib/withTimeout";
+import {
+  DEFAULT_REQUEST_TIMEOUT_MS,
+  withTimeout,
+} from "@/lib/withTimeout";
 import { requestManager, RequestManager } from "@/services/requestManager";
 import { memoryCache, CACHE_TTL } from "@/services/memoryCache";
 import {
@@ -238,11 +241,20 @@ export const resolveProvisioningMonitorIdForUser = async (
     return { status: "session_expired" };
   }
 
-  const { data, error } = await supabase
-    .from("monitoring")
-    .select("monitor_id")
-    .eq("user_id", resolvedUserId)
-    .limit(2);
+  const response = await withTimeout(
+    supabase
+      .from("monitoring")
+      .select("monitor_id")
+      .eq("user_id", resolvedUserId)
+      .limit(2),
+    DEFAULT_REQUEST_TIMEOUT_MS,
+    "Monitoring assignment lookup timed out.",
+  ).catch(() => ({
+    data: null,
+    error: { message: "timeout" },
+  }));
+
+  const { data, error } = response;
 
   if (error) {
     return { status: "query_failed" };
