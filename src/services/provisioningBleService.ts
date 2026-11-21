@@ -60,7 +60,6 @@ export const TERMINAL_SUCCESS_STATUSES: readonly ProvisioningStatus[] = [
 
 export const TERMINAL_FAILURE_STATUSES: readonly UiStatus[] = [
   "wifi_failed",
-  "wifi_lost",
   "error",
   "disconnected",
   "timeout",
@@ -81,6 +80,12 @@ export interface ScannedDevice {
   rssi: number;
 }
 
+export interface NamedScanResult {
+  id: string;
+  name?: string | null;
+  rssi: number;
+}
+
 export interface ProvisioningConfig {
   wifiSsid: string;
   wifiPassword: string;
@@ -95,10 +100,26 @@ export interface ProvisioningSession {
   dispose: () => Promise<void>;
 }
 
-export interface ProvisioningStatusUpdate {
-  status: ProvisioningStatus;
-  raw: string;
+export type ProvisioningAcknowledgementIssue =
+  | "ack_monitor_id_mismatch"
+  | "ack_device_id_mismatch";
+
+export interface ProvisioningStatusAck {
+  deviceId?: string | null;
+  monitorId?: number | null;
+  issue?: ProvisioningAcknowledgementIssue;
 }
+
+export interface ProvisioningStatusUpdate {
+  status: ProvisioningStatus | null;
+  raw: string;
+  ack?: ProvisioningStatusAck;
+}
+
+export type ProvisioningStatusListener = (
+  status: UiStatus,
+  ack?: ProvisioningStatusAck,
+) => void;
 
 export type ProvisioningValidationIssue =
   | "ssid_required"
@@ -126,6 +147,28 @@ export class ProvisioningTimeoutError extends Error {
 
 const KNOWN_STATUSES = new Set<string>(PROVISIONING_STATUSES);
 
+const readAckDeviceId = (
+  value: unknown,
+): string | null | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return typeof value === "string" ? value.trim() : null;
+};
+
+const readAckMonitorId = (
+  value: unknown,
+): number | null | undefined => {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  return typeof value === "number" && Number.isInteger(value)
+    ? value
+    : null;
+};
+
 export const buildProvisioningPayload = (
   config: ProvisioningConfig,
 ): string => {
@@ -141,9 +184,15 @@ export const buildProvisioningPayload = (
 export const parseProvisioningStatusDetail = (
   value: Uint8Array,
 ): ProvisioningStatusUpdate => {
-  const text = new TextDecoder().decode(value).trim();
+  const text =
+    new TextDecoder()
+      .decode(value)
+      .replace(/\0/g, "")
+      .trim();
+
   let raw = text;
   let candidate = text.toLowerCase();
+  let ack: ProvisioningStatusAck | undefined;
 
   try {
     const parsed: unknown = JSON.parse(text);
@@ -159,23 +208,67 @@ export const parseProvisioningStatusDetail = (
         raw = status;
         candidate = status.toLowerCase();
       }
+
+      const deviceId = readAckDeviceId(record.device_id);
+      const monitorId = readAckMonitorId(record.monitor_id);
+
+      if (deviceId !== undefined || monitorId !== undefined) {
+        ack = { deviceId, monitorId };
+      }
     }
   } catch {
     raw = text;
     candidate = text.toLowerCase();
   }
 
-  return {
+  const result: ProvisioningStatusUpdate = {
     status: KNOWN_STATUSES.has(candidate)
       ? (candidate as ProvisioningStatus)
-      : "error",
+      : null,
     raw,
   };
+
+  if (ack) {
+    result.ack = ack;
+  }
+
+  return result;
+};
+
+const validateConfiguredAck = (
+  ack: ProvisioningStatusAck | undefined,
+  expectedMonitorId: number,
+): ProvisioningStatusAck | undefined => {
+  if (!ack) {
+    return undefined;
+  }
+
+  if (
+    ack.deviceId !== undefined &&
+    ack.deviceId !== DEVICE_ID
+  ) {
+    return {
+      ...ack,
+      issue: "ack_device_id_mismatch",
+    };
+  }
+
+  if (
+    ack.monitorId !== undefined &&
+    ack.monitorId !== expectedMonitorId
+  ) {
+    return {
+      ...ack,
+      issue: "ack_monitor_id_mismatch",
+    };
+  }
+
+  return ack;
 };
 
 export const parseProvisioningStatus = (
   value: Uint8Array,
-): ProvisioningStatus =>
+): ProvisioningStatus | null =>
   parseProvisioningStatusDetail(value).status;
 
 export const validateProvisioningConfig = (
@@ -332,24 +425,25 @@ export async function requestBleAccess(): Promise<void> {
   }
 }
 
+export const filterProvisioningScanResults = (
+  results: NamedScanResult[],
+): ScannedDevice[] =>
+  results
+    .filter((result) => result.name === DEVICE_NAME)
+    .map((result) => ({
+      id: result.id,
+      name: result.name ?? DEVICE_NAME,
+      rssi: result.rssi,
+    }));
+
 export function startDeviceScan(
   onResults: (devices: ScannedDevice[]) => void,
   onError?: (message: string) => void,
 ): ScanSession {
   return BleManager.startScan(
-    { namePrefix: DEVICE_NAME_PREFIX },
+    { namePrefix: DEVICE_NAME },
     (results) => {
-      onResults(
-        results
-          .filter((result) =>
-            result.name?.startsWith(DEVICE_NAME_PREFIX),
-          )
-          .map((result) => ({
-            id: result.id,
-            name: result.name ?? DEVICE_NAME,
-            rssi: result.rssi,
-          })),
-      );
+      onResults(filterProvisioningScanResults(results));
     },
     (error) => onError?.(error.message),
   );
@@ -358,7 +452,7 @@ export function startDeviceScan(
 export async function provisionDevice(
   deviceId: string,
   config: ProvisioningConfig,
-  onStatus: (status: UiStatus) => void,
+  onStatus: ProvisioningStatusListener,
   options: ProvisioningOptions = {},
 ): Promise<ProvisioningSession> {
   const validationIssue = validateProvisioningConfig(config);
@@ -379,13 +473,16 @@ export async function provisionDevice(
   let timedOut = false;
   let lastStatus: UiStatus | null = null;
 
-  const emit = (status: UiStatus): void => {
+  const emit = (
+    status: UiStatus,
+    ack?: ProvisioningStatusAck,
+  ): void => {
     if (lastStatus === status) {
       return;
     }
 
     lastStatus = status;
-    onStatus(status);
+    onStatus(status, ack);
   };
 
   const clearTimeoutTimer = (): void => {
@@ -431,14 +528,17 @@ export async function provisionDevice(
     }
   };
 
-  const finish = async (status: UiStatus): Promise<void> => {
+  const finish = async (
+    status: UiStatus,
+    ack?: ProvisioningStatusAck,
+  ): Promise<void> => {
     if (terminalReported) {
       return;
     }
 
     terminalReported = true;
     clearTimeoutTimer();
-    emit(status);
+    emit(status, ack);
     await dispose();
   };
 
@@ -453,10 +553,32 @@ export async function provisionDevice(
     }
 
     const update = parseProvisioningStatusDetail(value);
-    emit(update.status);
+
+    if (update.status === null) {
+      return;
+    }
+
+    if (update.status === "configured") {
+      const ack = validateConfiguredAck(
+        update.ack,
+        config.monitorId,
+      );
+
+      if (ack?.issue) {
+        emit("error", ack);
+        void finish("error", ack);
+        return;
+      }
+
+      emit(update.status, ack);
+      void finish(update.status, ack);
+      return;
+    }
+
+    emit(update.status, update.ack);
 
     if (isTerminalStatus(update.status)) {
-      void finish(update.status);
+      void finish(update.status, update.ack);
     }
   };
 

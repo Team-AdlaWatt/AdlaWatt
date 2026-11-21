@@ -221,15 +221,27 @@ export type ProvisioningMonitorAssignment =
   | { status: "not_found" }
   | { status: "ambiguous" }
   | { status: "invalid" }
-  | { status: "query_failed" };
+  | { status: "query_failed" }
+  | { status: "session_expired" };
 
 export const resolveProvisioningMonitorIdForUser = async (
-  userId: string,
+  userId?: string,
 ): Promise<ProvisioningMonitorAssignment> => {
+  const trimmedUserId = userId?.trim();
+
+  const resolvedUserId =
+    trimmedUserId ||
+    (await getAuthenticatedUserSafe())?.id ||
+    null;
+
+  if (!resolvedUserId) {
+    return { status: "session_expired" };
+  }
+
   const { data, error } = await supabase
     .from("monitoring")
     .select("monitor_id")
-    .eq("user_id", userId)
+    .eq("user_id", resolvedUserId)
     .limit(2);
 
   if (error) {
@@ -246,14 +258,13 @@ export const resolveProvisioningMonitorIdForUser = async (
 
   const record = data[0] as { monitor_id?: unknown } | null;
   const raw = record?.monitor_id;
-  const monitorId =
-    typeof raw === "number"
-      ? raw
-      : typeof raw === "string" && raw.trim() !== ""
-        ? Number(raw)
-        : NaN;
+  const monitorId = typeof raw === "number" ? raw : NaN;
 
-  if (!Number.isFinite(monitorId)) {
+  if (
+    !Number.isInteger(monitorId) ||
+    monitorId <= 0 ||
+    monitorId > 0xffffffff
+  ) {
     return { status: "invalid" };
   }
 

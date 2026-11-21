@@ -3,6 +3,7 @@ import {
   ProvisioningTimeoutError,
   ProvisioningValidationError,
   buildProvisioningPayload,
+  filterProvisioningScanResults,
   getBlePermissionState,
   getBleReadiness,
   isTerminalStatus,
@@ -35,10 +36,17 @@ const validConfig: ProvisioningConfig = {
 };
 
 const createPeripheral = () => {
+  let connectionStateListener:
+    | ((state: string) => void)
+    | undefined;
+
   const peripheral = {
     state: "disconnected",
     addConnectionStateListener: jest.fn(
-      (_listener: (state: string) => void) => ({ remove: jest.fn() }),
+      (listener: (state: string) => void) => {
+        connectionStateListener = listener;
+        return { remove: jest.fn() };
+      },
     ),
     connect: jest.fn(async (_options?: { signal?: AbortSignal }) => {
       peripheral.state = "connected";
@@ -63,6 +71,9 @@ const createPeripheral = () => {
     disconnect: jest.fn(async () => {
       peripheral.state = "disconnected";
     }),
+    emitConnectionState: (state: string) => {
+      connectionStateListener?.(state);
+    },
   };
 
   return peripheral;
@@ -77,6 +88,20 @@ describe("provisioning payload", () => {
       wifi_password: "password123",
       monitor_id: 1100,
     });
+  });
+});
+
+describe("device discovery", () => {
+  test("accepts only the exact AW-01 advertised name", () => {
+    expect(
+      filterProvisioningScanResults([
+        { id: "aw-01", name: "AdlaWatt-AW-01", rssi: -50 },
+        { id: "other", name: "AdlaWatt-Other", rssi: -40 },
+        { id: "nameless", name: null, rssi: -30 },
+      ]),
+    ).toEqual([
+      { id: "aw-01", name: "AdlaWatt-AW-01", rssi: -50 },
+    ]);
   });
 });
 
@@ -103,8 +128,40 @@ describe("provisioning status parsing", () => {
     ).toBe("configured");
   });
 
-  test("falls back to error for unknown tokens", () => {
-    expect(parseProvisioningStatus(encode("mystery"))).toBe("error");
+  test("parses configured acknowledgment fields", () => {
+    expect(
+      parseProvisioningStatusDetail(
+        encode(
+          JSON.stringify({
+            status: "configured",
+            device_id: "AW-01",
+            monitor_id: 1100,
+          }),
+        ),
+      ),
+    ).toEqual({
+      status: "configured",
+      raw: "configured",
+      ack: {
+        deviceId: "AW-01",
+        monitorId: 1100,
+      },
+    });
+  });
+
+  test("cleans NUL bytes and whitespace", () => {
+    expect(
+      parseProvisioningStatusDetail(
+        encode("  wifi_failed\u0000\n"),
+      ),
+    ).toEqual({
+      status: "wifi_failed",
+      raw: "wifi_failed",
+    });
+  });
+
+  test("treats unknown tokens as non-terminal debug data", () => {
+    expect(parseProvisioningStatus(encode("mystery"))).toBeNull();
   });
 });
 
@@ -157,6 +214,7 @@ describe("provisioning terminal states", () => {
     expect(isTerminalStatus("timeout")).toBe(true);
     expect(isTerminalStatus("busy")).toBe(false);
     expect(isTerminalStatus("connecting")).toBe(false);
+    expect(isTerminalStatus("wifi_lost")).toBe(false);
   });
 });
 
@@ -275,5 +333,228 @@ describe("provisionDevice", () => {
     await expect(
       provisionDevice("device-id", validConfig, jest.fn(), { timeoutMs: 20 }),
     ).rejects.toBeInstanceOf(ProvisioningTimeoutError);
+  });
+
+  test("accepts a matching configured acknowledgment", async () => {
+    const peripheral = createPeripheral();
+    let notify: ((value: Uint8Array) => void) | undefined;
+
+    peripheral.subscribe.mockImplementation(
+      async (_service, _characteristic, callback) => {
+        if (callback) {
+          notify = callback;
+        }
+        return { remove: jest.fn() };
+      },
+    );
+
+    (BleManager.getPeripheral as jest.Mock).mockReturnValue(peripheral);
+
+    const statuses: UiStatus[] = [];
+    const ackIssues: (string | undefined)[] = [];
+    const session = await provisionDevice(
+      "device-id",
+      validConfig,
+      (status, ack) => {
+        statuses.push(status);
+        ackIssues.push(ack?.issue);
+      },
+      { timeoutMs: 1000 },
+    );
+
+    notify?.(
+      encode(
+        JSON.stringify({
+          status: "configured",
+          device_id: "AW-01",
+          monitor_id: validConfig.monitorId,
+        }),
+      ),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(statuses).toContain("configured");
+    expect(ackIssues).toContain(undefined);
+    expect(peripheral.disconnect).toHaveBeenCalled();
+
+    await session.dispose();
+  });
+
+  test("rejects a mismatched monitor_id acknowledgment", async () => {
+    const peripheral = createPeripheral();
+    let notify: ((value: Uint8Array) => void) | undefined;
+
+    peripheral.subscribe.mockImplementation(
+      async (_service, _characteristic, callback) => {
+        if (callback) {
+          notify = callback;
+        }
+        return { remove: jest.fn() };
+      },
+    );
+
+    (BleManager.getPeripheral as jest.Mock).mockReturnValue(peripheral);
+
+    const statuses: UiStatus[] = [];
+    const ackIssues: (string | undefined)[] = [];
+    const session = await provisionDevice(
+      "device-id",
+      validConfig,
+      (status, ack) => {
+        statuses.push(status);
+        ackIssues.push(ack?.issue);
+      },
+      { timeoutMs: 1000 },
+    );
+
+    notify?.(
+      encode(
+        JSON.stringify({
+          status: "configured",
+          device_id: "AW-01",
+          monitor_id: validConfig.monitorId + 1,
+        }),
+      ),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(statuses).toContain("error");
+    expect(statuses).not.toContain("configured");
+    expect(ackIssues).toContain("ack_monitor_id_mismatch");
+    expect(peripheral.disconnect).toHaveBeenCalled();
+
+    await session.dispose();
+  });
+
+  test("rejects a mismatched device_id acknowledgment", async () => {
+    const peripheral = createPeripheral();
+    let notify: ((value: Uint8Array) => void) | undefined;
+
+    peripheral.subscribe.mockImplementation(
+      async (_service, _characteristic, callback) => {
+        if (callback) {
+          notify = callback;
+        }
+        return { remove: jest.fn() };
+      },
+    );
+
+    (BleManager.getPeripheral as jest.Mock).mockReturnValue(peripheral);
+
+    const statuses: UiStatus[] = [];
+    const ackIssues: (string | undefined)[] = [];
+    const session = await provisionDevice(
+      "device-id",
+      validConfig,
+      (status, ack) => {
+        statuses.push(status);
+        ackIssues.push(ack?.issue);
+      },
+      { timeoutMs: 1000 },
+    );
+
+    notify?.(
+      encode(
+        JSON.stringify({
+          status: "configured",
+          device_id: "AW-02",
+          monitor_id: validConfig.monitorId,
+        }),
+      ),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(statuses).toContain("error");
+    expect(ackIssues).toContain("ack_device_id_mismatch");
+    expect(peripheral.disconnect).toHaveBeenCalled();
+
+    await session.dispose();
+  });
+
+  test("does not terminate on unknown notifications or wifi_lost warnings", async () => {
+    const peripheral = createPeripheral();
+    let notify: ((value: Uint8Array) => void) | undefined;
+
+    peripheral.subscribe.mockImplementation(
+      async (_service, _characteristic, callback) => {
+        if (callback) {
+          notify = callback;
+        }
+        return { remove: jest.fn() };
+      },
+    );
+
+    (BleManager.getPeripheral as jest.Mock).mockReturnValue(peripheral);
+
+    const statuses: UiStatus[] = [];
+    const session = await provisionDevice(
+      "device-id",
+      validConfig,
+      (status) => statuses.push(status),
+      { timeoutMs: 1000 },
+    );
+
+    notify?.(encode("mystery"));
+    notify?.(encode("wifi_lost"));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(statuses).toContain("wifi_lost");
+    expect(statuses).not.toContain("error");
+    expect(peripheral.disconnect).not.toHaveBeenCalled();
+
+    await session.dispose();
+  });
+
+  test("terminates on wifi_failed", async () => {
+    const peripheral = createPeripheral();
+    let notify: ((value: Uint8Array) => void) | undefined;
+
+    peripheral.subscribe.mockImplementation(
+      async (_service, _characteristic, callback) => {
+        if (callback) {
+          notify = callback;
+        }
+        return { remove: jest.fn() };
+      },
+    );
+
+    (BleManager.getPeripheral as jest.Mock).mockReturnValue(peripheral);
+
+    const statuses: UiStatus[] = [];
+    const session = await provisionDevice(
+      "device-id",
+      validConfig,
+      (status) => statuses.push(status),
+      { timeoutMs: 1000 },
+    );
+
+    notify?.(encode("wifi_failed"));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(statuses).toContain("wifi_failed");
+    expect(peripheral.disconnect).toHaveBeenCalled();
+
+    await session.dispose();
+  });
+
+  test("terminates when BLE disconnects during provisioning", async () => {
+    const peripheral = createPeripheral();
+    (BleManager.getPeripheral as jest.Mock).mockReturnValue(peripheral);
+
+    const statuses: UiStatus[] = [];
+    const session = await provisionDevice(
+      "device-id",
+      validConfig,
+      (status) => statuses.push(status),
+      { timeoutMs: 1000 },
+    );
+
+    peripheral.emitConnectionState("disconnected");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(statuses).toContain("disconnected");
+    expect(peripheral.disconnect).toHaveBeenCalled();
+
+    await session.dispose();
   });
 });

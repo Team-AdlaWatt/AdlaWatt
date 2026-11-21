@@ -38,7 +38,7 @@ import {
   type AppColors,
 } from "@/hooks/useAppColors";
 import {
-  DEVICE_NAME_PREFIX,
+  DEVICE_NAME,
   PROVISIONING_TIMEOUT_MS,
   TERMINAL_STATUSES,
   UI_STATUSES,
@@ -85,7 +85,6 @@ const IN_FLIGHT_STATUSES: UiStatus[] = [
 
 const FAILED_STATUSES: UiStatus[] = [
   "wifi_failed",
-  "wifi_lost",
   "error",
   "disconnected",
   "timeout",
@@ -119,7 +118,6 @@ function toneForStatus(status: UiStatus): ToneKey {
 
   if (
     status === "wifi_failed" ||
-    status === "wifi_lost" ||
     status === "error" ||
     status === "disconnected" ||
     status === "timeout"
@@ -195,6 +193,25 @@ function displayStatusKey(status: UiStatus): string {
     return "success";
   }
   return `status_${status}`;
+}
+
+function assignmentDetailKey(
+  status: ProvisioningMonitorAssignment["status"],
+): string {
+  switch (status) {
+    case "session_expired":
+      return "dashboard.addDevice.assignmentSessionExpired";
+    case "not_found":
+      return "dashboard.addDevice.assignmentMissing";
+    case "query_failed":
+      return "dashboard.addDevice.assignmentQueryFailed";
+    case "ambiguous":
+      return "dashboard.addDevice.assignmentAmbiguous";
+    case "invalid":
+    case "found":
+    default:
+      return "dashboard.addDevice.assignmentInvalid";
+  }
 }
 
 function validationDetailKey(
@@ -691,42 +708,57 @@ export default function AddDeviceScreen() {
         result,
       });
 
-      if (result.status !== "found") {
-        const detailKey =
-          result.status === "not_found"
-            ? "dashboard.addDevice.assignmentMissing"
-            : result.status === "query_failed"
-              ? "dashboard.addDevice.assignmentQueryFailed"
-              : result.status === "ambiguous"
-                ? "dashboard.addDevice.assignmentAmbiguous"
-                : "dashboard.addDevice.assignmentInvalid";
+      if (
+        result.status !== "found" ||
+        !Number.isInteger(result.monitorId) ||
+        result.monitorId <= 0 ||
+        result.monitorId > 0xffffffff
+      ) {
         setStatus("error");
-        setStatusDetail(t(detailKey));
+        setStatusDetail(t(assignmentDetailKey(result.status)));
         return;
       }
 
+      const monitorId = result.monitorId;
+
       stopProvisioning();
       setStatus("connecting");
+      setStatusDetail(t("dashboard.addDevice.status_connecting"));
 
       const session = await provisionDevice(
         selectedDevice.id,
         {
           wifiSsid: ssid.trim(),
           wifiPassword: password,
-          monitorId: result.monitorId,
+          monitorId,
         },
-        (nextStatus) => {
+        (nextStatus, ack) => {
           setStatus(nextStatus);
 
           if (TERMINAL_STATUSES.includes(nextStatus)) {
             provisionSessionRef.current = null;
           }
 
-          if (nextStatus === "timeout") {
+          if (ack?.issue) {
+            setStatusDetail(
+              ack.issue === "ack_monitor_id_mismatch"
+                ? t("dashboard.addDevice.validationMonitorIdInvalid")
+                : t("dashboard.addDevice.errorBody"),
+            );
+          } else if (nextStatus === "timeout") {
             setStatusDetail(
               t("dashboard.addDevice.timeoutBody", {
                 seconds: Math.round(PROVISIONING_TIMEOUT_MS / 1000),
               }),
+            );
+          } else if (
+            nextStatus === "received" ||
+            nextStatus === "busy"
+          ) {
+            setStatusDetail(t("dashboard.addDevice.sending"));
+          } else if (nextStatus === "wifi_connected") {
+            setStatusDetail(
+              t("dashboard.addDevice.status_wifi_connected"),
             );
           } else if (nextStatus !== "error") {
             setStatusDetail(null);
@@ -1032,7 +1064,7 @@ export default function AddDeviceScreen() {
 
           <AppText variant="caption" style={styles.subtitle}>
             {t("dashboard.addDevice.bluetoothHint", {
-              prefix: DEVICE_NAME_PREFIX,
+              prefix: DEVICE_NAME,
             })}
           </AppText>
 
