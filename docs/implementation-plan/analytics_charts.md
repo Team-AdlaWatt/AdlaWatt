@@ -37,7 +37,7 @@ Averages and activity counts ignore Offline snapshots. Energy totals include all
 ## Card style
 
 - All four cards use the same grouped-card shell: accent header panel with icon and title, bordered body, caption subtitle, and 18px vertical gap.
-- The three chart cards use `AnalyticsChartCard` with explicit empty states.
+- The three chart cards always render their chart children immediately. `AnalyticsChartCard` has no loading/empty text gate; each chart component owns its empty frame (flat zero line with grid/axis, or muted donut with legend) until data arrives.
 - The Generate Report card uses the same shell with `document-text-outline` and keeps the old export controls.
 
 Reference implementations: `src/components/AnalyticsChartCard.tsx`, `src/components/AnalyticsCard.tsx`, `src/components/charts/AnalyticsMetricChart.tsx`, `src/components/charts/BatteryActivityChart.tsx`.

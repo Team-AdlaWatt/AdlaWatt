@@ -1689,6 +1689,35 @@ alert vibration and added English, Filipino, and Cebuano copy plus tests.
 
 ---
 
+### 53. fix(analytics): show chart frames while analytics data loads
+
+**Summary**
+Analytics chart cards showed text placeholders instead of the chart UI before
+data arrived, even though the chart components already support empty data.
+
+**Steps to Reproduce**
+1. Open Dashboard > Analytics on a fresh install or slow connection.
+2. Look at the Solar Energy, Load Energy, and Battery Activity cards before the
+   history fetch completes.
+
+**Expected Behavior**
+Each card renders its chart frame immediately — grid/axis and flat zero line, or
+muted donut with legend — and replaces it with real data when the fetch resolves.
+
+**Actual Behavior**
+The cards displayed "Waiting for graph and chart data..." or "no data" text
+until history existed.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Removed the loading/empty text gate from `AnalyticsChartCard` and the
+unused loading flags from the Analytics screen. Chart components continue to own
+their own empty visuals. This supersedes the placeholder behavior in issue #27.
+
+---
+
 ## Still To Do
 
 - Update the ESP32 firmware so watt_hours is reported on the 720 Wh manuscript

@@ -94,7 +94,6 @@ export default function AnalyticsScreen() {
   const [monitoringHistory, setMonitoringHistory] = useState<
     MonitoringHistoryRow[]
   >([]);
-  const [loadingData, setLoadingData] = useState(true);
   const [frequency, setFrequency] = useState<ChartFrequency>("Daily");
   const [range, setRange] = useState(() => createFrequencyRange("Daily"));
 
@@ -114,20 +113,10 @@ export default function AnalyticsScreen() {
 
   const activitySlices = cardData.activity;
 
-  const hasBatteryActivity = activitySlices.some(
-    (slice) => slice.value > 0,
-  );
-
   const loadAnalytics = useCallback(async () => {
-    setLoadingData(true);
-
-    try {
-      const { monitoringHistory: monitoringRows } =
-        await loadAnalyticsData(range);
-      setMonitoringHistory(monitoringRows);
-    } finally {
-      setLoadingData(false);
-    }
+    const { monitoringHistory: monitoringRows } =
+      await loadAnalyticsData(range);
+    setMonitoringHistory(monitoringRows);
   }, [range]);
 
   useEffect(() => {
@@ -473,9 +462,6 @@ export default function AnalyticsScreen() {
             title="Solar Energy"
             subtitle="Energy collected per period, with peak output, peak sun, and charge start."
             icon="sunny-outline"
-            loading={loadingData}
-            hasData={cardData.solar.length > 0}
-            emptyMessage="No solar data in this range."
           >
             <SolarEnergyChart points={cardData.solar} />
           </LazyCard>
@@ -484,9 +470,6 @@ export default function AnalyticsScreen() {
             title="Load Energy"
             subtitle="Energy used per period, with average and peak load."
             icon="bulb-outline"
-            loading={loadingData}
-            hasData={cardData.load.length > 0}
-            emptyMessage="No load data in this range."
           >
             <LoadEnergyChart points={cardData.load} />
           </LazyCard>
@@ -495,9 +478,6 @@ export default function AnalyticsScreen() {
             title="Battery Activity"
             subtitle="How often the battery charges, discharges, and idles in this range."
             icon="battery-half-outline"
-            loading={loadingData}
-            hasData={hasBatteryActivity}
-            emptyMessage="No battery activity in this range."
           >
             <BatteryActivityChart slices={activitySlices} />
           </LazyCard>
