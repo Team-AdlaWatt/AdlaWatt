@@ -83,6 +83,27 @@ export const formatTemperature = (
 // next successful heartbeat lands.
 export const DEVICE_ONLINE_WINDOW_MS = 5 * 1000;
 
+type LastSeenSource =
+  | { last_seen?: string | null | undefined }
+  | null
+  | undefined;
+
+export const monitoringLastSeenMs = (
+  source: LastSeenSource,
+): number => {
+  const value = source?.last_seen;
+
+  if (value == null || value === "") {
+    return Number.NEGATIVE_INFINITY;
+  }
+
+  const timestamp = Date.parse(value);
+
+  return Number.isFinite(timestamp)
+    ? timestamp
+    : Number.NEGATIVE_INFINITY;
+};
+
 export const isDeviceOnline = (
   lastSeen: string | null | undefined,
   _deviceStatus: DeviceStatus | string | null | undefined,

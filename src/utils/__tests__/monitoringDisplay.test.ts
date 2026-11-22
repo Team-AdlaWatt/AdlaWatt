@@ -13,6 +13,7 @@ import {
   formatTemperatureStatusLabel,
   hasTemperatureReading,
   isDeviceOnline,
+  monitoringLastSeenMs,
 } from "@/utils/monitoringDisplay";
 
 const NOW = Date.parse(
@@ -151,6 +152,36 @@ describe("device online", () => {
 
     expect(isDeviceOnline(future, "Offline", NOW)).toBe(
       true,
+    );
+  });
+});
+
+describe("monitoring snapshot freshness", () => {
+  test("parses last_seen and ranks missing/invalid as oldest", () => {
+    const older = new Date(NOW - 4_000).toISOString();
+    const newer = new Date(NOW - 2_000).toISOString();
+
+    expect(monitoringLastSeenMs({ last_seen: older })).toBe(
+      NOW - 4_000,
+    );
+    expect(
+      monitoringLastSeenMs({ last_seen: newer }) >
+        monitoringLastSeenMs({ last_seen: older }),
+    ).toBe(true);
+    expect(monitoringLastSeenMs({ last_seen: null })).toBe(
+      Number.NEGATIVE_INFINITY,
+    );
+    expect(monitoringLastSeenMs({ last_seen: "" })).toBe(
+      Number.NEGATIVE_INFINITY,
+    );
+    expect(
+      monitoringLastSeenMs({ last_seen: "not-a-date" }),
+    ).toBe(Number.NEGATIVE_INFINITY);
+    expect(monitoringLastSeenMs(null)).toBe(
+      Number.NEGATIVE_INFINITY,
+    );
+    expect(monitoringLastSeenMs(undefined)).toBe(
+      Number.NEGATIVE_INFINITY,
     );
   });
 });

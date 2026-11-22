@@ -58,6 +58,9 @@ export function MonitoringProvider({
     monitoring?.device_status,
   );
 
+  // A cached row painted on cold start can be minutes old. It
+  // stays visible (flagged stale), but must not flash Offline
+  // before the live fetch has had a chance to land.
   const connectionStatus: DeviceConnectionStatus =
     monitoring === null
       ? error
@@ -65,7 +68,9 @@ export function MonitoringProvider({
         : "loading"
       : deviceOnline
         ? "online"
-        : "offline";
+        : stale
+          ? "loading"
+          : "offline";
 
   const value = useMemo<MonitoringContextValue>(
     () => ({
