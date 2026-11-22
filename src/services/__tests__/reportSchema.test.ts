@@ -443,12 +443,14 @@ describe("prepareReportData schema", () => {
     expect(data.sections.map((section) => section.key)).toEqual([
       "solar",
       "load",
-      "battery",
+      "activity",
+      "report",
     ]);
     expect(data.sections.map((section) => section.title)).toEqual([
-      "SOLAR — ENERGY COLLECTED",
-      "LOAD — ENERGY USED",
-      "BATTERY — VOLTAGE",
+      "SOLAR ENERGY",
+      "LOAD ENERGY",
+      "BATTERY ACTIVITY",
+      "GENERATE REPORT",
     ]);
     expect(data.sections[0].headers).toEqual([
       "Period",
@@ -460,15 +462,15 @@ describe("prepareReportData schema", () => {
     expect(data.sections[1].headers).toEqual([
       "Period",
       "Energy Used (Wh)",
-      "Avg Load (W)",
+      "Average Load (W)",
       "Peak Load (W)",
     ]);
     expect(data.sections[2].headers).toEqual([
-      "Period",
-      "Avg Voltage (V)",
-      "Min Voltage (V)",
-      "Max Voltage (V)",
+      "Activity",
+      "Samples",
+      "Share (%)",
     ]);
+    expect(data.sections[3].headers).toEqual(["Field", "Value"]);
 
     // Raw history retained for CSV depth.
     expect(data.monitoringHistory).toBe(
@@ -565,7 +567,7 @@ describe("generateAdlaWattCsv", () => {
       line.startsWith(title),
     );
 
-  test("writes the report title and three chart-aligned sections", () => {
+  test("writes the report title and four card-aligned sections", () => {
     expect(lines[0]).toContain(data.reportTitle);
 
     for (const section of data.sections) {
@@ -603,6 +605,7 @@ describe("generateAdlaWattCsv", () => {
       "DERIVED ANALYTICS KPIs",
       "AGGREGATED PERIODS",
       "MONITORING HISTORY",
+      "BATTERY — VOLTAGE",
       "Showing first 20000 of 20005 records",
     ]) {
       expect(csv).not.toContain(legacyTitle);

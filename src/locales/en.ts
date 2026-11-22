@@ -635,12 +635,14 @@ const en = {
     analytics: {
       title: "Analytics & Trends",
       subtitle:
-        "Analyze system performance, energy usage, temperature, and electronics data over time.",
+        "Review solar collection, load use, and battery activity for the selected range.",
       sectionBattery: "Battery",
       sectionSolar: "Solar",
       sectionEnergy: "Energy",
       sectionHealth: "Health",
       sectionUsage: "Usage",
+      generateReport: "Generate Report",
+      goToGenerateReport: "Go to Generate Report",
       reportSavedTitle: "Report saved",
       reportSavedTo: "Saved to",
       reportPreviewTitle: "Report preview",

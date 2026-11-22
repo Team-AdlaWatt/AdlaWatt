@@ -31,6 +31,8 @@ export interface AnalyticsChartCardProps {
   ) => void;
   children?: React.ReactNode;
   loading?: boolean;
+  hasData?: boolean;
+  emptyMessage?: string;
 }
 
 /* ============================================================
@@ -45,6 +47,8 @@ export default function AnalyticsChartCard({
   onFrequencyChange,
   children,
   loading = false,
+  hasData = true,
+  emptyMessage = "No data for this range",
 }: AnalyticsChartCardProps) {
   const colors = useAppColors();
 
@@ -130,6 +134,17 @@ export default function AnalyticsChartCard({
                 numberOfLines={2}
               >
                 Waiting for graph and chart data...
+              </AppText>
+            </View>
+          ) : !hasData ? (
+            <View style={styles.placeholderContainer}>
+              <AppText
+                variant="caption"
+                style={styles.placeholderText}
+                numberOfLines={2}
+
+              >
+                {emptyMessage}
               </AppText>
             </View>
           ) : (

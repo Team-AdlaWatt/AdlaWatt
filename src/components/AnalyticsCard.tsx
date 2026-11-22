@@ -1,36 +1,21 @@
-import React, {
-  useMemo,
-  useState,
-} from "react";
-import {
-  Pressable,
-  StyleSheet,
-  View,
-} from "react-native";
+import React, { useMemo, useState } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+
 import AppText from "@/components/ui/AppText";
-import {
-  CalendarModal,
-} from "@/components/ui/CalendarModal";
+import { CalendarModal } from "@/components/ui/CalendarModal";
 import ReportSavedModal, {
   type SavedReport,
 } from "@/components/ui/ReportSavedModal";
+import { Control, OptionRow } from "@/constants/sizing";
 import {
-  useAppColors,
-  type AppColors,
-} from "@/hooks/useAppColors";
-import {
-  ANALYTICS_PRESETS,
-  AnalyticsRange,
-  ReportFrequency,
-  ReportType,
+  FREQUENCIES,
+  type AnalyticsRange,
+  type ReportFrequency,
+  type ReportType,
   formatReportDate,
 } from "@/services/analyticsService";
-import { Control, OptionRow } from "@/constants/sizing";
-
-/* ============================================================
-   DATE PICKER
-   ============================================================ */
+import { useAppColors, type AppColors } from "@/hooks/useAppColors";
 
 interface DatePickerFieldProps {
   label: string;
@@ -43,52 +28,26 @@ function DatePickerField({
   value,
   onChange,
 }: DatePickerFieldProps) {
-  const [
-    calendarVisible,
-    setCalendarVisible,
-  ] = useState(false);
-
+  const [calendarVisible, setCalendarVisible] = useState(false);
   const colors = useAppColors();
-
-  const styles = useMemo(
-    () => getStyles(colors),
-    [colors],
-  );
+  const styles = useMemo(() => getStyles(colors), [colors]);
 
   return (
-    <View
-      style={
-        styles.reportControl
-      }
-    >
-      <AppText
-        variant="caption"
-        style={
-          styles.reportControlLabel
-        }
-      >
+    <View style={styles.reportControl}>
+      <AppText variant="caption" style={styles.reportControlLabel}>
         {label}
       </AppText>
 
       <Pressable
         style={({ pressed }) => [
           styles.dateFieldButton,
-          pressed &&
-            styles.buttonPressed,
+          pressed && styles.buttonPressed,
         ]}
-        onPress={() =>
-          setCalendarVisible(true)
-        }
+        onPress={() => setCalendarVisible(true)}
       >
-        <AppText
-          variant="caption"
-          style={
-            styles.dateFieldText
-          }
-        >
+        <AppText variant="caption" style={styles.dateFieldText}>
           {formatReportDate(value)}
         </AppText>
-
         <Ionicons
           name="calendar-outline"
           size={16}
@@ -102,74 +61,43 @@ function DatePickerField({
         value={value}
         maximumDate={new Date()}
         onChange={onChange}
-        onClose={() =>
-          setCalendarVisible(false)
-        }
+        onClose={() => setCalendarVisible(false)}
       />
     </View>
   );
 }
 
-/* ============================================================
-   PROPS
-   ============================================================ */
-
 export interface AnalyticsCardsProps {
-  reportFrequency: ReportFrequency;
-  setReportModalVisible: React.Dispatch<
-    React.SetStateAction<boolean>
-  >;
+  frequency: ReportFrequency;
+  onFrequencyChange: (frequency: ReportFrequency) => void;
   range: AnalyticsRange;
   onFromDateChange: (date: Date) => void;
   onToDateChange: (date: Date) => void;
-  onPresetSelect?: (days: number) => void;
-  generateReport: (
-    reportType: ReportType,
-  ) => Promise<void>;
+  generateReport: (reportType: ReportType) => Promise<void>;
   exporting?: boolean;
-  /** Which format is mid-export: drives the per-button
-   * "Preparing..." label. Null when nothing is exporting. */
   exportingType?: ReportType | null;
   status?: ReportExportStatus;
-  /** Saved-report summary: opens the post-export sheet. */
   exportResult?: ReportExportResult;
   exportSheetVisible?: boolean;
   onOpenExportedReport?: () => void;
   onDismissExportResult?: () => void;
 }
 
-/*
- * Cross-platform export feedback. Replaces Alert.alert, which is
- * a no-op on react-native-web, so web users previously got no
- * response at all when a report had no data or failed.
- */
 export type ReportExportStatus = {
   kind: "info" | "error" | "success";
   message: string;
 } | null;
 
-/*
- * Native export outcome. The status row above reports whether
- * the export ran; this carries the extra detail the success
- * sheet needs — the file name and the folder it landed in.
- */
-export type ReportExportResult =
-  | SavedReport
-  | null;
+export type ReportExportResult = SavedReport | null;
 
 const noop = () => {};
 
-/* ============================================================
-   ANALYTICS PANEL
-   ============================================================ */
-
 export default function AnalyticsCards({
-  reportFrequency,
-  setReportModalVisible,
+  frequency,
+  onFrequencyChange,
   range,
   onFromDateChange,
   onToDateChange,
-  onPresetSelect,
   generateReport,
   exporting = false,
   exportingType = null,
@@ -180,173 +108,78 @@ export default function AnalyticsCards({
   onDismissExportResult,
 }: AnalyticsCardsProps) {
   const colors = useAppColors();
-
-  const styles = useMemo(
-    () => getStyles(colors),
-    [colors],
-  );
+  const styles = useMemo(() => getStyles(colors), [colors]);
 
   return (
     <>
-      {/* ======================================================
-          GENERATE REPORT
-          Follows the ChartCard grouped-card layout: a solid
-          primary header accent panel over the body content.
-      ====================================================== */}
-
-      <View
-        style={
-          styles.reportCard
-        }
-      >
-        {/* Header / Accent Panel */}
-        <View
-          style={
-            styles.reportHeaderPanel
-          }
-        >
+      <View style={styles.reportCard}>
+        <View style={styles.reportHeaderPanel}>
           <Ionicons
             name="document-text-outline"
             size={30}
             color={colors.headerContent}
           />
-
-          <AppText
-            variant="heading"
-            style={
-              styles.reportHeaderTitle
-            }
-          >
+          <AppText variant="heading" style={styles.reportHeaderTitle}>
             Generate Report
           </AppText>
         </View>
 
-        {/* Body */}
-        <View
-          style={
-            styles.reportBody
-          }
-        >
-          <AppText
-            variant="caption"
-            style={
-              styles.reportSubtitle
-            }
-          >
-            Choose a frequency and pick a custom from/to date range
-            for the report export.
+        <View style={styles.reportBody}>
+          <AppText variant="caption" style={styles.reportSubtitle}>
+            Choose a Daily, Weekly, Monthly, or Yearly view and pick a
+            custom from/to date range for the report export.
           </AppText>
 
-          {onPresetSelect ? (
-            <View style={styles.presetRow}>
-              {ANALYTICS_PRESETS.map(
-                (preset) => (
-                  <Pressable
-                    key={preset.days}
-                    style={({ pressed }) => [
-                      styles.presetChip,
-                      pressed &&
-                        styles.buttonPressed,
-                    ]}
-                    onPress={() =>
-                      onPresetSelect(
-                        preset.days,
-                      )
-                    }
-                  >
-                    <AppText
-                      variant="caption"
-                      style={
-                        styles.presetChipText
-                      }
-                    >
-                      {preset.label}
-                    </AppText>
-                  </Pressable>
-                ),
-              )}
-            </View>
-          ) : null}
+          <View style={styles.frequencyRow}>
+            {FREQUENCIES.map((option) => {
+              const selected = frequency === option;
 
-          <View
-            style={
-              styles.reportControls
-            }
-          >
-            <View
-              style={
-                styles.reportControl
-              }
-            >
-              <AppText
-                variant="caption"
-                style={
-                  styles.reportControlLabel
-                }
-              >
-                Frequency
-              </AppText>
-
-              <Pressable
-                style={({ pressed }) => [
-                  styles.reportSelect,
-                  pressed &&
-                    styles.buttonPressed,
-                ]}
-                onPress={() =>
-                  setReportModalVisible(
-                    true,
-                  )
-                }
-              >
-                <AppText
-                  variant="caption"
-                  style={
-                    styles.reportSelectText
-                  }
+              return (
+                <Pressable
+                  key={option}
+                  style={({ pressed }) => [
+                    styles.frequencyChip,
+                    pressed && styles.buttonPressed,
+                    selected && styles.frequencyChipSelected,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected }}
+                  accessibilityLabel={`${option} analytics view`}
+                  onPress={() => onFrequencyChange(option)}
                 >
-                  {reportFrequency}
-                </AppText>
+                  <AppText
+                    variant="caption"
+                    style={[
+                      styles.frequencyChipText,
+                      selected && styles.frequencyChipTextSelected,
+                    ]}
+                  >
+                    {option}
+                  </AppText>
+                </Pressable>
+              );
+            })}
+          </View>
 
-                <Ionicons
-                  name="chevron-down-outline"
-                  size={15}
-                  color={
-                    colors.accentContent
-                  }
-                />
-              </Pressable>
-            </View>
-
+          <View style={styles.reportControls}>
             <DatePickerField
               label="From Date"
               value={range.start}
-              onChange={
-                onFromDateChange
-              }
+              onChange={onFromDateChange}
             />
-
             <DatePickerField
               label="To Date"
               value={range.end}
-              onChange={
-                onToDateChange
-              }
+              onChange={onToDateChange}
             />
           </View>
 
-          <View
-            style={
-              styles.exportRow
-            }
-          >
+          <View style={styles.exportRow}>
             <Pressable
               style={({ pressed }) => [
                 styles.exportPrimaryButton,
-                pressed &&
-                  styles.buttonPressed,
-                exporting &&
-                  styles.buttonDisabled,
+                pressed && styles.buttonPressed,
+                exporting && styles.buttonDisabled,
               ]}
               disabled={exporting}
               accessibilityRole="button"
@@ -359,37 +192,26 @@ export default function AnalyticsCards({
                   ? "Preparing CSV report"
                   : "Export CSV"
               }
-              onPress={() =>
-                generateReport(
-                  "CSV",
-                )
-              }
+              onPress={() => generateReport("CSV")}
             >
               <Ionicons
                 name="download-outline"
                 size={17}
                 color={colors.onPrimary}
               />
-
               <AppText
                 variant="caption"
-                style={
-                  styles.exportPrimaryText
-                }
+                style={styles.exportPrimaryText}
               >
-                {exportingType === "CSV"
-                  ? "Preparing..."
-                  : "Export CSV"}
+                {exportingType === "CSV" ? "Preparing..." : "Export CSV"}
               </AppText>
             </Pressable>
 
             <Pressable
               style={({ pressed }) => [
                 styles.exportPrimaryButton,
-                pressed &&
-                  styles.buttonPressed,
-                exporting &&
-                  styles.buttonDisabled,
+                pressed && styles.buttonPressed,
+                exporting && styles.buttonDisabled,
               ]}
               disabled={exporting}
               accessibilityRole="button"
@@ -402,27 +224,18 @@ export default function AnalyticsCards({
                   ? "Preparing PDF report"
                   : "Export PDF"
               }
-              onPress={() =>
-                generateReport(
-                  "PDF",
-                )
-              }
+              onPress={() => generateReport("PDF")}
             >
               <Ionicons
                 name="document-outline"
                 size={17}
                 color={colors.onPrimary}
               />
-
               <AppText
                 variant="caption"
-                style={
-                  styles.exportPrimaryText
-                }
+                style={styles.exportPrimaryText}
               >
-                {exportingType === "PDF"
-                  ? "Preparing..."
-                  : "Export PDF"}
+                {exportingType === "PDF" ? "Preparing..." : "Export PDF"}
               </AppText>
             </Pressable>
           </View>
@@ -431,11 +244,9 @@ export default function AnalyticsCards({
             <View
               style={[
                 styles.statusRow,
-                status.kind ===
-                "error"
+                status.kind === "error"
                   ? styles.statusError
-                  : status.kind ===
-                      "success"
+                  : status.kind === "success"
                     ? styles.statusSuccess
                     : styles.statusInfo,
               ]}
@@ -444,11 +255,9 @@ export default function AnalyticsCards({
                 variant="caption"
                 style={[
                   styles.statusText,
-                  status.kind ===
-                  "error"
+                  status.kind === "error"
                     ? styles.statusTextError
-                    : status.kind ===
-                        "success"
+                    : status.kind === "success"
                       ? styles.statusTextSuccess
                       : styles.statusTextInfo,
                 ]}
@@ -460,13 +269,6 @@ export default function AnalyticsCards({
         </View>
       </View>
 
-      {/* ======================================================
-          POST-EXPORT SHEET
-          Native only: reports land in a real Download folder,
-          so the sheet confirms where and offers one tap to
-          open the file. Web downloads need no equivalent.
-      ====================================================== */}
-
       <ReportSavedModal
         visible={exportSheetVisible}
         result={exportResult}
@@ -477,61 +279,40 @@ export default function AnalyticsCards({
   );
 }
 
-/* ============================================================
-   DIMENSIONS
-   ============================================================ */
-
 export const analyticsDimensions = {
   sectionSpacing: 18,
   cardRadius: 16,
   cardBorderWidth: 2,
 };
 
-/* ============================================================
-   STYLES
-   ============================================================ */
-
-  const getStyles = (colors: AppColors) =>
+const getStyles = (colors: AppColors) =>
   StyleSheet.create({
     buttonPressed: {
       opacity: 0.72,
     },
-
     buttonDisabled: {
       opacity: 0.55,
     },
-
-    /* ========================================================
-       REPORT CARD
-    ======================================================== */
-
     reportCard: {
       width: "100%",
-      backgroundColor:
-        colors.glass.white,
+      backgroundColor: colors.glass.white,
       borderWidth: 3,
-      borderColor:
-        colors.cardBorder,
+      borderColor: colors.cardBorder,
       borderRadius: 15,
       flexDirection: "column",
       alignItems: "stretch",
       overflow: "hidden",
-      marginBottom:
-        analyticsDimensions.sectionSpacing,
+      marginBottom: analyticsDimensions.sectionSpacing,
     },
-
     reportHeaderPanel: {
       width: "100%",
-      backgroundColor:
-        colors.headerBackground,
+      backgroundColor: colors.headerBackground,
       flexDirection: "row",
       alignItems: "center",
-      justifyContent:
-        "flex-start",
+      justifyContent: "flex-start",
       paddingHorizontal: 14,
       paddingVertical: 9,
     },
-
     reportHeaderTitle: {
       color: colors.headerContent,
       fontSize: 16,
@@ -539,32 +320,21 @@ export const analyticsDimensions = {
       marginLeft: 8,
       flexShrink: 1,
     },
-
     reportBody: {
       padding: 16,
     },
-
     reportSubtitle: {
-      color:
-        colors.textSecondary,
+      color: colors.textSecondary,
       lineHeight: 19,
     },
-
-    reportControls: {
-      width: "100%",
-      marginTop: 14,
-      gap: 10,
-    },
-
-    presetRow: {
+    frequencyRow: {
       width: "100%",
       flexDirection: "row",
       flexWrap: "wrap",
       gap: 8,
       marginTop: 12,
     },
-
-    presetChip: {
+    frequencyChip: {
       minHeight: 34,
       paddingHorizontal: 14,
       borderRadius: 999,
@@ -573,75 +343,55 @@ export const analyticsDimensions = {
       alignItems: "center",
       justifyContent: "center",
     },
-
-    presetChipText: {
+    frequencyChipSelected: {
+      backgroundColor: colors.primary,
+    },
+    frequencyChipText: {
       color: colors.primary,
       fontWeight: "700",
     },
-
+    frequencyChipTextSelected: {
+      color: colors.onPrimary,
+    },
+    reportControls: {
+      width: "100%",
+      marginTop: 14,
+      gap: 10,
+    },
     reportControl: {
       width: "100%",
     },
-
     reportControlLabel: {
-      color:
-        colors.textSecondary,
+      color: colors.textSecondary,
       fontWeight: "600",
       marginBottom: 5,
     },
-
-    reportSelect: {
-      width: "100%",
-      minHeight: OptionRow.minHeight,
-      borderWidth: 2,
-      borderColor:
-        colors.primary,
-      borderRadius: 12,
-      paddingHorizontal: 12,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent:
-        "space-between",
-    },
-
-    reportSelectText: {
-      color: colors.text,
-      fontWeight: "600",
-    },
-
     dateFieldButton: {
       width: "100%",
       minHeight: OptionRow.minHeight,
-      backgroundColor:
-        colors.selectedWash,
+      backgroundColor: colors.selectedWash,
       borderWidth: 1,
-      borderColor:
-        colors.border,
+      borderColor: colors.border,
       borderRadius: 12,
       paddingHorizontal: 12,
       flexDirection: "row",
       alignItems: "center",
-      justifyContent:
-        "space-between",
+      justifyContent: "space-between",
     },
-
     dateFieldText: {
       color: colors.text,
       fontWeight: "600",
     },
-
     exportRow: {
       width: "100%",
       flexDirection: "row",
       gap: 9,
       marginTop: 13,
     },
-
     exportPrimaryButton: {
       flex: 1,
       minHeight: Control.button,
-      backgroundColor:
-        colors.primary,
+      backgroundColor: colors.primary,
       borderRadius: 12,
       alignItems: "center",
       justifyContent: "center",
@@ -649,12 +399,10 @@ export const analyticsDimensions = {
       gap: 7,
       paddingHorizontal: 10,
     },
-
     exportPrimaryText: {
       color: colors.onPrimary,
       fontWeight: "700",
     },
-
     statusRow: {
       width: "100%",
       marginTop: 12,
@@ -663,38 +411,28 @@ export const analyticsDimensions = {
       paddingHorizontal: 12,
       paddingVertical: 9,
     },
-
     statusInfo: {
-      backgroundColor:
-        colors.selectedWash,
+      backgroundColor: colors.selectedWash,
       borderColor: colors.border,
     },
-
     statusSuccess: {
-      backgroundColor:
-        colors.selectedWash,
+      backgroundColor: colors.selectedWash,
       borderColor: colors.primary,
     },
-
     statusError: {
-      backgroundColor:
-        colors.selectedWash,
+      backgroundColor: colors.selectedWash,
       borderColor: colors.error,
     },
-
     statusText: {
       lineHeight: 18,
     },
-
     statusTextInfo: {
       color: colors.textSecondary,
     },
-
     statusTextSuccess: {
       color: colors.primary,
       fontWeight: "600",
     },
-
     statusTextError: {
       color: colors.error,
       fontWeight: "600",

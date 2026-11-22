@@ -319,7 +319,7 @@ describe("buildAnalyticsCardData", () => {
     expect(data.load[0].avgW).toBeCloseTo(30, 5);
     expect(data.load[0].peakW).toBe(40);
 
-    expect(data.battery[0].avgVoltage).toBeCloseTo(12.3, 5);
+    expect(data.activity.map((slice) => slice.value)).toEqual([3, 0, 0]);
   });
 });
 

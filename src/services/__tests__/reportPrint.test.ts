@@ -88,11 +88,12 @@ const html = buildReportHtml(
 );
 
 describe("buildReportHtml", () => {
-  test("renders the three card-aligned export sections", () => {
+  test("renders the four card-aligned export sections", () => {
     for (const title of [
-      "SOLAR — ENERGY COLLECTED",
-      "LOAD — ENERGY USED",
-      "BATTERY — VOLTAGE",
+      "SOLAR ENERGY",
+      "LOAD ENERGY",
+      "BATTERY ACTIVITY",
+      "GENERATE REPORT",
     ]) {
       expect(html).toContain(title);
     }
@@ -105,11 +106,13 @@ describe("buildReportHtml", () => {
       "<th>Peak Sun (h)</th>",
       "<th>Charge Start</th>",
       "<th>Energy Used (Wh)</th>",
-      "<th>Avg Load (W)</th>",
+      "<th>Average Load (W)</th>",
       "<th>Peak Load (W)</th>",
-      "<th>Avg Voltage (V)</th>",
-      "<th>Min Voltage (V)</th>",
-      "<th>Max Voltage (V)</th>",
+      "<th>Activity</th>",
+      "<th>Samples</th>",
+      "<th>Share (%)</th>",
+      "<th>Field</th>",
+      "<th>Value</th>",
     ]) {
       expect(html).toContain(header);
     }
@@ -121,6 +124,7 @@ describe("buildReportHtml", () => {
       "Key Metrics",
       "Aggregated Periods",
       "Monitoring History",
+      "BATTERY — VOLTAGE",
       "<th>Battery %</th>",
     ]) {
       expect(html).not.toContain(legacyTitle);

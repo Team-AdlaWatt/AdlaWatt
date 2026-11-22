@@ -17,8 +17,8 @@
 // the presentation forks.
 //
 // Charts are intentionally excluded (would need view-capture
-// plumbing); both exports carry the same three card-aligned
-// sections: Solar, Load, and Battery.
+// plumbing); both exports mirror the four analytics cards:
+// Solar Energy, Load Energy, Battery Activity, and Generate Report.
 // ============================================================
 
 import { Asset } from "expo-asset";

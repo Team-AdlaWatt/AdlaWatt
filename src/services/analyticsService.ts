@@ -129,11 +129,11 @@ export interface AnalyticsCardData {
   range: AnalyticsRange;
   solar: SolarAnalyticsPoint[];
   load: LoadAnalyticsPoint[];
-  battery: BatteryAnalyticsPoint[];
+  activity: BatteryActivitySlice[];
 }
 
 export interface AnalyticsReportSection {
-  key: "solar" | "load" | "battery";
+  key: "solar" | "load" | "activity" | "report";
   title: string;
   headers: string[];
   rows: (string | number)[][];
@@ -236,9 +236,9 @@ export interface AnalyticsReportData {
   kpis: ReportKpi[];
 
   /*
-   * Three-section export model shared by CSV, web PDF and native
-   * PDF: Solar, Load and Battery. Battery Activity stays on screen
-   * only and is intentionally excluded from exports.
+   * Four-section export model shared by CSV, web PDF and native
+   * PDF: Solar Energy, Load Energy, Battery Activity and the
+   * Generate Report metadata block.
    */
   sections: AnalyticsReportSection[];
 
@@ -310,24 +310,9 @@ export interface ReportPeriodRow {
  * chart card and the CSV/PDF export derive from the same
  * in-memory row array, and a full year of 5-minute samples
  * (~100k rows) is what greyscreens low-memory Android devices
- * and OOMs the export string. The longer windows stay available
- * through the preset chips instead of being the default.
+ * and OOMs the export string.
  */
 export const DEFAULT_DAYS = 30;
-
-/*
- * Quick range presets shown above the report date pickers. The
- * last entry restores the old full-year view on demand.
- */
-export const ANALYTICS_PRESETS: {
-  label: string;
-  days: number;
-}[] = [
-  { label: "7D", days: 7 },
-  { label: "30D", days: 30 },
-  { label: "90D", days: 90 },
-  { label: "1Y", days: 365 },
-];
 
 // PostgREST caps a single response (default 1000 rows), so
 // long history ranges must be walked page by page.
@@ -751,26 +736,6 @@ export function getDefaultRange():
   };
 }
 
-export function createPresetRange(
-  days: number,
-): AnalyticsRange {
-  const end =
-    new Date();
-
-  const start =
-    new Date(end);
-
-  start.setDate(
-    start.getDate() -
-      days,
-  );
-
-  return {
-    start,
-    end,
-  };
-}
-
 export function createFrequencyRange(
   frequency: ChartFrequency,
   now: Date = new Date(),
@@ -1082,41 +1047,12 @@ export function buildAnalyticsCardData(
       };
     });
 
-  const battery: BatteryAnalyticsPoint[] =
-    buckets.map((bucket) => {
-      const rows =
-        getOnlineRows(bucket.rows);
-
-      const voltages = rows
-        .map((row) =>
-          toNumber(row.voltage),
-        )
-        .filter((value) => value > 0);
-
-      const avgVoltage =
-        average(voltages);
-
-      const label =
-        formatAnalyticsBucketLabel(
-          bucket.date,
-          frequency,
-        );
-
-      return {
-        label,
-        value: avgVoltage,
-        avgVoltage,
-        minVoltage: minimum(voltages),
-        maxVoltage: maximum(voltages),
-      };
-    });
-
   return {
     frequency,
     range,
     solar,
     load,
-    battery,
+    activity: getBatteryActivityData(buckets),
   };
 }
 
@@ -1126,8 +1062,7 @@ export function buildReportSections(
   return [
     {
       key: "solar",
-      title:
-        "SOLAR — ENERGY COLLECTED",
+      title: "SOLAR ENERGY",
       headers: [
         "Period",
         "Energy Collected (Wh)",
@@ -1145,12 +1080,11 @@ export function buildReportSections(
     },
     {
       key: "load",
-      title:
-        "LOAD — ENERGY USED",
+      title: "LOAD ENERGY",
       headers: [
         "Period",
         "Energy Used (Wh)",
-        "Avg Load (W)",
+        "Average Load (W)",
         "Peak Load (W)",
       ],
       rows: data.load.map((point) => [
@@ -1161,21 +1095,24 @@ export function buildReportSections(
       ]),
     },
     {
-      key: "battery",
-      title:
-        "BATTERY — VOLTAGE",
-      headers: [
-        "Period",
-        "Avg Voltage (V)",
-        "Min Voltage (V)",
-        "Max Voltage (V)",
-      ],
-      rows: data.battery.map((point) => [
-        point.label,
-        formatNumber(point.avgVoltage),
-        formatNumber(point.minVoltage),
-        formatNumber(point.maxVoltage),
+      key: "activity",
+      title: "BATTERY ACTIVITY",
+      headers: ["Activity", "Samples", "Share (%)"],
+      rows: data.activity.map((slice) => [
+        slice.label,
+        slice.value,
+        `${slice.percent}%`,
       ]),
+    },
+    {
+      key: "report",
+      title: "GENERATE REPORT",
+      headers: ["Field", "Value"],
+      rows: [
+        ["Frequency", data.frequency],
+        ["From Date", formatReportDate(data.range.start)],
+        ["To Date", formatReportDate(data.range.end)],
+      ],
     },
   ];
 }

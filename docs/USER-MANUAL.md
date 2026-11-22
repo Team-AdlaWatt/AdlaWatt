@@ -203,24 +203,24 @@ On the Electronics screen, use the two dropdowns to sort by **power level** and 
 
 ## 8. Analytics & Reports
 
-Open the **Analytics** tab to review history. Pick a **From/To date range** (dates cannot be in the future) and a report **frequency** (Daily, Weekly, Monthly, Yearly). Charts group your 5-minute system snapshots accordingly.
+Open the **Analytics** tab to review history. The screen has four cards:
 
-Sections:
+- **Solar Energy** — energy collected, peak output, peak sun, and charge start.
+- **Load Energy** — energy used, average load, and peak load.
+- **Battery Activity** — how often the battery charges, discharges, and idles.
+- **Generate Report** — view selection, date range, and export controls.
 
-- **Battery** — level over time (with the 20% safety floor marked), unsafe-discharge events, charge-vs-drain activity.
-- **Solar** — solar vs load, best sun days, sun hours, and the daily solar curve (when the sun is strongest).
-- **Energy** — energy in and out, net surplus/deficit, running balance, and how much of your use the sun covered.
-- **Health** — temperature trends, temperature alerts, device uptime, online-vs-offline share.
-- **Usage** — average vs peak load, and power use by hour of day (tells you when to avoid high-draw electronics).
+Changing the **Daily / Weekly / Monthly / Yearly** chips updates every card and resets the window. You can then set a custom **From/To date range** in the Generate Report card; dates cannot be in the future.
 
 ### Exporting reports
 
-1. Open the **Analytics** tab and go to the **Generate Report** panel at the bottom of the screen.
-2. Choose your preferred **frequency** from the dropdown (Daily, Weekly, Monthly, Yearly).
-3. Tap the **From date**: a calendar modal appears — pick the start date. Do the same for the **To date**. Dates cannot be in the future.
-4. Tap **Export CSV** for raw spreadsheet data, or **Export PDF** for a formatted report with summary tables.
-5. The file is now ready: on phones the system **share sheet** opens — save it or send it, then open it with your file viewer or spreadsheet app. On web it downloads directly.
-6. While an export is running, the buttons show **Exporting...** and lock to prevent duplicate files.
+1. Open the **Analytics** tab and go to the **Generate Report** card.
+2. Choose **Daily, Weekly, Monthly, or Yearly**. There are no 7D/30D/90D/1Y presets.
+3. Tap the **From date**: a calendar modal appears — pick the start date. Do the same for the **To date**.
+4. Tap **Export CSV** for spreadsheet data, or **Export PDF** for a formatted report.
+5. Both exports mirror the four screen cards: Solar Energy, Load Energy, Battery Activity, and Generate Report.
+6. On phones the saved file opens directly in the system app; on web it downloads directly. No share sheet is used.
+7. While an export is running, the buttons show **Preparing...** and lock to prevent duplicate files.
 
 **Note:** very long periods produce large PDFs; the PDF table shows the head of the range and points you to the CSV for the complete dataset.
 
