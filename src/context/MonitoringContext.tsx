@@ -8,13 +8,21 @@ import { useDeviceOnline } from "@/hooks/useDeviceOnline";
 import type { MonitoringData } from "@/services/monitoringSchema";
 import { useMonitoring } from "@/services/monitoringService";
 
+export type DeviceConnectionStatus =
+  | "loading"
+  | "online"
+  | "offline"
+  | "error";
+
 interface MonitoringContextValue {
   monitoring: MonitoringData | null;
   loading: boolean;
   stale: boolean;
   cachedAt: number | null;
+  error: boolean;
   refresh: () => Promise<void>;
   deviceOnline: boolean;
+  connectionStatus: DeviceConnectionStatus;
 }
 
 const MonitoringContext =
@@ -25,8 +33,10 @@ const FALLBACK: MonitoringContextValue = {
   loading: true,
   stale: false,
   cachedAt: null,
+  error: false,
   refresh: async () => {},
   deviceOnline: false,
+  connectionStatus: "loading",
 };
 
 export function MonitoringProvider({
@@ -39,6 +49,7 @@ export function MonitoringProvider({
     loading,
     stale,
     cachedAt,
+    error,
     refresh,
   } = useMonitoring();
 
@@ -47,22 +58,35 @@ export function MonitoringProvider({
     monitoring?.device_status,
   );
 
+  const connectionStatus: DeviceConnectionStatus =
+    monitoring === null
+      ? error
+        ? "error"
+        : "loading"
+      : deviceOnline
+        ? "online"
+        : "offline";
+
   const value = useMemo<MonitoringContextValue>(
     () => ({
       monitoring,
       loading,
       stale,
       cachedAt,
+      error,
       refresh,
       deviceOnline,
+      connectionStatus,
     }),
     [
       monitoring,
       loading,
       stale,
       cachedAt,
+      error,
       refresh,
       deviceOnline,
+      connectionStatus,
     ],
   );
 

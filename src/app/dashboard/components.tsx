@@ -147,7 +147,7 @@ export default function ComponentsScreen() {
 
   // Unified live monitoring (single dashboard provider): updates
   // immediately when hardware becomes active / table changes.
-  const { deviceOnline } = useMonitoringContext();
+  const { connectionStatus } = useMonitoringContext();
 
   // ============================================
   // CONTENT-AWARE STATUS SEGMENTS
@@ -169,12 +169,12 @@ export default function ComponentsScreen() {
   const isComponentActive = useCallback(
     (component: ComponentData): boolean => {
       if (isESP32Name(component.component_name)) {
-        return deviceOnline;
+        return connectionStatus === "online";
       }
 
       return component.status;
     },
-    [deviceOnline],
+    [connectionStatus],
   );
 
   const componentCounts = useMemo(() => {
@@ -458,12 +458,14 @@ export default function ComponentsScreen() {
 
                 // ESP32 connection status
                 // comes from monitoring table.
-                const isConnected = deviceOnline;
-
                 const status = isESP32
-                  ? isConnected
+                  ? connectionStatus === "online"
                     ? "Connected"
-                    : "Not Connected"
+                    : connectionStatus === "offline"
+                      ? "Not Connected"
+                      : connectionStatus === "error"
+                        ? "Unavailable"
+                        : "Connecting"
                   : component.status
                     ? "Active"
                     : "Inactive";

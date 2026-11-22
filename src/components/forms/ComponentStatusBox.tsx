@@ -15,7 +15,9 @@ type ComponentStatus =
   | "Active"
   | "Inactive"
   | "Connected"
-  | "Not Connected";
+  | "Not Connected"
+  | "Connecting"
+  | "Unavailable";
 
 type ComponentStatusBoxProps = {
   name: string;
@@ -34,9 +36,15 @@ export default function ComponentStatusBox({
   const isActive =
     status === "Active" || status === "Connected";
 
-  const statusColor = isActive
-    ? colors.primary
-    : colors.error;
+  const isUnresolved =
+    status === "Connecting" ||
+    status === "Unavailable";
+
+  const statusColor = isUnresolved
+    ? colors.bar.capsule
+    : isActive
+      ? colors.primary
+      : colors.error;
 
   const electronicsCardStyles =
     useElectronicsCardStyles();
