@@ -1,8 +1,6 @@
 import React, {
-  useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 
@@ -40,18 +38,7 @@ import {
   updateAccount,
 } from "@/services/auth";
 import PasswordInput from "@/components/ui/PasswordInput";
-import PinInput from "@/components/ui/PinInput";
-import PinInfoModal from "@/components/ui/PinInfoModal";
-import PinChangeWarningModal from "@/components/ui/PinChangeWarningModal";
 import { logProfile } from "@/services/activityLogService";
-import {
-  validatePin,
-  validatePinPair,
-} from "@/lib/pinValidation";
-import {
-  updateMyTftPin,
-  verifyPinPassword,
-} from "@/services/pinService";
 
 import { useAuth } from "@/context/AuthContext";
 import { useTypography } from "@/hooks/useTypography";
@@ -59,11 +46,6 @@ import { useTranslation } from "react-i18next";
 import { performSignOut } from "@/services/signOut";
 
 import { Ionicons } from "@expo/vector-icons";
-
-type PasswordPurpose =
-  | "account"
-  | "revealPin"
-  | "updatePin";
 
 export default function SettingsScreen() {
   // ============================================
@@ -116,34 +98,6 @@ export default function SettingsScreen() {
   const [confirmingAccountUpdate, setConfirmingAccountUpdate] =
     useState(false);
 
-  const [passwordPurpose, setPasswordPurpose] =
-    useState<PasswordPurpose>("account");
-
-  const [pinValue, setPinValue] = useState("");
-  const [pinVisible, setPinVisible] = useState(false);
-  const [pinRevealRemaining, setPinRevealRemaining] =
-    useState(0);
-  const [pinWarning, setPinWarning] = useState("");
-  const [pinInfoVisible, setPinInfoVisible] =
-    useState(false);
-  const [pinChangeWarningVisible, setPinChangeWarningVisible] =
-    useState(false);
-  const [pinUpdateVisible, setPinUpdateVisible] =
-    useState(false);
-  const [newPin, setNewPin] = useState("");
-  const [confirmNewPin, setConfirmNewPin] =
-    useState("");
-  const [confirmingPinPassword, setConfirmingPinPassword] =
-    useState(false);
-  const [updatingPin, setUpdatingPin] = useState(false);
-
-  const pinHideTimer = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
-  const pinTickTimer = useRef<
-    ReturnType<typeof setInterval> | null
-  >(null);
-
   const { t: tMenu } = useTranslation();
 
   const {
@@ -169,46 +123,7 @@ export default function SettingsScreen() {
     fontWeight: inputFontWeight,
   };
 
-  const passwordBusy =
-    confirmingAccountUpdate ||
-    confirmingPinPassword ||
-    updatingPin;
-
-  const clearPinTimers = useCallback(() => {
-    if (pinHideTimer.current) {
-      clearTimeout(pinHideTimer.current);
-      pinHideTimer.current = null;
-    }
-
-    if (pinTickTimer.current) {
-      clearInterval(pinTickTimer.current);
-      pinTickTimer.current = null;
-    }
-  }, []);
-
-  const hidePin = useCallback(() => {
-    clearPinTimers();
-    setPinVisible(false);
-    setPinRevealRemaining(0);
-  }, [clearPinTimers]);
-
-  const revealPinTemporarily = useCallback(() => {
-    clearPinTimers();
-    setPinVisible(true);
-    setPinRevealRemaining(5);
-
-    pinTickTimer.current = setInterval(() => {
-      setPinRevealRemaining((value) =>
-        Math.max(0, value - 1),
-      );
-    }, 1000);
-
-    pinHideTimer.current = setTimeout(() => {
-      hidePin();
-    }, 5000);
-  }, [clearPinTimers, hidePin]);
-
-  useEffect(() => clearPinTimers, [clearPinTimers]);
+  const passwordBusy = confirmingAccountUpdate;
 
   // ============================================
   // LOAD ACCOUNT PROFILE
@@ -235,7 +150,6 @@ export default function SettingsScreen() {
 
       setUsername(loadedUsername);
       setEmail(loadedEmail);
-      setPinValue(result.tftPin ?? "");
 
       setEditUsername(loadedUsername);
       setEditEmail(loadedEmail);
@@ -251,12 +165,6 @@ export default function SettingsScreen() {
   // ============================================
 
   const handleUpdatePress = () => {
-    hidePin();
-    setPasswordPurpose("account");
-    setPinUpdateVisible(false);
-    setPinChangeWarningVisible(false);
-    setPinWarning("");
-
     setEditUsername(username);
     setEditEmail(email);
 
@@ -304,12 +212,6 @@ export default function SettingsScreen() {
     }
 
     handleCancelUpdate();
-    hidePin();
-    setPasswordPurpose("account");
-    setPinWarning("");
-    setPinUpdateVisible(false);
-    setPinChangeWarningVisible(false);
-    setPinInfoVisible(false);
     setAccountExpanded(false);
   };
 
@@ -452,158 +354,7 @@ export default function SettingsScreen() {
 
     setCurrentPassword("");
     setConfirmationWarning("");
-    setPasswordPurpose("account");
     setConfirmationVisible(true);
-  };
-
-  // ============================================
-  // TFT PIN ACTIONS
-  // ============================================
-
-  const openPinPasswordConfirmation = (
-    purpose: "revealPin" | "updatePin",
-  ) => {
-    if (passwordBusy) {
-      return;
-    }
-
-    hidePin();
-    setPinWarning("");
-    setCurrentPassword("");
-    setConfirmationWarning("");
-    setPasswordPurpose(purpose);
-    setConfirmationVisible(true);
-  };
-
-  const handleRevealPinPress = () => {
-    if (pinVisible) {
-      hidePin();
-      return;
-    }
-
-    openPinPasswordConfirmation("revealPin");
-  };
-
-  const handleUpdatePinPress = () => {
-    setPinWarning("");
-    setPinChangeWarningVisible(true);
-  };
-
-  const handleContinuePinChange = () => {
-    setPinChangeWarningVisible(false);
-    openPinPasswordConfirmation("updatePin");
-  };
-
-  const handleCancelPinUpdate = () => {
-    setNewPin("");
-    setConfirmNewPin("");
-    setPinWarning("");
-    setPinUpdateVisible(false);
-  };
-
-  const handleSubmitPinUpdate = async () => {
-    if (updatingPin) {
-      return;
-    }
-
-    const pinResult = validatePin(newPin);
-
-    if (!pinResult.valid) {
-      setPinWarning(
-        tMenu(`validation.${pinResult.error}`),
-      );
-      return;
-    }
-
-    const pairResult = validatePinPair(
-      newPin,
-      confirmNewPin,
-    );
-
-    if (!pairResult.valid) {
-      setPinWarning(
-        tMenu(`validation.${pairResult.error}`),
-      );
-      return;
-    }
-
-    setPinWarning("");
-    setUpdatingPin(true);
-
-    try {
-      const result = await updateMyTftPin(newPin);
-
-      if (!result.success) {
-        setPinWarning(result.error);
-        return;
-      }
-
-      hidePin();
-      setPinValue(result.pin);
-      setNewPin("");
-      setConfirmNewPin("");
-      setPinUpdateVisible(false);
-
-      Alert.alert(
-        tMenu("pin.updatedTitle"),
-        tMenu("pin.updatedMessage"),
-      );
-    } catch {
-      setPinWarning(tMenu("menu.updateFailedNow"));
-    } finally {
-      setUpdatingPin(false);
-    }
-  };
-
-  const handleConfirmPinPassword = async () => {
-    if (confirmingPinPassword) {
-      return;
-    }
-
-    setConfirmationWarning("");
-
-    const password = currentPassword;
-
-    if (!password) {
-      setConfirmationWarning(
-        tMenu("menu.currentPasswordRequired"),
-      );
-      return;
-    }
-
-    if (password.length < 8) {
-      setConfirmationWarning(
-        tMenu("menu.currentPasswordShort"),
-      );
-      return;
-    }
-
-    try {
-      setConfirmingPinPassword(true);
-
-      const verified = await verifyPinPassword(password);
-
-      if (!verified.success) {
-        setConfirmationWarning(verified.error);
-        return;
-      }
-
-      setCurrentPassword("");
-      setConfirmationWarning("");
-      setConfirmationVisible(false);
-
-      if (passwordPurpose === "revealPin") {
-        revealPinTemporarily();
-      } else if (passwordPurpose === "updatePin") {
-        setPinUpdateVisible(true);
-      }
-    } catch {
-      setConfirmationWarning(
-        tMenu("menu.updateFailedNow"),
-      );
-    } finally {
-      setConfirmingPinPassword(false);
-    }
   };
 
   // ============================================
@@ -612,11 +363,6 @@ export default function SettingsScreen() {
 
   const handleConfirmChanges = async () => {
     if (passwordBusy) {
-      return;
-    }
-
-    if (passwordPurpose !== "account") {
-      await handleConfirmPinPassword();
       return;
     }
 
@@ -1101,128 +847,6 @@ export default function SettingsScreen() {
                     </AppText>
                   </View>
 
-                  {/* TFT PIN */}
-                  <View style={styles.infoRow}>
-                    <View style={styles.pinLabelRow}>
-                      <AppText
-                        variant="caption"
-                        style={styles.infoLabel}
-                      >
-                        {tMenu("pin.label")}
-                      </AppText>
-
-                      <Pressable
-                        onPress={() =>
-                          setPinInfoVisible(true)
-                        }
-                        style={styles.pinInfoButton}
-                        accessibilityRole="button"
-                        accessibilityLabel={tMenu(
-                          "pin.infoA11y",
-                        )}
-                        hitSlop={8}
-                      >
-                        <Ionicons
-                          name="information-circle-outline"
-                          size={18}
-                          color={colors.textSecondary}
-                        />
-                      </Pressable>
-                    </View>
-
-                    <AppText
-                      variant="body"
-                      style={styles.pinValue}
-                      accessibilityLiveRegion="polite"
-                      accessibilityLabel={
-                        pinVisible
-                          ? tMenu("pin.revealedLive", {
-                              seconds:
-                                pinRevealRemaining,
-                            })
-                          : undefined
-                      }
-                    >
-                      {pinVisible
-                        ? pinValue ||
-                          tMenu("pin.notAvailable")
-                        : tMenu("pin.masked")}
-                    </AppText>
-
-                    {!pinValue && !pinVisible ? (
-                      <AppText
-                        variant="caption"
-                        style={styles.pinGeneratedNotice}
-                      >
-                        {tMenu("pin.generatedNotice")}
-                      </AppText>
-                    ) : null}
-
-                    {pinVisible ? (
-                      <AppText
-                        variant="caption"
-                        style={styles.pinCountdown}
-                      >
-                        {tMenu("pin.revealedHint")}
-                      </AppText>
-                    ) : null}
-
-                    <View style={styles.pinActionRow}>
-                      <Pressable
-                        onPress={handleRevealPinPress}
-                        style={({ pressed }) => [
-                          styles.pinActionButton,
-                          pressed && styles.pressed,
-                        ]}
-                        accessibilityRole="button"
-                        accessibilityLabel={
-                          pinVisible
-                            ? tMenu("pin.displayHideA11y")
-                            : tMenu(
-                                "pin.displayRevealA11y",
-                              )
-                        }
-                        accessibilityHint={
-                          pinVisible
-                            ? tMenu("pin.displayHideHint")
-                            : undefined
-                        }
-                      >
-                        <AppText
-                          variant="caption"
-                          style={
-                            styles.pinActionButtonText
-                          }
-                        >
-                          {pinVisible
-                            ? tMenu("pin.hide")
-                            : tMenu("pin.reveal")}
-                        </AppText>
-                      </Pressable>
-
-                      <Pressable
-                        onPress={handleUpdatePinPress}
-                        style={({ pressed }) => [
-                          styles.pinActionButton,
-                          pressed && styles.pressed,
-                        ]}
-                        accessibilityRole="button"
-                        accessibilityLabel={tMenu(
-                          "pin.updateA11y",
-                        )}
-                      >
-                        <AppText
-                          variant="caption"
-                          style={
-                            styles.pinActionButtonText
-                          }
-                        >
-                          {tMenu("pin.update")}
-                        </AppText>
-                      </Pressable>
-                    </View>
-                  </View>
-
                   <Pressable
                     onPress={handleUpdatePress}
                     style={({ pressed }) => [
@@ -1406,135 +1030,6 @@ export default function SettingsScreen() {
           ) : null}
         </DropdownModal>
 
-        <DropdownModal
-          visible={pinUpdateVisible}
-          title={tMenu("pin.update")}
-          onClose={handleCancelPinUpdate}
-        >
-          <ScrollView
-            style={[
-              styles.modalScroll,
-              {
-                maxHeight:
-                  windowHeight * 0.55,
-              },
-            ]}
-            showsVerticalScrollIndicator={false}
-          >
-            <PinInput
-              label={tMenu("pin.labelNew")}
-              value={newPin}
-              onChangeText={(text) => {
-                setNewPin(text);
-                setPinWarning("");
-              }}
-              onInvalidInput={() =>
-                setPinWarning(
-                  tMenu("validation.pinNumbersOnly"),
-                )
-              }
-              placeholder={tMenu("pin.placeholder")}
-              helper={tMenu("pin.hint")}
-              infoAccessibilityLabel={tMenu(
-                "pin.infoA11y",
-              )}
-              onInfoPress={() =>
-                setPinInfoVisible(true)
-              }
-            />
-
-            <PinInput
-              label={tMenu("pin.labelConfirmNew")}
-              value={confirmNewPin}
-              onChangeText={(text) => {
-                setConfirmNewPin(text);
-                setPinWarning("");
-              }}
-              onInvalidInput={() =>
-                setPinWarning(
-                  tMenu("validation.pinNumbersOnly"),
-                )
-              }
-              placeholder={tMenu("pin.placeholder")}
-            />
-
-            {pinWarning ? (
-              <View style={styles.warningContainer}>
-                <Ionicons
-                  name="alert-circle-outline"
-                  size={18}
-                  color={colors.error}
-                />
-
-                <AppText style={styles.warningText}>
-                  {pinWarning}
-                </AppText>
-              </View>
-            ) : null}
-          </ScrollView>
-
-          <View style={styles.modalFooter}>
-            <Pressable
-              onPress={handleCancelPinUpdate}
-              disabled={updatingPin}
-              accessibilityRole="button"
-              accessibilityLabel={tMenu("menu.cancel")}
-              style={({ pressed }) => [
-                styles.modalFooterButton,
-                styles.modalCancelButton,
-                pressed && styles.pressed,
-                updatingPin && styles.disabled,
-              ]}
-            >
-              <AppText
-                variant="body"
-                style={
-                  styles.modalCancelButtonText
-                }
-              >
-                {tMenu("menu.cancel")}
-              </AppText>
-            </Pressable>
-
-            <Pressable
-              onPress={handleSubmitPinUpdate}
-              disabled={updatingPin}
-              accessibilityRole="button"
-              accessibilityLabel={tMenu("menu.confirm")}
-              style={({ pressed }) => [
-                styles.modalFooterButton,
-                styles.modalSubmitButton,
-                pressed && styles.pressed,
-                updatingPin && styles.disabled,
-              ]}
-            >
-              <AppText
-                variant="body"
-                style={
-                  styles.modalSubmitButtonText
-                }
-              >
-                {tMenu("menu.confirm")}
-              </AppText>
-            </Pressable>
-          </View>
-        </DropdownModal>
-
-        <PinInfoModal
-          visible={pinInfoVisible}
-          onClose={() =>
-            setPinInfoVisible(false)
-          }
-        />
-
-        <PinChangeWarningModal
-          visible={pinChangeWarningVisible}
-          onCancel={() =>
-            setPinChangeWarningVisible(false)
-          }
-          onContinue={handleContinuePinChange}
-        />
-
         <View
           style={styles.versionSection}
         >
@@ -1629,20 +1124,14 @@ export default function SettingsScreen() {
               variant="heading"
               style={styles.modalTitle}
             >
-              {passwordPurpose === "revealPin"
-                ? tMenu("pin.confirmRevealTitle")
-                : passwordPurpose === "updatePin"
-                  ? tMenu("pin.confirmUpdateTitle")
-                  : tMenu("menu.confirmChanges")}
+              {tMenu("menu.confirmChanges")}
             </AppText>
 
             <AppText
               variant="caption"
               style={styles.modalDescription}
             >
-              {passwordPurpose === "account"
-                ? tMenu("menu.confirmChangesBody")
-                : tMenu("pin.passwordBody")}
+              {tMenu("menu.confirmChangesBody")}
             </AppText>
 
             {confirmationWarning ? (
@@ -1829,61 +1318,6 @@ const getStyles = (colors: AppColors) =>
   infoValue: {
     color: colors.text,
     fontWeight: "500",
-  },
-
-  pinLabelRow: {
-    minHeight: 32,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-
-  pinInfoButton: {
-    width: 32,
-    height: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: -6,
-  },
-
-  pinValue: {
-    color: colors.text,
-    fontWeight: "700",
-    letterSpacing: 2,
-    marginTop: 2,
-  },
-
-  pinGeneratedNotice: {
-    color: colors.textSecondary,
-    marginTop: 6,
-    lineHeight: 18,
-  },
-
-  pinCountdown: {
-    color: colors.textSecondary,
-    marginTop: 6,
-  },
-
-  pinActionRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginTop: 12,
-  },
-
-  pinActionButton: {
-    minHeight: 44,
-    paddingHorizontal: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: Radius.md,
-    backgroundColor: colors.surface,
-  },
-
-  pinActionButtonText: {
-    color: colors.text,
-    fontWeight: "600",
   },
 
   primaryButton: {

@@ -46,17 +46,6 @@ const ceb = {
     termsRequired: "Palihug uyon sa Terms and Conditions.",
     termsRequiredLong:
       "Palihug uyon sa Terms and Conditions sa dili pa buhaton ang imong account.",
-    pinRequired: "Palihug isulod ang imong TFT PIN.",
-    pinNumbersOnly: "Ang TFT PIN kinahanglan mga numero lamang.",
-    pinLength: "Ang TFT PIN kinahanglan eksaktong 4 ka digit.",
-    pinWeak:
-      "Sayon kaayo kini nga TFT PIN. Pili ug laing 4-digit nga PIN.",
-    pinMismatch:
-      "Dili magtugma ang mga TFT PIN. Palihug susiha ang duha ka PIN field.",
-    pinAlreadyUsed:
-      "Gigamit na kini nga TFT PIN. Pili ug laing 4-digit nga PIN.",
-    pinUnavailable:
-      "Walay available nga TFT PIN karon. Palihug sulayi pag-usab.",
   },
 
   passwordInput: {
@@ -84,66 +73,6 @@ const ceb = {
       "Makita ang password, motago sa {{seconds}} ka segundos",
     visibleHint:
       "Nagpakita sa password… motago sa {{seconds}}s",
-  },
-
-  pin: {
-    label: "TFT PIN",
-    labelConfirm: "Kumpirmahi ang TFT PIN",
-    labelNew: "Bag-ong TFT PIN",
-    labelConfirmNew: "Kumpirmahi ang Bag-ong TFT PIN",
-    placeholder: "4-digit nga PIN",
-    hint: "4 ka digit. Mga numero lamang. Kinahanglan talagsaon.",
-    generatedNotice:
-      "Adunay PIN na nga namugna para sa imong account. Kumpirmahi ang imong password aron makita kini.",
-    infoA11y: "Ipakita ang impormasyon sa TFT PIN",
-    infoTitle: "Mahitungod sa imong TFT PIN",
-    infoIntro:
-      "Ang imong TFT PIN maoy mag-abli sa AdlaWatt dashboard sa display.",
-    infoRule1: "Gamita ang eksaktong 4 ka digit.",
-    infoRule2: "Mga numero lamang ang gitugotan.",
-    infoRule3: "Gitugotan ang nangunang zero.",
-    infoRule4: "Kinahanglan talagsaon ang imong PIN.",
-    infoRule5: "Dili gitugotan ang balik-balik nga PIN sama sa 8888.",
-    infoRule6: "Dili gitugotan ang sunodsunod nga PIN sama sa 1234.",
-    gotIt: "Sabot na",
-    showA11y: "Ipakita ang TFT PIN sulod sa 5 segundos",
-    showHint: "Nagpakita sa TFT PIN sulod sa 5 segundos",
-    hideA11y:
-      "Tagoa ang TFT PIN, awtomatikong motago sa {{seconds}} ka segundos",
-    hideHint: "Makita ang TFT PIN ug awtomatikong motago",
-    visibleLive:
-      "Makita ang TFT PIN, motago sa {{seconds}} ka segundos",
-    reveal: "Ipakita ang PIN",
-    hide: "Tagoa ang PIN",
-    displayRevealA11y:
-      "Ipakita ang TFT PIN human makumpirma ang password",
-    displayHideA11y: "Tagoa ang TFT PIN",
-    displayHideHint: "Awtomatikong motago ang TFT PIN human sa 5 segundos",
-    revealedLive:
-      "Makita ang TFT PIN, motago sa {{seconds}} ka segundos",
-    revealedHint: "Motago sa 5s",
-    privateHint: "Ayaw ipaambit kini nga PIN.",
-    notAvailable: "Walay PIN nga available niining device karon.",
-    update: "I-update ang PIN",
-    updateA11y: "I-update ang TFT PIN",
-    passwordBody:
-      "Isulod ang imong account password aron magpadayon.",
-    passwordInvalid:
-      "Sayop ang password. Palihug sulayi pag-usab.",
-    masked: "••••",
-    confirmRevealTitle:
-      "Kumpirmahi ang Password para Ipakita ang PIN",
-    confirmUpdateTitle:
-      "Kumpirmahi ang Password para I-update ang PIN",
-    changeTitle: "Usbon ang TFT PIN?",
-    changeBody:
-      "Ang pag-usab sa TFT PIN diha-diha dayon mopuli sa daan nga PIN. Ang AdlaWatt display kinahanglang mogamit sa bag-ong PIN.",
-    changeCancel: "Kanselahon",
-    changeContinue: "Padayon",
-    changeCancelA11y: "Kanselahon ang pag-usab sa PIN",
-    changeContinueA11y: "Padayon sa pag-usab sa PIN",
-    updatedTitle: "Na-update ang PIN",
-    updatedMessage: "Nausab na ang imong TFT PIN.",
   },
 
   auth: {
