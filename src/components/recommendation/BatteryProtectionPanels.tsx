@@ -15,6 +15,9 @@ import { useTranslation } from "react-i18next";
 
 import AppText from "@/components/ui/AppText";
 import {
+  useCriticalWarning,
+} from "@/context/CriticalWarningContext";
+import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
@@ -25,7 +28,8 @@ type BatteryProtectionPanelsProps = {
   protection: ProtectionState;
   usableWh: number;
   usablePercent: number;
-  onReview: () => void;
+  onReview?: () => void;
+  onCriticalReview?: () => void;
 };
 
 type BannerProps = {
@@ -34,7 +38,7 @@ type BannerProps = {
   title: string;
   body: string;
   actionLabel: string;
-  onAction: () => void;
+  onAction?: () => void;
   onDismiss: () => void;
   styles: ReturnType<typeof createStyles>;
 };
@@ -79,22 +83,24 @@ function ProtectionBanner({
         </AppText>
       </View>
 
-      <Pressable
-        onPress={onAction}
-        style={({ pressed }) => [
-          styles.bannerButton,
-          pressed && styles.pressed,
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel={actionLabel}
-        hitSlop={6}
-      >
-        <Ionicons
-          name="arrow-forward-circle-outline"
-          size={24}
-          color={tone}
-        />
-      </Pressable>
+      {onAction ? (
+        <Pressable
+          onPress={onAction}
+          style={({ pressed }) => [
+            styles.bannerButton,
+            pressed && styles.pressed,
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={actionLabel}
+          hitSlop={6}
+        >
+          <Ionicons
+            name="arrow-forward-circle-outline"
+            size={24}
+            color={tone}
+          />
+        </Pressable>
+      ) : null}
 
       <Pressable
         onPress={onDismiss}
@@ -118,8 +124,11 @@ export default function BatteryProtectionPanels({
   usableWh,
   usablePercent,
   onReview,
+  onCriticalReview,
 }: BatteryProtectionPanelsProps) {
   const { t } = useTranslation();
+  const { active: criticalActive, recovering } =
+    useCriticalWarning();
   const colors = useAppColors();
   const styles = useMemo(
     () => createStyles(colors),
@@ -145,10 +154,6 @@ export default function BatteryProtectionPanels({
     newLoadDeltaW > 0
       ? `newLoad:${Math.round(newLoadDeltaW)}`
       : null;
-
-  const criticalKey = critical
-    ? `critical:${Math.round(usablePercent)}:${protection.reasons.join(",")}`
-    : null;
 
   useEffect(() => {
     if (critical) {
@@ -230,27 +235,15 @@ export default function BatteryProtectionPanels({
       ) : null}
 
       <Modal
-        visible={
-          critical && dismissedKey !== criticalKey
-        }
+        visible={criticalActive}
         transparent
         animationType="fade"
-        onRequestClose={() =>
-          setDismissedKey(criticalKey)
-        }
+        onRequestClose={() => {}}
       >
-        <Pressable
-          style={styles.overlay}
-          onPress={() =>
-            setDismissedKey(criticalKey)
-          }
-        >
-          <Pressable
+        <View style={styles.overlay}>
+          <View
             style={styles.alertCard}
             accessibilityViewIsModal
-            onPress={(event) =>
-              event.stopPropagation()
-            }
           >
             <View style={styles.alertHeader}>
               <Ionicons
@@ -276,45 +269,46 @@ export default function BatteryProtectionPanels({
               {criticalBody}
             </AppText>
 
-            <Pressable
-              onPress={() => {
-                setDismissedKey(criticalKey);
-                onReview();
-              }}
-              style={({ pressed }) => [
-                styles.alertButton,
-                pressed && styles.pressed,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={reviewLabel}
+            <AppText
+              variant="caption"
+              style={styles.alertBody}
             >
-              <AppText
-                variant="body"
-                style={styles.alertButtonText}
-              >
-                {reviewLabel}
-              </AppText>
-            </Pressable>
-
-            <Pressable
-              onPress={() =>
-                setDismissedKey(criticalKey)
-              }
-              style={styles.alertDismiss}
-              accessibilityRole="button"
-              accessibilityLabel={t(
-                "batteryProtection.dismiss",
+              {t(
+                "batteryProtection.criticalInstructions",
               )}
-            >
+            </AppText>
+
+            {recovering ? (
               <AppText
                 variant="caption"
-                style={styles.alertDismissText}
+                style={styles.alertBody}
               >
-                {t("batteryProtection.dismiss")}
+                {t(
+                  "batteryProtection.recovering",
+                )}
               </AppText>
-            </Pressable>
-          </Pressable>
-        </Pressable>
+            ) : null}
+
+            {onCriticalReview ? (
+              <Pressable
+                onPress={onCriticalReview}
+                style={({ pressed }) => [
+                  styles.alertButton,
+                  pressed && styles.pressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={reviewLabel}
+              >
+                <AppText
+                  variant="body"
+                  style={styles.alertButtonText}
+                >
+                  {reviewLabel}
+                </AppText>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
       </Modal>
     </>
   );

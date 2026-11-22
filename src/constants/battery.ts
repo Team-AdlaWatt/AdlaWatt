@@ -39,3 +39,15 @@ export const INVERTER_IDLE_W = 6;
 
 /** Inverter conversion efficiency used by the engine. */
 export const INVERTER_EFFICIENCY = 0.9;
+
+/** Baseline Load Now while only the inverter is powered on. */
+export const LOAD_BASELINE_W = INVERTER_IDLE_W;
+
+/** Sustained increase above the baseline that implies another load. */
+export const LOAD_DETECTION_DELTA_W = 7;
+
+/** Time a load/recovery condition must persist before it is accepted. */
+export const LOAD_VERIFICATION_MS = 30_000;
+
+/** Tolerance around Load Now baseline for recovery verification. */
+export const LOAD_BASELINE_TOLERANCE_W = 2;

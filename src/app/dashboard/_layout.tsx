@@ -3,6 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import { Platform } from "react-native";
 import { useEffect, useRef } from "react";
 
+import { CriticalWarningProvider } from "@/context/CriticalWarningContext";
 import { MonitoringProvider } from "@/context/MonitoringContext";
 import { SettingsProvider } from "@/context/SettingsContext";
 import {
@@ -116,7 +117,9 @@ function ThemedDashboard() {
       )}
       <RouteErrorBoundary>
         <MonitoringProvider>
-          <Slot />
+          <CriticalWarningProvider>
+            <Slot />
+          </CriticalWarningProvider>
         </MonitoringProvider>
       </RouteErrorBoundary>
       <VibrationGuidancePanel />

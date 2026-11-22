@@ -181,4 +181,20 @@ describe("evaluateSelection", () => {
       2,
     );
   });
+
+  test("does not add the selected load on top of a measured load", () => {
+    const result = evaluateSelection(
+      freshBattery({ currentLoadW: 200 }),
+      [led],
+      { alternativesLimit: 0 },
+    );
+
+    expect(result.status).toBe("ready");
+    expect(result.currentLoadW).toBe(200);
+    expect(result.combinedPeakWatts).toBe(200);
+    expect(result.runtimeHours).toBeCloseTo(
+      result.usableRemainingWh / 200,
+      1,
+    );
+  });
 });

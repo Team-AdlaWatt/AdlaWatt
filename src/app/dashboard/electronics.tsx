@@ -22,8 +22,6 @@ import {
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
 import PullRefreshScroll from "@/components/PullRefreshScroll";
-import BatteryEnergyBar from "@/components/recommendation/BatteryEnergyBar";
-import BatteryEnergyHighlight from "@/components/recommendation/BatteryEnergyHighlight";
 import BatteryProtectionPanels from "@/components/recommendation/BatteryProtectionPanels";
 import ElectronicsReviewModal, {
   type ReviewItem,
@@ -723,16 +721,11 @@ export default function ElectronicsScreen() {
         </AppText>
       </View>
 
-      <BatteryEnergyHighlight
-        snapshot={batteryEnergy}
-        evaluation={combinedRecommendation}
-      />
-
       <BatteryProtectionPanels
         protection={batteryProtection}
         usableWh={batteryEnergy.usableWh}
         usablePercent={batteryEnergy.usablePercent}
-        onReview={() =>
+        onCriticalReview={() =>
           setReviewModalVisible(true)
         }
       />
@@ -884,12 +877,6 @@ export default function ElectronicsScreen() {
               accessibilityLabel,
             }),
           )}
-        />
-
-        <BatteryEnergyBar
-          energy={batteryEnergy}
-          evaluation={combinedRecommendation}
-          style={styles.recommendationPanel}
         />
 
         <RecommendationResultPanel

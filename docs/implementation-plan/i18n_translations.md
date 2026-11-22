@@ -304,15 +304,13 @@ by hand.
 | `menu.exitYes` | Yes | Oo | Oo | alert button |
 | `menu.englishName` | English | English | English | fallback label |
 
-## Dashboard — Home (6 keys, Phase 1)
+## Dashboard — Home (5 keys, Phase 1)
 
 | Key | English | Filipino | Cebuano | Notes |
 |---|---|---|---|---|
 | `dashboard.home.title` | Dashboard | Dashboard | Dashboard |  |
 | `dashboard.home.subtitle` | Monitor your AdlaWatt system in real time. | I-monitor ang iyong AdlaWatt system nang real time. | I-monitor ang imong AdlaWatt system nga real time. |  |
-| `dashboard.home.electronicsRecommendation` | Electronics Recommendation | Electronics Recommendation | Electronics Recommendation |  |
 | `dashboard.home.realtimeMonitoring` | Real-Time Monitoring | Real-Time Monitoring | Real-Time Monitoring |  |
-| `dashboard.home.goToElectronicsRecommendation` | Go to Electronics Recommendation | Pumunta sa Electronics Recommendation | Adto sa Electronics Recommendation | a11y |
 | `dashboard.home.forecastFailed` | Could not load the forecast. | Hindi ma-load ang forecast. | Dili ma-load ang forecast. | error fallback |
 | `dashboard.home.offlineBanner` | You're offline — showing last readings. | Wala kang koneksyon — huling readings ang ipinapakita. | Wala kay koneksyon — katapusang readings ang gipakita. | offline banner |
 | `dashboard.home.lastUpdated` | Last updated {{time}}. | Huling na-update {{time}}. | Katapusang na-update {{time}}. | offline banner |
@@ -520,6 +518,18 @@ Codes stay backend-bound; labels map for display. Dates localize in format only 
 | `recommendationResult.alternativesTitle` | Better options | Mas mahusay na mga opsyon | Mas maayong mga kapilian |  |
 | `recommendationResult.noAlternatives` | No alternatives available right now. | Walang available na alternatibo sa ngayon. | Walay alternatibo karon. |  |
 | `recommendationResult.estimateNote` | Estimates use catalog wattage, not live appliance detection. | Gumagamit ng catalog wattage ang mga tantya, hindi live na pag-detect ng appliance. | Ang mga tantya naggamit sa catalog wattage, dili aktuwal nga pag-detect sa appliance. |  |
+
+## Automatic Load Detection (7 keys)
+
+| Key | English | Filipino | Cebuano | Notes |
+|---|---|---|---|---|
+| `batteryProtection.criticalInstructions` | Unplug all nonessential appliances, then review the connected electronics. | I-unplug ang lahat ng hindi mahalagang appliances, pagkatapos ay suriin ang mga naka-connect na electronics. | I-unplug tanan nga dili kinahanglan nga appliances, unya susiha ang mga naka-connect nga electronics. | critical modal |
+| `batteryProtection.recovering` | Verifying stable load and usable energy... | Sinusuri ang stable na load at magagamit na enerhiya... | Gisusi ang stable nga load ug magamit nga enerhiya... | critical modal |
+| `electronicsModal.checkRecommendation` | Check Recommendation | Suriin ang Rekomendasyon | Susiha ang Rekomendasyon | forced workflow |
+| `electronicsModal.done` | Done | Tapos | Tapos | forced workflow |
+| `electronicsModal.saving` | Saving... | Sinisave... | Gi-save... | forced workflow |
+| `electronicsModal.selectAtLeastOne` | Select at least one appliance before continuing. | Pumili ng kahit isang appliance bago magpatuloy. | Pili labing menos usa ka appliance sa dili pa magpadayon. | validation |
+| `electronicsModal.notAdvisableBlocked` | This selection is not advisable. Change the selection and check again. | Hindi ito kanais-nais. Baguhin ang napili at suriin muli. | Dili kini maayo. Usba ang napili ug susiha pag-usab. | validation |
 
 ## Backend-bound (stays English by policy, Phase 1)
 

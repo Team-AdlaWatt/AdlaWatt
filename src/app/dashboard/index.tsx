@@ -22,6 +22,7 @@ import PullRefreshScroll from "@/components/PullRefreshScroll";
 import BatteryEnergyCard from "@/components/recommendation/BatteryEnergyCard";
 import BatteryProtectionPanels from "@/components/recommendation/BatteryProtectionPanels";
 import Copyright from "@/components/ui/Copyright";
+import ElectronicsModal from "@/components/forms/ElectronicsModal";
 import NavBar from "@/components/layout/Navbar";
 import ScreenContainer2 from "@/components/layout/ScreenContainer2";
 import AppText from "@/components/ui/AppText";
@@ -29,6 +30,7 @@ import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
+import { useLoadDetection } from "@/hooks/useLoadDetection";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useScrollToTopController } from "@/hooks/useScrollToTopController";
 import { Routes } from "@/constants/routes";
@@ -136,6 +138,22 @@ export default function DashboardScreen() {
     setDashboardElectronics,
   ] = useState<ResolvedElectronics[]>([]);
 
+  const [
+    forcedElectronicsModalVisible,
+    setForcedElectronicsModalVisible,
+  ] = useState(false);
+
+  const reloadDashboardElectronics =
+    useCallback(async () => {
+      try {
+        const items =
+          await fetchSelectedElectronics();
+        setDashboardElectronics(items);
+      } catch {
+        setDashboardElectronics([]);
+      }
+    }, []);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -155,6 +173,24 @@ export default function DashboardScreen() {
       cancelled = true;
     };
   }, []);
+
+  const handleLoadConfirmed = useCallback(() => {
+    setForcedElectronicsModalVisible(true);
+  }, []);
+
+  useLoadDetection({
+    loadW: monitoring?.current_load ?? null,
+    enabled: !forcedElectronicsModalVisible,
+    onConfirmed: handleLoadConfirmed,
+  });
+
+  const handleForcedElectronicsDone = useCallback(() => {
+    void reloadDashboardElectronics();
+  }, [reloadDashboardElectronics]);
+
+  const handleForcedCustomChange = useCallback(() => {
+    void reloadDashboardElectronics();
+  }, [reloadDashboardElectronics]);
 
   const recommendationBattery =
     useMemo<BatteryStateInput | null>(
@@ -779,7 +815,7 @@ export default function DashboardScreen() {
           protection={batteryProtection}
           usableWh={batteryEnergy.usableWh}
           usablePercent={batteryEnergy.usablePercent}
-          onReview={() =>
+          onCriticalReview={() =>
             router.push(Routes.ELECTRONICS)
           }
         />
@@ -928,6 +964,29 @@ export default function DashboardScreen() {
 
         <Copyright />
       </PullRefreshScroll>
+
+      <ElectronicsModal
+        visible={forcedElectronicsModalVisible}
+        mode="forced"
+        onClose={() =>
+          setForcedElectronicsModalVisible(false)
+        }
+        onDone={handleForcedElectronicsDone}
+        onCustomAdd={handleForcedCustomChange}
+        onCustomUpdate={handleForcedCustomChange}
+        onCustomDelete={handleForcedCustomChange}
+        selectedElectronics={dashboardElectronics.map(
+          (item) => ({
+            id: item.id,
+            name: item.name,
+            watts: item.display,
+            area: item.area,
+            imageUrl: item.imageUrl ?? null,
+          }),
+        )}
+        batteryState={recommendationBattery}
+        deviceOnline={deviceOnline ?? false}
+      />
 
       </ScreenContainer2>
   );

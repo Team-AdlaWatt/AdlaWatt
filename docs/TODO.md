@@ -155,7 +155,7 @@ ScreenContainer2
           only non-empty segments rendered
 
         Status area
-          ElectronicsStatusBox / AppRecCard status boxes
+          ElectronicsStatusBox status boxes
           OK to use      -> primary + checkmark icon
           Use with care  -> warning + warning icon
           Not advisable  -> error + alert icon + text label

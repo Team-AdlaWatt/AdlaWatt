@@ -268,4 +268,4 @@ Bar      appBar 36-40 (TFT, not 56), rail 72w (not bottomNav 64h)
 
 ## 8. What NOT to port
 
-`ChartCard` 13-type system, gifted-charts, 17 analytics charts, forecast 5-day UI, AppRecCard carousel (show verdict only), Supabase realtime/cache, expo-notifications scheduling, auth/menus.
+`ChartCard` 13-type system, gifted-charts, 17 analytics charts, forecast 5-day UI, dashboard recommendation carousel (show verdict only), Supabase realtime/cache, expo-notifications scheduling, auth/menus.

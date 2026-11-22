@@ -5,6 +5,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Modal,
@@ -29,6 +30,7 @@ import {
   uploadElectronicsPhoto,
 } from "@/services/electronicsPhotoService";
 import AppText from "@/components/ui/AppText";
+import RecommendationResultPanel from "@/components/recommendation/RecommendationResultPanel";
 import EmptyState from "@/components/ui/EmptyState";
 import SearchBox from "@/components/ui/SearchBox";
 import ScrollToTopButton from "@/components/layout/ScrollToTopButton";
@@ -46,8 +48,13 @@ import {
   type CatalogItem,
 } from "@/constants/electronicsCatalog";
 import { logElectronics } from "@/services/activityLogService";
+import type {
+  BatteryStateInput,
+} from "@/services/recommendation";
 import {
+  evaluateSelection,
   normalizeSelection,
+  type SelectionEvaluation,
 } from "@/services/recommendationSelection";
 import {
   useAppColors,
@@ -88,6 +95,10 @@ type ElectronicsModalProps = {
   selectedElectronics?: Electronics[];
   selectionBlocked?: boolean;
   blockedReason?: string | null;
+  mode?: "standard" | "forced";
+  batteryState?: BatteryStateInput | null;
+  deviceOnline?: boolean;
+  onDone?: (electronics: Electronics[]) => void;
 };
 
 /*
@@ -167,10 +178,25 @@ export default function ElectronicsModal({
   onSave,
   selectionBlocked = false,
   blockedReason,
+  mode = "standard",
+  batteryState = null,
+  deviceOnline = false,
+  onDone,
 }: ElectronicsModalProps) {
+  const { t } = useTranslation();
+  const forced = mode === "forced";
+  const [assessment, setAssessment] = useState<{
+    result: SelectionEvaluation;
+    key: string;
+  } | null>(null);
   const [selected, setSelected] = useState<
     string[]
   >([]);
+  const currentAssessment =
+    assessment?.key ===
+    normalizeSelection(selected).join("|")
+      ? assessment.result
+      : null;
 
   const [electronics, setElectronics] = useState<
     Electronics[]
@@ -666,6 +692,18 @@ export default function ElectronicsModal({
   // SAVE ELECTRONICS SELECTION
   // ============================================================
 
+  const completeSelection = (
+    items: Electronics[],
+  ) => {
+    if (forced) {
+      onDone?.(items);
+    } else {
+      onSave?.(items);
+    }
+
+    onClose();
+  };
+
   const handleSave = async () => {
     if (isLoadingCustoms) {
       setCustomError(
@@ -675,6 +713,24 @@ export default function ElectronicsModal({
     }
 
     if (isSaving) {
+      return;
+    }
+
+    if (forced && selected.length === 0) {
+      setCustomError(
+        t("electronicsModal.selectAtLeastOne"),
+      );
+      return;
+    }
+
+    if (
+      forced &&
+      currentAssessment?.verdict ===
+        "notRecommended"
+    ) {
+      setCustomError(
+        t("electronicsModal.notAdvisableBlocked"),
+      );
       return;
     }
 
@@ -716,8 +772,7 @@ export default function ElectronicsModal({
       setIsReset(true);
       logElectronics.selectionReset();
 
-      onSave?.([]);
-      onClose();
+      completeSelection([]);
       return;
     }
 
@@ -779,8 +834,43 @@ export default function ElectronicsModal({
 
     logElectronics.selectionSaved(selectedItems.length);
 
-    onSave?.(selectedItems);
-    onClose();
+    completeSelection(selectedItems);
+  };
+
+  const handleCheckRecommendation = () => {
+    const selectedIds = normalizeSelection(selected);
+
+    if (selectedIds.length === 0) {
+      setCustomError(
+        t("electronicsModal.selectAtLeastOne"),
+      );
+      return;
+    }
+
+    const selectedSet = new Set(selectedIds);
+
+    const candidates = displayElectronics
+      .filter((item) => selectedSet.has(item.id))
+      .map((item) => ({
+        id: item.id,
+        name: item.name,
+        watts: item.watts,
+        area: item.area,
+        imageKey: item.id,
+        imageUrl: item.imageUrl ?? null,
+      }));
+
+    const result = evaluateSelection(
+      batteryState,
+      candidates,
+      { deviceOnline },
+    );
+
+    setAssessment({
+      result,
+      key: selectedIds.join("|"),
+    });
+    setCustomError("");
   };
 
   // ============================================================
@@ -1794,7 +1884,7 @@ export default function ElectronicsModal({
       visible={visible}
       animationType="slide"
       transparent
-      onRequestClose={onClose}
+      onRequestClose={forced ? () => {} : onClose}
     >
       <View style={styles.overlay}>
         <View style={styles.modal}>
@@ -1811,22 +1901,24 @@ export default function ElectronicsModal({
                 : "Select Electronics"}
             </AppText>
 
-            <Pressable
-              onPress={onClose}
-              style={styles.closeButton}
-              accessibilityRole="button"
-              accessibilityLabel={
-                layer === 2
-                  ? "Close Archived Electronics"
-                  : "Close Select Electronics"
-              }
-            >
-              <Ionicons
-                name="close"
-                size={24}
-                color={colors.headerContent}
-              />
-            </Pressable>
+            {forced ? null : (
+              <Pressable
+                onPress={onClose}
+                style={styles.closeButton}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  layer === 2
+                    ? "Close Archived Electronics"
+                    : "Close Select Electronics"
+                }
+              >
+                <Ionicons
+                  name="close"
+                  size={24}
+                  color={colors.headerContent}
+                />
+              </Pressable>
+            )}
           </View>
 
           {/* Thin success banner: full-spread white strip pinned
@@ -2400,71 +2492,140 @@ export default function ElectronicsModal({
               </View>
             </View>
 
-            <View style={styles.footerButtons}>
-              <Pressable
-                onPress={handleSelectAll}
-                style={({ pressed }) => [
-                  styles.resetButton,
-                  pressed && styles.buttonPressed,
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="Select all electronics"
-              >
-                <AppText
-                  variant="caption"
-                  style={styles.resetText}
-                >
-                  Select All
-                </AppText>
-              </Pressable>
+            {forced ? (
+              <>
+                {currentAssessment ? (
+                  <View style={styles.assessmentPanel}>
+                    <RecommendationResultPanel
+                      result={currentAssessment}
+                    />
+                  </View>
+                ) : null}
 
-              <Pressable
-                onPress={handleReset}
-                style={({ pressed }) => [
-                  styles.resetButton,
-                  pressed && styles.buttonPressed,
-                ]}
-              >
-                <AppText
-                  variant="caption"
-                  style={styles.resetText}
-                >
-                  Reset
-                </AppText>
-              </Pressable>
+                <View style={styles.footerButtons}>
+                  <Pressable
+                    onPress={handleCheckRecommendation}
+                    disabled={isLoadingCustoms}
+                    style={({ pressed }) => [
+                      styles.actionButton,
+                      pressed && styles.buttonPressed,
+                      isLoadingCustoms &&
+                        styles.pressed,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={t(
+                      "electronicsModal.checkRecommendation",
+                    )}
+                  >
+                    <AppText
+                      variant="caption"
+                      style={styles.actionText}
+                    >
+                      {t(
+                        "electronicsModal.checkRecommendation",
+                      )}
+                    </AppText>
+                  </Pressable>
 
-              <Pressable
-                onPress={handleSave}
-                disabled={isLoadingCustoms || isSaving}
-                style={({ pressed }) => [
-                  styles.actionButton,
-                  pressed && styles.buttonPressed,
-                  (isLoadingCustoms || isSaving) &&
-                    styles.pressed,
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  isSaving
-                    ? "Saving electronics selection"
-                    : isLoadingCustoms
-                      ? "Loading custom electronics"
-                      : "Save electronics selection"
-                }
-              >
-                <AppText
-                  variant="caption"
-                  style={styles.actionText}
+                  {currentAssessment?.verdict &&
+                  currentAssessment.verdict !==
+                    "notRecommended" ? (
+                    <Pressable
+                      onPress={() =>
+                        void handleSave()
+                      }
+                      disabled={isSaving}
+                      style={({ pressed }) => [
+                        styles.actionButton,
+                        pressed && styles.buttonPressed,
+                        isSaving && styles.pressed,
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel={t(
+                        "electronicsModal.done",
+                      )}
+                    >
+                      <AppText
+                        variant="caption"
+                        style={styles.actionText}
+                      >
+                        {isSaving
+                          ? t(
+                              "electronicsModal.saving",
+                            )
+                          : t("electronicsModal.done")}
+                      </AppText>
+                    </Pressable>
+                  ) : null}
+                </View>
+              </>
+            ) : (
+              <View style={styles.footerButtons}>
+                <Pressable
+                  onPress={handleSelectAll}
+                  style={({ pressed }) => [
+                    styles.resetButton,
+                    pressed && styles.buttonPressed,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Select all electronics"
                 >
-                  {isSaving
-                    ? "Saving..."
-                    : isLoadingCustoms
-                      ? "Loading..."
-                      : isReset
-                        ? "Save"
-                        : "Add"}
-                </AppText>
-              </Pressable>
-            </View>
+                  <AppText
+                    variant="caption"
+                    style={styles.resetText}
+                  >
+                    Select All
+                  </AppText>
+                </Pressable>
+
+                <Pressable
+                  onPress={handleReset}
+                  style={({ pressed }) => [
+                    styles.resetButton,
+                    pressed && styles.buttonPressed,
+                  ]}
+                >
+                  <AppText
+                    variant="caption"
+                    style={styles.resetText}
+                  >
+                    Reset
+                  </AppText>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => void handleSave()}
+                  disabled={isLoadingCustoms || isSaving}
+                  style={({ pressed }) => [
+                    styles.actionButton,
+                    pressed && styles.buttonPressed,
+                    (isLoadingCustoms || isSaving) &&
+                      styles.pressed,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    isSaving
+                      ? "Saving electronics selection"
+                      : isLoadingCustoms
+                        ? "Loading custom electronics"
+                        : "Save electronics selection"
+                  }
+                >
+                  <AppText
+                    variant="caption"
+                    style={styles.actionText}
+                  >
+                    {isSaving
+                      ? "Saving..."
+                      : isLoadingCustoms
+                        ? "Loading..."
+                        : isReset
+                          ? "Save"
+                          : "Add"}
+                  </AppText>
+                </Pressable>
+              </View>
+            )}
             </View>
           )}
         </View>
@@ -2753,6 +2914,11 @@ const getStyles = (colors: AppColors) =>
   selectedText: {
     color: colors.headerContent,
     fontSize: 14,
+  },
+
+  assessmentPanel: {
+    gap: 10,
+    marginBottom: 12,
   },
 
   footerButtons: {

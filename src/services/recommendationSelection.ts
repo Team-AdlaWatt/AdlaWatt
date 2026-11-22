@@ -21,6 +21,7 @@ import {
   estimateRuntime,
   estimateVoltageDrop,
   parseWattageRange,
+  projectBatterySideLoadW,
   recommendElectronicsBatch,
   toBatterySideWatts,
 } from "@/services/recommendation";
@@ -399,11 +400,23 @@ export const evaluateSelection = (
   const selectedPeakBatterySideW =
     toBatterySideWatts(totalPeakWatts, config);
 
+  const combinedMidWatts =
+    projectBatterySideLoadW({
+      currentLoadW,
+      batterySideLoadW: selectedBatterySideW,
+    });
+
+  const combinedPeakWatts =
+    projectBatterySideLoadW({
+      currentLoadW,
+      batterySideLoadW: selectedPeakBatterySideW,
+    });
+
   const runtimeHours =
     stack.totalMidWatts > 0
       ? estimateRuntime(
           classification.usableWh,
-          selectedBatterySideW,
+          combinedMidWatts,
         )
       : 0;
 
@@ -419,12 +432,6 @@ export const evaluateSelection = (
     ),
   );
 
-  const combinedMidWatts =
-    currentLoadW + selectedBatterySideW;
-
-  const combinedPeakWatts =
-    currentLoadW + selectedPeakBatterySideW;
-
   const wattCap = computeWattCap(
     activeBattery.soc,
     config,
@@ -433,7 +440,10 @@ export const evaluateSelection = (
   const projectedVoltage =
     activeBattery.voltage -
     estimateVoltageDrop(
-      selectedPeakBatterySideW,
+      Math.max(
+        0,
+        combinedPeakWatts - currentLoadW,
+      ),
       config,
     );
 

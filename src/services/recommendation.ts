@@ -312,6 +312,19 @@ const normalizeNumber = (
   return 0;
 };
 
+export const projectBatterySideLoadW = ({
+  currentLoadW,
+  batterySideLoadW,
+}: {
+  currentLoadW?: number | null;
+  batterySideLoadW?: number | null;
+}): number =>
+  Math.max(
+    normalizeNumber(currentLoadW),
+    normalizeNumber(batterySideLoadW),
+    0,
+  );
+
 // ============================================================
 // 1. BATTERY STATE CLASSIFICATION
 //
@@ -848,29 +861,49 @@ export const recommendElectronics = (
     : 0;
 
   const combinedMidWatts =
-    currentLoadW + midBatterySideWatts;
+    projectBatterySideLoadW({
+      currentLoadW,
+      batterySideLoadW: midBatterySideWatts,
+    });
 
   const combinedPeakWatts =
-    currentLoadW + peakBatterySideWatts;
+    projectBatterySideLoadW({
+      currentLoadW,
+      batterySideLoadW: peakBatterySideWatts,
+    });
 
   const minHours = wattRange
     ? estimateRuntime(
         usableWh,
-        toBatterySideWatts(wattRange.max, config),
+        projectBatterySideLoadW({
+          currentLoadW,
+          batterySideLoadW:
+            toBatterySideWatts(
+              wattRange.max,
+              config,
+            ),
+        }),
       )
     : 0;
 
   const midHours = wattRange
     ? estimateRuntime(
         usableWh,
-        midBatterySideWatts,
+        combinedMidWatts,
       )
     : 0;
 
   const maxHours = wattRange
     ? estimateRuntime(
         usableWh,
-        toBatterySideWatts(wattRange.min, config),
+        projectBatterySideLoadW({
+          currentLoadW,
+          batterySideLoadW:
+            toBatterySideWatts(
+              wattRange.min,
+              config,
+            ),
+        }),
       )
     : 0;
 
@@ -886,7 +919,10 @@ export const recommendElectronics = (
   const projectedVoltage = wattRange
     ? normalizeNumber(battery.voltage) -
       estimateVoltageDrop(
-        peakBatterySideWatts,
+        Math.max(
+          0,
+          combinedPeakWatts - currentLoadW,
+        ),
         config,
       )
     : normalizeNumber(battery.voltage);

@@ -26,6 +26,7 @@ import {
   estimateVoltageDrop,
   formatRuntimeLabel,
   parseWattageRange,
+  projectBatterySideLoadW,
   recommendElectronics,
   recommendElectronicsBatch,
   toBatterySideWatts,
@@ -236,6 +237,29 @@ describe("runtime helpers", () => {
     );
     expect(toBatterySideWatts(0)).toBe(0);
     expect(toBatterySideWatts(-10)).toBe(0);
+  });
+
+  test("projectBatterySideLoadW avoids double counting", () => {
+    expect(
+      projectBatterySideLoadW({
+        currentLoadW: 80,
+        batterySideLoadW: 100,
+      }),
+    ).toBe(100);
+
+    expect(
+      projectBatterySideLoadW({
+        currentLoadW: 140,
+        batterySideLoadW: 100,
+      }),
+    ).toBe(140);
+
+    expect(
+      projectBatterySideLoadW({
+        currentLoadW: null,
+        batterySideLoadW: 100,
+      }),
+    ).toBe(100);
   });
 
   test("estimateRuntime divides usable energy by watts", () => {

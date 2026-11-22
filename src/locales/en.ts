@@ -827,6 +827,10 @@ const en = {
     newLoadBody:
       "Live draw is about {{watts}} W above the selected load. Check what is plugged in.",
     review: "Review electronics",
+    criticalInstructions:
+      "Unplug all nonessential appliances, then review the connected electronics.",
+    recovering:
+      "Verifying stable load and usable energy...",
     dismiss: "Got it",
     blocked:
       "New selections are paused while battery protection is active. You can still remove appliances.",
@@ -836,6 +840,16 @@ const en = {
     reviewBody:
       "These are the appliances counted in the current recommendation.",
     done: "Done",
+  },
+
+  electronicsModal: {
+    checkRecommendation: "Check Recommendation",
+    done: "Done",
+    saving: "Saving...",
+    selectAtLeastOne:
+      "Select at least one appliance before continuing.",
+    notAdvisableBlocked:
+      "This selection is not advisable. Change the selection and check again.",
   },
 
   recommendationResult: {

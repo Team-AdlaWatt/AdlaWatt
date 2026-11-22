@@ -341,10 +341,14 @@ Returned payload:
 
 ## Display Rules
 
-The recommendation engine feeds two screens:
+The recommendation engine feeds the dashboard battery energy/protection cards and the Electronics screen's filtered grid.
 
-1. **AppRecCard** — the dashboard recommendation carousel.
-2. **Electronics screen** — the full filtered electronics grid.
+Automatic load detection watches the live battery-side load for a sustained increase above the inverter-idle baseline. A confirmed new load opens a forced ElectronicsModal workflow:
+
+1. **Identify electronics** — X and back are hidden while forced; at least one appliance must be selected.
+2. **Check Recommendation** — evaluates the selected appliances with `evaluateSelection` and shows `RecommendationResultPanel`.
+3. **Done** — appears only after a non-`notRecommended` result; "Not advisable" blocks completion until the selection changes and is checked again.
+4. **Recovery** — saving clears the detection latch; the critical warning remains visible until usable energy is at least 15% and the load stays near baseline for 30 seconds.
 
 Shared rules:
 
@@ -370,6 +374,7 @@ Shared rules:
 - Do not display the mid runtime as an exact number; present it as a min–max range or prose label.
 - Do not reorder the decision ladder; the voltage, cap, and budget guards are safety-first and must precede the Caution-care rule.
 - Do not stack `drainRatio` thresholds with a separate min-runtime floor — they are the same signal inverted and would double-count.
+- Do not add the selected load on top of a measured live load; `projectBatterySideLoadW` uses the larger of the two so an identified load is not counted twice.
 - Do not apply the full 600 W appliance cap regardless of charge; `wattCap` must scale with SoC (`soc / 100 × 600`).
 - Do not ignore the projected voltage drop for high-draw electronics; a large peak can push past `UNSAFE_VOLTAGE` even on a healthy SoC.
 - Do not render `care` without its distinct yellow state; the UI shows three visual states and the toggle mirrors the three verdicts.
@@ -379,9 +384,13 @@ Shared rules:
 
 ## References
 
-1. `src/services/recommendation.ts` — engine source (types, constants, classification, runtime, verdict, batch, load stack).
-2. `src/components/AppRecCard.tsx` — dashboard recommendation carousel consuming `recommendElectronics`.
-3. `src/app/dashboard/electronics.tsx` — electronics screen consuming `recommendElectronics` with power/area/status filters.
-4. `src/services/monitoringService.ts` — live battery fields (`battery_level`, `voltage`, `watt_hours`, `dod_status`) feeding the engine.
-5. `src/components/forms/electronicsCard.ts` — shared compact card sizing for the recommendation and electronics grids.
-6. `implementation plan/zenova_battery.md` — the battery bank reference the recommendation constants mirror.
+1. `src/services/recommendation.ts` — engine source (types, constants, classification, runtime, verdict, batch, load stack, projected load helper).
+2. `src/services/recommendationSelection.ts` — combined selection evaluation used by the forced workflow and result panel.
+3. `src/services/loadDetection.ts` — pure load-detection and recovery dwell helpers.
+4. `src/hooks/useLoadDetection.ts` — dashboard hook that opens the forced workflow after a sustained new load.
+5. `src/context/CriticalWarningContext.tsx` — shared latched critical warning and recovery state.
+6. `src/components/forms/ElectronicsModal.tsx` — standard and forced electronics selection workflows.
+7. `src/app/dashboard/electronics.tsx` — electronics screen consuming the recommendation evaluation with power/area/status filters.
+8. `src/services/monitoringService.ts` — live battery fields (`battery_level`, `voltage`, `watt_hours`, `dod_status`, `current_load`) feeding the engine.
+9. `src/components/forms/electronicsCard.ts` — shared compact card sizing for the electronics grids.
+10. `implementation plan/zenova_battery.md` — the battery bank reference the recommendation constants mirror.

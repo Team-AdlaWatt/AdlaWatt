@@ -13,18 +13,17 @@ import { Radius } from "@/constants/theme";
 
 /*
  * Compact electronics card shared by:
- * - AppRecCard (dashboard recommendation carousel)
  * - ElectronicsStatusBox (electronics screen)
  * - ElectronicsBox (ElectronicsModal selection)
  * - ComponentStatusBox (components screen)
  *
- * Keeping the sizing in one module stops the four boxes from drifting
+ * Keeping the sizing in one module stops the boxes from drifting
  * apart over time. Colors resolve per theme via useElectronicsCardStyles
  * so dark mode follows without duplicating the layout.
  */
 /*
  * Shared card shell. `box` reserves room for the status badge used by
- * AppRecCard and ElectronicsStatusBox; `boxTight` is the pill-less twin
+ * ElectronicsStatusBox; `boxTight` is the pill-less twin
  * (202, exact content sum) for not-advisable boxes whose badge was
  * removed; `boxCompact` is the modal version
  * used inside ElectronicsModal for catalog and custom boxes alike (one
@@ -150,7 +149,7 @@ export const getElectronicsCardStyles = (
 
 /*
  * Centered wrap grid used by the electronics screen and the modal so the
- * compact cards stay grouped the same way AppRecCard centers its row.
+ * compact cards stay grouped consistently.
  */
 export const electronicsCardGrid: ViewStyle = {
   flexDirection: "row",

@@ -840,6 +840,10 @@ const ceb = {
     newLoadBody:
       "Ang live draw mga {{watts}} W nga mas taas kaysa sa napiling load. Susiha ang mga naka-plug.",
     review: "Susiha ang electronics",
+    criticalInstructions:
+      "I-unplug tanan nga dili kinahanglan nga appliances, unya susiha ang mga naka-connect nga electronics.",
+    recovering:
+      "Gisusi ang stable nga load ug magamit nga enerhiya...",
     dismiss: "Sabot na",
     blocked:
       "Gihunong ang bag-ong selection samtang aktibo ang battery protection. Mahimo ka gihapon mokuha ug appliances.",
@@ -849,6 +853,16 @@ const ceb = {
     reviewBody:
       "Kini ang mga appliances nga giihap sa karon nga rekomendasyon.",
     done: "Tapos",
+  },
+
+  electronicsModal: {
+    checkRecommendation: "Susiha ang Rekomendasyon",
+    done: "Tapos",
+    saving: "Gi-save...",
+    selectAtLeastOne:
+      "Pili labing menos usa ka appliance sa dili pa magpadayon.",
+    notAdvisableBlocked:
+      "Dili kini maayo. Usba ang napili ug susiha pag-usab.",
   },
 
   recommendationResult: {

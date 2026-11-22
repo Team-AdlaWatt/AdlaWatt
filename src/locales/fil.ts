@@ -844,6 +844,10 @@ const fil = {
     newLoadBody:
       "Ang live draw ay humigit-kumulang {{watts}} W na mas mataas kaysa sa napiling load. Suriin ang mga naka-plug.",
     review: "Suriin ang electronics",
+    criticalInstructions:
+      "I-unplug ang lahat ng hindi mahalagang appliances, pagkatapos ay suriin ang mga naka-connect na electronics.",
+    recovering:
+      "Sinusuri ang stable na load at magagamit na enerhiya...",
     dismiss: "Gets ko",
     blocked:
       "Hintay muna ang bagong selection habang aktibo ang battery protection. Pwede mo pa ring tanggalin ang appliances.",
@@ -853,6 +857,16 @@ const fil = {
     reviewBody:
       "Ito ang mga appliances na kasama sa kasalukuyang rekomendasyon.",
     done: "Tapos",
+  },
+
+  electronicsModal: {
+    checkRecommendation: "Suriin ang Rekomendasyon",
+    done: "Tapos",
+    saving: "Sinisave...",
+    selectAtLeastOne:
+      "Pumili ng kahit isang appliance bago magpatuloy.",
+    notAdvisableBlocked:
+      "Hindi ito kanais-nais. Baguhin ang napili at suriin muli.",
   },
 
   recommendationResult: {
