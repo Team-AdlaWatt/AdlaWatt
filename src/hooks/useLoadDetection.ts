@@ -6,8 +6,9 @@ import {
 } from "react";
 
 import {
-  evaluateNewLoadDwell,
-  isNewLoadDetected,
+  evaluateAbsoluteLoadDwell,
+  evaluateAbsoluteRecoveryDwell,
+  isAbsoluteLoadDetected,
 } from "@/services/loadDetection";
 
 type UseLoadDetectionOptions = {
@@ -29,7 +30,9 @@ export function useLoadDetection({
   const candidateSinceRef = useRef<number | null>(
     null,
   );
-  const confirmedRef = useRef(false);
+  const recoverySinceRef = useRef<number | null>(
+    null,
+  );
   const reportedRef = useRef(false);
   const [detected, setDetected] = useReducer(
     (_current: boolean, next: boolean) => next,
@@ -41,19 +44,34 @@ export function useLoadDetection({
       return;
     }
 
-    if (!isNewLoadDetected(loadW)) {
+    if (reportedRef.current) {
+      const recovery = evaluateAbsoluteRecoveryDwell(
+        loadW,
+        recoverySinceRef.current,
+        Date.now(),
+      );
+
+      recoverySinceRef.current = recovery.startedAt;
+
+      if (recovery.active) {
+        candidateSinceRef.current = null;
+        recoverySinceRef.current = null;
+        reportedRef.current = false;
+        setDetected(false);
+      }
+
+      return;
+    }
+
+    recoverySinceRef.current = null;
+
+    if (!isAbsoluteLoadDetected(loadW)) {
       candidateSinceRef.current = null;
-      confirmedRef.current = false;
-      reportedRef.current = false;
       setDetected(false);
       return;
     }
 
-    if (confirmedRef.current || reportedRef.current) {
-      return;
-    }
-
-    const result = evaluateNewLoadDwell(
+    const result = evaluateAbsoluteLoadDwell(
       loadW,
       candidateSinceRef.current,
       Date.now(),
@@ -62,7 +80,6 @@ export function useLoadDetection({
     candidateSinceRef.current = result.startedAt;
 
     if (result.active) {
-      confirmedRef.current = true;
       reportedRef.current = true;
       setDetected(true);
       onConfirmed?.();
@@ -71,7 +88,7 @@ export function useLoadDetection({
 
   const reset = useCallback(() => {
     candidateSinceRef.current = null;
-    confirmedRef.current = false;
+    recoverySinceRef.current = null;
     reportedRef.current = false;
     setDetected(false);
   }, []);

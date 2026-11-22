@@ -815,6 +815,8 @@ const en = {
     },
     selectedLoad:
       "Selected: {{ac}} W AC · {{battery}} W from battery",
+    liveDraw: "Live draw: {{watts}} W",
+    timeRemaining: "Est. time left: {{time}}",
   },
 
   batteryProtection: {
@@ -852,6 +854,10 @@ const en = {
       "Select at least one appliance before continuing.",
     notAdvisableBlocked:
       "This selection is not advisable. Change the selection and check again.",
+    detectedHeader:
+      "electronics plugged detected, check the recommendation for accurate guidance",
+    reserveBlocked:
+      "This load would use all remaining usable energy. Unplug a load or change the selection before continuing.",
   },
 
   recommendationResult: {

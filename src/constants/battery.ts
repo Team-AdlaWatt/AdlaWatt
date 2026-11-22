@@ -51,3 +51,7 @@ export const LOAD_VERIFICATION_MS = 30_000;
 
 /** Tolerance around Load Now baseline for recovery verification. */
 export const LOAD_BASELINE_TOLERANCE_W = 2;
+
+export const LOAD_DETECTION_ABSOLUTE_W = 7;
+
+export const LOAD_RECOVERY_ABSOLUTE_W = 7;

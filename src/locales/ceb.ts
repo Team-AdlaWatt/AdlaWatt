@@ -827,6 +827,8 @@ const ceb = {
     },
     selectedLoad:
       "Napili: {{ac}} W AC · {{battery}} W gikan sa baterya",
+    liveDraw: "Live draw: {{watts}} W",
+    timeRemaining: "Gibanabana nga nahabilin: {{time}}",
   },
 
   batteryProtection: {
@@ -865,6 +867,10 @@ const ceb = {
       "Pili labing menos usa ka appliance sa dili pa magpadayon.",
     notAdvisableBlocked:
       "Dili kini maayo. Usba ang napili ug susiha pag-usab.",
+    detectedHeader:
+      "Adunay electronics nga naka-plug, susiha ang rekomendasyon alang sa tukma nga giya.",
+    reserveBlocked:
+      "Kini nga load mogamit sa tanan nga nahabilin nga magamit nga enerhiya. I-unplug ang usa ka load o usba ang napili sa dili pa magpadayon.",
   },
 
   recommendationResult: {

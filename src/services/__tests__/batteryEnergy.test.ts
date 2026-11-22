@@ -7,6 +7,7 @@ import {
   ENERGY_CRITICAL_RATIO,
   ENERGY_WARNING_RATIO,
   computeBatteryEnergy,
+  computeBatteryEnergyProjection,
   deriveEnergyStatus,
 } from "@/services/batteryEnergy";
 
@@ -105,5 +106,55 @@ describe("computeBatteryEnergy", () => {
         now,
       }).status,
     ).toBe("waiting");
+  });
+});
+
+describe("computeBatteryEnergyProjection", () => {
+  const snapshot = computeBatteryEnergy({
+    wattHours: BATTERY_CAPACITY_WH,
+    deviceOnline: true,
+    lastUpdated: now,
+    now,
+  });
+
+  test("subtracts solar from live load and caps the one-hour drain", () => {
+    const result = computeBatteryEnergyProjection({
+      snapshot,
+      currentLoadW: 120,
+      solarInputW: 20,
+    });
+
+    expect(result.liveNetLoadW).toBe(100);
+    expect(result.projectedDrainWh).toBe(100);
+    expect(result.remainingAfterLoadWh).toBe(
+      BATTERY_USABLE_WH - 100,
+    );
+    expect(result.exceedsUsableEnergy).toBe(false);
+  });
+
+  test("blocks when live net load would consume all usable energy", () => {
+    const result = computeBatteryEnergyProjection({
+      snapshot,
+      currentLoadW: BATTERY_USABLE_WH,
+      solarInputW: 0,
+    });
+
+    expect(result.projectedDrainWh).toBe(
+      BATTERY_USABLE_WH,
+    );
+    expect(result.remainingAfterLoadWh).toBe(0);
+    expect(result.exceedsUsableEnergy).toBe(true);
+  });
+
+  test("fails safe without live readings", () => {
+    const result = computeBatteryEnergyProjection({
+      snapshot,
+      currentLoadW: null,
+      solarInputW: 0,
+    });
+
+    expect(result.liveNetLoadW).toBeNull();
+    expect(result.projectedDrainWh).toBe(0);
+    expect(result.exceedsUsableEnergy).toBe(false);
   });
 });

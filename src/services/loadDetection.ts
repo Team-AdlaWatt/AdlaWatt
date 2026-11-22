@@ -1,7 +1,9 @@
 import {
   LOAD_BASELINE_TOLERANCE_W,
   LOAD_BASELINE_W,
+  LOAD_DETECTION_ABSOLUTE_W,
   LOAD_DETECTION_DELTA_W,
+  LOAD_RECOVERY_ABSOLUTE_W,
   LOAD_VERIFICATION_MS,
 } from "@/constants/battery";
 
@@ -37,6 +39,24 @@ export const isNewLoadDetected = (
   deltaW: number = LOAD_DETECTION_DELTA_W,
 ): boolean =>
   getLoadExcessW(loadW, baselineW) >= deltaW;
+
+export const isAbsoluteLoadDetected = (
+  loadW: number | null | undefined,
+  thresholdW: number = LOAD_DETECTION_ABSOLUTE_W,
+): boolean => {
+  const current = toFinite(loadW);
+
+  return current !== null && current > thresholdW;
+};
+
+export const isAbsoluteLoadRecovered = (
+  loadW: number | null | undefined,
+  thresholdW: number = LOAD_RECOVERY_ABSOLUTE_W,
+): boolean => {
+  const current = toFinite(loadW);
+
+  return current !== null && current <= thresholdW;
+};
 
 export const isLoadNearBaseline = (
   loadW: number | null | undefined,
@@ -77,6 +97,28 @@ export const evaluateNewLoadDwell = (
 ): DwellEvaluation =>
   evaluateDwell(
     isNewLoadDetected(loadW),
+    startedAt,
+    now,
+  );
+
+export const evaluateAbsoluteLoadDwell = (
+  loadW: number | null | undefined,
+  startedAt: number | null,
+  now: number,
+): DwellEvaluation =>
+  evaluateDwell(
+    isAbsoluteLoadDetected(loadW),
+    startedAt,
+    now,
+  );
+
+export const evaluateAbsoluteRecoveryDwell = (
+  loadW: number | null | undefined,
+  startedAt: number | null,
+  now: number,
+): DwellEvaluation =>
+  evaluateDwell(
+    isAbsoluteLoadRecovered(loadW),
     startedAt,
     now,
   );

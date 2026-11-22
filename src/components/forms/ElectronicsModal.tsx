@@ -98,6 +98,7 @@ type ElectronicsModalProps = {
   mode?: "standard" | "forced";
   batteryState?: BatteryStateInput | null;
   deviceOnline?: boolean;
+  reserveBlocked?: boolean;
   onDone?: (electronics: Electronics[]) => void;
 };
 
@@ -181,6 +182,7 @@ export default function ElectronicsModal({
   mode = "standard",
   batteryState = null,
   deviceOnline = false,
+  reserveBlocked = false,
   onDone,
 }: ElectronicsModalProps) {
   const { t } = useTranslation();
@@ -730,6 +732,13 @@ export default function ElectronicsModal({
     ) {
       setCustomError(
         t("electronicsModal.notAdvisableBlocked"),
+      );
+      return;
+    }
+
+    if (forced && reserveBlocked) {
+      setCustomError(
+        t("electronicsModal.reserveBlocked"),
       );
       return;
     }
@@ -1892,14 +1901,27 @@ export default function ElectronicsModal({
               Layer 2 has no back arrow; the title sits left and
               return uses the row/footer Back buttons. */}
           <View style={styles.header}>
-            <AppText
-              variant="heading"
-              style={styles.title}
-            >
-              {layer === 2
-                ? "Archived Electronics"
-                : "Select Electronics"}
-            </AppText>
+            <View style={styles.titleGroup}>
+              <AppText
+                variant="heading"
+                style={styles.title}
+              >
+                {layer === 2
+                  ? "Archived Electronics"
+                  : "Select Electronics"}
+              </AppText>
+
+              {forced ? (
+                <AppText
+                  variant="caption"
+                  style={styles.forcedHeaderMessage}
+                >
+                  {t(
+                    "electronicsModal.detectedHeader",
+                  )}
+                </AppText>
+              ) : null}
+            </View>
 
             {forced ? null : (
               <Pressable
@@ -1940,6 +1962,26 @@ export default function ElectronicsModal({
                 style={styles.successBannerText}
               >
                 {successMessage}
+              </AppText>
+            </View>
+          ) : null}
+
+          {forced && reserveBlocked ? (
+            <View
+              style={styles.errorBanner}
+              accessibilityRole="alert"
+            >
+              <Ionicons
+                name="warning-outline"
+                size={16}
+                color={colors.error}
+              />
+
+              <AppText
+                variant="caption"
+                style={styles.errorBannerText}
+              >
+                {t("electronicsModal.reserveBlocked")}
               </AppText>
             </View>
           ) : null}
@@ -2529,7 +2571,8 @@ export default function ElectronicsModal({
 
                   {currentAssessment?.verdict &&
                   currentAssessment.verdict !==
-                    "notRecommended" ? (
+                    "notRecommended" &&
+                  !reserveBlocked ? (
                     <Pressable
                       onPress={() =>
                         void handleSave()
@@ -2729,6 +2772,17 @@ const getStyles = (colors: AppColors) =>
     fontSize: Typography.heading,
     fontWeight: "700",
     color: colors.headerContent,
+  },
+
+  titleGroup: {
+    flex: 1,
+    gap: 2,
+  },
+
+  forcedHeaderMessage: {
+    color: colors.headerContent,
+    fontSize: Typography.caption,
+    fontWeight: "600",
   },
 
   closeButton: {

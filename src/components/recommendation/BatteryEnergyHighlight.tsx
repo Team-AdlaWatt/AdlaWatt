@@ -20,6 +20,10 @@ import type { SelectionEvaluation } from "@/services/recommendationSelection";
 type BatteryEnergyHighlightProps = {
   snapshot: BatteryEnergySnapshot;
   evaluation?: SelectionEvaluation | null;
+  liveNetLoadW?: number | null;
+  projectedDrainWh?: number;
+  remainingAfterLoadWh?: number | null;
+  timeRemainingLabel?: string | null;
   style?: StyleProp<ViewStyle>;
   variant?: "standalone" | "body";
 };
@@ -43,6 +47,10 @@ const statusIcon = (
 export default function BatteryEnergyHighlight({
   snapshot,
   evaluation,
+  liveNetLoadW = null,
+  projectedDrainWh = 0,
+  remainingAfterLoadWh = null,
+  timeRemainingLabel = null,
   style,
   variant = "standalone",
 }: BatteryEnergyHighlightProps) {
@@ -72,6 +80,49 @@ export default function BatteryEnergyHighlight({
         })
       : null;
 
+  const fillColor =
+    snapshot.status === "waiting"
+      ? colors.onSurfaceMuted
+      : colors.primary;
+
+  const projectedDrain = Math.max(
+    0,
+    Math.min(projectedDrainWh, snapshot.usableWh),
+  );
+  const remainingAfterLoad = Math.max(
+    0,
+    Math.min(
+      remainingAfterLoadWh ?? snapshot.usableWh,
+      snapshot.usableWh,
+    ),
+  );
+  const projectedDrainPercent = Math.min(
+    100,
+    Math.max(
+      0,
+      (projectedDrain / BATTERY_USABLE_WH) * 100,
+    ),
+  );
+  const remainingPercent = Math.min(
+    100,
+    Math.max(
+      0,
+      (remainingAfterLoad / BATTERY_USABLE_WH) * 100,
+    ),
+  );
+
+  const liveDrawLabel =
+    liveNetLoadW !== null
+      ? t("batteryEnergy.liveDraw", {
+          watts: Math.round(liveNetLoadW),
+        })
+      : null;
+  const timeRemainingText = timeRemainingLabel
+    ? t("batteryEnergy.timeRemaining", {
+        time: timeRemainingLabel,
+      })
+    : null;
+
   const isBody = variant === "body";
 
   return (
@@ -93,6 +144,8 @@ export default function BatteryEnergyHighlight({
           wh: formatWh(snapshot.reserveWh),
         }),
         selectedLoad,
+        liveDrawLabel,
+        timeRemainingText,
       ]
         .filter(Boolean)
         .join(". ")}
@@ -187,14 +240,24 @@ export default function BatteryEnergyHighlight({
           style={[
             styles.fill,
             {
-              backgroundColor: tone,
-              width: `${Math.min(
-                100,
-                Math.max(0, snapshot.usablePercent),
-              )}%`,
+              backgroundColor: fillColor,
+              width: `${remainingPercent}%`,
             },
           ]}
         />
+
+        {projectedDrainPercent > 0 ? (
+          <View
+            style={[
+              styles.fill,
+              styles.loadFill,
+              {
+                backgroundColor: colors.error,
+                width: `${projectedDrainPercent}%`,
+              },
+            ]}
+          />
+        ) : null}
       </View>
 
       <AppText
@@ -212,6 +275,24 @@ export default function BatteryEnergyHighlight({
           style={styles.selectedLoad}
         >
           {selectedLoad}
+        </AppText>
+      ) : null}
+
+      {liveDrawLabel ? (
+        <AppText
+          variant="caption"
+          style={styles.loadDetail}
+        >
+          {liveDrawLabel}
+        </AppText>
+      ) : null}
+
+      {timeRemainingText ? (
+        <AppText
+          variant="caption"
+          style={styles.loadDetail}
+        >
+          {timeRemainingText}
         </AppText>
       ) : null}
     </View>
@@ -280,6 +361,15 @@ const createStyles = (colors: AppColors) =>
     fill: {
       borderRadius: 999,
       height: "100%",
+    },
+    loadFill: {
+      left: 0,
+      position: "absolute",
+      top: 0,
+    },
+    loadDetail: {
+      color: colors.onSurface,
+      fontWeight: "600",
     },
     reserve: {
       color: colors.onSurfaceMuted,

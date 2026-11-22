@@ -831,6 +831,8 @@ const fil = {
     },
     selectedLoad:
       "Napili: {{ac}} W AC · {{battery}} W mula sa baterya",
+    liveDraw: "Live draw: {{watts}} W",
+    timeRemaining: "Tantyang natitira: {{time}}",
   },
 
   batteryProtection: {
@@ -869,6 +871,10 @@ const fil = {
       "Pumili ng kahit isang appliance bago magpatuloy.",
     notAdvisableBlocked:
       "Hindi ito kanais-nais. Baguhin ang napili at suriin muli.",
+    detectedHeader:
+      "May electronics na naka-plug, tingnan ang rekomendasyon para sa tamang gabay.",
+    reserveBlocked:
+      "Uubusin ng load na ito ang natitirang magagamit na enerhiya. I-unplug ang isang load o baguhin ang napili bago magpatuloy.",
   },
 
   recommendationResult: {

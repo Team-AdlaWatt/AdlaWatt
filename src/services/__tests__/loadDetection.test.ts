@@ -1,8 +1,12 @@
 import {
+  evaluateAbsoluteLoadDwell,
+  evaluateAbsoluteRecoveryDwell,
   evaluateBaselineRecoveryDwell,
   evaluateDwell,
   evaluateNewLoadDwell,
   getLoadExcessW,
+  isAbsoluteLoadDetected,
+  isAbsoluteLoadRecovered,
   isLoadNearBaseline,
   isNewLoadDetected,
 } from "@/services/loadDetection";
@@ -80,5 +84,84 @@ describe("load detection helpers", () => {
         35_000,
       ).active,
     ).toBe(true);
+  });
+
+  test("detects live load strictly above 7 W", () => {
+    expect(isAbsoluteLoadDetected(7)).toBe(false);
+    expect(isAbsoluteLoadDetected(7.1)).toBe(true);
+    expect(isAbsoluteLoadDetected(13)).toBe(true);
+    expect(isAbsoluteLoadDetected(null)).toBe(false);
+  });
+
+  test("recognizes recovery at or below 7 W", () => {
+    expect(isAbsoluteLoadRecovered(7)).toBe(true);
+    expect(isAbsoluteLoadRecovered(7.1)).toBe(
+      false,
+    );
+    expect(isAbsoluteLoadRecovered(null)).toBe(false);
+  });
+
+  test("requires the full dwell for absolute detection", () => {
+    const started = evaluateAbsoluteLoadDwell(
+      8,
+      null,
+      1_000,
+    );
+
+    expect(started).toEqual({
+      active: false,
+      startedAt: 1_000,
+    });
+
+    expect(
+      evaluateAbsoluteLoadDwell(
+        8,
+        started.startedAt,
+        30_999,
+      ).active,
+    ).toBe(false);
+
+    expect(
+      evaluateAbsoluteLoadDwell(
+        8,
+        started.startedAt,
+        31_000,
+      ).active,
+    ).toBe(true);
+  });
+
+  test("requires the full dwell before detection can rearm", () => {
+    const started = evaluateAbsoluteRecoveryDwell(
+      7,
+      null,
+      5_000,
+    );
+
+    expect(
+      evaluateAbsoluteRecoveryDwell(
+        7,
+        started.startedAt,
+        34_999,
+      ).active,
+    ).toBe(false);
+
+    expect(
+      evaluateAbsoluteRecoveryDwell(
+        7,
+        started.startedAt,
+        35_000,
+      ).active,
+    ).toBe(true);
+
+    expect(
+      evaluateAbsoluteRecoveryDwell(
+        8,
+        started.startedAt,
+        60_000,
+      ),
+    ).toEqual({
+      active: false,
+      startedAt: null,
+    });
   });
 });

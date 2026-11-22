@@ -31,6 +31,19 @@ export interface BatteryEnergySnapshot {
   consumedWh: number;
 }
 
+export interface BatteryEnergyProjectionInput {
+  snapshot: BatteryEnergySnapshot;
+  currentLoadW?: number | null;
+  solarInputW?: number | null;
+}
+
+export interface BatteryEnergyProjection {
+  liveNetLoadW: number | null;
+  projectedDrainWh: number;
+  remainingAfterLoadWh: number;
+  exceedsUsableEnergy: boolean;
+}
+
 export const ENERGY_WARNING_RATIO = 0.25;
 export const ENERGY_CRITICAL_RATIO = 0.1;
 export const ENERGY_RECOVERY_RATIO = 0.15;
@@ -126,5 +139,46 @@ export const computeBatteryEnergy = (
     usableCapacityWh: BATTERY_USABLE_WH,
     usablePercent,
     consumedWh: BATTERY_USABLE_WH - usableWh,
+  };
+};
+
+export const computeBatteryEnergyProjection = ({
+  snapshot,
+  currentLoadW,
+  solarInputW,
+}: BatteryEnergyProjectionInput): BatteryEnergyProjection => {
+  const current = toFinite(currentLoadW);
+  const solar = toFinite(solarInputW);
+
+  if (
+    snapshot.status === "waiting" ||
+    current === null ||
+    solar === null
+  ) {
+    return {
+      liveNetLoadW: null,
+      projectedDrainWh: 0,
+      remainingAfterLoadWh: snapshot.usableWh,
+      exceedsUsableEnergy: false,
+    };
+  }
+
+  const liveNetLoadW = Math.max(0, current - solar);
+  const projectedDrainWh = Math.min(
+    liveNetLoadW,
+    snapshot.usableWh,
+  );
+  const remainingAfterLoadWh = Math.max(
+    0,
+    snapshot.usableWh - projectedDrainWh,
+  );
+
+  return {
+    liveNetLoadW,
+    projectedDrainWh,
+    remainingAfterLoadWh,
+    exceedsUsableEnergy:
+      liveNetLoadW > 0 &&
+      liveNetLoadW >= snapshot.usableWh,
   };
 };

@@ -1,5 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import {
+  useNavigation,
+  useRouter,
+} from "expo-router";
 
 import React, {
   useCallback,
@@ -11,6 +14,7 @@ import React, {
 
 import {
   AppState,
+  BackHandler,
   type ScrollViewInstance,
   StyleSheet,
   View,
@@ -66,6 +70,7 @@ import {
 } from "@/services/recommendation";
 import {
   computeBatteryEnergy,
+  computeBatteryEnergyProjection,
 } from "@/services/batteryEnergy";
 import {
   deriveProtectionState,
@@ -74,6 +79,10 @@ import {
   evaluateSelection,
 } from "@/services/recommendationSelection";
 import { formatLastSeen } from "@/utils/monitoringDisplay";
+import {
+  getEstimatedTimeRemaining,
+  MISSING_ETR,
+} from "@/utils/estimatedTimeRemaining";
 import { useConnectivity } from "@/hooks/useConnectivity";
 import { maybeScheduleLowSunAdvisory } from "@/services/reminderService";
 import { useTranslation } from "react-i18next";
@@ -97,10 +106,21 @@ const FORECAST_REFRESH_INTERVAL_MS =
 // DASHBOARD SCREEN
 // ============================================================
 
+type BeforeRemoveNavigation = {
+  addListener: (
+    event: "beforeRemove",
+    handler: (event: {
+      preventDefault: () => void;
+    }) => void,
+  ) => () => void;
+};
+
 export default function DashboardScreen() {
   const { t } = useTranslation();
   const colors = useAppColors();
   const router = useRouter();
+  const navigation =
+    useNavigation() as unknown as BeforeRemoveNavigation;
 
   // Responsive gutter: 16/20/24 by phone width (UI-STANDARDS.md).
   const screenPadding = useScreenPadding();
@@ -143,6 +163,29 @@ export default function DashboardScreen() {
     setForcedElectronicsModalVisible,
   ] = useState(false);
 
+  useEffect(() => {
+    if (!forcedElectronicsModalVisible) {
+      return;
+    }
+
+    const removeBeforeRemove = navigation.addListener(
+      "beforeRemove",
+      (event) => {
+        event.preventDefault();
+      },
+    );
+    const backSubscription =
+      BackHandler.addEventListener(
+        "hardwareBackPress",
+        () => true,
+      );
+
+    return () => {
+      removeBeforeRemove();
+      backSubscription.remove();
+    };
+  }, [forcedElectronicsModalVisible, navigation]);
+
   const reloadDashboardElectronics =
     useCallback(async () => {
       try {
@@ -180,7 +223,10 @@ export default function DashboardScreen() {
 
   useLoadDetection({
     loadW: monitoring?.current_load ?? null,
-    enabled: !forcedElectronicsModalVisible,
+    enabled:
+      Boolean(deviceOnline) &&
+      !stale &&
+      !forcedElectronicsModalVisible,
     onConfirmed: handleLoadConfirmed,
   });
 
@@ -263,6 +309,47 @@ export default function DashboardScreen() {
       }),
     [monitoring, deviceOnline],
   );
+
+  const energyProjection = useMemo(
+    () =>
+      computeBatteryEnergyProjection({
+        snapshot: batteryEnergy,
+        currentLoadW:
+          monitoring?.current_load ?? null,
+        solarInputW:
+          monitoring?.solar_input ?? null,
+      }),
+    [
+      batteryEnergy,
+      monitoring?.current_load,
+      monitoring?.solar_input,
+    ],
+  );
+
+  const energyTimeRemaining = useMemo(() => {
+    if (
+      !monitoring ||
+      !deviceOnline ||
+      stale ||
+      batteryEnergy.status === "waiting"
+    ) {
+      return MISSING_ETR;
+    }
+
+    return getEstimatedTimeRemaining({
+      batteryStatus:
+        monitoring.battery_status,
+      wattHours: monitoring.watt_hours,
+      batteryLevel: monitoring.battery_level,
+      currentLoad: monitoring.current_load,
+      solarInput: monitoring.solar_input,
+    });
+  }, [
+    batteryEnergy.status,
+    deviceOnline,
+    monitoring,
+    stale,
+  ]);
 
   const batteryProtection = useMemo(
     () =>
@@ -868,6 +955,18 @@ export default function DashboardScreen() {
               <BatteryEnergyCard
                 snapshot={batteryEnergy}
                 evaluation={combinedRecommendation}
+                liveNetLoadW={
+                  energyProjection.liveNetLoadW
+                }
+                projectedDrainWh={
+                  energyProjection.projectedDrainWh
+                }
+                remainingAfterLoadWh={
+                  energyProjection.remainingAfterLoadWh
+                }
+                timeRemainingLabel={
+                  energyTimeRemaining
+                }
               />
             </View>
 
@@ -986,6 +1085,9 @@ export default function DashboardScreen() {
         )}
         batteryState={recommendationBattery}
         deviceOnline={deviceOnline ?? false}
+        reserveBlocked={
+          energyProjection.exceedsUsableEnergy
+        }
       />
 
       </ScreenContainer2>
