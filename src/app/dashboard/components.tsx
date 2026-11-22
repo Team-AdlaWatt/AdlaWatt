@@ -48,37 +48,24 @@ import {
 // ============================================
 
 const componentImages: Record<string, any> = {
-  "Buck Converter": require(
-    "@/assets/images/components/Buck Converter.png",
+  "ESP32-S3": require(
+    "@/assets/images/components/ESP32-S3.png",
+  ),
+
+  INA219: require(
+    "@/assets/images/components/INA219.png",
   ),
 
   DS18B20: require(
     "@/assets/images/components/DS18B20.png",
   ),
 
-  // The unit board is an ESP32-S3. Older rows may still be
-  // named "ESP32" until the rename migration is applied, so
-  // both names point at the same picture.
-  ESP32: require(
-    "@/assets/images/components/ESP32-S3.png",
-  ),
-
-  "ESP32-S3": require(
-    "@/assets/images/components/ESP32-S3.png",
-  ),
-
-  // The old Voltage Sensor is gone: the INA219 replaced it
-  // and the rename migration rewrites the rows.
-  INA219: require(
-    "@/assets/images/components/INA219.png",
+  DHT22: require(
+    "@/assets/images/components/DHT22.png",
   ),
 
   "Relay Module 5V 1 Channel": require(
     "@/assets/images/components/Relay.png",
-  ),
-
-  DHT22: require(
-    "@/assets/images/components/DHT22.png",
   ),
 
   "5V DC Fan": require(
@@ -90,15 +77,7 @@ const componentImages: Record<string, any> = {
   ),
 };
 
-// ============================================
-// ESP32 NAME MATCHING
-//
-// The board is an ESP32-S3, but rows created by older
-// firmware are still named "ESP32". Both are the unit
-// microcontroller, so both follow monitoring.device_status.
-// ============================================
-
-const ESP32_NAMES = ["ESP32", "ESP32-S3"];
+const ESP32_NAMES = ["ESP32-S3"];
 
 const isESP32Name = (name: string): boolean =>
   ESP32_NAMES.includes(name);
@@ -113,7 +92,79 @@ type ComponentData = {
   status: boolean;
 };
 
-// (device status/last seen come from unified monitoring)
+const CANONICAL_COMPONENT_NAMES = new Set([
+  "ESP32-S3",
+  "INA219",
+  "DS18B20",
+  "DHT22",
+  "Relay Module 5V 1 Channel",
+  "5V DC Fan",
+  "SPI TFT Display",
+]);
+
+const normalizeComponentName = (
+  componentName: string,
+): string => {
+  const name =
+    typeof componentName === "string"
+      ? componentName.trim()
+      : "";
+
+  switch (name.toLowerCase()) {
+    case "esp32":
+    case "esp32-s3":
+      return "ESP32-S3";
+    case "voltage sensor":
+    case "ina219":
+      return "INA219";
+    case "ds18b20":
+    case "ds18b20 (battery)":
+    case "ds18b20(battery)":
+    case "ds18b20 (solar)":
+    case "ds18b20(solar)":
+    case "ds18b20 solar":
+    case "ds18b20 2 solar":
+    case "ds18b20 2 solar temp":
+      return "DS18B20";
+    default:
+      return name;
+  }
+};
+
+const normalizeComponents = (
+  rows: ComponentData[],
+): ComponentData[] => {
+  const byName = new Map<string, ComponentData>();
+
+  for (const row of rows) {
+    const componentName = normalizeComponentName(
+      row.component_name,
+    );
+
+    if (
+      !CANONICAL_COMPONENT_NAMES.has(componentName)
+    ) {
+      continue;
+    }
+
+    const normalizedRow: ComponentData = {
+      ...row,
+      component_name: componentName,
+      status: Boolean(row.status),
+    };
+
+    const existing = byName.get(componentName);
+
+    if (
+      !existing ||
+      (!existing.status && normalizedRow.status)
+    ) {
+      byName.set(componentName, normalizedRow);
+    }
+  }
+
+  return [...byName.values()];
+};
 
 // ============================================
 // COMPONENT
@@ -274,7 +325,11 @@ export default function ComponentsScreen() {
         return;
       }
 
-      setComponents(data ?? []);
+      setComponents(
+        normalizeComponents(
+          (data ?? []) as ComponentData[],
+        ),
+      );
     };
 
     const setup = async () => {

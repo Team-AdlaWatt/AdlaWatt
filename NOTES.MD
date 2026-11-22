@@ -206,9 +206,10 @@ Realtime subscription: `postgres_changes` on `public.components`, filtered by `u
 |---|---|---|---|
 | Component name | `component.component_name` | `components.component_name` | text |
 | Active / Inactive | `component.status` | `components.status` | boolean; formatted by UI |
-| Connected / Not Connected | `deviceOnline` | `monitoring."ESP32S3 Last seen"` | ESP32 and ESP32-S3 rows only |
-| ESP32 row detection | name match | `components.component_name` | accepts `ESP32` and `ESP32-S3` |
-| Component image | local asset map | none | selected by `component_name`, not from DB |
+| Connected / Not Connected | `deviceOnline` | `monitoring."ESP32S3 Last seen"` | ESP32-S3 rows only |
+| ESP32 row detection | name match | `components.component_name` | accepts `ESP32-S3` only |
+| Component image | local asset map | none | selected by canonical `component_name` |
+| Canonical rows | migration + UI normalization | `components.component_name` | `ESP32-S3`, `INA219`, `DS18B20`, `DHT22`, `Relay Module 5V 1 Channel`, `SPI TFT Display`, `5V DC Fan` |
 | Component key | `component_id` | `components.component_id` | uuid; not displayed |
 | Owner filter | `user_id` | `components.user_id` | used in query; not displayed |
 

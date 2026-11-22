@@ -261,7 +261,7 @@ Filter by **type** (Info, Warning, Error, Critical) and **time range**, and page
 
 ## 11. Components: Checking System Health
 
-The **Components** screen lists the IoT and power parts (ESP32 controller, solar/load sensors, solar temperature sensor, interior sensor, voltage sensor, relay, display, cooling fan, buck converter) with live **Active / Inactive** status and photos.
+The **Components** screen lists the seven parts currently installed in the unit (ESP32-S3 controller, INA219 solar/load monitor, DS18B20 solar temperature sensor, DHT22 interior sensor, relay, SPI TFT display, and 5 V DC fan) with live **Active / Inactive** status and photos.
 
 Use it to answer "is the unit itself healthy?" If the Dashboard shows Offline but your phone has internet, check here: an Inactive controller or sensor points to a hardware-side problem (power, wiring, or Wi-Fi at the unit) rather than an app problem.
 
