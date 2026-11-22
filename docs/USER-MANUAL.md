@@ -205,12 +205,12 @@ On the Electronics screen, use the two dropdowns to sort by **power level** and 
 
 Open the **Analytics** tab to review history. The screen has four cards:
 
-- **Solar Energy** — energy collected, peak output, peak sun, and charge start.
-- **Load Energy** — energy used, average load, and peak load.
+- **Solar Energy** — average solar input in watts, energy collected, peak output, peak sun, and charge start.
+- **Load Energy** — average load in watts, energy used, peak load, and average voltage.
 - **Battery Activity** — how often the battery charges, discharges, and idles.
 - **Generate Report** — view selection, date range, and export controls.
 
-Changing the **Daily / Weekly / Monthly / Yearly** chips updates every card and resets the window. You can then set a custom **From/To date range** in the Generate Report card; dates cannot be in the future.
+Each of the three chart cards has its own full-width **Daily / Weekly / Monthly / Yearly** toggle. Changing one card does not change the others. The report card keeps its own chips: **Daily** shows 30 days, **Weekly** 90 days, **Monthly** 1 year, and **Yearly** 5 years. You can then set a custom **From/To date range** in the Generate Report card; dates cannot be in the future.
 
 ### Exporting reports
 

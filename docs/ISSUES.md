@@ -1718,6 +1718,31 @@ their own empty visuals. This supersedes the placeholder behavior in issue #27.
 
 ---
 
+### 54. refactor(analytics): restore per-card controls and watt-based charts
+
+**Summary**
+The four-card Analytics screen used one shared time control, and the Solar and Load charts plotted energy totals instead of the live watt readings shown on the dashboard monitoring cards.
+
+**Steps to Reproduce**
+1. Open Dashboard > Analytics.
+2. Change the view in the Solar Energy card.
+3. Notice that Load Energy, Battery Activity, and Generate Report all changed too.
+4. Look at the Solar and Load vertical axes.
+
+**Expected Behavior**
+Each chart card has its own Daily / Weekly / Monthly / Yearly toggle. Solar plots average solar input in watts, Load plots average current load in watts, and the X axis shows days, weeks, months, or years based on that card's toggle. Generate Report keeps its own chips and date pickers.
+
+**Actual Behavior**
+One shared control drove every card, Solar and Load showed watt-hours, and the chart styling did not match the earlier card layout.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Restored the earlier full-width toggle and chart-card styling inside the current four-card screen. Each card now owns its frequency and rolling window; Solar and Load plot finite Online watt readings from `solar_input` and `current_load`; the report card keeps its independent chips and date range.
+
+---
+
 ## Still To Do
 
 - Update the ESP32 firmware so watt_hours is reported on the 720 Wh manuscript

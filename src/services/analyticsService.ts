@@ -105,6 +105,7 @@ export interface AnalyticsMetricPoint {
 export interface SolarAnalyticsPoint
   extends AnalyticsMetricPoint {
   energyWh: number;
+  solarInputW: number;
   peakW: number;
   peakHours: number;
   chargeStart: string | null;
@@ -115,6 +116,7 @@ export interface LoadAnalyticsPoint
   energyWh: number;
   avgW: number;
   peakW: number;
+  avgVoltage: number;
 }
 
 export interface BatteryAnalyticsPoint
@@ -352,19 +354,17 @@ export const REPORT_FREQUENCIES: ReportFrequency[] = [
 ];
 
 /*
- * One control drives both the rolling window and the report
- * grouping. Daily is a single day cut into hourly buckets; the
- * longer windows use calendar-day buckets, except Yearly which
- * uses calendar-month buckets so the X axis stays readable.
+ * Each frequency controls both its rolling window and how its
+ * X axis is bucketed: days, weeks, months, or years.
  */
 export const ANALYTICS_RANGE_DAYS: Record<
   ChartFrequency,
   number
 > = {
-  Daily: 1,
-  Weekly: 7,
-  Monthly: 30,
-  Yearly: 365,
+  Daily: 30,
+  Weekly: 90,
+  Monthly: 365,
+  Yearly: 1825,
 };
 
 export const ANALYTICS_BUCKET_FREQUENCIES: Record<
@@ -372,9 +372,9 @@ export const ANALYTICS_BUCKET_FREQUENCIES: Record<
   ChartFrequency
 > = {
   Daily: "Daily",
-  Weekly: "Daily",
-  Monthly: "Daily",
-  Yearly: "Monthly",
+  Weekly: "Weekly",
+  Monthly: "Monthly",
+  Yearly: "Yearly",
 };
 
 /* ============================================================
@@ -466,6 +466,18 @@ function getOnlineRows(
   rows: MonitoringHistoryRow[],
 ): MonitoringHistoryRow[] {
   return rows.filter(isOnlineRow);
+}
+
+function finiteNonNegativeValues(
+  values: (number | null)[],
+): number[] {
+  return values
+    .filter(
+      (value): value is number =>
+        typeof value === "number" &&
+        Number.isFinite(value),
+    )
+    .map((value) => Math.max(0, value));
 }
 
 /*
@@ -759,24 +771,33 @@ export function createFrequencyRange(
   };
 }
 
+export function filterMonitoringHistoryByRange(
+  monitoringHistory: MonitoringHistoryRow[],
+  range: AnalyticsRange,
+): MonitoringHistoryRow[] {
+  const start = range.start.getTime();
+  const end = getInclusiveRangeEnd(range).getTime();
+
+  return monitoringHistory.filter((row) => {
+    const recorded = new Date(
+      row.recorded_at,
+    ).getTime();
+
+    return (
+      Number.isFinite(recorded) &&
+      recorded >= start &&
+      recorded <= end
+    );
+  });
+}
+
 export function formatAnalyticsBucketLabel(
   date: Date,
   frequency: ChartFrequency,
 ): string {
-  if (frequency === "Daily") {
-    return date.toLocaleTimeString(
-      "en-US",
-      {
-        hour: "numeric",
-      },
-    );
-  }
-
   return formatDateLabel(
     date,
-    ANALYTICS_BUCKET_FREQUENCIES[
-      frequency
-    ],
+    frequency,
   );
 }
 
@@ -784,96 +805,12 @@ export function groupMonitoringHistoryForAnalytics(
   monitoringHistory: MonitoringHistoryRow[],
   frequency: ChartFrequency,
 ): MonitoringBucket[] {
-  if (frequency !== "Daily") {
-    return groupMonitoringHistory(
-      monitoringHistory,
-      ANALYTICS_BUCKET_FREQUENCIES[
-        frequency
-      ],
-    );
-  }
-
-  const buckets =
-    new Map<
-      string,
-      MonitoringHistoryRow[]
-    >();
-
-  monitoringHistory.forEach(
-    (row) => {
-      const recorded =
-        new Date(
-          row.recorded_at,
-        );
-
-      if (
-        Number.isNaN(
-          recorded.getTime(),
-        )
-      ) {
-        return;
-      }
-
-      const date =
-        new Date(recorded);
-
-      date.setMinutes(
-        0,
-        0,
-        0,
-      );
-
-      const key = [
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate(),
-        date.getHours(),
-      ].join("-");
-
-      const current =
-        buckets.get(key) ??
-        [];
-
-      current.push(row);
-
-      buckets.set(
-        key,
-        current,
-      );
-    },
+  return groupMonitoringHistory(
+    monitoringHistory,
+    ANALYTICS_BUCKET_FREQUENCIES[
+      frequency
+    ],
   );
-
-  return Array.from(
-    buckets.entries(),
-  )
-    .map(
-      ([
-        key,
-        rows,
-      ]) => {
-        const date =
-          new Date(
-            rows[0].recorded_at,
-          );
-
-        date.setMinutes(
-          0,
-          0,
-          0,
-        );
-
-        return {
-          key,
-          date,
-          rows,
-        };
-      },
-    )
-    .sort(
-      (a, b) =>
-        a.date.getTime() -
-        b.date.getTime(),
-    );
 }
 
 function formatChargeStartTime(
@@ -948,14 +885,27 @@ export function buildAnalyticsCardData(
       const onlineRows =
         getOnlineRows(bucket.rows);
 
-      const peakHours = Math.max(
-        0,
-        ...onlineRows.map((row) =>
-          parseSolarTimerHours(
-            row.solar_timer,
+      const solarInputs =
+        finiteNonNegativeValues(
+          onlineRows.map((row) =>
+            row.solar_input,
           ),
-        ),
-      );
+        );
+
+      const solarInputW =
+        average(solarInputs);
+
+      const peakHours =
+        onlineRows.reduce(
+          (peak, row) =>
+            Math.max(
+              peak,
+              parseSolarTimerHours(
+                row.solar_timer,
+              ),
+            ),
+          0,
+        );
 
       const chargeStart =
         findChargeStart(bucket.rows);
@@ -972,17 +922,7 @@ export function buildAnalyticsCardData(
         0,
       );
 
-      const peakW = Math.max(
-        0,
-        ...onlineRows.map((row) =>
-          Math.max(
-            0,
-            toNumber(
-              row.solar_input,
-            ),
-          ),
-        ),
-      );
+      const peakW = maximum(solarInputs);
 
       const label =
         formatAnalyticsBucketLabel(
@@ -992,8 +932,9 @@ export function buildAnalyticsCardData(
 
       return {
         label,
-        value: energyWh,
+        value: solarInputW,
         energyWh,
+        solarInputW,
         peakW,
         peakHours,
         chargeStart:
@@ -1022,14 +963,21 @@ export function buildAnalyticsCardData(
         0,
       );
 
-      const loads = onlineRows.map(
-        (row) =>
-          Math.max(
-            0,
-            toNumber(
-              row.current_load,
-            ),
+      const loads =
+        finiteNonNegativeValues(
+          onlineRows.map((row) =>
+            row.current_load,
           ),
+        );
+
+      const avgW = average(loads);
+
+      const avgVoltage = average(
+        finiteNonNegativeValues(
+          onlineRows.map((row) =>
+            row.voltage,
+          ),
+        ),
       );
 
       const label =
@@ -1040,10 +988,11 @@ export function buildAnalyticsCardData(
 
       return {
         label,
-        value: energyWh,
+        value: avgW,
         energyWh,
-        avgW: average(loads),
+        avgW,
         peakW: maximum(loads),
+        avgVoltage,
       };
     });
 

@@ -77,7 +77,8 @@ export default function SolarEnergyChart({
       points={points}
       stats={stats}
       color={chartColors.green}
-      unit="watt-hours"
+      unit="W"
+      legendLabel="Solar input"
     />
   );
 }

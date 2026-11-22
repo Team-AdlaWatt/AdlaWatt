@@ -27,7 +27,7 @@ import type {
 } from "@/services/analyticsService";
 
 const DEFAULT_POINT_WIDTH = 64;
-const Y_AXIS_W = 42;
+const Y_AXIS_W = 38;
 
 export interface AnalyticsMetricStat {
   label: string;
@@ -68,14 +68,19 @@ export default function AnalyticsMetricChart({
   stats,
   color,
   unit,
+  legendLabel,
 }: {
   points: AnalyticsMetricPoint[];
   stats: AnalyticsMetricStat[];
   color: string;
   unit: string;
+  legendLabel: string;
 }) {
   const { family } =
     useTypography();
+
+  const colors =
+    useAppColors();
 
   const chartColors =
     useChartColors();
@@ -231,9 +236,9 @@ export default function AnalyticsMetricChart({
             formatYLabel={(
               label: string,
             ) =>
-              Number(
+              `${Number(
                 label,
-              ).toFixed(0)
+              ).toFixed(0)}${unit}`
             }
             yAxisThickness={
               0
@@ -298,12 +303,28 @@ export default function AnalyticsMetricChart({
         )}
       </View>
 
-      <AppText
-        variant="caption"
-        style={styles.unitLabel}
+      <View
+        style={styles.legend}
+        accessibilityRole="text"
+        accessibilityLabel={`Legend: ${legendLabel}`}
       >
-        {`Vertical axis: ${unit}`}
-      </AppText>
+        <View
+          style={[
+            styles.legendSwatch,
+            { backgroundColor: color },
+          ]}
+        />
+
+        <AppText
+          variant="caption"
+          style={[
+            styles.legendText,
+            { fontFamily: family, color: colors.textSecondary },
+          ]}
+        >
+          {legendLabel}
+        </AppText>
+      </View>
     </View>
   );
 }
@@ -324,16 +345,20 @@ const styles = StyleSheet.create({
   stat: {
     minWidth: 92,
     flexGrow: 1,
+    alignItems: "center",
   },
 
   statLabel: {
     color: "#6B7280",
     fontWeight: "600",
+    textAlign: "center",
   },
 
   statValue: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: "700",
+    fontVariant: ["tabular-nums"],
+    textAlign: "center",
     marginTop: 2,
   },
 
@@ -342,9 +367,22 @@ const styles = StyleSheet.create({
     marginLeft: -10,
   },
 
-  unitLabel: {
-    color: "#6B7280",
-    marginTop: 6,
-    textAlign: "right",
+  legend: {
+    width: "100%",
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 8,
+  },
+
+  legendSwatch: {
+    width: 18,
+    height: 10,
+    borderRadius: 2,
+  },
+
+  legendText: {
+    fontSize: 12,
   },
 });

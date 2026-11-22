@@ -78,5 +78,46 @@ describe("AnalyticsChartCard", () => {
     expect(rendered).not.toContain(
       "No data for this range",
     );
+    expect(
+      tree.findAll(
+        (node) => String(node.type) === "SlidingToggle",
+      ),
+    ).toHaveLength(0);
+  });
+
+  it("renders a per-card frequency toggle when props are supplied", () => {
+    let testRenderer!: renderer.ReactTestRenderer;
+
+    act(() => {
+      testRenderer = renderer.create(
+        <AnalyticsChartCard
+          title="Solar Energy"
+          subtitle="Average solar input in watts."
+          icon="sunny-outline"
+          frequency="Weekly"
+          onFrequencyChange={jest.fn()}
+        >
+          <Text testID="chart-frame">chart frame</Text>
+        </AnalyticsChartCard>,
+      );
+    });
+
+    const toggles =
+      testRenderer.root.findAll(
+        (node) => String(node.type) === "SlidingToggle",
+      );
+
+    expect(toggles).toHaveLength(1);
+    expect(toggles[0].props.value).toBe("Weekly");
+    expect(
+      toggles[0].props.options.map(
+        (option: { value: string }) => option.value,
+      ),
+    ).toEqual([
+      "Daily",
+      "Weekly",
+      "Monthly",
+      "Yearly",
+    ]);
   });
 });

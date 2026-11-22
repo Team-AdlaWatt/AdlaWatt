@@ -59,6 +59,21 @@ export default function LoadEnergyChart({
           ),
         )} W`,
       },
+      {
+        label:
+          "Avg voltage",
+        value: `${formatNumber(
+          points.length > 0
+            ? points.reduce(
+                (sum, point) =>
+                  sum +
+                  point.avgVoltage,
+                0,
+              ) /
+                points.length
+            : 0,
+        )} V`,
+      },
     ],
     [points],
   );
@@ -68,7 +83,8 @@ export default function LoadEnergyChart({
       points={points}
       stats={stats}
       color={chartColors.yellow}
-      unit="watt-hours"
+      unit="W"
+      legendLabel="Load"
     />
   );
 }

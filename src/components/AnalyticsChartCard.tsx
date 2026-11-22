@@ -61,7 +61,7 @@ export default function AnalyticsChartCard({
       >
         <Ionicons
           name={icon}
-          size={26}
+          size={30}
           color={colors.headerContent}
         />
 
@@ -90,8 +90,6 @@ export default function AnalyticsChartCard({
           {subtitle}
         </AppText>
 
-        {/* Frequency (optional — omitted for range-total charts
-            like Battery Activity where grouping is invariant) */}
         {frequency && onFrequencyChange ? (
           <SlidingToggle<ChartFrequency>
             value={frequency}
@@ -185,6 +183,7 @@ const getStyles = (colors: AppColors) =>
 
     chartArea: {
       width: "100%",
+      minHeight: 200,
       alignItems: "stretch",
     },
 

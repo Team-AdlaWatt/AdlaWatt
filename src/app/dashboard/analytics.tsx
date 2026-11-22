@@ -46,12 +46,14 @@ import { useScrollToTopController } from "@/hooks/useScrollToTopController";
 import {
   buildAnalyticsCardData,
   createFrequencyRange,
+  filterMonitoringHistoryByRange,
   downloadCsvOnWeb,
   downloadPdfOnWeb,
   generateAdlaWattCsv,
   generateAdlaWattPdf,
   loadAnalyticsData,
   prepareReportData,
+  type AnalyticsRange,
   type ChartFrequency,
   type MonitoringHistoryRow,
   type ReportType,
@@ -61,6 +63,40 @@ import type { ReportFile } from "@/services/reportPrint";
 const QUICK_NAV_SCROLL_BOTTOM_MS = 400;
 const QUICK_NAV_CATCH_UP_MS = 200;
 const QUICK_NAV_BOTTOM_PIN_MS = 2000;
+
+type AnalyticsViewKey =
+  | "solar"
+  | "load"
+  | "activity"
+  | "report";
+
+interface AnalyticsView {
+  frequency: ChartFrequency;
+  range: AnalyticsRange;
+}
+
+type AnalyticsViews = Record<
+  AnalyticsViewKey,
+  AnalyticsView
+>;
+
+function createAnalyticsView(
+  frequency: ChartFrequency,
+): AnalyticsView {
+  return {
+    frequency,
+    range: createFrequencyRange(frequency),
+  };
+}
+
+function createAnalyticsViews(): AnalyticsViews {
+  return {
+    solar: createAnalyticsView("Daily"),
+    load: createAnalyticsView("Daily"),
+    activity: createAnalyticsView("Daily"),
+    report: createAnalyticsView("Daily"),
+  };
+}
 
 function LazyCard(props: AnalyticsChartCardProps) {
   return (
@@ -94,8 +130,8 @@ export default function AnalyticsScreen() {
   const [monitoringHistory, setMonitoringHistory] = useState<
     MonitoringHistoryRow[]
   >([]);
-  const [frequency, setFrequency] = useState<ChartFrequency>("Daily");
-  const [range, setRange] = useState(() => createFrequencyRange("Daily"));
+  const [views, setViews] =
+    useState<AnalyticsViews>(createAnalyticsViews);
 
   const [exportingReport, setExportingReport] =
     useState<ReportType | null>(null);
@@ -106,18 +142,77 @@ export default function AnalyticsScreen() {
   >(null);
   const [exportSheetVisible, setExportSheetVisible] = useState(false);
 
-  const cardData = useMemo(
-    () => buildAnalyticsCardData(monitoringHistory, frequency, range),
-    [monitoringHistory, frequency, range],
-  );
+  const reportFrequency = views.report.frequency;
+  const reportRange = views.report.range;
 
-  const activitySlices = cardData.activity;
+  const fetchRange = useMemo(() => {
+    const ranges = Object.values(views).map((view) => view.range);
+    const start = Math.min(
+      ...ranges.map((range) => range.start.getTime()),
+    );
+    const end = Math.max(
+      ...ranges.map((range) => range.end.getTime()),
+    );
+
+    return {
+      start: new Date(start),
+      end: new Date(end),
+    };
+  }, [views]);
+
+  const fetchStartMs = fetchRange.start.getTime();
+  const fetchEndMs = fetchRange.end.getTime();
+
+  const solarData = useMemo(() => {
+    const view = views.solar;
+    const rows = filterMonitoringHistoryByRange(
+      monitoringHistory,
+      view.range,
+    );
+
+    return buildAnalyticsCardData(
+      rows,
+      view.frequency,
+      view.range,
+    );
+  }, [monitoringHistory, views.solar]);
+
+  const loadData = useMemo(() => {
+    const view = views.load;
+    const rows = filterMonitoringHistoryByRange(
+      monitoringHistory,
+      view.range,
+    );
+
+    return buildAnalyticsCardData(
+      rows,
+      view.frequency,
+      view.range,
+    );
+  }, [monitoringHistory, views.load]);
+
+  const activityData = useMemo(() => {
+    const view = views.activity;
+    const rows = filterMonitoringHistoryByRange(
+      monitoringHistory,
+      view.range,
+    );
+
+    return buildAnalyticsCardData(
+      rows,
+      view.frequency,
+      view.range,
+    );
+  }, [monitoringHistory, views.activity]);
 
   const loadAnalytics = useCallback(async () => {
     const { monitoringHistory: monitoringRows } =
-      await loadAnalyticsData(range);
+      await loadAnalyticsData({
+        start: new Date(fetchStartMs),
+        end: new Date(fetchEndMs),
+      });
     setMonitoringHistory(monitoringRows);
-  }, [range]);
+  }, [fetchStartMs, fetchEndMs]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- range-driven history fetch is the effect's purpose
@@ -230,7 +325,12 @@ export default function AnalyticsScreen() {
         return;
       }
 
-      if (monitoringHistory.length === 0) {
+      const reportHistory = filterMonitoringHistoryByRange(
+        monitoringHistory,
+        reportRange,
+      );
+
+      if (reportHistory.length === 0) {
         setExportStatus({
           kind: "info",
           message:
@@ -247,14 +347,14 @@ export default function AnalyticsScreen() {
       if (Platform.OS === "web") {
         try {
           const reportData = prepareReportData(
-            monitoringHistory,
-            frequency,
-            range,
+            reportHistory,
+            reportFrequency,
+            reportRange,
           );
 
           if (reportType === "CSV") {
             const csv = generateAdlaWattCsv(reportData);
-            const filename = `adlawatt_${frequency.toLowerCase()}_report_${new Date()
+            const filename = `adlawatt_${reportFrequency.toLowerCase()}_report_${new Date()
               .toISOString()
               .slice(0, 10)}.csv`;
 
@@ -267,7 +367,7 @@ export default function AnalyticsScreen() {
           }
 
           const pdf = await generateAdlaWattPdf(reportData);
-          const filename = `adlawatt_${frequency.toLowerCase()}_report_${new Date()
+          const filename = `adlawatt_${reportFrequency.toLowerCase()}_report_${new Date()
             .toISOString()
             .slice(0, 10)}.pdf`;
 
@@ -291,9 +391,9 @@ export default function AnalyticsScreen() {
 
       try {
         const reportData = prepareReportData(
-          monitoringHistory,
-          frequency,
-          range,
+          reportHistory,
+          reportFrequency,
+          reportRange,
         );
         const { buildReportCsvFile, buildReportPdfFile } = await import(
           "@/services/reportPrint"
@@ -336,7 +436,13 @@ export default function AnalyticsScreen() {
         setExportingReport(null);
       }
     },
-    [exportingReport, frequency, monitoringHistory, openReportDirectly, range],
+    [
+      exportingReport,
+      monitoringHistory,
+      openReportDirectly,
+      reportFrequency,
+      reportRange,
+    ],
   );
 
   const exportResult: ReportExportResult = savedReport
@@ -364,13 +470,19 @@ export default function AnalyticsScreen() {
     }
   }, [savedReport, openReportDirectly]);
 
-  const handleFrequencyChange = useCallback((next: ChartFrequency) => {
-    setFrequency(next);
-    setRange(createFrequencyRange(next));
-  }, []);
+  const updateViewFrequency = useCallback(
+    (key: AnalyticsViewKey, next: ChartFrequency) => {
+      setViews((current) => ({
+        ...current,
+        [key]: createAnalyticsView(next),
+      }));
+    },
+    [],
+  );
 
   const setFromDate = useCallback((date: Date) => {
-    setRange((currentRange) => {
+    setViews((current) => {
+      const currentRange = current.report.range;
       const today = new Date();
       const from = new Date(
         Math.min(date.getTime(), today.getTime()),
@@ -380,20 +492,38 @@ export default function AnalyticsScreen() {
           ? from
           : currentRange.end;
 
-      return { start: from, end };
+      return {
+        ...current,
+        report: {
+          ...current.report,
+          range: { start: from, end },
+        },
+      };
     });
   }, []);
 
   const setToDate = useCallback((date: Date) => {
-    setRange((currentRange) => {
+    setViews((current) => {
+      const currentRange = current.report.range;
       const today = new Date();
-      const to = new Date(Math.min(date.getTime(), today.getTime()));
+      const to = new Date(
+        Math.min(date.getTime(), today.getTime()),
+      );
       const end =
         to.getTime() < currentRange.start.getTime()
           ? currentRange.start
           : to;
 
-      return { start: currentRange.start, end };
+      return {
+        ...current,
+        report: {
+          ...current.report,
+          range: {
+            start: currentRange.start,
+            end,
+          },
+        },
+      };
     });
   }, []);
 
@@ -460,33 +590,47 @@ export default function AnalyticsScreen() {
 
           <LazyCard
             title="Solar Energy"
-            subtitle="Energy collected per period, with peak output, peak sun, and charge start."
+            subtitle="Average solar input in watts per period, with energy collected, peak output, peak sun, and charge start."
             icon="sunny-outline"
+            frequency={views.solar.frequency}
+            onFrequencyChange={(next) =>
+              updateViewFrequency("solar", next)
+            }
           >
-            <SolarEnergyChart points={cardData.solar} />
+            <SolarEnergyChart points={solarData.solar} />
           </LazyCard>
 
           <LazyCard
             title="Load Energy"
-            subtitle="Energy used per period, with average and peak load."
+            subtitle="Average load in watts per period, with energy used and peak load."
             icon="bulb-outline"
+            frequency={views.load.frequency}
+            onFrequencyChange={(next) =>
+              updateViewFrequency("load", next)
+            }
           >
-            <LoadEnergyChart points={cardData.load} />
+            <LoadEnergyChart points={loadData.load} />
           </LazyCard>
 
           <LazyCard
             title="Battery Activity"
             subtitle="How often the battery charges, discharges, and idles in this range."
             icon="battery-half-outline"
+            frequency={views.activity.frequency}
+            onFrequencyChange={(next) =>
+              updateViewFrequency("activity", next)
+            }
           >
-            <BatteryActivityChart slices={activitySlices} />
+            <BatteryActivityChart slices={activityData.activity} />
           </LazyCard>
 
           <View style={styles.section}>
             <AnalyticsCards
-              frequency={frequency}
-              onFrequencyChange={handleFrequencyChange}
-              range={range}
+              frequency={reportFrequency}
+              onFrequencyChange={(next) =>
+                updateViewFrequency("report", next)
+              }
+              range={reportRange}
               onFromDateChange={setFromDate}
               onToDateChange={setToDate}
               generateReport={generateReport}
