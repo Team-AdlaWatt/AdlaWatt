@@ -231,7 +231,7 @@ describe("monitoring realtime synchronization", () => {
     expect(latest?.monitoring?.last_seen).toBe(NEWEST);
   });
 
-  test("device status ignores partial payloads without last seen", async () => {
+  test("device status reacts to status-only payloads", async () => {
     const onChange = jest.fn();
     let emitDeviceStatus: (payload: unknown) => void = () => {};
 
@@ -253,17 +253,12 @@ describe("monitoring realtime synchronization", () => {
         new: { "ESP32S3 Status": "Offline" },
       });
     });
-    expect(onChange).not.toHaveBeenCalled();
-
-    const fresh = new Date(Date.now() + 1_000).toISOString();
+    expect(onChange).toHaveBeenCalledWith("Offline");
 
     await act(async () => {
       emitDeviceStatus({
         eventType: "UPDATE",
-        new: {
-          "ESP32S3 Status": "Online",
-          "ESP32S3 Last seen": fresh,
-        },
+        new: { "ESP32S3 Status": "Online" },
       });
     });
     expect(onChange).toHaveBeenCalledWith("Online");

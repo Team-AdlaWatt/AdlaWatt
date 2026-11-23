@@ -77,12 +77,9 @@ export const formatTemperature = (
   return `${value}°C`;
 };
 
-// Hardware heartbeats every 2s with retries. The monitoring
-// row's last_seen is the single source of truth: fresh for
-// less than 10s, Offline from the 10s mark until the next
-// successful heartbeat lands.
-export const DEVICE_ONLINE_WINDOW_MS = 10 * 1000;
-
+// The monitoring row's device_status is the single source of
+// truth for online/offline. last_seen is for display and
+// realtime anti-rollback only.
 type LastSeenSource =
   | { last_seen?: string | null | undefined }
   | null
@@ -105,26 +102,8 @@ export const monitoringLastSeenMs = (
 };
 
 export const isDeviceOnline = (
-  lastSeen: string | null | undefined,
-  _deviceStatus: DeviceStatus | string | null | undefined,
-  nowMs: number = Date.now(),
-): boolean => {
-  void _deviceStatus;
-
-  if (lastSeen == null || lastSeen === "") {
-    return false;
-  }
-
-  const timestamp = Date.parse(lastSeen);
-
-  if (!Number.isFinite(timestamp)) {
-    return false;
-  }
-
-  const ageMs = Math.max(0, nowMs - timestamp);
-
-  return ageMs < DEVICE_ONLINE_WINDOW_MS;
-};
+  deviceStatus: DeviceStatus | string | null | undefined,
+): boolean => deviceStatus === "Online";
 
 const SECOND_MS = 1000;
 const MINUTE_MS = 60 * 1000;

@@ -54,7 +54,6 @@ export function MonitoringProvider({
   } = useMonitoring();
 
   const deviceOnline = useDeviceOnline(
-    monitoring?.last_seen,
     monitoring?.device_status,
   );
 

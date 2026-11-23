@@ -3,7 +3,6 @@
 // degrade gracefully to the unavailable copy.
 
 import {
-  DEVICE_ONLINE_WINDOW_MS,
   MISSING_VALUE,
   SENSOR_FAULT_VALUE,
   formatLastSeen,
@@ -107,54 +106,14 @@ describe("fit text font size", () => {
 });
 
 describe("device online", () => {
-  test("uses last_seen as the only online signal", () => {
-    const fresh = new Date(
-      NOW - DEVICE_ONLINE_WINDOW_MS + 1,
-    ).toISOString();
-    const boundary = new Date(
-      NOW - DEVICE_ONLINE_WINDOW_MS,
-    ).toISOString();
-    const stale = new Date(
-      NOW - DEVICE_ONLINE_WINDOW_MS - 1,
-    ).toISOString();
-
-    expect(DEVICE_ONLINE_WINDOW_MS).toBe(10_000);
-    expect(isDeviceOnline(fresh, "Online", NOW)).toBe(
-      true,
-    );
-    expect(isDeviceOnline(fresh, "Offline", NOW)).toBe(
-      true,
-    );
-    expect(isDeviceOnline(fresh, null, NOW)).toBe(true);
-    expect(isDeviceOnline(boundary, "Online", NOW)).toBe(
-      false,
-    );
-    expect(isDeviceOnline(stale, "Online", NOW)).toBe(
-      false,
-    );
-    expect(isDeviceOnline(boundary, null, NOW)).toBe(
-      false,
-    );
-    expect(isDeviceOnline(null, "Online", NOW)).toBe(
-      false,
-    );
-    expect(isDeviceOnline("", "Online", NOW)).toBe(
-      false,
-    );
-    expect(
-      isDeviceOnline("not-a-date", "Online", NOW),
-    ).toBe(false);
-    expect(isDeviceOnline(null, "Offline", NOW)).toBe(
-      false,
-    );
-  });
-
-  test("treats future clock skew as fresh", () => {
-    const future = new Date(NOW + 2_000).toISOString();
-
-    expect(isDeviceOnline(future, "Offline", NOW)).toBe(
-      true,
-    );
+  test("uses device_status as the only online signal", () => {
+    expect(isDeviceOnline("Online")).toBe(true);
+    expect(isDeviceOnline("Offline")).toBe(false);
+    expect(isDeviceOnline(null)).toBe(false);
+    expect(isDeviceOnline(undefined)).toBe(false);
+    expect(isDeviceOnline("")).toBe(false);
+    expect(isDeviceOnline("ONLINE")).toBe(false);
+    expect(isDeviceOnline("Connecting")).toBe(false);
   });
 });
 

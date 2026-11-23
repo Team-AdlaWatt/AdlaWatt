@@ -75,7 +75,7 @@ const CURRENT_LOAD_MILESTONE_WATTS =
 
 // Freshness tripwire for last_seen. This only controls the
 // "Monitoring Data Stale" alert cadence; the dashboard's
-// online/offline gate uses the 10s DEVICE_ONLINE_WINDOW_MS.
+// online/offline gate follows device_status.
 // The ESP32 heartbeats every 5s, so 60s avoids alert spam
 // while still catching a genuinely silent unit within a minute.
 // (Server-side, the heartbeat cron owns the Offline

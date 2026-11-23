@@ -88,6 +88,29 @@ describe("MonitoringProvider connection status", () => {
       );
     });
 
+    expect(mockUseDeviceOnline).toHaveBeenCalledWith(
+      "Online",
+    );
     expect(status).toBe("offline");
+  });
+
+  test("live online data reports online", () => {
+    mockUseMonitoring.mockReturnValue(baseState);
+    mockUseDeviceOnline.mockReturnValue(true);
+
+    let status = "";
+    act(() => {
+      create(
+        React.createElement(MonitoringProvider, null,
+          React.createElement(Probe, {
+            onStatus: (value) => {
+              status = value;
+            },
+          }),
+        ),
+      );
+    });
+
+    expect(status).toBe("online");
   });
 });

@@ -541,7 +541,7 @@ export const getMonitoringData = async (
 
 export const getDeviceStatus = async (): Promise<DeviceStatus> => {
   const data = await getMonitoringData();
-  return isDeviceOnline(data?.last_seen, data?.device_status)
+  return isDeviceOnline(data?.device_status)
     ? "Online"
     : "Offline";
 };
@@ -731,19 +731,9 @@ export const subscribeToDeviceStatus = async (
           }
 
           const next = payload.new as Record<string, unknown> | null;
-          const lastSeen = next?.["ESP32S3 Last seen"];
-
-          // Partial UPDATEs that do not carry the heartbeat
-          // timestamp say nothing about connectivity. Treating
-          // them as Offline would flip the badge until the next
-          // heartbeat lands.
-          if (lastSeen === undefined) {
-            return;
-          }
 
           onChange(
             isDeviceOnline(
-              lastSeen as string | null | undefined,
               next?.["ESP32S3 Status"] as string | null | undefined,
             )
               ? "Online"
