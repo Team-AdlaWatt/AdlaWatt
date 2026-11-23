@@ -513,7 +513,7 @@ export default function LoginScreen() {
 
               <AppText style={noticeStyles.status}>
                 {t("auth.login.testAdminUsernameLabel")}:{" "}
-                adlawatt_admin
+                admin
               </AppText>
 
               <AppText style={noticeStyles.bodyText}>
