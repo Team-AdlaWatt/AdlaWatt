@@ -386,6 +386,16 @@ const fil = {
         "Naka-bind ang device na ito sa iyong account. I-disconnect ito bago magdagdag ng ibang device.",
       disconnect: "I-disconnect ang Device",
       disconnecting: "Ibinidisconnect...",
+      disconnectCloudNote:
+        "Gumagamit ng Wi-Fi ng device ang pag-disconnect. Hindi kailangan ang Bluetooth.",
+      bindingStatus_binding: "Status: kumokonekta",
+      bindingStatus_active: "Status: nakakonekta",
+      bindingStatus_release_pending: "Status: ibinidisconnect",
+      bindingStale: "Maaaring luma ang status ng device. Subukang muli.",
+      bindingErrorTitle: "Hindi ma-load ang status ng device",
+      bindingErrorBody:
+        "Suriin ang koneksyon at subukang muli. Makikita ang Disconnect kapag na-load na ang naka-bind na device.",
+      bindingRetry: "Subukang muli",
       releasePending:
         "Naipadala na ang request sa pag-disconnect. Hintayin ang kumpirmasyon ng device.",
       releaseSuccess: "Matagumpay na na-disconnect ang device.",

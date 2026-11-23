@@ -302,6 +302,8 @@ export default function AddDeviceScreen() {
 
   const [binding, setBinding] = useState<DeviceBinding | null>(null);
   const [bindingLoading, setBindingLoading] = useState(true);
+  const [bindingError, setBindingError] = useState(false);
+  const [bindingRetryKey, setBindingRetryKey] = useState(0);
   const [releaseBusy, setReleaseBusy] = useState(false);
   const [releaseDetail, setReleaseDetail] = useState<string | null>(null);
 
@@ -617,6 +619,7 @@ export default function AddDeviceScreen() {
 
       if (!currentUserId) {
         setBinding(null);
+        setBindingError(false);
         setBindingLoading(false);
         return;
       }
@@ -627,10 +630,11 @@ export default function AddDeviceScreen() {
         const next = await getDeviceBinding();
         if (active && bindingRequestSeqRef.current === requestSeq) {
           setBinding(next);
+          setBindingError(false);
         }
       } catch {
         if (active && bindingRequestSeqRef.current === requestSeq) {
-          setBinding(null);
+          setBindingError(true);
         }
       } finally {
         if (active && bindingRequestSeqRef.current === requestSeq) {
@@ -642,7 +646,12 @@ export default function AddDeviceScreen() {
     return () => {
       active = false;
     };
-  }, [currentUserId, isLoaded]);
+  }, [currentUserId, isLoaded, bindingRetryKey]);
+
+  const handleRetryBinding = useCallback(() => {
+    setBindingError(false);
+    setBindingRetryKey((current) => current + 1);
+  }, []);
 
   const handleRetryAssignment = useCallback(() => {
     if (!currentUserId) {
@@ -967,6 +976,7 @@ export default function AddDeviceScreen() {
         return;
       }
       setBinding(updatedBinding);
+      setBindingError(false);
     } catch (error) {
       if (error instanceof ProvisioningTimeoutError) {
         setStatus("timeout");
@@ -1020,6 +1030,7 @@ export default function AddDeviceScreen() {
       });
 
       setBinding(null);
+      setBindingError(false);
       setReleaseDetail(t("dashboard.addDevice.releaseSuccess"));
       setSelectedDevice(null);
       setDevices([]);
@@ -1037,8 +1048,10 @@ export default function AddDeviceScreen() {
       try {
         const latest = await getDeviceBinding();
         setBinding(latest.status === "unbound" ? null : latest);
+        setBindingError(false);
       } catch {
         setBinding((current) => current);
+        setBindingError(true);
       }
     } finally {
       releaseInFlightRef.current = false;
@@ -1079,6 +1092,12 @@ export default function AddDeviceScreen() {
   const statusTone = colors.severity[toneForStatus(displayedStatus)];
   const showOperationStatus =
     displayedStatus !== "idle" || previewStatus !== null;
+  const bindingStatusLabel =
+    binding && binding.status !== "unbound"
+      ? t(`dashboard.addDevice.bindingStatus_${binding.status}`, {
+          defaultValue: binding.status,
+        })
+      : null;
 
   const readinessTitle = t(`dashboard.addDevice.readiness_${readiness}`);
   const readinessBody = t(
@@ -1160,6 +1179,66 @@ export default function AddDeviceScreen() {
           </AppText>
         </View>
 
+        {bindingError && !isBound ? (
+          <View
+            style={[
+              styles.statusBanner,
+              {
+                backgroundColor: colors.severity.critical.bg,
+                borderColor: colors.severity.critical.border,
+              },
+            ]}
+            accessibilityRole="text"
+            accessibilityLiveRegion="polite"
+          >
+            <Ionicons
+              name="cloud-offline-outline"
+              size={20}
+              color={colors.severity.critical.text}
+            />
+            <View style={styles.statusBannerBody}>
+              <AppText
+                variant="body"
+                style={[
+                  styles.statusBannerTitle,
+                  { color: colors.severity.critical.text },
+                ]}
+              >
+                {t("dashboard.addDevice.bindingErrorTitle")}
+              </AppText>
+              <AppText
+                variant="caption"
+                style={{ color: colors.severity.critical.text }}
+              >
+                {t("dashboard.addDevice.bindingErrorBody")}
+              </AppText>
+              <Pressable
+                onPress={handleRetryBinding}
+                accessibilityRole="button"
+                accessibilityLabel={t("dashboard.addDevice.bindingRetry")}
+                disabled={bindingLoading}
+                style={({ pressed }) => [
+                  styles.secondaryActionButton,
+                  styles.bannerActionButton,
+                  bindingLoading && styles.disabled,
+                  pressed && !bindingLoading && styles.pressed,
+                ]}
+              >
+                {bindingLoading ? (
+                  <ActivityIndicator size="small" color={colors.text} />
+                ) : (
+                  <AppText
+                    variant="caption"
+                    style={styles.secondaryActionText}
+                  >
+                    {t("dashboard.addDevice.bindingRetry")}
+                  </AppText>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
+
         {isBound ? (
           <View
             style={[
@@ -1197,8 +1276,24 @@ export default function AddDeviceScreen() {
                 variant="caption"
                 style={{ color: colors.severity.elevated.text }}
               >
-                {binding?.status}
+                {t("dashboard.addDevice.disconnectCloudNote")}
               </AppText>
+              {bindingStatusLabel ? (
+                <AppText
+                  variant="caption"
+                  style={{ color: colors.severity.elevated.text }}
+                >
+                  {bindingStatusLabel}
+                </AppText>
+              ) : null}
+              {bindingError ? (
+                <AppText
+                  variant="caption"
+                  style={{ color: colors.severity.elevated.text }}
+                >
+                  {t("dashboard.addDevice.bindingStale")}
+                </AppText>
+              ) : null}
               <Pressable
                 onPress={handleDisconnectPress}
                 accessibilityRole="button"

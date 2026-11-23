@@ -367,6 +367,16 @@ const en = {
         "This device is bound to your account. Disconnect it before adding another device.",
       disconnect: "Disconnect Device",
       disconnecting: "Disconnecting...",
+      disconnectCloudNote:
+        "Disconnect uses the device's Wi-Fi connection. Bluetooth is not required.",
+      bindingStatus_binding: "Status: connecting",
+      bindingStatus_active: "Status: connected",
+      bindingStatus_release_pending: "Status: disconnecting",
+      bindingStale: "Device status may be outdated. Retry to refresh it.",
+      bindingErrorTitle: "Couldn't load device status",
+      bindingErrorBody:
+        "Check your connection and retry. Disconnect appears once your bound device is loaded.",
+      bindingRetry: "Retry",
       releasePending:
         "Disconnect request sent. Waiting for the device to confirm.",
       releaseSuccess: "Device disconnected successfully.",

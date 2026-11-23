@@ -386,6 +386,16 @@ const ceb = {
         "Naka-bind kini nga device sa imong account. I-disconnect kini sa dili pa magdugang ug laing device.",
       disconnect: "I-disconnect ang Device",
       disconnecting: "Gina-disconnect...",
+      disconnectCloudNote:
+        "Ang pag-disconnect naggamit sa Wi-Fi sa device. Dili kinahanglan ang Bluetooth.",
+      bindingStatus_binding: "Status: nagkonekta",
+      bindingStatus_active: "Status: konektado",
+      bindingStatus_release_pending: "Status: gina-disconnect",
+      bindingStale: "Mahimong karaan ang status sa device. Sulayi pag-usab.",
+      bindingErrorTitle: "Dili ma-load ang status sa device",
+      bindingErrorBody:
+        "Susiha ang koneksyon ug sulayi pag-usab. Makita ang Disconnect kung ma-load na ang naka-bind nga device.",
+      bindingRetry: "Sulayi pag-usab",
       releasePending:
         "Naipadala na ang disconnect request. Paghulat sa kumpirmasyon sa device.",
       releaseSuccess: "Malampuson nga na-disconnect ang device.",
