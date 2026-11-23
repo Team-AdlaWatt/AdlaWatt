@@ -21,7 +21,8 @@
    would wipe the SPA session instead of re-fetching data.
    Applied via the shared testID on PullRefreshScroll.
    ============================================================ */
-[data-testid="pull-scroll"] {
+[data-testid="pull-scroll"],
+[data-testid="admin-pull-scroll"] {
   overscroll-behavior-y: contain;
 }
 

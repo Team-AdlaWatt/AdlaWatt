@@ -7,7 +7,7 @@ What you do well already:
 * Live path works: `src/services/monitoringService.ts` + `notificationService.ts` (transition-gated + 10/5-min cooldowns) + `send-alert-email` Edge Function.
 * Recommendation engine `src/services/recommendation.ts` is pure/testable — good design.
 * Analytics screen wires 17 charts (post appliance-usage removal); `README.md` now documents all of them (see 10).
-* Admin scaffold exists (`src/admin/components/AdminDashboardScreen.tsx`), `supabase/migrations/20261007*user_roles.sql`, `appliance-images` bucket + `MediaPickerModal.tsx`, vibration, Google auth, forgot-password — done in code, still listed as missing in `README.md`.
+* Active admin monitoring exists (`src/admin/components/AdminDashboardScreen.tsx`), `supabase/migrations/20261007*user_roles.sql`, `appliance-images` bucket + `MediaPickerModal.tsx`, vibration, Google auth, forgot-password — done in code and documented in `README.md`.
 * ✅ NEW since last review: Porch catalog photos (`cctv-camera.png`, `porch-lantern.png` wired in `CATALOG_IMAGES`) — Porch no longer falls back to the default icon.
 
 +-----+----------+------------------------------+------------+----------------------------------------------------------+

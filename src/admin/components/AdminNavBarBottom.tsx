@@ -5,6 +5,7 @@ import {
   StyleSheet,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import AppText from "@/components/ui/AppText";
 import {
@@ -22,7 +23,7 @@ import {
 //
 // Same shell + tokens as household NavBarBottom (accent line,
 // bar background, 24px+ targets) but admin tabs only —
-// Overview, Users, Reports. Controlled by the admin screen
+// Overview, History. Controlled by the admin screen
 // via useState (no extra routes). Strictly no cross-role
 // switch: role guards own all routing.
 // ============================================================
@@ -37,6 +38,7 @@ export default function AdminNavBarBottom({
   onChange,
 }: AdminNavBarBottomProps) {
   const colors = useAppColors();
+  const insets = useSafeAreaInsets();
 
   const styles = useMemo(
     () => getStyles(colors),
@@ -44,7 +46,12 @@ export default function AdminNavBarBottom({
   );
 
   return (
-    <View style={styles.wrapper}>
+    <View
+      style={[
+        styles.wrapper,
+        { paddingBottom: insets.bottom },
+      ]}
+    >
       <View style={styles.accentLine} />
 
       <View style={styles.container}>

@@ -3,12 +3,17 @@
 A claim-by-claim comparison of the capstone manuscript against the current
 AdlaWatt codebase.
 
+> **Superseding ruling (23 November 2026):** the in-app admin dashboard is now
+> active and in scope. It provides fleet-wide battery, solar, load, and
+> historical monitoring. The November 10 "no admin" rulings below are retained
+> for traceability but superseded wherever they mention admin removal.
+
 | | |
 |---|---|
 | **Manuscript** | `AdlaWatt-Manuscript.docx` — "AdlaWatt: An IoT-Based Off-Grid Solar Backup Power System with Real-Time Energy Monitoring and Appliance Recommendation" (Capstone Project, Northern Bukidnon State College, July 2025) |
 | **App** | This repository, `development` branch @ `9f87e11` (Expo 57 / React Native 0.86 / TypeScript / Supabase) |
 | **Compared on** | November 10, 2026 |
-| **Direction of truth** | The **manuscript is authoritative for hardware values** (Wh, W, ratings); the **app is authoritative for features**. The system has **no admin role** and is **Android-only**. |
+| **Direction of truth** | The **manuscript is authoritative for hardware values** (Wh, W, ratings); the **app is authoritative for features**. The system has an active **in-app admin role** and is **Android-only**. |
 | **Rulings added** | November 10, 2026 (see next section) |
 
 ---
@@ -39,7 +44,7 @@ become matches.
 | Battery energy basis | Current bank basis: **12.6 V × 60 Ah = 756 Wh total**, 20% reserve (**151.2 Wh**), **604.8 Wh usable**. Runtime also models a **6 W** inverter idle draw at **90%** efficiency. The manuscript states only "12 V, 60 Ah" and no usable figure. | App: `src/constants/battery.ts` and dependents |
 | Appliance wattage limit | Manuscript's **600 W** is authoritative: hard cap **600 W** for a single appliance and combined load stack, warning tier at **480 W**. | App: `src/services/recommendation.ts`, `notificationService.ts`, `customElectronicsValidation.ts` |
 | Inverter rating | **1500 W** (Table 1 + Figures 3/5/7) is the real rating; the "Inverter 1000" phrase in the 3.3 design text is a manuscript typo. | Manuscript: 3.3 design text corrected |
-| Admin | **No admin.** The app removes all admin code, routes, guards, and login-screen references (Supabase `users.role` column and role migrations stay untouched). The manuscript removes the Admin actor, Admin Dashboard definition, and web-dashboard scope sentences. | App: delete `src/app/admin/`, `src/admin/`; Manuscript: Definition of Terms, 1.4, 3.2, Figure 4, 3.4 |
+| Admin | **Active in-app admin.** Kept role-gated monitoring for battery, solar, load, and historical data. Supersedes the November 10 "no admin" ruling. | App: `src/admin/`, `src/app/admin/`, `supabase/migrations/20261123135358_admin_monitoring_rpcs.sql` |
 | Platform | **Android-only** confirmed (already the manuscript's stated limitation). App drops the iOS config; manuscript wording "cross-platform mobile application" is corrected to Android. | App: `app.json`, `package.json`; Manuscript: 1.4 scope |
 | Humidity | DHT22 humidity is **documented as a limitation** — not surfaced in the app and no firmware exists yet to feed it. No code change now. | Manuscript: limitation note |
 | Voltage thresholds | Manuscript is silent on cell voltages; the app keeps its engineering values (10.6 V unsafe / 10.75 V caution / 10.85 V recovery; 11.6–14.6 V window). | No change |
@@ -51,7 +56,7 @@ become matches.
 
 **Direction of truth.** The manuscript is the source of truth for the
 hardware side (Wh, W, ratings); the app is the source of truth for features.
-There is no admin, and the system is Android-only. Every discrepancy below
+There is an active in-app admin, and the system is Android-only. Every discrepancy below
 has a ruling recorded in the Reconciliation Rulings section.
 
 Across 69 claim rows in Sections 1–12: **40 Match · 7 Partial · 2 Mismatch ·
@@ -60,8 +65,9 @@ Section 13.
 
 > **Status note.** These counts describe the code as it stands at `9f87e11`,
 > before the November 10 rulings are applied. Once the ruled changes land
-> (Parts A–D of the reconciliation plan), the 2 Mismatch rows become matches,
-> the admin rows disappear, and the tallies will be refreshed again.
+> (Parts A–D of the reconciliation plan), the 2 Mismatch rows become matches.
+> The admin rows are superseded by the 23 November ruling, and the tallies
+> will be refreshed again.
 
 **What matches well.** The app implements essentially every mobile-app
 function the manuscript describes: the full real-time monitoring field list,
@@ -84,9 +90,9 @@ All Household User use-cases are covered.
    60 Ah bank. *Current basis:* 12.6 V × 60 Ah = 756 Wh total, with a
    151.2 Wh reserve (20%) and 604.8 Wh usable.
 3. **Admin dashboard** — the manuscript describes a *web-based* platform for
-   researchers; the app has an *in-app* role-gated shell with login/logout
-   only. *Ruled:* there is no admin — the app removes admin code entirely
-   (DB untouched) and the manuscript drops the Admin actor and dashboard.
+   researchers; the app has an *in-app* role-gated dashboard. *Ruled 23 Nov:*
+   the app keeps the admin for fleet-wide battery, solar, load, and historical
+   monitoring; this supersedes the earlier "no admin" ruling.
 4. **Software stack wording** — manuscript Table 2 says "C++, JavaScript,
    CSS, React.js (JSX)"; the app is TypeScript + React Native. *Ruled:* the
    manuscript's software table is updated to the real stack via the Word
@@ -252,26 +258,25 @@ Section tally: 1 Match · 1 Extra
 | Household User: monitor solar energy | Monitoring dashboard + realtime | Match |
 | Household User: monitor load consumption | Monitoring dashboard + realtime | Match |
 | Household User: view historical data | Analytics screen (17 charts) | Match |
-| Admin actor exists | `users.role = admin`, `useAdminGuard` routes admins to `/admin` | Match — *Ruled:* no admin; remove from app (code only, DB untouched) and from the manuscript's use-case diagram |
-| Admin: monitor battery level / solar energy / load consumption / historical data | Admin shell has **no live monitoring** — only login/logout/exit | Not in app — *Ruled:* no admin; remove the actor entirely rather than implement |
-| Admin: configure alert thresholds | Threshold publishing was **removed by design** from the admin shell | Not in app — *Ruled:* no admin; remove from the manuscript use-case |
+| Admin actor exists | `users.role = admin`, `useAdminGuard` routes admins to `/admin` | Match — *Ruled 23 Nov:* keep active in-app admin |
+| Admin: monitor battery level / solar energy / load consumption / historical data | Role-gated Overview + History tabs with live aggregates and time-series charts | Match — *Ruled 23 Nov:* implement and keep |
+| Admin: configure alert thresholds | Threshold publishing removed by design; admin is monitoring-only | Not in app — *Ruled 23 Nov:* keep out of admin scope |
 
-Section tally: 7 Match · 2 Not in app
+Section tally: 9 Match · 1 Not in app
 
 ---
 
 ## 11. Admin Dashboard
 
-*Ruled November 10, 2026: there is no admin.* The app removes its admin shell
-(code only; the Supabase `users.role` column and role migrations stay
-untouched), and the manuscript removes the Admin Dashboard definition, the
-web-dashboard scope sentences, and the Admin use-case actor via the Word edit
-checklist. This section is retained for traceability.
+*Ruled November 23, 2026: keep an active in-app admin.* This supersedes the
+November 10 "no admin" ruling. The admin area is monitoring-only: fleet-wide
+battery, solar, load, and historical data, with no household drill-down,
+user management, exports, or audit surface.
 
 | Manuscript claim | Current app state | Status |
 |---|---|---|
-| "Planned web-based platform" for researchers to monitor system data, manage records, and review system information (Definition of Terms; Scope 1.4) | In-app (React Native, not web) role-gated shell: "Starting UI — account actions only"; Users/Devices/Reports/Settings boxes are presentational no-ops — `src/admin/components/AdminDashboardScreen.tsx` | Partial — *Ruled:* remove (no admin) |
-| Researchers are a distinct user class | Admin role + guard, fixed light theme and English-only admin area | Match — *Ruled:* remove (no admin) |
+| "Planned web-based platform" for researchers to monitor system data, manage records, and review system information (Definition of Terms; Scope 1.4) | In-app (React Native, not web) role-gated Overview + History tabs: live battery/solar/load KPIs and time-series charts — `src/admin/components/AdminDashboardScreen.tsx` | Partial — platform is in-app, not web |
+| Researchers are a distinct user class | Admin role + guard, fixed light theme and English-only admin area | Match |
 
 Section tally: 1 Partial · 1 Match
 
@@ -354,12 +359,13 @@ comparison):
   no usable-energy or reserve percentage; the manuscript specifies only a
   12 V, 60 Ah bank. The current app uses the calibrated 12.6 V, 60 Ah
   basis: 756 Wh total, 151.2 Wh reserve, 604.8 Wh usable.
-- **Reconciliation rulings (November 10, 2026):** manuscript is authoritative
-  for hardware values, the app is authoritative for features, there is no
-  admin, and the system is Android-only. Details in the Reconciliation
-  Rulings section. Implementation of these rulings is tracked separately
-  (apps: hardware constants, admin removal, Android-only config; manuscript:
-  `markdown/manuscript-updates.md` checklist).
+- **Reconciliation rulings (November 10, 2026, admin superseded November 23):**
+  manuscript is authoritative for hardware values, the app is authoritative
+  for features, the active in-app admin is retained for monitoring, and the
+  system is Android-only. Details in the Reconciliation Rulings section.
+  Implementation is tracked separately (apps: hardware constants, admin
+  monitoring, Android-only config; manuscript: `markdown/manuscript-updates.md`
+  checklist).
 - Hardware rows are marked N/A where the component is physical and has no
   code counterpart; rows note where the app surfaces the component's data
   or status.

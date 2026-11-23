@@ -7,27 +7,17 @@ import {
 } from "react-native";
 
 import AppText from "@/components/ui/AppText";
+import { formatLastUpdated } from "@/admin/format";
 import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
-import type { AdminFleetHealth } from "@/services/adminService";
 
-// ============================================================
-// ADMIN TAB SHARED PIECES
-//
-// The three dashboard tabs (Overview, Users, Reports) render
-// the same state ladder — loading spinner, error card with
-// retry, tab header — over one shared fleet fetch. These
-// pieces keep that ladder identical across tabs instead of
-// copy-pasting it per tab. Admin-local on purpose because
-// admin is pinned English-only.
-// ============================================================
-
-export interface AdminTabDataProps {
-  fleet: AdminFleetHealth | null;
+export interface AdminTabDataProps<T> {
+  data: T | null;
   loading: boolean;
   error: string | null;
+  stale: boolean;
   onRetry: () => void;
 }
 
@@ -73,6 +63,8 @@ export function AdminTabError({
 
       <Pressable
         onPress={onRetry}
+        accessibilityRole="button"
+        accessibilityLabel="Retry loading admin data"
         style={({ pressed }) => [
           styles.retryButton,
           pressed && styles.pressed,
@@ -111,6 +103,43 @@ export function AdminTabHeader({
       <AppText variant="caption" style={styles.headerSub}>
         {subtitle}
       </AppText>
+    </View>
+  );
+}
+
+interface AdminFreshnessProps {
+  lastUpdated: string | null;
+  stale: boolean;
+}
+
+export function AdminFreshness({
+  lastUpdated,
+  stale,
+}: AdminFreshnessProps) {
+  const colors = useAppColors();
+
+  const styles = useMemo(
+    () => getStyles(colors),
+    [colors],
+  );
+
+  return (
+    <View style={styles.freshnessRow}>
+      <AppText
+        variant="caption"
+        style={styles.freshnessText}
+      >
+        Updated {formatLastUpdated(lastUpdated)}
+      </AppText>
+
+      {stale ? (
+        <AppText
+          variant="caption"
+          style={styles.staleText}
+        >
+          Refresh failed — showing last known values
+        </AppText>
+      ) : null}
     </View>
   );
 }
@@ -163,5 +192,19 @@ const getStyles = (colors: AppColors) =>
 
     headerSub: {
       color: colors.textSecondary,
+    },
+
+    freshnessRow: {
+      width: "100%",
+      gap: 2,
+    },
+
+    freshnessText: {
+      color: colors.textSecondary,
+    },
+
+    staleText: {
+      color: colors.error,
+      fontWeight: "600",
     },
   });

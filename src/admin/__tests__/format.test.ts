@@ -8,7 +8,11 @@
 
 import {
   formatBatteryPercent,
+  formatEnergyWh,
+  formatHistoryLabel,
   formatLastUpdated,
+  formatMetricValue,
+  formatPowerW,
   formatSolarKwh,
   formatVoltage,
 } from "@/admin/format";
@@ -40,5 +44,30 @@ describe("admin format helpers", () => {
 
     expect(rendered).not.toBe("—");
     expect(rendered.length).toBeGreaterThan(0);
+  });
+
+  test("small energy values stay in watt-hours", () => {
+    expect(formatEnergyWh(0)).toBe("0.0 Wh");
+    expect(formatEnergyWh(0.8)).toBe("0.8 Wh");
+    expect(formatEnergyWh(4800)).toBe("4.8 kWh");
+  });
+
+  test("power keeps one decimal and a null dash", () => {
+    expect(formatPowerW(0.6)).toBe("0.6 W");
+    expect(formatPowerW(null)).toBe("—");
+  });
+
+  test("metric values use the correct unit", () => {
+    expect(formatMetricValue("battery", 76.4)).toBe("76%");
+    expect(formatMetricValue("solar", 0.1)).toBe("0.1 Wh");
+    expect(formatMetricValue("load", 0.6)).toBe("0.6 W");
+  });
+
+  test("history labels follow the selected range", () => {
+    const iso = "2026-11-23T12:33:18Z";
+
+    expect(formatHistoryLabel(iso, 24)).not.toBe("");
+    expect(formatHistoryLabel(iso, 168)).toMatch(/[A-Za-z]/);
+    expect(formatHistoryLabel("invalid", 24)).toBe("");
   });
 });

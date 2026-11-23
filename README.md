@@ -10,7 +10,7 @@
 
 [Visit the AdlaWatt project site](https://team-adlawatt.github.io/AdlaWatt/) · [View the source code](https://github.com/Team-AdlaWatt/AdlaWatt) · [Read the user manual](docs/USER-MANUAL.md)
 
-> **Project Status:** In Development. The mobile app is integrated with Supabase. The ESP32 hardware feed is still being wired up end to end. A web-based admin dashboard for researchers is planned.
+> **Project Status:** In Development. The mobile app is integrated with Supabase. The ESP32 hardware feed is still being wired up end to end. A role-gated in-app admin dashboard provides fleet-wide monitoring.
 >
 > AdlaWatt is a backup power source, not a replacement for the electrical grid.
 
@@ -97,7 +97,7 @@ The power path and the data path are separate. Solar energy charges the battery 
 - **Historical Data & Reports** — Charts and reports over selected date ranges and frequencies. *(The 17-chart layout and CSV/PDF export are implementation additions.)*
 - **Device Status** — Live status for the ESP32, sensors, relay, fan, and display.
 - **Activity Logs** — A history of system events, separate from notifications.
-- **Admin Dashboard (implementation addition)** — Role-gated in-app admin view with fleet-wide aggregates across Overview, Users, and Reports tabs, plus pull-to-refresh. A web-based dashboard for researchers is planned.
+- **Admin Dashboard (implementation addition)** — Role-gated in-app view for fleet-wide battery, solar, load, and historical monitoring with 24h/7d/30d trends and 20s polling.
 - **Personalization (implementation addition)** — Dark mode, font size and family, language (English, Filipino, Cebuano), vibration, and email notifications.
 - **Offline Support (implementation addition)** — The dashboard shows the last cached readings with an offline banner when there is no connection.
 
@@ -291,7 +291,7 @@ supabase functions deploy send-alert-email
 | Role | Access |
 |---|---|
 | Household User | Mobile app: dashboard, appliance recommendations, historical data, device status, notifications, activity logs, and settings |
-| Admin | In-app dashboard (role-gated): fleet-wide aggregates across Overview, Users, and Reports tabs; the Users tab also lists households under sequential pseudonyms (Household 01…) — no usernames, emails, or raw rows. A web-based dashboard for researchers is planned. |
+| Admin | In-app dashboard (role-gated): fleet-wide battery, solar, and load monitoring plus historical trends. No household drill-down, usernames, emails, or raw rows are exposed. |
 
 Users sign up with a username, email, and password, or sign in with Google. Passwords can be reset by email. *(Authentication is an implementation addition beyond the manuscript.)*
 
@@ -304,23 +304,22 @@ The in-app admin dashboard lives in `src/admin/` behind the role gate in `src/ap
 ```text
 src/admin/
 ├── components/
-│   ├── AdminDashboardScreen.tsx   # One shared admin fetch, tab state, pull-to-refresh
+│   ├── AdminDashboardScreen.tsx   # Shared fetches, tab state, pull-to-refresh, 20s polling
 │   ├── AdminScreenContainer.tsx   # Layout shell + bottom tab bar
 │   ├── AdminNavBarTop.tsx         # Top bar + account menu (log out, exit)
-│   ├── AdminNavBarBottom.tsx      # Overview / Users / Reports tabs
-│   ├── AdminOverviewTab.tsx       # KPI cards + fleet status
-│   ├── AdminUsersTab.tsx          # Fleet aggregates + pseudonymized household cards
-│   ├── AdminReportsTab.tsx        # Fleet aggregate stat cards
-│   └── AdminTabShared.tsx         # Shared loading/error/header pieces
+│   ├── AdminNavBarBottom.tsx      # Overview / History tabs
+│   ├── AdminOverviewTab.tsx       # Battery, solar, and load KPI cards
+│   ├── AdminHistoryTab.tsx        # Metric selector, range toggle, and time-series chart
+│   └── AdminTabShared.tsx         # Shared loading/error/header/freshness pieces
 ├── hooks/
 │   └── useAdminGuard.ts           # Client role gate + redirects
 ├── __tests__/
 │   └── format.test.ts             # Shared formatter tests
-├── constants.ts                   # Tab definitions
+├── constants.ts                   # Tab, metric, and range definitions
 └── format.ts                      # Shared value formatters
 ```
 
-All data comes only from the `get_admin_fleet_health` and `get_admin_fleet_users` SECURITY DEFINER RPCs (see `src/services/adminService.ts`): fleet-wide aggregates plus per-household rows labeled with sequential pseudonyms — no user IDs, emails, usernames, or raw monitoring rows. Pseudonyms are assigned by first-seen order within the 24-hour window, so labels may renumber between days. The admin area is pinned to light mode and English-only, so household theme and language settings never restyle it.
+All data comes only from the `get_admin_fleet_overview` and `get_admin_fleet_history` SECURITY DEFINER RPCs (see `src/services/adminService.ts`): fleet-wide aggregates and time buckets built from `monitoring_history`. No user IDs, emails, usernames, or raw monitoring rows are returned. The History tab defaults to 24 hours and offers 7d/30d ranges; the screen refreshes every 20 seconds while visible and keeps last-known values with a stale banner when a refresh fails. The admin area is pinned to light mode and English-only, so household theme and language settings never restyle it.
 
 ---
 

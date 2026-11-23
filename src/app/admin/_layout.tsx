@@ -22,7 +22,7 @@ import RouteErrorBoundary from "@/components/ui/RouteErrorBoundary";
 // on first frame even via cold deep link.
 // Admin uses its own AdminScreenContainer + AdminNavBarBottom
 // from src/admin/. Auth + role guard here (see
-// useAdminGuard); the screen keeps its own gate as well.
+// useAdminGuard); child screens inherit that gate.
 // ============================================================
 
 function ThemedAdmin() {

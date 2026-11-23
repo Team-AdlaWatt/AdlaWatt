@@ -163,7 +163,7 @@ Shared rules:
 - Do not put live values in `title`; it breaks cooldown keys and fragments history.
 - Do not mark routine transitions (`Charging`, `Level Updated`, milestones) with `logAs`; the activity table gets signal, not telemetry.
 - Do not evaluate rules on raw snapshots; always compare current vs previous or the rule refires every poll.
-- Threshold values are frozen engineering constants in `notificationService.ts` (480 W / 11.6 V / 14.6 V) — the admin dashboard is a non-functional shell with no publishing role, so nothing reads thresholds at runtime and nothing may be silently `null`.
+- Threshold values are frozen engineering constants in `notificationService.ts` (480 W / 11.6 V / 14.6 V) — the admin dashboard is monitoring-only with no publishing role, so nothing reads thresholds at runtime and nothing may be silently `null`.
 - Do not duplicate the Safe/Returned-to-Safe pair on one transition (fixed in `checkDepthOfDischarge` — only the transition-accurate "Returned to Safe" fires, since `dod_status` is binary).
 - Do not add forecast rules that poll the weather API on the monitoring cadence; poll forecasts on their own slow schedule.
 

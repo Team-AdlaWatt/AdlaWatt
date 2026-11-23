@@ -11,107 +11,167 @@ import PullRefreshScroll from "@/components/PullRefreshScroll";
 import AdminNavBarTop from "@/admin/components/AdminNavBarTop";
 import AdminScreenContainer from "@/admin/components/AdminScreenContainer";
 import AdminOverviewTab from "@/admin/components/AdminOverviewTab";
-import AdminUsersTab from "@/admin/components/AdminUsersTab";
-import AdminReportsTab from "@/admin/components/AdminReportsTab";
+import AdminHistoryTab from "@/admin/components/AdminHistoryTab";
 import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
 import { useScreenPadding } from "@/constants/sizing";
-import { useAdminGuard } from "@/admin/hooks/useAdminGuard";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import {
-  getAdminFleetHealth,
-  getAdminFleetUsers,
-  type AdminFleetHealth,
-  type AdminFleetUser,
+  getAdminFleetHistory,
+  getAdminFleetOverview,
+  type AdminFleetHistoryPoint,
+  type AdminFleetOverview,
 } from "@/services/adminService";
-import type { AdminTab } from "@/admin/constants";
+import type {
+  AdminHistoryRange,
+  AdminTab,
+} from "@/admin/constants";
+
+const POLL_INTERVAL_MS = 20_000;
 
 export default function AdminDashboardScreen() {
   const colors = useAppColors();
   const styles = getStyles(colors);
   const screenPadding = useScreenPadding();
-  const { canRender } = useAdminGuard();
-  const [activeTab, setActiveTab] = useState<AdminTab>("overview");
-
-  // One shared admin fetch for all three tabs: pull-to-refresh
-  // and tab switches reuse it instead of refetching per tab.
-  // Fleet health feeds Overview/Reports; fleet users feed the
-  // pseudonymized household list on the Users tab.
-  const [fleet, setFleet] = useState<AdminFleetHealth | null>(null);
-  const [users, setUsers] = useState<AdminFleetUser[] | null>(null);
+  const [activeTab, setActiveTab] =
+    useState<AdminTab>("overview");
+  const [range, setRange] =
+    useState<AdminHistoryRange>(24);
+  const [overview, setOverview] =
+    useState<AdminFleetOverview | null>(null);
+  const [history, setHistory] = useState<
+    AdminFleetHistoryPoint[] | null
+  >(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [overviewError, setOverviewError] = useState<
+    string | null
+  >(null);
+  const [historyError, setHistoryError] = useState<
+    string | null
+  >(null);
+  const [stale, setStale] = useState(false);
 
-  // Ref mirrors of the latest snapshots so `load` stays
-  // stable: with data on screen, a pull refreshes in place
-  // (last-known values stay up) instead of flipping back to
-  // the full-screen loader.
-  const fleetRef = useRef<AdminFleetHealth | null>(null);
-  const usersRef = useRef<AdminFleetUser[] | null>(null);
+  const overviewRef = useRef<AdminFleetOverview | null>(
+    null,
+  );
+  const historyRef = useRef<
+    AdminFleetHistoryPoint[] | null
+  >(null);
+  const inFlightRef = useRef(false);
 
-  const load = useCallback(async () => {
-    if (fleetRef.current === null) {
-      setLoading(true);
+  const loadOverview = useCallback(async () => {
+    const result = await getAdminFleetOverview();
+
+    if (result.data) {
+      setOverview(result.data);
+      overviewRef.current = result.data;
+      setOverviewError(null);
+
+      return true;
     }
 
-    setError(null);
+    setOverviewError(result.error);
 
-    const [fleetResult, usersResult] = await Promise.all([
-      getAdminFleetHealth(),
-      getAdminFleetUsers(),
-    ]);
-
-    // Same loader contract as the household dashboard: keep
-    // last-known values on a failed refresh; the error card
-    // only takes over with nothing to show.
-    if (fleetResult.error || !fleetResult.data) {
-      if (fleetRef.current === null) {
-        setFleet(null);
-      }
-    } else {
-      setFleet(fleetResult.data);
-      fleetRef.current = fleetResult.data;
+    if (overviewRef.current === null) {
+      setOverview(null);
     }
 
-    if (usersResult.error || !usersResult.data) {
-      if (usersRef.current === null) {
-        setUsers(null);
-      }
-    } else {
-      setUsers(usersResult.data);
-      usersRef.current = usersResult.data;
-    }
-
-    setError(
-      fleetResult.error ||
-        usersResult.error ||
-        null,
-    );
-
-    setLoading(false);
+    return false;
   }, []);
 
-  useEffect(() => {
-    if (!canRender) {
+  const loadHistory = useCallback(
+    async (nextRange: AdminHistoryRange) => {
+      const result = await getAdminFleetHistory(nextRange);
+
+      if (result.data) {
+        setHistory(result.data);
+        historyRef.current = result.data;
+        setHistoryError(null);
+
+        return true;
+      }
+
+      setHistoryError(result.error);
+
+      if (historyRef.current === null) {
+        setHistory(null);
+      }
+
+      return false;
+    },
+    [],
+  );
+
+  const refreshAll = useCallback(async () => {
+    if (inFlightRef.current) {
       return;
     }
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial Supabase fetch once the admin guard clears
-    void load();
-  }, [canRender, load]);
+    inFlightRef.current = true;
+    setLoading(
+      overviewRef.current === null &&
+        historyRef.current === null,
+    );
 
-  const { refreshing, onRefresh } = usePullToRefresh(load);
+    try {
+      const [overviewOk, historyOk] = await Promise.all([
+        loadOverview(),
+        loadHistory(range),
+      ]);
 
-  // Same retry action for all three tabs' error states.
+      setStale(!overviewOk || !historyOk);
+    } finally {
+      inFlightRef.current = false;
+      setLoading(false);
+    }
+  }, [loadOverview, loadHistory, range]);
+
+  const refreshAllRef = useRef(refreshAll);
+
+  useEffect(() => {
+    refreshAllRef.current = refreshAll;
+  }, [refreshAll]);
+
+  useEffect(() => {
+    void refreshAllRef.current();
+
+    const timer = setInterval(() => {
+      const browserDocument = (
+        globalThis as {
+          document?: { visibilityState?: string };
+        }
+      ).document;
+
+      const hidden =
+        browserDocument?.visibilityState === "hidden";
+
+      if (!hidden) {
+        void refreshAllRef.current();
+      }
+    }, POLL_INTERVAL_MS);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleRangeChange = useCallback(
+    (nextRange: AdminHistoryRange) => {
+      setRange(nextRange);
+
+      void loadHistory(nextRange).then((ok) => {
+        setStale(!ok);
+      });
+    },
+    [loadHistory],
+  );
+
+  const { refreshing, onRefresh } =
+    usePullToRefresh(refreshAll);
+
   const handleRetry = () => {
-    void load();
+    void refreshAll();
   };
-
-  if (!canRender) {
-    return null;
-  }
 
   return (
     <AdminScreenContainer
@@ -135,28 +195,23 @@ export default function AdminDashboardScreen() {
       >
         {activeTab === "overview" ? (
           <AdminOverviewTab
-            fleet={fleet}
+            data={overview}
             loading={loading}
-            error={error}
+            error={overviewError}
+            stale={stale}
             onRetry={handleRetry}
           />
         ) : null}
 
-        {activeTab === "users" ? (
-          <AdminUsersTab
-            fleet={fleet}
-            users={users}
+        {activeTab === "history" ? (
+          <AdminHistoryTab
+            data={history}
+            lastUpdated={overview?.last_updated ?? null}
+            range={range}
+            onRangeChange={handleRangeChange}
             loading={loading}
-            error={error}
-            onRetry={handleRetry}
-          />
-        ) : null}
-
-        {activeTab === "reports" ? (
-          <AdminReportsTab
-            fleet={fleet}
-            loading={loading}
-            error={error}
+            error={historyError}
+            stale={stale}
             onRetry={handleRetry}
           />
         ) : null}

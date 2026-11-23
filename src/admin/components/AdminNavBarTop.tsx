@@ -102,12 +102,7 @@ export default function AdminNavBarTop() {
       }
 
       if (Platform.OS === "web") {
-        window.close();
-
-        Alert.alert(
-          "Exit",
-          "Please close this tab manually to exit AdlaWatt.",
-        );
+        router.replace(Routes.DASHBOARD);
       }
     };
 

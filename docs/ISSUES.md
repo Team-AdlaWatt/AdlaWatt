@@ -1743,6 +1743,37 @@ One shared control drove every card, Solar and Load showed watt-hours, and the c
 
 ---
 
+### 55. feat(admin): make the admin dashboard a live monitoring tool
+
+**Summary**
+The admin area had three tabs with no live chart, no load metric, no freshness
+signal, and a Users tab that could not work against the linked Supabase project.
+
+**Steps to Reproduce**
+1. Sign in as an admin.
+2. Open the admin dashboard and switch tabs.
+
+**Expected Behavior**
+Admins can monitor fleet battery level, solar energy, load consumption, and
+historical data in one role-gated area.
+
+**Actual Behavior**
+Overview showed an empty Fleet Status chart, Reports was a static summary, and
+Users depended on a missing RPC. No admin account existed in the linked project.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Replaced Overview/Users/Reports with Overview and History tabs.
+Overview shows battery, solar, and load KPIs; History adds metric and 24h/7d/30d
+range selectors with a real time-series chart. Added 20s polling with a stale
+banner, targeted Supabase RPCs (`get_admin_fleet_overview`,
+`get_admin_fleet_history`), and a seeded test admin account. The admin is now
+monitoring-only: no household drill-down, exports, or audit surface.
+
+---
+
 ## Still To Do
 
 - Update the ESP32 firmware so watt_hours is reported on the 720 Wh manuscript

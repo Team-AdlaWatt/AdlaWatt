@@ -30,7 +30,7 @@ import { segmentedSizes } from "@/components/ui/segmented";
 // the OS requests reduced motion. Colors resolve per theme.
 // ============================================================
 
-export interface SlidingOption<T extends string> {
+export interface SlidingOption<T extends string | number> {
   value: T;
   label: string;
   /** Pill fill when selected. */
@@ -40,7 +40,7 @@ export interface SlidingOption<T extends string> {
   accessibilityLabel: string;
 }
 
-interface SlidingToggleProps<T extends string> {
+interface SlidingToggleProps<T extends string | number> {
   options: readonly SlidingOption<T>[];
   value: T;
   onChange: (value: T) => void;
@@ -55,7 +55,7 @@ interface SlidingToggleProps<T extends string> {
 
 const GLIDE_MS = 220;
 
-export function SlidingToggle<T extends string>({
+export function SlidingToggle<T extends string | number>({
   options,
   value,
   onChange,
