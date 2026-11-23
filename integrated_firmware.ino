@@ -447,13 +447,13 @@ static bool awRollbackNVS() {
 
 static void awEraseBondConfigNVS() {
   if (awPrefs.begin("aw-config", false)) {
-    awPrefs.removeKey("ssid");
-    awPrefs.removeKey("password");
-    awPrefs.removeKey("monitor_id");
-    awPrefs.removeKey("device_id");
-    awPrefs.removeKey("bound");
-    awPrefs.removeKey("key_id");
-    awPrefs.removeKey("secret");
+    awPrefs.remove("ssid");
+    awPrefs.remove("password");
+    awPrefs.remove("monitor_id");
+    awPrefs.remove("device_id");
+    awPrefs.remove("bound");
+    awPrefs.remove("key_id");
+    awPrefs.remove("secret");
     awPrefs.end();
   }
 
@@ -1277,10 +1277,23 @@ static String awBase64UrlEncode(const uint8_t* data, size_t len) {
 
 static String awHmacSha256Base64Url(const String& key, const String& message) {
   uint8_t digest[32];
-  int rc = mbedtls_md_hmac(MBEDTLS_MD_SHA256,
-                           (const unsigned char*)key.c_str(), key.length(),
-                           (const unsigned char*)message.c_str(), message.length(),
-                           digest);
+  int rc = -1;
+
+#if defined(MBEDTLS_VERSION_MAJOR) && MBEDTLS_VERSION_MAJOR >= 3
+  const mbedtls_md_info_t* mdInfo =
+    mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+  if (mdInfo == nullptr) return "";
+  rc = mbedtls_md_hmac(mdInfo,
+                       (const unsigned char*)key.c_str(), key.length(),
+                       (const unsigned char*)message.c_str(), message.length(),
+                       digest);
+#else
+  rc = mbedtls_md_hmac(MBEDTLS_MD_SHA256,
+                       (const unsigned char*)key.c_str(), key.length(),
+                       (const unsigned char*)message.c_str(), message.length(),
+                       digest);
+#endif
+
   if (rc != 0) return "";
   return awBase64UrlEncode(digest, sizeof(digest));
 }
