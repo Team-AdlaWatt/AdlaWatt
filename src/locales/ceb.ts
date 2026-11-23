@@ -381,6 +381,21 @@ const ceb = {
     addDevice: {
       title: "Pagdugang ug Device",
       subtitle: "Ikonekta ug i-set up ang imong AdlaWatt monitoring device.",
+      boundTitle: "Konektado na ang device",
+      boundBody:
+        "Naka-bind kini nga device sa imong account. I-disconnect kini sa dili pa magdugang ug laing device.",
+      disconnect: "I-disconnect ang Device",
+      disconnecting: "Gina-disconnect...",
+      releasePending:
+        "Naipadala na ang disconnect request. Paghulat sa kumpirmasyon sa device.",
+      releaseSuccess: "Malampuson nga na-disconnect ang device.",
+      releaseFailed: "Dili ma-disconnect ang device. Sulayi pag-usab.",
+      bindingNote:
+        "Ang matag device mahimong konektado sa usa ka monitoring account.",
+      releaseConfirmTitle: "I-disconnect ang device?",
+      releaseConfirmBody:
+        "Himoa nga duol ug naka-on ang device aron makompleto ang pag-disconnect.",
+      cancel: "Kanselahin",
       deviceLabel: "AdlaWatt Device",
       deviceName: "AW-01 ? ESP32-S3",
       bluetoothName: "Bluetooth device: AdlaWatt-AW-01",

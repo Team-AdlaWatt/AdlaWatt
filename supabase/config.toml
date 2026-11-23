@@ -1,0 +1,4 @@
+project_id = "nxdabgvbwunyeffzrzta"
+
+[functions.device-command]
+verify_jwt = false

@@ -362,6 +362,21 @@ const en = {
     addDevice: {
       title: "Add Device",
       subtitle: "Connect and set up your AdlaWatt monitoring device.",
+      boundTitle: "Device already connected",
+      boundBody:
+        "This device is bound to your account. Disconnect it before adding another device.",
+      disconnect: "Disconnect Device",
+      disconnecting: "Disconnecting...",
+      releasePending:
+        "Disconnect request sent. Waiting for the device to confirm.",
+      releaseSuccess: "Device disconnected successfully.",
+      releaseFailed: "Could not disconnect the device. Please try again.",
+      bindingNote:
+        "Each device can be connected to one monitoring account.",
+      releaseConfirmTitle: "Disconnect device?",
+      releaseConfirmBody:
+        "Keep the device nearby and powered on to finish disconnecting.",
+      cancel: "Cancel",
       deviceLabel: "AdlaWatt Device",
       deviceName: "AW-01 ? ESP32-S3",
       bluetoothName: "Bluetooth device: AdlaWatt-AW-01",

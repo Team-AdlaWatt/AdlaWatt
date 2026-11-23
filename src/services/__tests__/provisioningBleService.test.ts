@@ -89,6 +89,37 @@ describe("provisioning payload", () => {
       monitor_id: 1100,
     });
   });
+
+  test("omits key_id and secret unless both are provided", () => {
+    expect(
+      JSON.parse(buildProvisioningPayload({ ...validConfig, keyId: "key-1" })),
+    ).not.toHaveProperty("key_id");
+    expect(
+      JSON.parse(
+        buildProvisioningPayload({ ...validConfig, secret: "top-secret" }),
+      ),
+    ).not.toHaveProperty("secret");
+  });
+
+  test("includes key_id and secret when both are provided", () => {
+    expect(
+      JSON.parse(
+        buildProvisioningPayload({
+          ...validConfig,
+          keyId: "key-1",
+          secret: "top-secret",
+        }),
+      ),
+    ).toEqual({
+      device_code: "482913",
+      device_id: "AW-01",
+      wifi_ssid: "AdlaWatt-Test",
+      wifi_password: "password123",
+      monitor_id: 1100,
+      key_id: "key-1",
+      secret: "top-secret",
+    });
+  });
 });
 
 describe("device discovery", () => {

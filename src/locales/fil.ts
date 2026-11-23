@@ -381,6 +381,21 @@ const fil = {
     addDevice: {
       title: "Magdagdag ng Device",
       subtitle: "Ikonekta at i-set up ang iyong AdlaWatt monitoring device.",
+      boundTitle: "Nakakonekta na ang device",
+      boundBody:
+        "Naka-bind ang device na ito sa iyong account. I-disconnect ito bago magdagdag ng ibang device.",
+      disconnect: "I-disconnect ang Device",
+      disconnecting: "Ibinidisconnect...",
+      releasePending:
+        "Naipadala na ang request sa pag-disconnect. Hintayin ang kumpirmasyon ng device.",
+      releaseSuccess: "Matagumpay na na-disconnect ang device.",
+      releaseFailed: "Hindi ma-disconnect ang device. Subukang muli.",
+      bindingNote:
+        "Bawat device ay maaaring konektado sa isang monitoring account.",
+      releaseConfirmTitle: "I-disconnect ang device?",
+      releaseConfirmBody:
+        "Panatilihing malapit at naka-on ang device para makumpleto ang pag-disconnect.",
+      cancel: "Kanselahin",
       deviceLabel: "AdlaWatt Device",
       deviceName: "AW-01 ? ESP32-S3",
       bluetoothName: "Bluetooth device: AdlaWatt-AW-01",

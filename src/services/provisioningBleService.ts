@@ -106,6 +106,8 @@ export interface ProvisioningConfig {
   wifiSsid: string;
   wifiPassword: string;
   monitorId: number;
+  keyId?: string;
+  secret?: string;
 }
 
 export interface ProvisioningOptions {
@@ -237,13 +239,20 @@ const readAckMonitorId = (
 export const buildProvisioningPayload = (
   config: ProvisioningConfig,
 ): string => {
-  return JSON.stringify({
+  const payload: Record<string, unknown> = {
     device_code: DEVICE_CODE,
     device_id: DEVICE_ID,
     wifi_ssid: config.wifiSsid,
     wifi_password: config.wifiPassword,
     monitor_id: config.monitorId,
-  });
+  };
+
+  if (config.keyId && config.secret) {
+    payload.key_id = config.keyId;
+    payload.secret = config.secret;
+  }
+
+  return JSON.stringify(payload);
 };
 
 export const parseProvisioningStatusDetail = (

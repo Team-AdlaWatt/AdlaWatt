@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
+  Alert,
   AppState,
   Linking,
   Platform,
@@ -33,6 +34,14 @@ import EmptyState from "@/components/ui/EmptyState";
 import PasswordInput from "@/components/ui/PasswordInput";
 import { Card, Control, Touch, useScreenPadding } from "@/constants/sizing";
 import { useAuth } from "@/context/AuthContext";
+import {
+  bindDevice,
+  getDeviceBinding,
+  pollDeviceRelease,
+  requestDeviceRelease,
+  type DeviceBinding,
+  type DeviceBindResult,
+} from "@/services/deviceReleaseService";
 import {
   useAppColors,
   type AppColors,
@@ -97,6 +106,8 @@ const FAILED_STATUSES: UiStatus[] = [
 ];
 
 const STATUS_ORDER: UiStatus[] = UI_STATUSES;
+const RELEASE_TIMEOUT_MS = 60_000;
+const RELEASE_POLL_INTERVAL_MS = 2_000;
 
 function toneForReadiness(readiness: BleReadiness): ToneKey {
   if (readiness === "ready") {
@@ -289,6 +300,11 @@ export default function AddDeviceScreen() {
     password?: string;
   }>({});
 
+  const [binding, setBinding] = useState<DeviceBinding | null>(null);
+  const [bindingLoading, setBindingLoading] = useState(true);
+  const [releaseBusy, setReleaseBusy] = useState(false);
+  const [releaseDetail, setReleaseDetail] = useState<string | null>(null);
+
   const [resolvedAssignment, setResolvedAssignment] = useState<{
     userId: string;
     retryKey: number;
@@ -304,6 +320,8 @@ export default function AddDeviceScreen() {
   const assignmentRequestSeqRef = useRef(0);
   const assignmentFailureRetriesRef = useRef(0);
   const sendInFlightRef = useRef(false);
+  const bindingRequestSeqRef = useRef(0);
+  const releaseInFlightRef = useRef(false);
 
   const currentUserId = user?.id ?? null;
   const isAssignmentResolvedForCurrent =
@@ -431,6 +449,8 @@ export default function AddDeviceScreen() {
   const operationBusy = IN_FLIGHT_STATUSES.includes(displayedStatus);
   const failed = FAILED_STATUSES.includes(displayedStatus);
   const isReady = readiness === "ready";
+  const isBound = binding !== null && binding.status !== "unbound";
+  const actionsBlocked = isBound || bindingLoading;
 
   const stopScan = useCallback(() => {
     scanSessionRef.current?.stop();
@@ -579,6 +599,51 @@ export default function AddDeviceScreen() {
     isLoaded,
   ]);
 
+  useEffect(() => {
+    const requestSeq = ++bindingRequestSeqRef.current;
+    let active = true;
+
+    void (async () => {
+      await Promise.resolve();
+
+      if (!active || bindingRequestSeqRef.current !== requestSeq) {
+        return;
+      }
+
+      if (!isLoaded) {
+        setBindingLoading(true);
+        return;
+      }
+
+      if (!currentUserId) {
+        setBinding(null);
+        setBindingLoading(false);
+        return;
+      }
+
+      setBindingLoading(true);
+
+      try {
+        const next = await getDeviceBinding();
+        if (active && bindingRequestSeqRef.current === requestSeq) {
+          setBinding(next);
+        }
+      } catch {
+        if (active && bindingRequestSeqRef.current === requestSeq) {
+          setBinding(null);
+        }
+      } finally {
+        if (active && bindingRequestSeqRef.current === requestSeq) {
+          setBindingLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [currentUserId, isLoaded]);
+
   const handleRetryAssignment = useCallback(() => {
     if (!currentUserId) {
       return;
@@ -667,7 +732,7 @@ export default function AddDeviceScreen() {
   };
 
   const handleScan = async () => {
-    if (operationBusy) {
+    if (operationBusy || actionsBlocked) {
       return;
     }
 
@@ -725,6 +790,10 @@ export default function AddDeviceScreen() {
   };
 
   const handleSelectDevice = (device: ScannedDevice) => {
+    if (actionsBlocked) {
+      return;
+    }
+
     stopScan();
     setSelectedDevice(device);
     setScanOpen(false);
@@ -734,7 +803,13 @@ export default function AddDeviceScreen() {
   };
 
   const handleSend = async () => {
-    if (sendInFlightRef.current || sendBusy || operationBusy) {
+    if (
+      sendInFlightRef.current ||
+      releaseInFlightRef.current ||
+      sendBusy ||
+      operationBusy ||
+      actionsBlocked
+    ) {
       return;
     }
 
@@ -771,6 +846,15 @@ export default function AddDeviceScreen() {
     sendInFlightRef.current = true;
     setSendBusy(true);
     setStatusDetail(null);
+    setReleaseDetail(null);
+
+    let resolveConfigured: ((status: UiStatus) => void) | undefined;
+    const configuredResult = new Promise<UiStatus>((resolve) => {
+      resolveConfigured = resolve;
+    });
+    const configuredTimer = setTimeout(() => {
+      resolveConfigured?.("timeout");
+    }, PROVISIONING_TIMEOUT_MS);
 
     try {
       const authUserId = user?.id ?? null;
@@ -791,6 +875,15 @@ export default function AddDeviceScreen() {
 
       const monitorId = effectiveMonitorId;
 
+      let bindResult: DeviceBindResult;
+      try {
+        bindResult = await bindDevice("AW-01", monitorId);
+      } catch {
+        setStatus("error");
+        setStatusDetail(t("dashboard.addDevice.errorBody"));
+        return;
+      }
+
       if (__DEV__) {
         console.debug("[add-device] send_start", {
           peripheral_id: selectedDevice.id,
@@ -809,12 +902,15 @@ export default function AddDeviceScreen() {
           wifiSsid: ssid.trim(),
           wifiPassword: password,
           monitorId,
+          keyId: bindResult.key_id,
+          secret: bindResult.secret,
         },
         (nextStatus, ack) => {
           setStatus(nextStatus);
 
           if (TERMINAL_STATUSES.includes(nextStatus)) {
             provisionSessionRef.current = null;
+            resolveConfigured?.(nextStatus);
           }
 
           if (ack?.issue) {
@@ -858,6 +954,19 @@ export default function AddDeviceScreen() {
           },
         },
       );
+
+      const finalStatus = await configuredResult;
+      if (finalStatus !== "configured") {
+        return;
+      }
+
+      const updatedBinding = await getDeviceBinding();
+      if (updatedBinding.status === "unbound") {
+        setStatus("error");
+        setStatusDetail(t("dashboard.addDevice.errorBody"));
+        return;
+      }
+      setBinding(updatedBinding);
     } catch (error) {
       if (error instanceof ProvisioningTimeoutError) {
         setStatus("timeout");
@@ -882,9 +991,88 @@ export default function AddDeviceScreen() {
         );
       }
     } finally {
+      clearTimeout(configuredTimer);
       sendInFlightRef.current = false;
       setSendBusy(false);
     }
+  };
+
+  const runDeviceRelease = async () => {
+    if (releaseInFlightRef.current || releaseBusy) {
+      return;
+    }
+
+    releaseInFlightRef.current = true;
+    setReleaseBusy(true);
+    setReleaseDetail(null);
+
+    try {
+      const release = await requestDeviceRelease("AW-01");
+      setReleaseDetail(
+        t("dashboard.addDevice.releasePending", {
+          expires_at: release.expires_at ?? "",
+        }),
+      );
+
+      await pollDeviceRelease("AW-01", {
+        timeoutMs: RELEASE_TIMEOUT_MS,
+        intervalMs: RELEASE_POLL_INTERVAL_MS,
+      });
+
+      setBinding(null);
+      setReleaseDetail(t("dashboard.addDevice.releaseSuccess"));
+      setSelectedDevice(null);
+      setDevices([]);
+      setScanOpen(false);
+      setScanPhase("idle");
+      setStatus("idle");
+      setStatusDetail(null);
+      setFieldErrors({});
+      assignmentFailureRetriesRef.current = 0;
+      setAssignmentRetryExhaustedFor(null);
+      setResolvedAssignment(null);
+      setAssignmentRetryKey((current) => current + 1);
+    } catch {
+      setReleaseDetail(t("dashboard.addDevice.releaseFailed"));
+      try {
+        const latest = await getDeviceBinding();
+        setBinding(latest.status === "unbound" ? null : latest);
+      } catch {
+        setBinding((current) => current);
+      }
+    } finally {
+      releaseInFlightRef.current = false;
+      setReleaseBusy(false);
+    }
+  };
+
+  const handleDisconnectPress = () => {
+    if (
+      releaseInFlightRef.current ||
+      releaseBusy ||
+      !isBound ||
+      bindingLoading
+    ) {
+      return;
+    }
+
+    Alert.alert(
+      t("dashboard.addDevice.releaseConfirmTitle"),
+      t("dashboard.addDevice.releaseConfirmBody"),
+      [
+        {
+          text: t("dashboard.addDevice.cancel"),
+          style: "cancel",
+        },
+        {
+          text: t("dashboard.addDevice.disconnect"),
+          style: "destructive",
+          onPress: () => {
+            void runDeviceRelease();
+          },
+        },
+      ],
+    );
   };
 
   const readinessTone = colors.severity[toneForReadiness(readiness)];
@@ -898,10 +1086,16 @@ export default function AddDeviceScreen() {
     { defaultValue: "" },
   );
 
-  const canScan = isReady && !operationBusy && !permissionBusy && !enableBusy;
+  const canScan =
+    isReady &&
+    !operationBusy &&
+    !permissionBusy &&
+    !enableBusy &&
+    !actionsBlocked;
   const canSend =
     !operationBusy &&
     !sendBusy &&
+    !actionsBlocked &&
     !!selectedDevice &&
     assignmentReady &&
     !!ssid.trim() &&
@@ -965,6 +1159,111 @@ export default function AddDeviceScreen() {
             {t("dashboard.addDevice.subtitle")}
           </AppText>
         </View>
+
+        {isBound ? (
+          <View
+            style={[
+              styles.statusBanner,
+              {
+                backgroundColor: colors.severity.elevated.bg,
+                borderColor: colors.severity.elevated.border,
+              },
+            ]}
+            accessibilityRole="text"
+            accessibilityLiveRegion="polite"
+          >
+            <Ionicons
+              name="hardware-chip-outline"
+              size={20}
+              color={colors.severity.elevated.text}
+            />
+            <View style={styles.statusBannerBody}>
+              <AppText
+                variant="body"
+                style={[
+                  styles.statusBannerTitle,
+                  { color: colors.severity.elevated.text },
+                ]}
+              >
+                {t("dashboard.addDevice.boundTitle")}
+              </AppText>
+              <AppText
+                variant="caption"
+                style={{ color: colors.severity.elevated.text }}
+              >
+                {t("dashboard.addDevice.boundBody")}
+              </AppText>
+              <AppText
+                variant="caption"
+                style={{ color: colors.severity.elevated.text }}
+              >
+                {binding?.status}
+              </AppText>
+              <Pressable
+                onPress={handleDisconnectPress}
+                accessibilityRole="button"
+                accessibilityLabel={t("dashboard.addDevice.disconnect")}
+                disabled={releaseBusy || bindingLoading}
+                style={({ pressed }) => [
+                  styles.secondaryActionButton,
+                  styles.bannerActionButton,
+                  (releaseBusy || bindingLoading) && styles.disabled,
+                  pressed &&
+                    !releaseBusy &&
+                    !bindingLoading &&
+                    styles.pressed,
+                ]}
+              >
+                {releaseBusy ? (
+                  <ActivityIndicator size="small" color={colors.text} />
+                ) : (
+                  <AppText
+                    variant="caption"
+                    style={styles.secondaryActionText}
+                  >
+                    {t("dashboard.addDevice.disconnect")}
+                  </AppText>
+                )}
+              </Pressable>
+              {releaseDetail ? (
+                <AppText
+                  variant="caption"
+                  style={{ color: colors.severity.elevated.text }}
+                >
+                  {releaseDetail}
+                </AppText>
+              ) : null}
+            </View>
+          </View>
+        ) : null}
+
+        {!isBound && releaseDetail ? (
+          <View
+            style={[
+              styles.statusBanner,
+              {
+                backgroundColor: colors.severity.nominal.bg,
+                borderColor: colors.severity.nominal.border,
+              },
+            ]}
+            accessibilityRole="text"
+            accessibilityLiveRegion="polite"
+          >
+            <Ionicons
+              name="checkmark-circle-outline"
+              size={20}
+              color={colors.severity.nominal.text}
+            />
+            <View style={styles.statusBannerBody}>
+              <AppText
+                variant="caption"
+                style={{ color: colors.severity.nominal.text }}
+              >
+                {releaseDetail}
+              </AppText>
+            </View>
+          </View>
+        ) : null}
 
         <View
           style={[
@@ -1179,8 +1478,17 @@ export default function AddDeviceScreen() {
             {t("dashboard.addDevice.scanSectionHint")}
           </AppText>
 
+          {!isBound ? (
+            <AppText variant="caption" style={styles.captionTop}>
+              {t("dashboard.addDevice.bindingNote")}
+            </AppText>
+          ) : null}
+
           <Pressable
             onPress={() => {
+              if (actionsBlocked) {
+                return;
+              }
               if (devices.length > 0 || scanPhase === "completed_empty") {
                 setScanOpen(true);
               } else if (isReady && !operationBusy) {
@@ -1189,11 +1497,15 @@ export default function AddDeviceScreen() {
             }}
             accessibilityRole="button"
             accessibilityLabel={t("dashboard.addDevice.selectDevice")}
-            disabled={!isReady && devices.length === 0}
+            disabled={actionsBlocked || (!isReady && devices.length === 0)}
             style={({ pressed }) => [
               styles.dropdownTrigger,
-              !isReady && devices.length === 0 && styles.disabled,
-              pressed && (isReady || devices.length > 0) && styles.pressed,
+              (actionsBlocked || (!isReady && devices.length === 0)) &&
+                styles.disabled,
+              pressed &&
+                !actionsBlocked &&
+                (isReady || devices.length > 0) &&
+                styles.pressed,
             ]}
           >
             <Ionicons
@@ -1234,7 +1546,12 @@ export default function AddDeviceScreen() {
             />
             {devices.length > 0 ? (
               <Pressable
-                onPress={() => setScanOpen(true)}
+                onPress={() => {
+                  if (!actionsBlocked) {
+                    setScanOpen(true);
+                  }
+                }}
+                disabled={actionsBlocked}
                 accessibilityRole="button"
                 accessibilityLabel={t("dashboard.addDevice.showDevices")}
                 style={({ pressed }) => [
@@ -1291,7 +1608,7 @@ export default function AddDeviceScreen() {
             onChangeText={setSsid}
             autoCapitalize="none"
             autoCorrect={false}
-            editable={!operationBusy}
+            editable={!operationBusy && !actionsBlocked}
             error={fieldErrors.ssid}
           />
 
@@ -1300,7 +1617,7 @@ export default function AddDeviceScreen() {
             placeholder={t("dashboard.addDevice.wifiPasswordPlaceholder")}
             value={password}
             onChangeText={setPassword}
-            editable={!operationBusy}
+            editable={!operationBusy && !actionsBlocked}
             error={fieldErrors.password}
             importantForAutofill="no"
           />
@@ -1385,7 +1702,12 @@ export default function AddDeviceScreen() {
               onPress={() => {
                 void handleSend();
               }}
-              disabled={!selectedDevice || effectiveMonitorId == null || !isReady}
+              disabled={
+                actionsBlocked ||
+                !selectedDevice ||
+                effectiveMonitorId == null ||
+                !isReady
+              }
             />
           </View>
         ) : null}
