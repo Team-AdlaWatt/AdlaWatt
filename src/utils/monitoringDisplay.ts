@@ -77,11 +77,11 @@ export const formatTemperature = (
   return `${value}°C`;
 };
 
-// Hardware heartbeats every 2s with a 1.5s HTTP timeout. The
-// monitoring row's last_seen is the single source of truth:
-// fresh for less than 5s, Offline from the 5s mark until the
-// next successful heartbeat lands.
-export const DEVICE_ONLINE_WINDOW_MS = 5 * 1000;
+// Hardware heartbeats every 2s with retries. The monitoring
+// row's last_seen is the single source of truth: fresh for
+// less than 10s, Offline from the 10s mark until the next
+// successful heartbeat lands.
+export const DEVICE_ONLINE_WINDOW_MS = 10 * 1000;
 
 type LastSeenSource =
   | { last_seen?: string | null | undefined }

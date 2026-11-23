@@ -108,7 +108,9 @@ describe("fit text font size", () => {
 
 describe("device online", () => {
   test("uses last_seen as the only online signal", () => {
-    const fresh = new Date(NOW - 4_999).toISOString();
+    const fresh = new Date(
+      NOW - DEVICE_ONLINE_WINDOW_MS + 1,
+    ).toISOString();
     const boundary = new Date(
       NOW - DEVICE_ONLINE_WINDOW_MS,
     ).toISOString();
@@ -116,7 +118,7 @@ describe("device online", () => {
       NOW - DEVICE_ONLINE_WINDOW_MS - 1,
     ).toISOString();
 
-    expect(DEVICE_ONLINE_WINDOW_MS).toBe(5_000);
+    expect(DEVICE_ONLINE_WINDOW_MS).toBe(10_000);
     expect(isDeviceOnline(fresh, "Online", NOW)).toBe(
       true,
     );
