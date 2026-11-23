@@ -29,6 +29,56 @@ import type {
 const DEFAULT_POINT_WIDTH = 64;
 const Y_AXIS_W = 38;
 
+export interface MetricChartDatum {
+  value: number;
+  label: string;
+}
+
+export function prepareAnalyticsMetricChart(
+  points: AnalyticsMetricPoint[],
+  chartW: number,
+): {
+  data: MetricChartDatum[];
+  isEmpty: boolean;
+  spacing: number;
+} {
+  const real = points.filter((point) =>
+    Number.isFinite(point.value),
+  );
+
+  const isEmpty = real.length < 2;
+
+  const data =
+    real.length === 0
+      ? [
+          { value: 0, label: "" },
+          { value: 0, label: "" },
+        ]
+      : real.length === 1
+        ? [
+            {
+              value: real[0].value,
+              label: real[0].label,
+            },
+            {
+              value: real[0].value,
+              label: "",
+            },
+          ]
+        : real.map((point) => ({
+            value: point.value,
+            label: point.label,
+          }));
+
+  const spacing = Math.max(
+    DEFAULT_POINT_WIDTH,
+    Math.max(chartW - 36, 40) /
+      Math.max(data.length - 1, 1),
+  );
+
+  return { data, isEmpty, spacing };
+}
+
 export interface AnalyticsMetricStat {
   label: string;
   value: string;
@@ -101,57 +151,24 @@ export default function AnalyticsMetricChart({
         .width,
     );
 
-  const real = useMemo(
-    () =>
-      points.filter((point) =>
-        Number.isFinite(
-          point.value,
-        ),
-      ),
-    [points],
-  );
-
-  const isEmpty =
-    real.length === 0;
-
-  const data = useMemo(
-    () =>
-      isEmpty
-        ? [
-            {
-              value: 0,
-              label: "",
-            },
-            {
-              value: 0,
-              label: "",
-            },
-          ]
-        : real.map((point) => ({
-            value:
-              point.value,
-            label:
-              point.label,
-          })),
-    [real, isEmpty],
-  );
-
   const chartW =
     Math.max(
       boxW - Y_AXIS_W - 2,
       120,
     );
 
-  const spacing = isEmpty
-    ? Math.max(
-        chartW - 36,
-        40,
-      )
-    : Math.max(
-        DEFAULT_POINT_WIDTH,
-        (chartW - 36) /
-          (real.length - 1),
-      );
+  const {
+    data,
+    isEmpty,
+    spacing,
+  } = useMemo(
+    () =>
+      prepareAnalyticsMetricChart(
+        points,
+        chartW,
+      ),
+    [points, chartW],
+  );
 
   const maxValue = useMemo(
     () =>

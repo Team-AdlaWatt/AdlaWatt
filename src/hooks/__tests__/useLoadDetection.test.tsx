@@ -9,7 +9,9 @@ import { useLoadDetection } from "@/hooks/useLoadDetection";
 
 type ProbeProps = {
   loadW: number | null;
+  lastSeenAt?: string | number | null;
   enabled?: boolean;
+  maxObservationAgeMs?: number;
 };
 
 const createHarness = (
@@ -21,11 +23,15 @@ const createHarness = (
 
   const Probe = ({
     loadW,
+    lastSeenAt,
     enabled = true,
+    maxObservationAgeMs,
   }: ProbeProps) => {
     useLoadDetection({
       loadW,
+      lastSeenAt,
       enabled,
+      maxObservationAgeMs,
       onConfirmed,
     });
 
@@ -89,6 +95,45 @@ describe("useLoadDetection", () => {
     jest.setSystemTime(30_000);
     harness.rerender({ loadW: 7.3 });
     expect(onConfirmed).toHaveBeenCalledTimes(1);
+    harness.unmount();
+  });
+
+  test("confirms unchanged 10.20 W on the dwell ticker", () => {
+    const onConfirmed = jest.fn();
+    const harness = createHarness(onConfirmed);
+
+    harness.render({
+      loadW: 10.2,
+      lastSeenAt: 0,
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(29_000);
+    });
+    expect(onConfirmed).not.toHaveBeenCalled();
+
+    act(() => {
+      jest.advanceTimersByTime(1_000);
+    });
+    expect(onConfirmed).toHaveBeenCalledTimes(1);
+    harness.unmount();
+  });
+
+  test("ignores stale monitoring observations", () => {
+    const onConfirmed = jest.fn();
+    const harness = createHarness(onConfirmed);
+
+    harness.render({
+      loadW: 10.2,
+      lastSeenAt: 0,
+    });
+    jest.setSystemTime(120_000);
+
+    act(() => {
+      jest.advanceTimersByTime(1_000);
+    });
+
+    expect(onConfirmed).not.toHaveBeenCalled();
     harness.unmount();
   });
 

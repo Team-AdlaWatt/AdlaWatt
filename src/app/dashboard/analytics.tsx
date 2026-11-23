@@ -47,6 +47,7 @@ import {
   buildAnalyticsCardData,
   createFrequencyRange,
   filterMonitoringHistoryByRange,
+  getAnalyticsDayAnchor,
   downloadCsvOnWeb,
   downloadPdfOnWeb,
   generateAdlaWattCsv,
@@ -82,19 +83,25 @@ type AnalyticsViews = Record<
 
 function createAnalyticsView(
   frequency: ChartFrequency,
+  now: Date = new Date(),
 ): AnalyticsView {
   return {
     frequency,
-    range: createFrequencyRange(frequency),
+    range: createFrequencyRange(
+      frequency,
+      getAnalyticsDayAnchor(now),
+    ),
   };
 }
 
-function createAnalyticsViews(): AnalyticsViews {
+function createAnalyticsViews(
+  now: Date = new Date(),
+): AnalyticsViews {
   return {
-    solar: createAnalyticsView("Daily"),
-    load: createAnalyticsView("Daily"),
-    activity: createAnalyticsView("Daily"),
-    report: createAnalyticsView("Daily"),
+    solar: createAnalyticsView("Daily", now),
+    load: createAnalyticsView("Daily", now),
+    activity: createAnalyticsView("Daily", now),
+    report: createAnalyticsView("Daily", now),
   };
 }
 
@@ -130,8 +137,16 @@ export default function AnalyticsScreen() {
   const [monitoringHistory, setMonitoringHistory] = useState<
     MonitoringHistoryRow[]
   >([]);
+  const analyticsAnchorRef = useRef(
+    getAnalyticsDayAnchor(new Date()).getTime(),
+  );
+  const analyticsRequestRef = useRef(0);
   const [views, setViews] =
-    useState<AnalyticsViews>(createAnalyticsViews);
+    useState<AnalyticsViews>(() =>
+      createAnalyticsViews(
+        new Date(analyticsAnchorRef.current),
+      ),
+    );
 
   const [exportingReport, setExportingReport] =
     useState<ReportType | null>(null);
@@ -206,16 +221,19 @@ export default function AnalyticsScreen() {
   }, [monitoringHistory, views.activity]);
 
   const loadAnalytics = useCallback(async () => {
+    const requestId = ++analyticsRequestRef.current;
     const { monitoringHistory: monitoringRows } =
       await loadAnalyticsData({
         start: new Date(fetchStartMs),
         end: new Date(fetchEndMs),
       });
-    setMonitoringHistory(monitoringRows);
+
+    if (requestId === analyticsRequestRef.current) {
+      setMonitoringHistory(monitoringRows);
+    }
   }, [fetchStartMs, fetchEndMs]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- range-driven history fetch is the effect's purpose
     loadAnalytics();
   }, [loadAnalytics]);
 
@@ -472,10 +490,19 @@ export default function AnalyticsScreen() {
 
   const updateViewFrequency = useCallback(
     (key: AnalyticsViewKey, next: ChartFrequency) => {
-      setViews((current) => ({
-        ...current,
-        [key]: createAnalyticsView(next),
-      }));
+      setViews((current) => {
+        if (current[key].frequency === next) {
+          return current;
+        }
+
+        return {
+          ...current,
+          [key]: createAnalyticsView(
+            next,
+            new Date(analyticsAnchorRef.current),
+          ),
+        };
+      });
     },
     [],
   );

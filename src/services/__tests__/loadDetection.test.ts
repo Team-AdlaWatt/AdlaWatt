@@ -89,6 +89,7 @@ describe("load detection helpers", () => {
   test("detects live load strictly above 7 W", () => {
     expect(isAbsoluteLoadDetected(7)).toBe(false);
     expect(isAbsoluteLoadDetected(7.1)).toBe(true);
+    expect(isAbsoluteLoadDetected(10.2)).toBe(true);
     expect(isAbsoluteLoadDetected(13)).toBe(true);
     expect(isAbsoluteLoadDetected(null)).toBe(false);
   });

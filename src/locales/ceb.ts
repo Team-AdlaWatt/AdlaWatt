@@ -432,6 +432,11 @@ const ceb = {
       sending: "Gipapadala...",
       retry: "Sulayi Pag-usab",
       assignmentRetry: "Sulayi pag-usab ang assignment",
+      routeErrorTitle:
+        "Dili maipakita kini nga screen.",
+      routeErrorBody:
+        "Sulayi pag-usab. Kung magpadayon ang problema, ablihi pag-usab ang app.",
+      routeErrorRetry: "Sulayi Pag-usab",
       previewTitle: "Preview status",
       previewOpen: "Ablihi ang status preview",
       previewNote: "Preview mode - dili tinuod nga status sa device",

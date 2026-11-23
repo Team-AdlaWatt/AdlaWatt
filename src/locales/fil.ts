@@ -432,6 +432,11 @@ const fil = {
       sending: "Ipinapadala...",
       retry: "Subukang Muli",
       assignmentRetry: "Subukang muli ang assignment",
+      routeErrorTitle:
+        "Hindi maipakita ang screen na ito.",
+      routeErrorBody:
+        "Subukang muli. Kung magpapatuloy ang problema, muling buksan ang app.",
+      routeErrorRetry: "Subukang Muli",
       previewTitle: "Preview status",
       previewOpen: "Buksan ang status preview",
       previewNote: "Preview mode - hindi tunay na status ng device",

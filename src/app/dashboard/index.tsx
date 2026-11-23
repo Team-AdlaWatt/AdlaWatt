@@ -223,6 +223,7 @@ export default function DashboardScreen() {
 
   useLoadDetection({
     loadW: monitoring?.current_load ?? null,
+    lastSeenAt: monitoring?.last_seen ?? null,
     enabled:
       Boolean(deviceOnline) &&
       !stale &&

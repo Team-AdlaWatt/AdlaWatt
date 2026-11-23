@@ -87,6 +87,7 @@ describe("AnalyticsChartCard", () => {
 
   it("renders a per-card frequency toggle when props are supplied", () => {
     let testRenderer!: renderer.ReactTestRenderer;
+    const onFrequencyChange = jest.fn();
 
     act(() => {
       testRenderer = renderer.create(
@@ -95,7 +96,7 @@ describe("AnalyticsChartCard", () => {
           subtitle="Average solar input in watts."
           icon="sunny-outline"
           frequency="Weekly"
-          onFrequencyChange={jest.fn()}
+          onFrequencyChange={onFrequencyChange}
         >
           <Text testID="chart-frame">chart frame</Text>
         </AnalyticsChartCard>,
@@ -119,5 +120,12 @@ describe("AnalyticsChartCard", () => {
       "Monthly",
       "Yearly",
     ]);
+
+    act(() => {
+      toggles[0].props.onChange("Yearly");
+    });
+    expect(onFrequencyChange).toHaveBeenCalledWith(
+      "Yearly",
+    );
   });
 });

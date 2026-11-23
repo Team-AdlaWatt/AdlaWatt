@@ -413,6 +413,11 @@ const en = {
       sending: "Sending...",
       retry: "Retry",
       assignmentRetry: "Retry assignment",
+      routeErrorTitle:
+        "This screen could not be displayed.",
+      routeErrorBody:
+        "Try again. If the problem continues, reopen the app.",
+      routeErrorRetry: "Try Again",
       previewTitle: "Preview status",
       previewOpen: "Open status preview",
       previewNote: "Preview mode - not a real device status",

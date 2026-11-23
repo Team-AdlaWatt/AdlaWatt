@@ -10,6 +10,7 @@ import {
   createFrequencyRange,
   filterMonitoringHistoryByRange,
   formatAnalyticsBucketLabel,
+  getAnalyticsDayAnchor,
   getBatteryActivityData,
   getBatteryChartRangeData,
   getUnsafeDischargeChartData,
@@ -366,6 +367,20 @@ describe("buildAnalyticsCardData", () => {
     expect(data.load[0].avgVoltage).toBeCloseTo(12.3, 5);
 
     expect(data.activity.map((slice) => slice.value)).toEqual([3, 0, 0]);
+  });
+});
+
+describe("analytics day anchor", () => {
+  test("normalizes different times on the same day to one anchor", () => {
+    const morning = new Date(2026, 10, 23, 9, 15, 30, 123);
+    const night = new Date(2026, 10, 23, 23, 59, 59, 999);
+
+    const first = getAnalyticsDayAnchor(morning);
+    const second = getAnalyticsDayAnchor(night);
+
+    expect(second.getTime()).toBe(first.getTime());
+    expect(first.getHours()).toBe(0);
+    expect(first.getMinutes()).toBe(0);
   });
 });
 

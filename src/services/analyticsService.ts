@@ -748,6 +748,14 @@ export function getDefaultRange():
   };
 }
 
+export function getAnalyticsDayAnchor(
+  date: Date,
+): Date {
+  const anchor = new Date(date);
+  anchor.setHours(0, 0, 0, 0);
+  return anchor;
+}
+
 export function createFrequencyRange(
   frequency: ChartFrequency,
   now: Date = new Date(),
