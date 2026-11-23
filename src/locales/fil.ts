@@ -396,6 +396,10 @@ const fil = {
       bindingErrorBody:
         "Suriin ang koneksyon at subukang muli. Makikita ang Disconnect kapag na-load na ang naka-bind na device.",
       bindingRetry: "Subukang muli",
+      deviceOpenForConfig: "Bukas para sa Configuration",
+      deviceConfigured: "Na-configure na",
+      releasePendingTimeout:
+        "Hindi pa nakakumpirma ang device. Panatilihing naka-on at konektado sa Wi-Fi, pagkatapos ay pindutin ang I-disconnect muli.",
       releasePending:
         "Naipadala na ang request sa pag-disconnect. Hintayin ang kumpirmasyon ng device.",
       releaseSuccess: "Matagumpay na na-disconnect ang device.",

@@ -1,5 +1,8 @@
 import { BleManager, type BlePermissions } from "expo-ble-kit";
 import {
+  BLE_CONFIG_MANUFACTURER_ID,
+  BLE_CONFIG_STATUS_CONFIGURED,
+  BLE_CONFIG_STATUS_OPEN,
   ProvisioningTimeoutError,
   ProvisioningValidationError,
   buildProvisioningPayload,
@@ -7,6 +10,7 @@ import {
   getBlePermissionState,
   getBleReadiness,
   isTerminalStatus,
+  parseDeviceConfigStatus,
   parseProvisioningStatus,
   parseProvisioningStatusDetail,
   provisionDevice,
@@ -131,8 +135,64 @@ describe("device discovery", () => {
         { id: "nameless", name: null, rssi: -30 },
       ]),
     ).toEqual([
-      { id: "aw-01", name: "AdlaWatt-AW-01", rssi: -50 },
+      {
+        id: "aw-01",
+        name: "AdlaWatt-AW-01",
+        rssi: -50,
+        configStatus: "unknown",
+      },
     ]);
+  });
+
+  test("reads configuration status from manufacturer data", () => {
+    const open = {
+      id: "open",
+      name: "AdlaWatt-AW-01",
+      rssi: -50,
+      manufacturerData: {
+        [BLE_CONFIG_MANUFACTURER_ID]: Uint8Array.of(BLE_CONFIG_STATUS_OPEN),
+      },
+    };
+    const configured = {
+      id: "configured",
+      name: "AdlaWatt-AW-01",
+      rssi: -60,
+      manufacturerData: {
+        [BLE_CONFIG_MANUFACTURER_ID]: Uint8Array.of(
+          BLE_CONFIG_STATUS_CONFIGURED,
+        ),
+      },
+    };
+
+    expect(parseDeviceConfigStatus(open)).toBe("open");
+    expect(parseDeviceConfigStatus(configured)).toBe("configured");
+    expect(
+      filterProvisioningScanResults([open, configured]).map(
+        (device) => device.configStatus,
+      ),
+    ).toEqual(["open", "configured"]);
+  });
+
+  test("treats missing or invalid status bytes as unknown", () => {
+    expect(parseDeviceConfigStatus({ id: "a", name: null, rssi: -50 })).toBe(
+      "unknown",
+    );
+    expect(
+      parseDeviceConfigStatus({
+        id: "b",
+        name: null,
+        rssi: -50,
+        manufacturerData: { [BLE_CONFIG_MANUFACTURER_ID]: Uint8Array.of(0x09) },
+      }),
+    ).toBe("unknown");
+    expect(
+      parseDeviceConfigStatus({
+        id: "c",
+        name: null,
+        rssi: -50,
+        manufacturerData: { [BLE_CONFIG_MANUFACTURER_ID]: new Uint8Array() },
+      }),
+    ).toBe("unknown");
   });
 });
 

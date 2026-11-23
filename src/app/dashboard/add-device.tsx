@@ -799,7 +799,7 @@ export default function AddDeviceScreen() {
   };
 
   const handleSelectDevice = (device: ScannedDevice) => {
-    if (actionsBlocked) {
+    if (actionsBlocked || device.configStatus === "configured") {
       return;
     }
 
@@ -1044,7 +1044,7 @@ export default function AddDeviceScreen() {
       setResolvedAssignment(null);
       setAssignmentRetryKey((current) => current + 1);
     } catch {
-      setReleaseDetail(t("dashboard.addDevice.releaseFailed"));
+      setReleaseDetail(t("dashboard.addDevice.releasePendingTimeout"));
       try {
         const latest = await getDeviceBinding();
         setBinding(latest.status === "unbound" ? null : latest);
@@ -1866,15 +1866,30 @@ export default function AddDeviceScreen() {
             style={styles.emptyState}
           />
         ) : (
-          devices.map((device) => (
-            <RadioOptionRow
-              key={device.id}
-              label={device.name}
-              selected={selectedDevice?.id === device.id}
-              note={`${device.rssi} dBm`}
-              onPress={() => handleSelectDevice(device)}
-            />
-          ))
+          devices.map((device) => {
+            const configured = device.configStatus === "configured";
+            const statusNote =
+              device.configStatus === "configured"
+                ? t("dashboard.addDevice.deviceConfigured")
+                : device.configStatus === "open"
+                  ? t("dashboard.addDevice.deviceOpenForConfig")
+                  : null;
+
+            return (
+              <RadioOptionRow
+                key={device.id}
+                label={device.name}
+                selected={selectedDevice?.id === device.id}
+                note={
+                  statusNote
+                    ? `${statusNote} · ${device.rssi} dBm`
+                    : `${device.rssi} dBm`
+                }
+                disabled={configured}
+                onPress={() => handleSelectDevice(device)}
+              />
+            );
+          })
         )}
 
         {scanPhase !== "scanning" ? (

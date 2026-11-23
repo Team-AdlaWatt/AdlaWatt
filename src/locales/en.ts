@@ -377,6 +377,10 @@ const en = {
       bindingErrorBody:
         "Check your connection and retry. Disconnect appears once your bound device is loaded.",
       bindingRetry: "Retry",
+      deviceOpenForConfig: "Open for Configuration",
+      deviceConfigured: "Configured",
+      releasePendingTimeout:
+        "Device didn't confirm yet. Keep it powered on and connected to Wi-Fi, then tap Disconnect again.",
       releasePending:
         "Disconnect request sent. Waiting for the device to confirm.",
       releaseSuccess: "Device disconnected successfully.",

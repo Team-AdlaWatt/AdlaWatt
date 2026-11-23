@@ -34,6 +34,17 @@ Device code:  482913
 Device ID:    AW-01
 ```
 
+### Advertisement status identifier
+
+The firmware advertises manufacturer-specific data under company id `0xFFFF` with one payload byte:
+
+```text
+0x00 = Open for Configuration (unbound)
+0x01 = Configured (bound)
+```
+
+The advertised name stays `AdlaWatt-AW-01`, so the app scan filter is unchanged. A configured device keeps advertising so other users can see the "Configured" identifier, but it ignores all provisioning writes until a signed release command clears the binding.
+
 Characteristic roles:
 
 - RX characteristic: phone writes JSON payload to ESP32.
@@ -139,7 +150,7 @@ key_id
 secret
 ```
 
-`bound` is a `uint8` flag (`1` after successful provisioning). `key_id` and `secret` hold the one-time binding credentials. A device is locked when `bound == 1` and the saved `monitor_id > 0`; a locked device must not start BLE provisioning until a signed release command clears these keys.
+`bound` is a `uint8` flag (`1` after successful provisioning). `key_id` and `secret` hold the one-time binding credentials. A device is locked when `bound == 1` and the saved `monitor_id > 0`. A locked device keeps advertising with the `Configured` status byte, but it must reject all provisioning writes until a signed release command clears these keys.
 
 Only save `monitor_id`, `bound`, `key_id`, and `secret` after Wi-Fi succeeds and the configuration is verified.
 
@@ -318,6 +329,7 @@ The monitor assignment lookup has a 12-second deadline. If retries are exhausted
 - Do not send user/account data over BLE.
 - Do not log the Wi-Fi password to Serial.
 - Do not send status tokens outside the accepted list.
+- Do not accept provisioning writes while the device is locked.
 
 ## 13. Applied source files
 
@@ -350,6 +362,6 @@ A full implementation report is also stored in this repository history under the
 
 A locked device polls `device-command` with `version: 1`, `action: next`, `monitor_id`, `key_id`, `nonce`, and ISO-8601 `issued_at` about every 15 seconds. It sends the publishable key in the `apikey` header and signs `1|next|AW-01|<key_id>|<nonce>|<issued_at>` with the stored HMAC secret in `x-device-signature`. Polling skips until RTC time is available. A `{ "success": true, "command": { ... } }` response with `action: "release"` is executed only after verifying the signature over `1|release|AW-01|<command_id>|<monitor_id>|<nonce>|<issued_at>|<expires_at>`.
 
-On a valid release, the firmware clears `ssid`, `password`, `monitor_id`, `device_id`, `bound`, `key_id`, and `secret`, resets the active monitor to `0`, sends a signed `ack` with `version: 1` and `result: "released"` over `1|ack|AW-01|<command_id>|<monitor_id>|<nonce>|<issued_at>|<expires_at>|released`, then disconnects Wi-Fi and restarts so BLE provisioning opens again. The ACK is sent before the restart and before Wi-Fi teardown; a failed ACK still restarts, but the release must be treated as unconfirmed.
+On a valid release, the firmware first sends a signed `ack` with `version: 1` and `result: "released"` over `1|ack|AW-01|<command_id>|<monitor_id>|<nonce>|<issued_at>|<expires_at>|released`. It retries up to 3 times. Only after a `2xx` ACK, or a `401` indicating the cloud already released the device, does it clear `ssid`, `password`, `monitor_id`, `device_id`, `bound`, `key_id`, and `secret`, reset the active monitor to `0`, disconnect Wi-Fi, and restart so BLE provisioning opens again. If the ACK never confirms, the device stays bound and keeps polling; a `401` on a later `next` poll is treated as an already-completed release and self-erases.
 
 Existing units that were provisioned before this contract have no stored `bound`, `key_id`, or `secret` and therefore never lock themselves; they must be reflashed over USB to gain the signed release path and to accept the new provisioning payload fields.

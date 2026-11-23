@@ -60,8 +60,10 @@
     is too big.
 
   IMPORTANT:
-    - Wi-Fi is configured from the app (BLE provisioning). Until then the
-      device only advertises over BLE. Serial command RESETCONFIG erases it.
+    - Wi-Fi is configured from the app (BLE provisioning). An unconfigured
+      device advertises "open for configuration"; a bound device keeps
+      advertising but rejects provisioning writes and reports "configured"
+      in BLE manufacturer data. Serial RESETCONFIG is disabled by default.
     - The solar voltage/current/power values are battery-charge estimates,
       not direct solar-panel measurements.
     - setInsecure() disables TLS certificate validation and the fixed
@@ -86,6 +88,7 @@
 #include <mbedtls/md.h>
 #include <math.h>
 #include <string.h>
+#include <string>
 
 #if defined(ARDUINO_ARCH_ESP32) && defined(MBEDTLS_CERTIFICATE_BUNDLE) && \
     defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR == 2) && \
@@ -214,6 +217,15 @@ static const uint32_t AW_WIFI_CONNECT_TIMEOUT_MS = 20000;
 static const uint32_t AW_WIFI_RETRY_INTERVAL_MS  = 10000;
 static const uint32_t AW_WIFI_LOST_NOTIFY_MS     = 30000;
 
+// BLE advertisement: company 0xFFFF (testing/internal), one status byte.
+static const uint16_t AW_BLE_MANUFACTURER_ID     = 0xFFFF;
+static const uint8_t  AW_BLE_STATUS_OPEN         = 0x00;
+static const uint8_t  AW_BLE_STATUS_CONFIGURED   = 0x01;
+
+// Release ACK retry policy: ACK first, erase only after confirmation.
+static const uint8_t  AW_RELEASE_ACK_RETRIES      = 3;
+static const uint32_t AW_RELEASE_ACK_RETRY_MS     = 1500;
+
 // ---------------------------------------------------------------------
 // State (activeMonitorId is read by the heartbeat task and the uploader)
 // ---------------------------------------------------------------------
@@ -248,6 +260,9 @@ static bool awIsDeviceLocked() {
   return deviceBound && configuredMonitorId > 0;
 }
 
+static std::string awBuildAdvertisingManufacturerData();
+static void awRefreshAdvertisingStatus();
+
 // ---------------------------------------------------------------------
 // Notifications
 // ---------------------------------------------------------------------
@@ -273,7 +288,8 @@ class AWServerCallbacks : public BLEServerCallbacks {
     rxBuffer = "";   // drop any half-received payload
     Serial.println("[BLE] client disconnected.");
 
-    // Re-advertise so the app can scan/connect again.
+    // Re-advertise with the current configuration status.
+    awRefreshAdvertisingStatus();
     BLEDevice::startAdvertising();
   }
 };
@@ -314,6 +330,13 @@ class AWRXCallbacks : public BLECharacteristicCallbacks {
     // Wi-Fi and NVS work is handled in loop().
     String incoming = characteristic->getValue().c_str();
     if (incoming.length() == 0) return;
+
+    // A bound device advertises its status but never accepts a new
+    // provisioning payload. Release over the signed cloud command first.
+    if (awIsDeviceLocked()) {
+      Serial.println("[BLE] RX ignored: device is configured.");
+      return;
+    }
 
     // Ignore new writes while a previous payload is being processed.
     if (configPayloadReady || provisioningInProgress) return;
@@ -469,6 +492,7 @@ static void awEraseBondConfigNVS() {
 
 static void awClearSavedConfig() {
   awEraseBondConfigNVS();
+  awRefreshAdvertisingStatus();
   WiFi.disconnect(true, true);
   Serial.println("[Prov] Provisioning settings erased. Device identity remains AW-01 in firmware.");
 }
@@ -528,6 +552,11 @@ static void awMaintainWiFi() {
 // Provisioning payload processing (runs in loop(), never in a BLE callback)
 // ---------------------------------------------------------------------
 static void awProcessProvisioningPayload() {
+  if (awIsDeviceLocked()) {
+    configPayloadReady = false;
+    completedPayload = "";
+    return;
+  }
   if (!configPayloadReady) return;
 
   String payload = completedPayload;
@@ -628,6 +657,7 @@ static void awProcessProvisioningPayload() {
   configuredSecret = newSecret;
   deviceBound = true;
   configuredMonitorId = monitorId;
+  awRefreshAdvertisingStatus();
   hasSavedConfig = true;
   wifiWasConnected = true;
   hasEverWifiConnected = true;
@@ -686,6 +716,7 @@ static void awSetupBLE() {
   advertising->setScanResponse(true);
   advertising->setMinPreferred(0x06);
   advertising->setMinPreferred(0x12);
+  advertising->setManufacturerData(awBuildAdvertisingManufacturerData());
 
   BLEDevice::startAdvertising();
 
@@ -703,7 +734,24 @@ static void awStopBLE() {
   txCharacteristic = nullptr;
   rxCharacteristic = nullptr;
   bleClientConnected = false;
-  Serial.println("[BLE] Advertising stopped and BLE deinitialized (device bound).");
+  Serial.println("[BLE] Advertising stopped and BLE deinitialized.");
+}
+
+static std::string awBuildAdvertisingManufacturerData() {
+  uint8_t status = awIsDeviceLocked() ? AW_BLE_STATUS_CONFIGURED
+                                      : AW_BLE_STATUS_OPEN;
+  std::string data;
+  data.push_back(static_cast<char>(AW_BLE_MANUFACTURER_ID & 0xFF));
+  data.push_back(static_cast<char>((AW_BLE_MANUFACTURER_ID >> 8) & 0xFF));
+  data.push_back(static_cast<char>(status));
+  return data;
+}
+
+static void awRefreshAdvertisingStatus() {
+  if (!bleInitialized) return;
+  BLEAdvertising* advertising = BLEDevice::getAdvertising();
+  if (advertising == nullptr) return;
+  advertising->setManufacturerData(awBuildAdvertisingManufacturerData());
 }
 
 // ---------------------------------------------------------------------
@@ -1401,7 +1449,7 @@ static bool awDeviceCommandPost(const String& jsonPayload, const String& signatu
 static bool awSendReleaseAck(const String& keyId, const String& secret,
                              const String& commandId, uint32_t monitorId,
                              const String& nonce, const String& issuedAt,
-                             const String& expiresAt) {
+                             const String& expiresAt, int* ackHttpCode) {
   String canonical = awCanonicalCommand("ack", commandId, monitorId, nonce,
                                         issuedAt, expiresAt, true);
   String signature = awHmacSha256Base64Url(secret, canonical);
@@ -1424,7 +1472,17 @@ static bool awSendReleaseAck(const String& keyId, const String& secret,
   int httpCode = -1;
   bool ok = awDeviceCommandPost(body, signature, nullptr, &httpCode);
   Serial.printf("[Command] Release ack HTTP %d.\n", httpCode);
+  if (ackHttpCode) *ackHttpCode = httpCode;
   return ok;
+}
+
+static void awCompleteRelease(const char* reason) {
+  Serial.printf("[Command] Release confirmed (%s). Erasing configuration.\n",
+                reason);
+  awEraseBondConfigNVS();
+  WiFi.disconnect(true, true);
+  delay(100);
+  esp_restart();
 }
 
 static void awPollDeviceCommand() {
@@ -1460,7 +1518,13 @@ static void awPollDeviceCommand() {
 
   String response;
   int httpCode = -1;
-  if (!awDeviceCommandPost(body, signature, &response, &httpCode)) return;
+  if (!awDeviceCommandPost(body, signature, &response, &httpCode)) {
+    if (httpCode == 401) {
+      Serial.println("[Command] Device key rejected on poll; cloud already released.");
+      awCompleteRelease("poll key rejected");
+    }
+    return;
+  }
   if (response.length() == 0) return;
 
   StaticJsonDocument<1024> resp;
@@ -1518,15 +1582,29 @@ static void awPollDeviceCommand() {
   Serial.printf("[Command] Verified release command for monitor %lu.\n",
                 (unsigned long)cmdMonitorId);
 
-  awEraseBondConfigNVS();
-  activeMonitorId = 0;
+  bool ackOk = false;
+  int ackHttpCode = -1;
+  for (uint8_t attempt = 0; attempt < AW_RELEASE_ACK_RETRIES; ++attempt) {
+    ackOk = awSendReleaseAck(keyId, secret, String(commandId), cmdMonitorId,
+                             String(respNonce), String(respIssuedAt),
+                             String(expiresAt), &ackHttpCode);
+    if (ackOk || ackHttpCode == 401) break;
+    if (attempt + 1 < AW_RELEASE_ACK_RETRIES) {
+      delay(AW_RELEASE_ACK_RETRY_MS);
+    }
+  }
 
-  awSendReleaseAck(keyId, secret, String(commandId), cmdMonitorId,
-                   String(respNonce), String(respIssuedAt), String(expiresAt));
+  if (ackOk) {
+    awCompleteRelease("ack confirmed");
+    return;
+  }
 
-  WiFi.disconnect(true, true);
-  delay(100);
-  esp_restart();
+  if (ackHttpCode == 401) {
+    awCompleteRelease("ack says already released");
+    return;
+  }
+
+  Serial.println("[Command] Release ACK unconfirmed; staying bound and retrying later.");
 }
 
 // =====================================================================
@@ -1980,11 +2058,9 @@ void setup() {
   WiFi.setAutoReconnect(true);
   awProvisioningSetup();
 
+  awSetupBLE();
   if (awIsDeviceLocked()) {
-    awStopBLE();
-    Serial.println("[Prov] Device is bound; BLE provisioning disabled.");
-  } else {
-    awSetupBLE();
+    Serial.println("[Prov] Device is bound; advertising 'configured' and rejecting provisioning writes.");
   }
   lastDeviceCommandPollMs = millis();
   Serial.printf("[Heap] free after BLE : %u bytes\n", ESP.getFreeHeap());

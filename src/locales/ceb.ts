@@ -396,6 +396,10 @@ const ceb = {
       bindingErrorBody:
         "Susiha ang koneksyon ug sulayi pag-usab. Makita ang Disconnect kung ma-load na ang naka-bind nga device.",
       bindingRetry: "Sulayi pag-usab",
+      deviceOpenForConfig: "Open para sa Configuration",
+      deviceConfigured: "Naka-configure na",
+      releasePendingTimeout:
+        "Wala pang kumpirmasyon ang device. Ipadayon kini nga naka-on ug konektado sa Wi-Fi, dayon pislita ang I-disconnect pag-usab.",
       releasePending:
         "Naipadala na ang disconnect request. Paghulat sa kumpirmasyon sa device.",
       releaseSuccess: "Malampuson nga na-disconnect ang device.",

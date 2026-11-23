@@ -16,6 +16,10 @@ const SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
 const RX_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
 const TX_UUID = "6e400003-b5a3-f393-e0a9-e50e24dcca9e";
 
+export const BLE_CONFIG_MANUFACTURER_ID = 0xffff;
+export const BLE_CONFIG_STATUS_OPEN = 0x00;
+export const BLE_CONFIG_STATUS_CONFIGURED = 0x01;
+
 export const PROVISIONING_TIMEOUT_MS = 60000;
 const CONNECT_TIMEOUT_MS = 15000;
 const SUBSCRIBE_TIMEOUT_MS = 10000;
@@ -90,16 +94,20 @@ export const isTerminalStatus = (
   status: UiStatus,
 ): boolean => TERMINAL_STATUSES.includes(status);
 
+export type DeviceConfigStatus = "open" | "configured" | "unknown";
+
 export interface ScannedDevice {
   id: string;
   name: string;
   rssi: number;
+  configStatus: DeviceConfigStatus;
 }
 
 export interface NamedScanResult {
   id: string;
   name?: string | null;
   rssi: number;
+  manufacturerData?: Record<number, Uint8Array | undefined>;
 }
 
 export interface ProvisioningConfig {
@@ -499,6 +507,23 @@ export async function requestBleAccess(): Promise<void> {
   }
 }
 
+export const parseDeviceConfigStatus = (
+  result: NamedScanResult,
+): DeviceConfigStatus => {
+  const data = result.manufacturerData?.[BLE_CONFIG_MANUFACTURER_ID];
+  if (!data || data.length < 1) {
+    return "unknown";
+  }
+
+  if (data[0] === BLE_CONFIG_STATUS_OPEN) {
+    return "open";
+  }
+  if (data[0] === BLE_CONFIG_STATUS_CONFIGURED) {
+    return "configured";
+  }
+  return "unknown";
+};
+
 export const filterProvisioningScanResults = (
   results: NamedScanResult[],
 ): ScannedDevice[] =>
@@ -508,6 +533,7 @@ export const filterProvisioningScanResults = (
       id: result.id,
       name: result.name ?? DEVICE_NAME,
       rssi: result.rssi,
+      configStatus: parseDeviceConfigStatus(result),
     }));
 
 export function startDeviceScan(
