@@ -9,7 +9,6 @@ import {
 import { useTranslation } from "react-i18next";
 
 import AppText from "@/components/ui/AppText";
-import { BATTERY_USABLE_WH } from "@/constants/battery";
 import {
   useAppColors,
   type AppColors,
@@ -85,6 +84,11 @@ export default function BatteryEnergyHighlight({
       ? colors.onSurfaceMuted
       : colors.primary;
 
+  const usableCapacity = Math.max(
+    snapshot.usableCapacityWh,
+    1,
+  );
+
   const projectedDrain = Math.max(
     0,
     Math.min(projectedDrainWh, snapshot.usableWh),
@@ -100,14 +104,14 @@ export default function BatteryEnergyHighlight({
     100,
     Math.max(
       0,
-      (projectedDrain / BATTERY_USABLE_WH) * 100,
+      (projectedDrain / usableCapacity) * 100,
     ),
   );
   const remainingPercent = Math.min(
     100,
     Math.max(
       0,
-      (remainingAfterLoad / BATTERY_USABLE_WH) * 100,
+      (remainingAfterLoad / usableCapacity) * 100,
     ),
   );
 
@@ -222,7 +226,7 @@ export default function BatteryEnergyHighlight({
           style={styles.ofUsable}
         >
           {t("batteryEnergy.ofUsable", {
-            capacity: formatWh(BATTERY_USABLE_WH),
+            capacity: formatWh(snapshot.usableCapacityWh),
           })}
         </AppText>
       </View>
@@ -258,6 +262,23 @@ export default function BatteryEnergyHighlight({
             ]}
           />
         ) : null}
+
+        <View
+          style={[
+            styles.barValueChip,
+            { backgroundColor: fillColor },
+          ]}
+        >
+          <AppText
+            variant="caption"
+            style={styles.barValueText}
+            accessible={false}
+          >
+            {t("batteryEnergy.value", {
+              wh: formatWh(snapshot.usableWh),
+            })}
+          </AppText>
+        </View>
       </View>
 
       <AppText
@@ -352,9 +373,11 @@ const createStyles = (colors: AppColors) =>
       color: colors.onSurfaceMuted,
     },
     track: {
+      alignItems: "center",
       backgroundColor: colors.border,
       borderRadius: 999,
-      height: 8,
+      height: 20,
+      justifyContent: "center",
       overflow: "hidden",
       width: "100%",
     },
@@ -366,6 +389,17 @@ const createStyles = (colors: AppColors) =>
       left: 0,
       position: "absolute",
       top: 0,
+    },
+    barValueChip: {
+      borderRadius: 999,
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+    },
+    barValueText: {
+      color: colors.onPrimary,
+      fontSize: 12,
+      fontVariant: ["tabular-nums"],
+      fontWeight: "700",
     },
     loadDetail: {
       color: colors.onSurface,

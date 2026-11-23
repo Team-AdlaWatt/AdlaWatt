@@ -12,13 +12,16 @@ jest.mock("react-i18next", () => ({
       options?: {
         time?: string;
         watts?: number;
+        wh?: number;
       },
     ) =>
-      options?.watts !== undefined
-        ? `${key}:${options.watts}`
-        : options?.time
-          ? `${key}:${options.time}`
-          : key,
+      options?.wh !== undefined
+        ? `${key}:${options.wh}`
+        : options?.watts !== undefined
+          ? `${key}:${options.watts}`
+          : options?.time
+            ? `${key}:${options.time}`
+            : key,
   }),
 }));
 
@@ -106,6 +109,9 @@ test("renders live draw, ETR, and the red/green energy split", () => {
   );
   expect(json).toContain(
     "batteryEnergy.timeRemaining:1h 30m",
+  );
+  expect(json).toContain(
+    "batteryEnergy.value:604.8",
   );
   expect(json).toContain('"width":"50%"');
   expect(json).toContain('"width":"25%"');
