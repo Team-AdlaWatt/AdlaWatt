@@ -261,6 +261,7 @@ static bool awIsDeviceLocked() {
 }
 
 static std::string awBuildAdvertisingManufacturerData();
+static void awApplyAdvertisingManufacturerData(BLEAdvertising* advertising);
 static void awRefreshAdvertisingStatus();
 
 // ---------------------------------------------------------------------
@@ -716,7 +717,7 @@ static void awSetupBLE() {
   advertising->setScanResponse(true);
   advertising->setMinPreferred(0x06);
   advertising->setMinPreferred(0x12);
-  advertising->setManufacturerData(awBuildAdvertisingManufacturerData());
+  awApplyAdvertisingManufacturerData(advertising);
 
   BLEDevice::startAdvertising();
 
@@ -747,11 +748,22 @@ static std::string awBuildAdvertisingManufacturerData() {
   return data;
 }
 
+static void awApplyAdvertisingManufacturerData(BLEAdvertising* advertising) {
+  if (advertising == nullptr) return;
+
+  const std::string raw = awBuildAdvertisingManufacturerData();
+  BLEAdvertisementData advData;
+  advData.setFlags(0x06);
+  advData.setCompleteServices(BLEUUID(BLE_SERVICE_UUID));
+  advData.setManufacturerData(String(raw.data(), raw.length()));
+  advertising->setAdvertisementData(advData);
+}
+
 static void awRefreshAdvertisingStatus() {
   if (!bleInitialized) return;
   BLEAdvertising* advertising = BLEDevice::getAdvertising();
   if (advertising == nullptr) return;
-  advertising->setManufacturerData(awBuildAdvertisingManufacturerData());
+  awApplyAdvertisingManufacturerData(advertising);
 }
 
 // ---------------------------------------------------------------------
