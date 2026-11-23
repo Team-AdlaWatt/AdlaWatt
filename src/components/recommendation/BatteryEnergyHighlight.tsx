@@ -262,23 +262,6 @@ export default function BatteryEnergyHighlight({
             ]}
           />
         ) : null}
-
-        <View
-          style={[
-            styles.barValueChip,
-            { backgroundColor: fillColor },
-          ]}
-        >
-          <AppText
-            variant="caption"
-            style={styles.barValueText}
-            accessible={false}
-          >
-            {t("batteryEnergy.value", {
-              wh: formatWh(snapshot.usableWh),
-            })}
-          </AppText>
-        </View>
       </View>
 
       <AppText
@@ -373,11 +356,9 @@ const createStyles = (colors: AppColors) =>
       color: colors.onSurfaceMuted,
     },
     track: {
-      alignItems: "center",
       backgroundColor: colors.border,
       borderRadius: 999,
-      height: 20,
-      justifyContent: "center",
+      height: 8,
       overflow: "hidden",
       width: "100%",
     },
@@ -389,17 +370,6 @@ const createStyles = (colors: AppColors) =>
       left: 0,
       position: "absolute",
       top: 0,
-    },
-    barValueChip: {
-      borderRadius: 999,
-      paddingHorizontal: 8,
-      paddingVertical: 2,
-    },
-    barValueText: {
-      color: colors.onPrimary,
-      fontSize: 12,
-      fontVariant: ["tabular-nums"],
-      fontWeight: "700",
     },
     loadDetail: {
       color: colors.onSurface,
