@@ -81,8 +81,8 @@ Because recent work added native modules, the **first** preview APK must be buil
 
 - Change JS code or assets only (see Section 5 for what disqualifies an update).
 - Make sure the `EXPO_PUBLIC_*` values in your environment are the ones the app should run with — they are baked in at `eas update` time, not read from the phone.
-- Run `eas update --channel preview --message "your message"`.
-- Open the app on your phone. It downloads the update on the first launch and applies it on the next launch, so close and reopen the app twice. The app also checks for updates in the background on launch, every 15 minutes, and on foreground — a published OTA is downloaded automatically, then applies on the next launch.
+- Run `npx eas update --branch preview --environment preview --platform android --message "your message"`, then repeat with `--platform ios`.
+- Open the app while online. It checks for updates on launch, on foreground, and every 15 minutes; when an update is downloaded, it reloads immediately. Offline or closed devices apply the update on their next successful check.
 
 ### When OTA applies
 
