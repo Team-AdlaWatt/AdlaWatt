@@ -17,7 +17,7 @@ declare const __DEV__: boolean | undefined;
 // removing, or renaming a column fails typecheck or tests.
 // ============================================================
 
-export const MONITORING_SCHEMA_VERSION = 5;
+export const MONITORING_SCHEMA_VERSION = 6;
 
 export type SolarTemperatureStatus =
   | "Nominal"
@@ -180,6 +180,7 @@ export interface MonitoringData {
   interior_temp_status: InteriorTemperatureStatus | null;
 
   last_seen: string | null;
+  heartbeat_expires_at: string | null;
 }
 
 // Columns that are intentionally not part of the UI model.
@@ -194,7 +195,6 @@ export const INTERNAL_MONITORING_COLUMNS = [
 export const NON_UI_MONITORING_COLUMNS = [
   "cumulative_energy_input_wh",
   "cumulative_energy_output_wh",
-  "heartbeat_expires_at",
   "ESP32S3 Sampled at",
 ] as const satisfies readonly MonitoringColumn[];
 
@@ -225,6 +225,7 @@ export const MONITORING_RAW_TO_UI = {
   "INA219 Load Side battery load": "current_load",
   "ESP32S3 Status": "device_status",
   "ESP32S3 Last seen": "last_seen",
+  heartbeat_expires_at: "heartbeat_expires_at",
   "INA219 Load Side dod_status": "dod_status",
   "DS18B20 2 Solar Temp": "solar_temperature",
   "DS18B20 2 Solar Temp Status": "solar_temperature_status",
@@ -504,6 +505,11 @@ const normalizeMonitoringDataFields = (
   last_seen: normalizeTimestamp(
     row.last_seen,
     "last_seen",
+  ),
+
+  heartbeat_expires_at: normalizeTimestamp(
+    row.heartbeat_expires_at,
+    "heartbeat_expires_at",
   ),
 });
 

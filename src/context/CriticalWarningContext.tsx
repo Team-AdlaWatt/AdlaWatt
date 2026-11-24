@@ -74,6 +74,7 @@ export function CriticalWarningProvider({
   const {
     monitoring,
     deviceOnline,
+    dbReadingFresh,
   } = useMonitoringContext();
   const [state, dispatch] = useReducer(reducer, {
     active: false,
@@ -91,12 +92,9 @@ export function CriticalWarningProvider({
         batteryLevel:
           monitoring?.battery_level ?? null,
         deviceOnline,
-        lastUpdated:
-          deviceOnline && monitoring?.last_seen
-            ? Date.parse(monitoring.last_seen)
-            : null,
+        readingFresh: dbReadingFresh,
       }),
-    [deviceOnline, monitoring],
+    [deviceOnline, dbReadingFresh, monitoring],
   );
 
   const critical = useMemo(() => {
@@ -118,6 +116,16 @@ export function CriticalWarningProvider({
   }, [batteryEnergy, monitoring]);
 
   useEffect(() => {
+    if (!dbReadingFresh) {
+      recoverySinceRef.current = null;
+
+      if (state.active || state.recovering) {
+        dispatch("cleared");
+      }
+
+      return;
+    }
+
     if (critical) {
       recoverySinceRef.current = null;
       dispatch("critical");
@@ -157,8 +165,10 @@ export function CriticalWarningProvider({
   }, [
     batteryEnergy.usablePercent,
     critical,
+    dbReadingFresh,
     monitoring?.current_load,
     state.active,
+    state.recovering,
   ]);
 
   const value = useMemo(

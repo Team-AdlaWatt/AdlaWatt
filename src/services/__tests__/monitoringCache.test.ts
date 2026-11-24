@@ -45,6 +45,7 @@ const DATA: MonitoringData = {
   interior_temp: 28,
   interior_temp_status: "Nominal",
   last_seen: null,
+  heartbeat_expires_at: null,
 };
 
 const ROW: MonitoringRow = {
@@ -138,14 +139,14 @@ describe("monitoring cache round-trip", () => {
     ).toBe("number");
     expect(
       cached?.schemaVersion,
-    ).toBe(5);
+    ).toBe(6);
   });
 
   test("load re-normalizes untrusted shapes", async () => {
     await AsyncStorage.setItem(
       CACHE_KEY,
       JSON.stringify({
-        schemaVersion: 5,
+        schemaVersion: 6,
         data: {
           battery_level: "high",
           battery_status: "bogus",

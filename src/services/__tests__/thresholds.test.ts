@@ -48,6 +48,8 @@ const mon = (
     interior_temp: 28,
     interior_temp_status: "Nominal",
     last_seen: "2026-11-12T10:00:00.000Z",
+    heartbeat_expires_at:
+      "2099-01-01T00:00:00.000Z",
     ...overrides,
   });
 

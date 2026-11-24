@@ -107,6 +107,31 @@ describe("computeBatteryEnergy", () => {
       }).status,
     ).toBe("waiting");
   });
+
+  test("uses DB freshness when provided instead of lastUpdated", () => {
+    const input = {
+      wattHours: BATTERY_CAPACITY_WH,
+      batteryLevel: 100,
+      deviceOnline: true,
+      now,
+    };
+
+    expect(
+      computeBatteryEnergy({
+        ...input,
+        lastUpdated: null,
+        readingFresh: true,
+      }).status,
+    ).toBe("normal");
+
+    expect(
+      computeBatteryEnergy({
+        ...input,
+        lastUpdated: now,
+        readingFresh: false,
+      }).status,
+    ).toBe("waiting");
+  });
 });
 
 describe("computeBatteryEnergyProjection", () => {

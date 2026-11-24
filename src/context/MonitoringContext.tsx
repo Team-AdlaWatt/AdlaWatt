@@ -6,6 +6,7 @@ import React, {
 
 import { useDeviceOnline } from "@/hooks/useDeviceOnline";
 import type { MonitoringData } from "@/services/monitoringSchema";
+import { isDbReadingFresh } from "@/utils/monitoringDisplay";
 import { useMonitoring } from "@/services/monitoringService";
 
 export type DeviceConnectionStatus =
@@ -22,6 +23,7 @@ interface MonitoringContextValue {
   error: boolean;
   refresh: () => Promise<void>;
   deviceOnline: boolean;
+  dbReadingFresh: boolean;
   connectionStatus: DeviceConnectionStatus;
 }
 
@@ -36,6 +38,7 @@ const FALLBACK: MonitoringContextValue = {
   error: false,
   refresh: async () => {},
   deviceOnline: false,
+  dbReadingFresh: false,
   connectionStatus: "loading",
 };
 
@@ -55,6 +58,10 @@ export function MonitoringProvider({
 
   const deviceOnline = useDeviceOnline(
     monitoring?.device_status,
+  );
+
+  const dbReadingFresh = isDbReadingFresh(
+    monitoring,
   );
 
   // A cached row painted on cold start can be minutes old. It
@@ -80,6 +87,7 @@ export function MonitoringProvider({
       error,
       refresh,
       deviceOnline,
+      dbReadingFresh,
       connectionStatus,
     }),
     [
@@ -90,6 +98,7 @@ export function MonitoringProvider({
       error,
       refresh,
       deviceOnline,
+      dbReadingFresh,
       connectionStatus,
     ],
   );

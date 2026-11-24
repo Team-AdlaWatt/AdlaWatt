@@ -65,6 +65,30 @@ describe("normalizeBatteryForSelection", () => {
       ).reasonKey,
     ).toBe("stale");
   });
+
+  test("uses DB freshness when provided instead of lastUpdated", () => {
+    const noTimestamp = freshBattery({
+      lastUpdated: null,
+    });
+
+    expect(
+      normalizeBatteryForSelection(
+        noTimestamp,
+        true,
+        Date.now(),
+        true,
+      ).status,
+    ).toBe("ready");
+
+    expect(
+      normalizeBatteryForSelection(
+        freshBattery(),
+        true,
+        Date.now(),
+        false,
+      ).reasonKey,
+    ).toBe("stale");
+  });
 });
 
 describe("evaluateSelection", () => {

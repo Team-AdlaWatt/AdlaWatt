@@ -105,6 +105,62 @@ export const isDeviceOnline = (
   deviceStatus: DeviceStatus | string | null | undefined,
 ): boolean => deviceStatus === "Online";
 
+export type MonitoringFreshnessReason =
+  | "ok"
+  | "missing"
+  | "offline"
+  | "expired";
+
+export interface MonitoringFreshness {
+  usable: boolean;
+  reason: MonitoringFreshnessReason;
+}
+
+type MonitoringFreshnessSource =
+  | {
+      device_status?: string | null;
+      heartbeat_expires_at?: string | null;
+    }
+  | null
+  | undefined;
+
+export const getMonitoringFreshness = (
+  source: MonitoringFreshnessSource,
+  nowMs: number = Date.now(),
+): MonitoringFreshness => {
+  if (!source) {
+    return { usable: false, reason: "missing" };
+  }
+
+  if (!isDeviceOnline(source.device_status)) {
+    return { usable: false, reason: "offline" };
+  }
+
+  if (!source.heartbeat_expires_at) {
+    return { usable: false, reason: "missing" };
+  }
+
+  const expiresAt = Date.parse(
+    source.heartbeat_expires_at,
+  );
+
+  if (!Number.isFinite(expiresAt)) {
+    return { usable: false, reason: "missing" };
+  }
+
+  if (expiresAt <= nowMs) {
+    return { usable: false, reason: "expired" };
+  }
+
+  return { usable: true, reason: "ok" };
+};
+
+export const isDbReadingFresh = (
+  source: MonitoringFreshnessSource,
+  nowMs?: number,
+): boolean =>
+  getMonitoringFreshness(source, nowMs).usable;
+
 const SECOND_MS = 1000;
 const MINUTE_MS = 60 * 1000;
 const HOUR_MS = 60 * MINUTE_MS;

@@ -126,7 +126,7 @@ describe("monitoring column contract", () => {
       "Safe",
       "Unsafe",
     ]);
-    expect(MONITORING_SCHEMA_VERSION).toBe(5);
+    expect(MONITORING_SCHEMA_VERSION).toBe(6);
   });
 
   test("recognizes the Reading Error battery status", () => {
@@ -200,6 +200,7 @@ describe("normalization", () => {
       interior_temp: null,
       interior_temp_status: null,
       last_seen: null,
+      heartbeat_expires_at: null,
     });
   });
 
@@ -264,6 +265,7 @@ describe("normalization", () => {
         "ESP32S3 Status": "Unknown",
         "DS18B20 2 Solar Temp Status": "Hot",
         "ESP32S3 Last seen": "not-a-date",
+        heartbeat_expires_at: "not-a-date",
       });
 
     expect(normalized.battery_status).toBeNull();
@@ -272,6 +274,9 @@ describe("normalization", () => {
       normalized.solar_temperature_status,
     ).toBeNull();
     expect(normalized.last_seen).toBeNull();
+    expect(
+      normalized.heartbeat_expires_at,
+    ).toBeNull();
   });
 
   test("preserves a missing DoD instead of deriving it", () => {

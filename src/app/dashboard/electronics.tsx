@@ -224,6 +224,7 @@ export default function ElectronicsScreen() {
     monitoring,
     refresh: refreshMonitoring,
     deviceOnline,
+    dbReadingFresh,
   } = useMonitoringContext();
 
   const [
@@ -404,10 +405,6 @@ export default function ElectronicsScreen() {
         return null;
       }
 
-      const lastSeenMs = monitoring.last_seen
-        ? Date.parse(monitoring.last_seen)
-        : NaN;
-
       return {
         soc: monitoring.battery_level ?? 0,
         voltage: monitoring.voltage ?? 0,
@@ -417,13 +414,8 @@ export default function ElectronicsScreen() {
           monitoring.dod_status ?? undefined,
         currentLoadW:
           monitoring.current_load ?? undefined,
-        lastUpdated:
-          deviceOnline &&
-          Number.isFinite(lastSeenMs)
-            ? lastSeenMs
-            : null,
       };
-    }, [monitoring, deviceOnline]);
+    }, [monitoring]);
 
   const combinedRecommendation = useMemo(
     () =>
@@ -441,12 +433,14 @@ export default function ElectronicsScreen() {
         })),
         {
           deviceOnline: deviceOnline ?? false,
+          readingFresh: dbReadingFresh,
         },
       ),
     [
       recommendationBattery,
       selectedElectronics,
       deviceOnline,
+      dbReadingFresh,
     ],
   );
 
@@ -458,13 +452,9 @@ export default function ElectronicsScreen() {
         batteryLevel:
           monitoring?.battery_level ?? null,
         deviceOnline: deviceOnline ?? false,
-        lastUpdated:
-          deviceOnline &&
-          monitoring?.last_seen
-            ? Date.parse(monitoring.last_seen)
-            : null,
+        readingFresh: dbReadingFresh,
       }),
-    [monitoring, deviceOnline],
+    [monitoring, deviceOnline, dbReadingFresh],
   );
 
   const batteryProtection = useMemo(
@@ -533,6 +523,7 @@ export default function ElectronicsScreen() {
         ],
         {
           deviceOnline: deviceOnline ?? false,
+          readingFresh: dbReadingFresh,
           alternativesLimit: 0,
         },
       );
@@ -555,7 +546,11 @@ export default function ElectronicsScreen() {
 
       return "advisable";
     },
-    [recommendationBattery, deviceOnline],
+    [
+      recommendationBattery,
+      deviceOnline,
+      dbReadingFresh,
+    ],
   );
 
   const reviewItems = useMemo<ReviewItem[]>(

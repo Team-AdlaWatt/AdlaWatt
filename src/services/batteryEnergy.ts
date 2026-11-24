@@ -18,6 +18,7 @@ export interface BatteryEnergyInput {
   batteryLevel?: number | null;
   deviceOnline?: boolean | null;
   lastUpdated?: number | null;
+  readingFresh?: boolean | null;
   now?: number;
 }
 
@@ -85,9 +86,13 @@ export const computeBatteryEnergy = (
   const batteryLevel = toFinite(input.batteryLevel);
 
   const isFresh =
-    lastUpdated !== null &&
-    now - lastUpdated <=
-      DEFAULT_RECOMMENDATION_CONFIG.staleReadingMs;
+    input.readingFresh === true
+      ? true
+      : input.readingFresh === false
+        ? false
+        : lastUpdated !== null &&
+          now - lastUpdated <=
+            DEFAULT_RECOMMENDATION_CONFIG.staleReadingMs;
 
   const isOnline =
     input.deviceOnline !== false;

@@ -10,7 +10,9 @@ import {
   fitTextFontSize,
   formatTemperature,
   formatTemperatureStatusLabel,
+  getMonitoringFreshness,
   hasTemperatureReading,
+  isDbReadingFresh,
   isDeviceOnline,
   monitoringLastSeenMs,
 } from "@/utils/monitoringDisplay";
@@ -144,6 +146,72 @@ describe("monitoring snapshot freshness", () => {
     expect(monitoringLastSeenMs(undefined)).toBe(
       Number.NEGATIVE_INFINITY,
     );
+  });
+});
+
+describe("database reading freshness", () => {
+  const freshRow = {
+    device_status: "Online",
+    heartbeat_expires_at: new Date(
+      NOW + 5_000,
+    ).toISOString(),
+  };
+
+  test("accepts only Online rows with unexpired heartbeats", () => {
+    expect(
+      getMonitoringFreshness(freshRow, NOW),
+    ).toEqual({ usable: true, reason: "ok" });
+    expect(
+      isDbReadingFresh(freshRow, NOW),
+    ).toBe(true);
+  });
+
+  test("rejects offline, expired, missing, and invalid rows", () => {
+    expect(
+      getMonitoringFreshness(
+        {
+          ...freshRow,
+          device_status: "Offline",
+        },
+        NOW,
+      ),
+    ).toEqual({ usable: false, reason: "offline" });
+
+    expect(
+      getMonitoringFreshness(
+        {
+          ...freshRow,
+          heartbeat_expires_at: new Date(
+            NOW - 1,
+          ).toISOString(),
+        },
+        NOW,
+      ),
+    ).toEqual({ usable: false, reason: "expired" });
+
+    expect(
+      getMonitoringFreshness(
+        {
+          device_status: "Online",
+          heartbeat_expires_at: null,
+        },
+        NOW,
+      ),
+    ).toEqual({ usable: false, reason: "missing" });
+
+    expect(
+      getMonitoringFreshness(
+        {
+          device_status: "Online",
+          heartbeat_expires_at: "not-a-date",
+        },
+        NOW,
+      ),
+    ).toEqual({ usable: false, reason: "missing" });
+
+    expect(
+      getMonitoringFreshness(null, NOW),
+    ).toEqual({ usable: false, reason: "missing" });
   });
 });
 

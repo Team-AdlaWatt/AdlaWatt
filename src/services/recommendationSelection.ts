@@ -107,6 +107,7 @@ export interface SelectionBatteryNormalization {
 
 export interface EvaluateSelectionOptions {
   deviceOnline?: boolean;
+  readingFresh?: boolean;
   now?: number;
   alternativesPool?: SelectionAppliance[];
   alternativesLimit?: number;
@@ -146,6 +147,7 @@ export const normalizeBatteryForSelection = (
   battery: BatteryStateInput | null,
   deviceOnline: boolean = true,
   now: number = Date.now(),
+  readingFresh?: boolean,
 ): SelectionBatteryNormalization => {
   if (!battery) {
     return {
@@ -163,28 +165,34 @@ export const normalizeBatteryForSelection = (
     };
   }
 
-  const lastUpdated = battery.lastUpdated;
+  if (readingFresh !== true) {
+    const lastUpdated = battery.lastUpdated;
 
-  if (
-    typeof lastUpdated !== "number" ||
-    !Number.isFinite(lastUpdated)
-  ) {
-    return {
-      status: "waiting",
-      reasonKey: "waiting",
-      battery: null,
-    };
-  }
+    if (
+      readingFresh === false ||
+      typeof lastUpdated !== "number" ||
+      !Number.isFinite(lastUpdated)
+    ) {
+      return {
+        status: "waiting",
+        reasonKey:
+          readingFresh === false
+            ? "stale"
+            : "waiting",
+        battery: null,
+      };
+    }
 
-  if (
-    now - lastUpdated >
-    DEFAULT_RECOMMENDATION_CONFIG.staleReadingMs
-  ) {
-    return {
-      status: "waiting",
-      reasonKey: "stale",
-      battery: null,
-    };
+    if (
+      now - lastUpdated >
+      DEFAULT_RECOMMENDATION_CONFIG.staleReadingMs
+    ) {
+      return {
+        status: "waiting",
+        reasonKey: "stale",
+        battery: null,
+      };
+    }
   }
 
   return {
@@ -361,6 +369,7 @@ export const evaluateSelection = (
     battery,
     options.deviceOnline ?? true,
     options.now,
+    options.readingFresh,
   );
 
   if (normalized.status === "waiting" || !normalized.battery) {

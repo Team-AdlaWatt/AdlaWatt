@@ -151,6 +151,7 @@ export default function DashboardScreen() {
     cachedAt,
     refresh: refreshMonitoring,
     deviceOnline,
+    dbReadingFresh,
   } = useMonitoringContext();
 
   const [
@@ -256,16 +257,9 @@ export default function DashboardScreen() {
               currentLoadW:
                 monitoring.current_load ??
                 undefined,
-              lastUpdated:
-                deviceOnline &&
-                monitoring.last_seen
-                  ? Date.parse(
-                      monitoring.last_seen,
-                    )
-                  : null,
             }
           : null,
-      [monitoring, deviceOnline],
+      [monitoring],
     );
 
   const combinedRecommendation = useMemo(
@@ -285,12 +279,14 @@ export default function DashboardScreen() {
         })),
         {
           deviceOnline: deviceOnline ?? false,
+          readingFresh: dbReadingFresh,
         },
       ),
     [
       recommendationBattery,
       dashboardElectronics,
       deviceOnline,
+      dbReadingFresh,
     ],
   );
 
@@ -302,13 +298,9 @@ export default function DashboardScreen() {
         batteryLevel:
           monitoring?.battery_level ?? null,
         deviceOnline: deviceOnline ?? false,
-        lastUpdated:
-          deviceOnline &&
-          monitoring?.last_seen
-            ? Date.parse(monitoring.last_seen)
-            : null,
+        readingFresh: dbReadingFresh,
       }),
-    [monitoring, deviceOnline],
+    [monitoring, deviceOnline, dbReadingFresh],
   );
 
   const energyProjection = useMemo(

@@ -13,6 +13,10 @@ import {
   type MonitoringData,
 } from "@/services/monitoringSchema";
 import {
+  isDbReadingFresh,
+  isDeviceOnline,
+} from "@/utils/monitoringDisplay";
+import {
   type BatteryStateInput,
 } from "@/services/recommendation";
 import {
@@ -156,6 +160,7 @@ const DEFAULT_RULE_DATA: MonitoringRuleData = {
   interior_temp_status: "Nominal",
 
   last_seen: "",
+  heartbeat_expires_at: "",
 };
 
 const toMonitoringRuleData = (
@@ -243,6 +248,11 @@ const toMonitoringRuleData = (
     data.last_seen ??
     fallback?.last_seen ??
     DEFAULT_RULE_DATA.last_seen,
+
+  heartbeat_expires_at:
+    data.heartbeat_expires_at ??
+    fallback?.heartbeat_expires_at ??
+    DEFAULT_RULE_DATA.heartbeat_expires_at,
 });
 
 
@@ -1702,26 +1712,17 @@ const checkDepthOfDischarge =
 
 const toSelectionBattery = (
   row: MonitoringRuleData,
-): BatteryStateInput => {
-  const lastSeenMs = row.last_seen
-    ? Date.parse(row.last_seen)
-    : NaN;
-
-  return {
-    soc: row.battery_level,
-    voltage: row.voltage,
-    remainingWh: row.watt_hours,
-    dod:
-      row.dod_status === "Safe" ||
-      row.dod_status === "Unsafe"
-        ? row.dod_status
-        : undefined,
-    currentLoadW: row.current_load,
-    lastUpdated: Number.isFinite(lastSeenMs)
-      ? lastSeenMs
-      : null,
-  };
-};
+): BatteryStateInput => ({
+  soc: row.battery_level,
+  voltage: row.voltage,
+  remainingWh: row.watt_hours,
+  dod:
+    row.dod_status === "Safe" ||
+    row.dod_status === "Unsafe"
+      ? row.dod_status
+      : undefined,
+  currentLoadW: row.current_load,
+});
 
 
 const loadSelectionForRules = async (
@@ -1821,7 +1822,11 @@ const checkElectronicsBecameAdvisable = async (
   previous: MonitoringRuleData | null,
 ): Promise<void> => {
 
-  if (previous === null) {
+  if (
+    previous === null ||
+    !isDbReadingFresh(previous) ||
+    !isDbReadingFresh(current)
+  ) {
     return;
   }
 
@@ -1834,12 +1839,22 @@ const checkElectronicsBecameAdvisable = async (
   const previousEvaluation = evaluateSelection(
     toSelectionBattery(previous),
     selection,
-    { alternativesLimit: 0 },
+    {
+      deviceOnline: isDeviceOnline(
+        previous.device_status,
+      ),
+      readingFresh: true,
+    },
   );
   const currentEvaluation = evaluateSelection(
     toSelectionBattery(current),
     selection,
-    { alternativesLimit: 0 },
+    {
+      deviceOnline: isDeviceOnline(
+        current.device_status,
+      ),
+      readingFresh: true,
+    },
   );
 
   if (
@@ -1878,7 +1893,10 @@ const checkHighLoadWhileBatteryLow = async (
 
   const level = current.battery_level ?? 0;
 
-  if (level > 20) {
+  if (
+    level > 20 ||
+    !isDbReadingFresh(current)
+  ) {
     return;
   }
 
@@ -1891,7 +1909,13 @@ const checkHighLoadWhileBatteryLow = async (
   const evaluation = evaluateSelection(
     toSelectionBattery(current),
     selection,
-    { alternativesLimit: 0 },
+    {
+      deviceOnline: isDeviceOnline(
+        current.device_status,
+      ),
+      readingFresh: true,
+      alternativesLimit: 0,
+    },
   );
 
   if (
