@@ -2360,6 +2360,7 @@ export interface UnsafeBarPoint {
 export type BatteryActivityKey =
   | "charging"
   | "discharging"
+  | "cycle"
   | "idle";
 
 export interface BatteryActivitySlice {
@@ -2374,6 +2375,7 @@ export function getBatteryActivityData(
 ): BatteryActivitySlice[] {
   let charging = 0;
   let discharging = 0;
+  let cycle = 0;
   let idle = 0;
 
   groupedMonitoring.forEach(
@@ -2398,6 +2400,10 @@ export function getBatteryActivityData(
           ) {
             discharging += 1;
           } else if (
+            status === "cycle"
+          ) {
+            cycle += 1;
+          } else if (
             status === "idle"
           ) {
             idle += 1;
@@ -2410,6 +2416,7 @@ export function getBatteryActivityData(
   const total =
     charging +
     discharging +
+    cycle +
     idle;
 
   const toPercent = (
@@ -2437,6 +2444,12 @@ export function getBatteryActivityData(
       percent: toPercent(
         discharging,
       ),
+    },
+    {
+      key: "cycle",
+      label: "Cycle",
+      value: cycle,
+      percent: toPercent(cycle),
     },
     {
       key: "idle",

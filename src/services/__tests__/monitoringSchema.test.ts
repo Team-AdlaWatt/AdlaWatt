@@ -96,6 +96,7 @@ describe("monitoring column contract", () => {
     expect(BATTERY_STATUS_VALUES).toEqual([
       "Charging",
       "Discharging",
+      "Cycle",
       "Idle",
       "Reading Error",
     ]);
@@ -126,7 +127,7 @@ describe("monitoring column contract", () => {
       "Safe",
       "Unsafe",
     ]);
-    expect(MONITORING_SCHEMA_VERSION).toBe(6);
+    expect(MONITORING_SCHEMA_VERSION).toBe(7);
   });
 
   test("recognizes the Reading Error battery status", () => {
@@ -232,6 +233,18 @@ describe("normalization", () => {
 
     expect(normalized.battery_status).toBe(
       "Reading Error",
+    );
+  });
+
+  test("keeps the Cycle battery status", () => {
+    const normalized =
+      normalizeMonitoringRow({
+        ...row,
+        "INA219 Load Battery status": "Cycle",
+      });
+
+    expect(normalized.battery_status).toBe(
+      "Cycle",
     );
   });
 

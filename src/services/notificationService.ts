@@ -7,6 +7,8 @@ import {
   getMonitoringData,
 } from "@/services/monitoringService";
 import {
+  isBatteryCharging,
+  isBatteryDischarging,
   isBatteryReadingError,
   isMonitoringRow,
   normalizeMonitoringRow,
@@ -912,10 +914,12 @@ const checkBatteryCharging = async (
 ) => {
 
   if (
-    current.battery_status ===
-      "Charging" &&
-    previous?.battery_status !==
-      "Charging"
+    isBatteryCharging(
+      current.battery_status,
+    ) &&
+    !isBatteryCharging(
+      previous?.battery_status,
+    )
   ) {
 
     await createNotification(
@@ -2193,14 +2197,16 @@ const checkBatteryDischargingAtLowLevel =
     if (
       current.battery_level <=
         20 &&
-      current.battery_status ===
-        "Discharging" &&
+      isBatteryDischarging(
+        current.battery_status,
+      ) &&
       (
         previous === null ||
         previous.battery_level >
           20 ||
-        previous.battery_status !==
-          "Discharging"
+        !isBatteryDischarging(
+          previous.battery_status,
+        )
       )
     ) {
 
@@ -2230,14 +2236,16 @@ const checkBatteryDischargingWithUnsafeDoD =
   ) => {
 
     if (
-      current.battery_status ===
-        "Discharging" &&
+      isBatteryDischarging(
+        current.battery_status,
+      ) &&
       current.dod_status ===
         "Unsafe" &&
       (
         previous === null ||
-        previous.battery_status !==
-          "Discharging" ||
+        !isBatteryDischarging(
+          previous.battery_status,
+        ) ||
         previous.dod_status !==
           "Unsafe"
       )
@@ -2388,13 +2396,15 @@ const checkBatteryChargingNotDetected =
     if (
       current.battery_level <
         100 &&
-      current.battery_status !==
-        "Charging" &&
+      !isBatteryCharging(
+        current.battery_status,
+      ) &&
       current.solar_input > 0 &&
       (
         previous === null ||
-        previous.battery_status ===
-          "Charging" ||
+        isBatteryCharging(
+          previous.battery_status,
+        ) ||
         previous.solar_input <=
           0
       )
@@ -2433,13 +2443,15 @@ const checkSolarInputUnavailable =
     if (
       current.solar_input ===
         0 &&
-      current.battery_status ===
-        "Charging" &&
+      isBatteryCharging(
+        current.battery_status,
+      ) &&
       (
         previous === null ||
         previous.solar_input > 0 ||
-        previous.battery_status !==
-          "Charging"
+        !isBatteryCharging(
+          previous.battery_status,
+        )
       )
     ) {
 
@@ -2469,14 +2481,16 @@ const checkLowSolarInputDuringCharging =
   ) => {
 
     if (
-      current.battery_status ===
-        "Charging" &&
+      isBatteryCharging(
+        current.battery_status,
+      ) &&
       current.solar_status ===
         "Low" &&
       (
         previous === null ||
-        previous.battery_status !==
-          "Charging" ||
+        !isBatteryCharging(
+          previous.battery_status,
+        ) ||
         previous.solar_status !==
           "Low"
       )

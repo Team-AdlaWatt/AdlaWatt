@@ -27,6 +27,18 @@ describe("getEstimatedTimeRemaining", () => {
     ).toBe(CHARGING_ETR);
   });
 
+  test("does not label a Cycle as charging", () => {
+    expect(
+      getEstimatedTimeRemaining({
+        batteryStatus: "Cycle",
+        wattHours: null,
+        batteryLevel: null,
+        currentLoad: null,
+        solarInput: null,
+      }),
+    ).toBe(MISSING_ETR);
+  });
+
   test("reports when solar input covers the load", () => {
     expect(
       getEstimatedTimeRemaining({

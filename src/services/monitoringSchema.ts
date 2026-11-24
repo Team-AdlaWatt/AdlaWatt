@@ -17,7 +17,7 @@ declare const __DEV__: boolean | undefined;
 // removing, or renaming a column fails typecheck or tests.
 // ============================================================
 
-export const MONITORING_SCHEMA_VERSION = 6;
+export const MONITORING_SCHEMA_VERSION = 7;
 
 export type SolarTemperatureStatus =
   | "Nominal"
@@ -40,9 +40,12 @@ export type DeviceStatus =
 export const BATTERY_STATUS_READING_ERROR =
   "Reading Error" as const;
 
+export const BATTERY_STATUS_CYCLE = "Cycle" as const;
+
 export type BatteryStatus =
   | "Charging"
   | "Discharging"
+  | typeof BATTERY_STATUS_CYCLE
   | "Idle"
   | typeof BATTERY_STATUS_READING_ERROR;
 
@@ -86,6 +89,7 @@ export const DEVICE_STATUS_VALUES = [
 export const BATTERY_STATUS_VALUES = [
   "Charging",
   "Discharging",
+  BATTERY_STATUS_CYCLE,
   "Idle",
   BATTERY_STATUS_READING_ERROR,
 ] as const satisfies readonly BatteryStatus[];
@@ -93,6 +97,16 @@ export const BATTERY_STATUS_VALUES = [
 export const isBatteryReadingError = (
   status: string | null | undefined,
 ): boolean => status === BATTERY_STATUS_READING_ERROR;
+
+export const isBatteryCharging = (
+  status: string | null | undefined,
+): boolean =>
+  status === "Charging" || status === BATTERY_STATUS_CYCLE;
+
+export const isBatteryDischarging = (
+  status: string | null | undefined,
+): boolean =>
+  status === "Discharging" || status === BATTERY_STATUS_CYCLE;
 
 export const SOLAR_STATUS_VALUES = [
   "Low",

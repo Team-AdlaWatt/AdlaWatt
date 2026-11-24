@@ -7,7 +7,7 @@
     3) DHT22 DC fan relay test
 
   Active sensors:
-    - INA219 battery monitor: SDA 17, SCL 18
+    - INA219 battery/solar/inverter monitors: SDA 17, SCL 18
     - DHT22 interior temperature + humidity: GPIO 12
     - DS18B20 outside/solar temperature: GPIO 4
     - DS3231 RTC: separate I2C bus, SDA 8, SCL 9
@@ -21,7 +21,7 @@
 
   Display (ILI9488 480x320, SPI) - see AdlaWattDisplay.h:
     - CS 41, RST 40, DC 42, MOSI 1, SCK 2
-    - Button on GPIO 47 toggles Dashboard <-> QR code
+    - BOOT button on GPIO 0 toggles Dashboard <-> QR code
     - SD card: CS 35, MOSI 36, MISO 37, SCK 14
 
   Supabase:
@@ -64,8 +64,8 @@
       device advertises "open for configuration"; a bound device keeps
       advertising but rejects provisioning writes and reports "configured"
       in BLE manufacturer data. Serial RESETCONFIG is disabled by default.
-    - The solar voltage/current/power values are battery-charge estimates,
-      not direct solar-panel measurements.
+    - Solar and inverter voltage/current/power are measured by dedicated
+      INA219 sensors; battery INA219 remains the net battery measurement.
     - setInsecure() disables TLS certificate validation and the fixed
       device code is fixed for testing: prototype use only.
 */
@@ -133,7 +133,7 @@ const unsigned long DEVICE_COMMAND_HTTP_TIMEOUT_MS = 8000;
 // Rated power used ONLY for the "% of rated" bars on the TFT. Change these
 // to match your real panel and inverter/load limit.
 const float SOLAR_RATED_W = 100.0;
-const float LOAD_RATED_W  = 300.0;
+const float LOAD_RATED_W  = 600.0;
 
 // Cooling fans (2 fans on one 1-channel 5 V relay module, GPIO 13)
 #define FAN_RELAY_PIN 13
@@ -858,8 +858,17 @@ static void updateFans(float tempC, bool readingValid) {
 // 2. INA219 SENSOR ADDRESSES AND REGISTERS
 // =====================================================================
 
-uint8_t batteryINA219Addr = 0x40;
+const uint8_t BATTERY_INA219_ADDR = 0x40;
+const uint8_t SOLAR_INA219_ADDR = 0x44;
+const uint8_t INVERTER_INA219_ADDR = 0x45;
+
+uint8_t batteryINA219Addr = BATTERY_INA219_ADDR;
 bool battINA219Connected = false;
+bool solarINA219Connected = false;
+bool inverterINA219Connected = false;
+
+const unsigned long INA219_RETRY_INTERVAL_MS = 30000UL;
+unsigned long lastINA219RetryMs = 0;
 
 #define REG219_CONFIG      0x00
 #define REG219_SHUNT_VOLT  0x01
@@ -872,6 +881,14 @@ bool battINA219Connected = false;
 const float BATT_VOLT_CAL   = 1.00169;
 const float BATT_CURR_CAL   = 1.0000;
 const float BATT_SHUNT_OHMS = 0.0007444;
+const float SOLAR_SHUNT_OHMS = 0.010f;
+const float INVERTER_SHUNT_OHMS = 0.001f;
+
+const float SOLAR_ACTIVE_ON_A = 0.50f;
+const float SOLAR_ACTIVE_OFF_A = 0.20f;
+const float INVERTER_ACTIVE_ON_A = 1.50f;
+const float INVERTER_ACTIVE_OFF_A = 0.80f;
+const unsigned long ACTIVITY_PERSISTENCE_MS = 3000UL;
 
 const float TOTAL_BANK_AH      = 60.0;
 const float TOTAL_BANK_WH      = 720.0;
@@ -896,6 +913,11 @@ double cumulative_energy_input_wh = 0.0;
 double cumulative_energy_output_wh = 0.0;
 
 unsigned long solarActiveSeconds = 0;
+
+bool solarActiveState = false;
+bool inverterActiveState = false;
+unsigned long solarActivityPendingMs = 0;
+unsigned long inverterActivityPendingMs = 0;
 
 unsigned long lastSampleTime = 0;
 unsigned long lastSaveTime = 0;
@@ -1091,18 +1113,56 @@ bool readSigned16(uint8_t addr, uint8_t reg, int16_t &val) {
   return true;
 }
 
-void detectI2CSensors() {
-  battINA219Connected = false;
+bool readINA219Registers(uint8_t addr, uint16_t &rawBus,
+                         int16_t &rawShunt) {
+  return readUnsigned16(addr, REG219_BUS_VOLT, rawBus) &&
+         readSigned16(addr, REG219_SHUNT_VOLT, rawShunt);
+}
 
-  for (uint8_t addr = 0x40; addr <= 0x45; addr++) {
-    Wire.beginTransmission(addr);
-    if (Wire.endTransmission() == 0) {
-      batteryINA219Addr = addr;
-      battINA219Connected =
-        writeReg16(batteryINA219Addr, REG219_CONFIG, 0x2FFF);
-      break;
-    }
+bool configureINA219(uint8_t addr) {
+  Wire.beginTransmission(addr);
+  if (Wire.endTransmission() != 0) return false;
+  return writeReg16(addr, REG219_CONFIG, 0x2FFF);
+}
+
+bool updateActivityState(bool readingOk, float amps,
+                         float onThreshold, float offThreshold,
+                         bool &active,
+                         unsigned long &pendingSinceMs,
+                         unsigned long nowMs) {
+  if (!readingOk || !isfinite(amps)) {
+    active = false;
+    pendingSinceMs = 0;
+    return false;
   }
+
+  bool desired = active ? (amps > offThreshold)
+                        : (amps >= onThreshold);
+
+  if (desired == active) {
+    pendingSinceMs = 0;
+    return active;
+  }
+
+  if (pendingSinceMs == 0) {
+    pendingSinceMs = nowMs;
+    return active;
+  }
+
+  if (nowMs - pendingSinceMs >= ACTIVITY_PERSISTENCE_MS) {
+    active = !active;
+    pendingSinceMs = 0;
+  }
+
+  return active;
+}
+
+void detectI2CSensors() {
+  batteryINA219Addr = BATTERY_INA219_ADDR;
+  battINA219Connected = configureINA219(BATTERY_INA219_ADDR);
+  solarINA219Connected = configureINA219(SOLAR_INA219_ADDR);
+  inverterINA219Connected = configureINA219(INVERTER_INA219_ADDR);
+  lastINA219RetryMs = millis();
 }
 
 // =====================================================================
@@ -2097,6 +2157,10 @@ void setup() {
   detectI2CSensors();
   Serial.print("[Battery] INA219: ");
   Serial.println(battINA219Connected ? "CONNECTED" : "NOT FOUND");
+  Serial.print("[Solar] INA219: ");
+  Serial.println(solarINA219Connected ? "CONNECTED" : "NOT FOUND");
+  Serial.print("[Inverter] INA219: ");
+  Serial.println(inverterINA219Connected ? "CONNECTED" : "NOT FOUND");
 
   prefs.begin("zenova_v2", false);
   total_Ah = prefs.getDouble("tot_Ah", -1.0);
@@ -2255,22 +2319,16 @@ void loop() {
 
   if (battINA219Connected) {
     battReadOk =
-      readUnsigned16(batteryINA219Addr, REG219_BUS_VOLT, bRawBus) &&
-      readSigned16(batteryINA219Addr, REG219_SHUNT_VOLT, bRawShunt);
-  }
-
-  if (!battReadOk) {
-    detectI2CSensors();
-    if (battINA219Connected) {
-      battReadOk =
-        readUnsigned16(batteryINA219Addr, REG219_BUS_VOLT, bRawBus) &&
-        readSigned16(batteryINA219Addr, REG219_SHUNT_VOLT, bRawShunt);
+      readINA219Registers(batteryINA219Addr, bRawBus, bRawShunt);
+    if (!battReadOk) {
+      battINA219Connected = false;
     }
   }
   battReadOkGlobal = battReadOk;
 
   float batt_V = 0.0;
   float batt_A = 0.0;
+  float battery_net_A = 0.0;
   float load_now_W = 0.0;
   String battery_status = "Reading Error";
 
@@ -2281,17 +2339,12 @@ void loop() {
              BATT_CURR_CAL;
 
     if (fabs(batt_A) < BATT_DEADBAND_A) batt_A = 0.0;
+    battery_net_A = batt_A;
 
     if (batt_A > 0.0) {
-      battery_status = "Charging";
       total_Ah += (batt_A * CHARGE_EFFICIENCY) * elapsedHours;
     } else if (batt_A < 0.0) {
-      battery_status = "Discharging";
-      load_now_W = fabs(batt_V * batt_A);
       total_Ah += batt_A * elapsedHours;
-      cumulative_energy_output_wh += load_now_W * elapsedHours;
-    } else {
-      battery_status = "Idle";
     }
 
     total_Ah = constrain(total_Ah, 0.0, (double)TOTAL_BANK_AH);
@@ -2309,26 +2362,77 @@ void loop() {
   }
 
   // -------------------------------------------------------------------
-  // 3. SOLAR MONITORING (BATTERY-BASED ESTIMATE)
+  // 3. SOLAR AND INVERTER MEASUREMENTS
   // -------------------------------------------------------------------
 
   float solar_V = 0.0;
   float solar_A = 0.0;
   float solar_W = 0.0;
-  bool solarActive = false;
+  float inverter_V = 0.0;
+  float inverter_A = 0.0;
+  float inverter_W = 0.0;
+  bool solarReadOk = false;
+  bool inverterReadOk = false;
 
-  // Positive INA219 current means battery charging. This is an estimate,
-  // not a direct measurement of solar-panel electrical output.
-  if (battReadOk && batt_A > 0.0) {
-    solarActive = true;
-    solar_V = batt_V;
-    solar_A = batt_A;
-    solar_W = batt_V * batt_A;
+  if (solarINA219Connected) {
+    uint16_t rawBus = 0;
+    int16_t rawShunt = 0;
+    if (readINA219Registers(SOLAR_INA219_ADDR, rawBus, rawShunt)) {
+      solarReadOk = true;
+      solar_V = (rawBus >> 3) * 0.004;
+      float shunt_mV = rawShunt * 0.01;
+      solar_A = ((shunt_mV / 1000.0) / SOLAR_SHUNT_OHMS);
+      if (solar_A < 0.0f) solar_A = 0.0f;
+      solar_W = solar_V * solar_A;
+    } else {
+      solarINA219Connected = false;
+    }
+  }
+
+  if (inverterINA219Connected) {
+    uint16_t rawBus = 0;
+    int16_t rawShunt = 0;
+    if (readINA219Registers(INVERTER_INA219_ADDR, rawBus, rawShunt)) {
+      inverterReadOk = true;
+      inverter_V = (rawBus >> 3) * 0.004;
+      float shunt_mV = rawShunt * 0.01;
+      inverter_A = ((shunt_mV / 1000.0) / INVERTER_SHUNT_OHMS);
+      if (inverter_A < 0.0f) inverter_A = 0.0f;
+      inverter_W = inverter_V * inverter_A;
+      load_now_W = inverter_W;
+    } else {
+      inverterINA219Connected = false;
+    }
+  }
+
+  bool solarActive = updateActivityState(
+    solarReadOk, solar_A, SOLAR_ACTIVE_ON_A, SOLAR_ACTIVE_OFF_A,
+    solarActiveState, solarActivityPendingMs, now);
+
+  bool inverterActive = updateActivityState(
+    inverterReadOk, inverter_A, INVERTER_ACTIVE_ON_A,
+    INVERTER_ACTIVE_OFF_A, inverterActiveState,
+    inverterActivityPendingMs, now);
+
+  if (!solarReadOk || !inverterReadOk) {
+    battery_status = "Reading Error";
+  } else if (solarActive && inverterActive) {
+    battery_status = "Cycle";
+  } else if (solarActive) {
+    battery_status = "Charging";
+  } else if (inverterActive) {
+    battery_status = "Discharging";
+  } else {
+    battery_status = "Idle";
   }
 
   if (solarActive && solar_W > 1.0) {
     cumulative_energy_input_wh += solar_W * elapsedHours;
     solarActiveSeconds += (unsigned long)round(elapsedSec);
+  }
+
+  if (inverterActive && inverter_W > 1.0) {
+    cumulative_energy_output_wh += inverter_W * elapsedHours;
   }
 
   // -------------------------------------------------------------------
@@ -2366,7 +2470,7 @@ void loop() {
   String solar_status = getSolarStatus(solar_W);
   String solar_timer = formatInterval(solarActiveSeconds);
 
-  String detected_appliance = battReadOk
+  String detected_appliance = inverterReadOk
     ? estimateAppliance(load_now_W)
     : "INA219 Not Connected";
 
@@ -2378,10 +2482,18 @@ void loop() {
     DisplayData dd;
 
     dd.battValid = battReadOk;
+    dd.battNetA = battery_net_A;
+    dd.solarValid = solarReadOk;
     dd.solarV = solar_V;
+    dd.solarA = solar_A;
+    dd.solarActive = solarActive;
     dd.solarW = solar_W;
     dd.usablePct = usable_pct_int;
     dd.usableWh = usable_wh_int;
+    dd.inverterValid = inverterReadOk;
+    dd.inverterV = inverter_V;
+    dd.inverterA = inverter_A;
+    dd.inverterActive = inverterActive;
     dd.loadW = load_now_W;
     dd.solarWhTotal = (float)cumulative_energy_input_wh;
     dd.loadWhTotal  = (float)cumulative_energy_output_wh;
@@ -2401,6 +2513,12 @@ void loop() {
     dd.hum = rawHumidity;
 
     uiPublish(dd);
+  }
+
+  if ((!battINA219Connected || !solarINA219Connected ||
+       !inverterINA219Connected) &&
+      millis() - lastINA219RetryMs >= INA219_RETRY_INTERVAL_MS) {
+    detectI2CSensors();
   }
 
   // -------------------------------------------------------------------
@@ -2447,16 +2565,16 @@ void loop() {
   Serial.println("                   SOLAR SIDE");
   Serial.println("====================================================");
 
-  if (battReadOk) {
-    Serial.printf("Solar Input Estimate: %.2f W\n", solar_W);
+  if (solarReadOk) {
+    Serial.printf("Solar Input        : %.2f W\n", solar_W);
     Serial.printf("Solar Timer        : %s\n", solar_timer.c_str());
     Serial.printf("Solar Status       : %s\n", solar_status.c_str());
-    Serial.printf("Battery Voltage    : %.2f V\n", solar_V);
+    Serial.printf("Controller Voltage : %.2f V\n", solar_V);
     Serial.printf("Charging Current   : %.2f A\n", solar_A);
-    Serial.printf("Estimated Solar Energy: %.3f Wh\n",
+    Serial.printf("Solar Energy       : %.3f Wh\n",
                   cumulative_energy_input_wh);
   } else {
-    Serial.println("Solar Estimate     : NOT AVAILABLE");
+    Serial.println("Solar Measurement  : NOT AVAILABLE");
   }
 
   if (solarTempConnected) {

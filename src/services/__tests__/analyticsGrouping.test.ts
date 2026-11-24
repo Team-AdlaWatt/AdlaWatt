@@ -366,7 +366,12 @@ describe("buildAnalyticsCardData", () => {
     expect(data.load[0].peakW).toBe(40);
     expect(data.load[0].avgVoltage).toBeCloseTo(12.3, 5);
 
-    expect(data.activity.map((slice) => slice.value)).toEqual([3, 0, 0]);
+    expect(data.activity.map((slice) => slice.value)).toEqual([
+      3,
+      0,
+      0,
+      0,
+    ]);
   });
 });
 
@@ -385,13 +390,14 @@ describe("analytics day anchor", () => {
 });
 
 describe("getBatteryActivityData", () => {
-  test("counts charging, discharging, and idle samples for the shared range", () => {
+  test("counts charging, discharging, cycle, and idle samples for the shared range", () => {
     const slices = getBatteryActivityData(
       groupMonitoringHistoryForAnalytics(
         [
           row("2026-10-01T08:00:00", 80, "Charging"),
           row("2026-10-02T08:00:00", 70, "Discharging"),
-          row("2026-10-03T08:00:00", 60, "Idle"),
+          row("2026-10-03T08:00:00", 65, "Cycle"),
+          row("2026-10-04T08:00:00", 60, "Idle"),
         ],
         "Weekly",
       ),
@@ -400,8 +406,14 @@ describe("getBatteryActivityData", () => {
     expect(slices.map((slice) => slice.key)).toEqual([
       "charging",
       "discharging",
+      "cycle",
       "idle",
     ]);
-    expect(slices.map((slice) => slice.value)).toEqual([1, 1, 1]);
+    expect(slices.map((slice) => slice.value)).toEqual([
+      1,
+      1,
+      1,
+      1,
+    ]);
   });
 });

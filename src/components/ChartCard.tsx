@@ -42,7 +42,10 @@ import type {
   MonitoringData,
   TemperatureStatus,
 } from "@/services/monitoringSchema";
-import { isBatteryReadingError } from "@/services/monitoringSchema";
+import {
+  BATTERY_STATUS_CYCLE,
+  isBatteryReadingError,
+} from "@/services/monitoringSchema";
 import {
   MISSING_VALUE,
   fitTextFontSize,
@@ -713,6 +716,9 @@ export default function ChartCard({
     const isIdle =
       batteryStatus === "Idle";
 
+    const isCycle =
+      batteryStatus === BATTERY_STATUS_CYCLE;
+
     const isBatteryError =
       isBatteryReadingError(batteryStatus);
 
@@ -975,23 +981,28 @@ export default function ChartCard({
             >
 
               {/* Battery Status: icon + label so state never
-                  relies on color alone (Idle/Reading Error
-                  vs Charging/Discharging). */}
+                   relies on color alone (Idle/Reading Error
+                   vs Charging/Discharging/Cycle). */}
 
               <View
                 style={[
-                  styles.batteryStatus,
-                  isIdle || isBatteryError
-                    ? styles.batteryStatusIdle
-                    : null,
+                   styles.batteryStatus,
+                   isIdle || isBatteryError
+                     ? styles.batteryStatusIdle
+                     : isCycle
+                       ? styles.batteryStatusCycle
+                       : null,
                 ]}
               >
 
                 <AppText
-                  variant="caption"
-                  style={
-                    styles.batteryStatusText
-                  }
+                   variant="caption"
+                   style={[
+                     styles.batteryStatusText,
+                     isCycle
+                       ? styles.batteryStatusCycleText
+                       : null,
+                   ]}
                 >
                   {batteryStatus ??
                     MISSING_VALUE}
@@ -3255,6 +3266,15 @@ const getStyles = (colors: AppColors) =>
   batteryStatusIdle: {
     backgroundColor:
       colors.error,
+  },
+
+  batteryStatusCycle: {
+    backgroundColor:
+      colors.chart.orange,
+  },
+
+  batteryStatusCycleText: {
+    color: "#121212",
   },
 
   batteryStatusText: {
