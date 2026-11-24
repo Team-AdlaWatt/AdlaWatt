@@ -1,8 +1,5 @@
 import { BleManager, type BlePermissions } from "expo-ble-kit";
 import {
-  BLE_CONFIG_MANUFACTURER_ID,
-  BLE_CONFIG_STATUS_CONFIGURED,
-  BLE_CONFIG_STATUS_OPEN,
   ProvisioningTimeoutError,
   ProvisioningValidationError,
   buildProvisioningPayload,
@@ -10,7 +7,6 @@ import {
   getBlePermissionState,
   getBleReadiness,
   isTerminalStatus,
-  parseDeviceConfigStatus,
   parseProvisioningStatus,
   parseProvisioningStatusDetail,
   provisionDevice,
@@ -93,37 +89,6 @@ describe("provisioning payload", () => {
       monitor_id: 1100,
     });
   });
-
-  test("omits key_id and secret unless both are provided", () => {
-    expect(
-      JSON.parse(buildProvisioningPayload({ ...validConfig, keyId: "key-1" })),
-    ).not.toHaveProperty("key_id");
-    expect(
-      JSON.parse(
-        buildProvisioningPayload({ ...validConfig, secret: "top-secret" }),
-      ),
-    ).not.toHaveProperty("secret");
-  });
-
-  test("includes key_id and secret when both are provided", () => {
-    expect(
-      JSON.parse(
-        buildProvisioningPayload({
-          ...validConfig,
-          keyId: "key-1",
-          secret: "top-secret",
-        }),
-      ),
-    ).toEqual({
-      device_code: "482913",
-      device_id: "AW-01",
-      wifi_ssid: "AdlaWatt-Test",
-      wifi_password: "password123",
-      monitor_id: 1100,
-      key_id: "key-1",
-      secret: "top-secret",
-    });
-  });
 });
 
 describe("device discovery", () => {
@@ -139,60 +104,8 @@ describe("device discovery", () => {
         id: "aw-01",
         name: "AdlaWatt-AW-01",
         rssi: -50,
-        configStatus: "unknown",
       },
     ]);
-  });
-
-  test("reads configuration status from manufacturer data", () => {
-    const open = {
-      id: "open",
-      name: "AdlaWatt-AW-01",
-      rssi: -50,
-      manufacturerData: {
-        [BLE_CONFIG_MANUFACTURER_ID]: Uint8Array.of(BLE_CONFIG_STATUS_OPEN),
-      },
-    };
-    const configured = {
-      id: "configured",
-      name: "AdlaWatt-AW-01",
-      rssi: -60,
-      manufacturerData: {
-        [BLE_CONFIG_MANUFACTURER_ID]: Uint8Array.of(
-          BLE_CONFIG_STATUS_CONFIGURED,
-        ),
-      },
-    };
-
-    expect(parseDeviceConfigStatus(open)).toBe("open");
-    expect(parseDeviceConfigStatus(configured)).toBe("configured");
-    expect(
-      filterProvisioningScanResults([open, configured]).map(
-        (device) => device.configStatus,
-      ),
-    ).toEqual(["open", "configured"]);
-  });
-
-  test("treats missing or invalid status bytes as unknown", () => {
-    expect(parseDeviceConfigStatus({ id: "a", name: null, rssi: -50 })).toBe(
-      "unknown",
-    );
-    expect(
-      parseDeviceConfigStatus({
-        id: "b",
-        name: null,
-        rssi: -50,
-        manufacturerData: { [BLE_CONFIG_MANUFACTURER_ID]: Uint8Array.of(0x09) },
-      }),
-    ).toBe("unknown");
-    expect(
-      parseDeviceConfigStatus({
-        id: "c",
-        name: null,
-        rssi: -50,
-        manufacturerData: { [BLE_CONFIG_MANUFACTURER_ID]: new Uint8Array() },
-      }),
-    ).toBe("unknown");
   });
 });
 

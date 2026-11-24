@@ -9,7 +9,6 @@ import React, {
 } from "react";
 import {
   ActivityIndicator,
-  Alert,
   AppState,
   Linking,
   Platform,
@@ -34,14 +33,6 @@ import EmptyState from "@/components/ui/EmptyState";
 import PasswordInput from "@/components/ui/PasswordInput";
 import { Card, Control, Touch, useScreenPadding } from "@/constants/sizing";
 import { useAuth } from "@/context/AuthContext";
-import {
-  bindDevice,
-  getDeviceBinding,
-  pollDeviceRelease,
-  requestDeviceRelease,
-  type DeviceBinding,
-  type DeviceBindResult,
-} from "@/services/deviceReleaseService";
 import {
   useAppColors,
   type AppColors,
@@ -106,8 +97,6 @@ const FAILED_STATUSES: UiStatus[] = [
 ];
 
 const STATUS_ORDER: UiStatus[] = UI_STATUSES;
-const RELEASE_TIMEOUT_MS = 60_000;
-const RELEASE_POLL_INTERVAL_MS = 2_000;
 
 function toneForReadiness(readiness: BleReadiness): ToneKey {
   if (readiness === "ready") {
@@ -300,13 +289,6 @@ export default function AddDeviceScreen() {
     password?: string;
   }>({});
 
-  const [binding, setBinding] = useState<DeviceBinding | null>(null);
-  const [bindingLoading, setBindingLoading] = useState(true);
-  const [bindingError, setBindingError] = useState(false);
-  const [bindingRetryKey, setBindingRetryKey] = useState(0);
-  const [releaseBusy, setReleaseBusy] = useState(false);
-  const [releaseDetail, setReleaseDetail] = useState<string | null>(null);
-
   const [resolvedAssignment, setResolvedAssignment] = useState<{
     userId: string;
     retryKey: number;
@@ -322,8 +304,6 @@ export default function AddDeviceScreen() {
   const assignmentRequestSeqRef = useRef(0);
   const assignmentFailureRetriesRef = useRef(0);
   const sendInFlightRef = useRef(false);
-  const bindingRequestSeqRef = useRef(0);
-  const releaseInFlightRef = useRef(false);
 
   const currentUserId = user?.id ?? null;
   const isAssignmentResolvedForCurrent =
@@ -451,8 +431,6 @@ export default function AddDeviceScreen() {
   const operationBusy = IN_FLIGHT_STATUSES.includes(displayedStatus);
   const failed = FAILED_STATUSES.includes(displayedStatus);
   const isReady = readiness === "ready";
-  const isBound = binding !== null && binding.status !== "unbound";
-  const actionsBlocked = isBound || bindingLoading;
 
   const stopScan = useCallback(() => {
     scanSessionRef.current?.stop();
@@ -601,58 +579,6 @@ export default function AddDeviceScreen() {
     isLoaded,
   ]);
 
-  useEffect(() => {
-    const requestSeq = ++bindingRequestSeqRef.current;
-    let active = true;
-
-    void (async () => {
-      await Promise.resolve();
-
-      if (!active || bindingRequestSeqRef.current !== requestSeq) {
-        return;
-      }
-
-      if (!isLoaded) {
-        setBindingLoading(true);
-        return;
-      }
-
-      if (!currentUserId) {
-        setBinding(null);
-        setBindingError(false);
-        setBindingLoading(false);
-        return;
-      }
-
-      setBindingLoading(true);
-
-      try {
-        const next = await getDeviceBinding();
-        if (active && bindingRequestSeqRef.current === requestSeq) {
-          setBinding(next);
-          setBindingError(false);
-        }
-      } catch {
-        if (active && bindingRequestSeqRef.current === requestSeq) {
-          setBindingError(true);
-        }
-      } finally {
-        if (active && bindingRequestSeqRef.current === requestSeq) {
-          setBindingLoading(false);
-        }
-      }
-    })();
-
-    return () => {
-      active = false;
-    };
-  }, [currentUserId, isLoaded, bindingRetryKey]);
-
-  const handleRetryBinding = useCallback(() => {
-    setBindingError(false);
-    setBindingRetryKey((current) => current + 1);
-  }, []);
-
   const handleRetryAssignment = useCallback(() => {
     if (!currentUserId) {
       return;
@@ -741,7 +667,7 @@ export default function AddDeviceScreen() {
   };
 
   const handleScan = async () => {
-    if (operationBusy || actionsBlocked) {
+    if (operationBusy) {
       return;
     }
 
@@ -799,10 +725,6 @@ export default function AddDeviceScreen() {
   };
 
   const handleSelectDevice = (device: ScannedDevice) => {
-    if (actionsBlocked || device.configStatus === "configured") {
-      return;
-    }
-
     stopScan();
     setSelectedDevice(device);
     setScanOpen(false);
@@ -812,13 +734,7 @@ export default function AddDeviceScreen() {
   };
 
   const handleSend = async () => {
-    if (
-      sendInFlightRef.current ||
-      releaseInFlightRef.current ||
-      sendBusy ||
-      operationBusy ||
-      actionsBlocked
-    ) {
+    if (sendInFlightRef.current || sendBusy || operationBusy) {
       return;
     }
 
@@ -855,7 +771,6 @@ export default function AddDeviceScreen() {
     sendInFlightRef.current = true;
     setSendBusy(true);
     setStatusDetail(null);
-    setReleaseDetail(null);
 
     let resolveConfigured: ((status: UiStatus) => void) | undefined;
     const configuredResult = new Promise<UiStatus>((resolve) => {
@@ -884,15 +799,6 @@ export default function AddDeviceScreen() {
 
       const monitorId = effectiveMonitorId;
 
-      let bindResult: DeviceBindResult;
-      try {
-        bindResult = await bindDevice("AW-01", monitorId);
-      } catch {
-        setStatus("error");
-        setStatusDetail(t("dashboard.addDevice.errorBody"));
-        return;
-      }
-
       if (__DEV__) {
         console.debug("[add-device] send_start", {
           peripheral_id: selectedDevice.id,
@@ -911,8 +817,6 @@ export default function AddDeviceScreen() {
           wifiSsid: ssid.trim(),
           wifiPassword: password,
           monitorId,
-          keyId: bindResult.key_id,
-          secret: bindResult.secret,
         },
         (nextStatus, ack) => {
           setStatus(nextStatus);
@@ -969,14 +873,6 @@ export default function AddDeviceScreen() {
         return;
       }
 
-      const updatedBinding = await getDeviceBinding();
-      if (updatedBinding.status === "unbound") {
-        setStatus("error");
-        setStatusDetail(t("dashboard.addDevice.errorBody"));
-        return;
-      }
-      setBinding(updatedBinding);
-      setBindingError(false);
     } catch (error) {
       if (error instanceof ProvisioningTimeoutError) {
         setStatus("timeout");
@@ -1007,97 +903,10 @@ export default function AddDeviceScreen() {
     }
   };
 
-  const runDeviceRelease = async () => {
-    if (releaseInFlightRef.current || releaseBusy) {
-      return;
-    }
-
-    releaseInFlightRef.current = true;
-    setReleaseBusy(true);
-    setReleaseDetail(null);
-
-    try {
-      const release = await requestDeviceRelease("AW-01");
-      setReleaseDetail(
-        t("dashboard.addDevice.releasePending", {
-          expires_at: release.expires_at ?? "",
-        }),
-      );
-
-      await pollDeviceRelease("AW-01", {
-        timeoutMs: RELEASE_TIMEOUT_MS,
-        intervalMs: RELEASE_POLL_INTERVAL_MS,
-      });
-
-      setBinding(null);
-      setBindingError(false);
-      setReleaseDetail(t("dashboard.addDevice.releaseSuccess"));
-      setSelectedDevice(null);
-      setDevices([]);
-      setScanOpen(false);
-      setScanPhase("idle");
-      setStatus("idle");
-      setStatusDetail(null);
-      setFieldErrors({});
-      assignmentFailureRetriesRef.current = 0;
-      setAssignmentRetryExhaustedFor(null);
-      setResolvedAssignment(null);
-      setAssignmentRetryKey((current) => current + 1);
-    } catch {
-      setReleaseDetail(t("dashboard.addDevice.releasePendingTimeout"));
-      try {
-        const latest = await getDeviceBinding();
-        setBinding(latest.status === "unbound" ? null : latest);
-        setBindingError(false);
-      } catch {
-        setBinding((current) => current);
-        setBindingError(true);
-      }
-    } finally {
-      releaseInFlightRef.current = false;
-      setReleaseBusy(false);
-    }
-  };
-
-  const handleDisconnectPress = () => {
-    if (
-      releaseInFlightRef.current ||
-      releaseBusy ||
-      !isBound ||
-      bindingLoading
-    ) {
-      return;
-    }
-
-    Alert.alert(
-      t("dashboard.addDevice.releaseConfirmTitle"),
-      t("dashboard.addDevice.releaseConfirmBody"),
-      [
-        {
-          text: t("dashboard.addDevice.cancel"),
-          style: "cancel",
-        },
-        {
-          text: t("dashboard.addDevice.disconnect"),
-          style: "destructive",
-          onPress: () => {
-            void runDeviceRelease();
-          },
-        },
-      ],
-    );
-  };
-
   const readinessTone = colors.severity[toneForReadiness(readiness)];
   const statusTone = colors.severity[toneForStatus(displayedStatus)];
   const showOperationStatus =
     displayedStatus !== "idle" || previewStatus !== null;
-  const bindingStatusLabel =
-    binding && binding.status !== "unbound"
-      ? t(`dashboard.addDevice.bindingStatus_${binding.status}`, {
-          defaultValue: binding.status,
-        })
-      : null;
 
   const readinessTitle = t(`dashboard.addDevice.readiness_${readiness}`);
   const readinessBody = t(
@@ -1105,16 +914,10 @@ export default function AddDeviceScreen() {
     { defaultValue: "" },
   );
 
-  const canScan =
-    isReady &&
-    !operationBusy &&
-    !permissionBusy &&
-    !enableBusy &&
-    !actionsBlocked;
+  const canScan = isReady && !operationBusy && !permissionBusy && !enableBusy;
   const canSend =
     !operationBusy &&
     !sendBusy &&
-    !actionsBlocked &&
     !!selectedDevice &&
     assignmentReady &&
     !!ssid.trim() &&
@@ -1178,187 +981,6 @@ export default function AddDeviceScreen() {
             {t("dashboard.addDevice.subtitle")}
           </AppText>
         </View>
-
-        {bindingError && !isBound ? (
-          <View
-            style={[
-              styles.statusBanner,
-              {
-                backgroundColor: colors.severity.critical.bg,
-                borderColor: colors.severity.critical.border,
-              },
-            ]}
-            accessibilityRole="text"
-            accessibilityLiveRegion="polite"
-          >
-            <Ionicons
-              name="cloud-offline-outline"
-              size={20}
-              color={colors.severity.critical.text}
-            />
-            <View style={styles.statusBannerBody}>
-              <AppText
-                variant="body"
-                style={[
-                  styles.statusBannerTitle,
-                  { color: colors.severity.critical.text },
-                ]}
-              >
-                {t("dashboard.addDevice.bindingErrorTitle")}
-              </AppText>
-              <AppText
-                variant="caption"
-                style={{ color: colors.severity.critical.text }}
-              >
-                {t("dashboard.addDevice.bindingErrorBody")}
-              </AppText>
-              <Pressable
-                onPress={handleRetryBinding}
-                accessibilityRole="button"
-                accessibilityLabel={t("dashboard.addDevice.bindingRetry")}
-                disabled={bindingLoading}
-                style={({ pressed }) => [
-                  styles.secondaryActionButton,
-                  styles.bannerActionButton,
-                  bindingLoading && styles.disabled,
-                  pressed && !bindingLoading && styles.pressed,
-                ]}
-              >
-                {bindingLoading ? (
-                  <ActivityIndicator size="small" color={colors.text} />
-                ) : (
-                  <AppText
-                    variant="caption"
-                    style={styles.secondaryActionText}
-                  >
-                    {t("dashboard.addDevice.bindingRetry")}
-                  </AppText>
-                )}
-              </Pressable>
-            </View>
-          </View>
-        ) : null}
-
-        {isBound ? (
-          <View
-            style={[
-              styles.statusBanner,
-              {
-                backgroundColor: colors.severity.elevated.bg,
-                borderColor: colors.severity.elevated.border,
-              },
-            ]}
-            accessibilityRole="text"
-            accessibilityLiveRegion="polite"
-          >
-            <Ionicons
-              name="hardware-chip-outline"
-              size={20}
-              color={colors.severity.elevated.text}
-            />
-            <View style={styles.statusBannerBody}>
-              <AppText
-                variant="body"
-                style={[
-                  styles.statusBannerTitle,
-                  { color: colors.severity.elevated.text },
-                ]}
-              >
-                {t("dashboard.addDevice.boundTitle")}
-              </AppText>
-              <AppText
-                variant="caption"
-                style={{ color: colors.severity.elevated.text }}
-              >
-                {t("dashboard.addDevice.boundBody")}
-              </AppText>
-              <AppText
-                variant="caption"
-                style={{ color: colors.severity.elevated.text }}
-              >
-                {t("dashboard.addDevice.disconnectCloudNote")}
-              </AppText>
-              {bindingStatusLabel ? (
-                <AppText
-                  variant="caption"
-                  style={{ color: colors.severity.elevated.text }}
-                >
-                  {bindingStatusLabel}
-                </AppText>
-              ) : null}
-              {bindingError ? (
-                <AppText
-                  variant="caption"
-                  style={{ color: colors.severity.elevated.text }}
-                >
-                  {t("dashboard.addDevice.bindingStale")}
-                </AppText>
-              ) : null}
-              <Pressable
-                onPress={handleDisconnectPress}
-                accessibilityRole="button"
-                accessibilityLabel={t("dashboard.addDevice.disconnect")}
-                disabled={releaseBusy || bindingLoading}
-                style={({ pressed }) => [
-                  styles.secondaryActionButton,
-                  styles.bannerActionButton,
-                  (releaseBusy || bindingLoading) && styles.disabled,
-                  pressed &&
-                    !releaseBusy &&
-                    !bindingLoading &&
-                    styles.pressed,
-                ]}
-              >
-                {releaseBusy ? (
-                  <ActivityIndicator size="small" color={colors.text} />
-                ) : (
-                  <AppText
-                    variant="caption"
-                    style={styles.secondaryActionText}
-                  >
-                    {t("dashboard.addDevice.disconnect")}
-                  </AppText>
-                )}
-              </Pressable>
-              {releaseDetail ? (
-                <AppText
-                  variant="caption"
-                  style={{ color: colors.severity.elevated.text }}
-                >
-                  {releaseDetail}
-                </AppText>
-              ) : null}
-            </View>
-          </View>
-        ) : null}
-
-        {!isBound && releaseDetail ? (
-          <View
-            style={[
-              styles.statusBanner,
-              {
-                backgroundColor: colors.severity.nominal.bg,
-                borderColor: colors.severity.nominal.border,
-              },
-            ]}
-            accessibilityRole="text"
-            accessibilityLiveRegion="polite"
-          >
-            <Ionicons
-              name="checkmark-circle-outline"
-              size={20}
-              color={colors.severity.nominal.text}
-            />
-            <View style={styles.statusBannerBody}>
-              <AppText
-                variant="caption"
-                style={{ color: colors.severity.nominal.text }}
-              >
-                {releaseDetail}
-              </AppText>
-            </View>
-          </View>
-        ) : null}
 
         <View
           style={[
@@ -1573,17 +1195,12 @@ export default function AddDeviceScreen() {
             {t("dashboard.addDevice.scanSectionHint")}
           </AppText>
 
-          {!isBound ? (
-            <AppText variant="caption" style={styles.captionTop}>
-              {t("dashboard.addDevice.bindingNote")}
-            </AppText>
-          ) : null}
+          <AppText variant="caption" style={styles.captionTop}>
+            {t("dashboard.addDevice.provisioningNote")}
+          </AppText>
 
           <Pressable
             onPress={() => {
-              if (actionsBlocked) {
-                return;
-              }
               if (devices.length > 0 || scanPhase === "completed_empty") {
                 setScanOpen(true);
               } else if (isReady && !operationBusy) {
@@ -1592,13 +1209,11 @@ export default function AddDeviceScreen() {
             }}
             accessibilityRole="button"
             accessibilityLabel={t("dashboard.addDevice.selectDevice")}
-            disabled={actionsBlocked || (!isReady && devices.length === 0)}
+            disabled={!isReady && devices.length === 0}
             style={({ pressed }) => [
               styles.dropdownTrigger,
-              (actionsBlocked || (!isReady && devices.length === 0)) &&
-                styles.disabled,
+              (!isReady && devices.length === 0) && styles.disabled,
               pressed &&
-                !actionsBlocked &&
                 (isReady || devices.length > 0) &&
                 styles.pressed,
             ]}
@@ -1642,11 +1257,8 @@ export default function AddDeviceScreen() {
             {devices.length > 0 ? (
               <Pressable
                 onPress={() => {
-                  if (!actionsBlocked) {
-                    setScanOpen(true);
-                  }
+                  setScanOpen(true);
                 }}
-                disabled={actionsBlocked}
                 accessibilityRole="button"
                 accessibilityLabel={t("dashboard.addDevice.showDevices")}
                 style={({ pressed }) => [
@@ -1703,7 +1315,7 @@ export default function AddDeviceScreen() {
             onChangeText={setSsid}
             autoCapitalize="none"
             autoCorrect={false}
-            editable={!operationBusy && !actionsBlocked}
+            editable={!operationBusy}
             error={fieldErrors.ssid}
           />
 
@@ -1712,7 +1324,7 @@ export default function AddDeviceScreen() {
             placeholder={t("dashboard.addDevice.wifiPasswordPlaceholder")}
             value={password}
             onChangeText={setPassword}
-            editable={!operationBusy && !actionsBlocked}
+            editable={!operationBusy}
             error={fieldErrors.password}
             importantForAutofill="no"
           />
@@ -1798,10 +1410,7 @@ export default function AddDeviceScreen() {
                 void handleSend();
               }}
               disabled={
-                actionsBlocked ||
-                !selectedDevice ||
-                effectiveMonitorId == null ||
-                !isReady
+                !selectedDevice || effectiveMonitorId == null || !isReady
               }
             />
           </View>
@@ -1866,30 +1475,15 @@ export default function AddDeviceScreen() {
             style={styles.emptyState}
           />
         ) : (
-          devices.map((device) => {
-            const configured = device.configStatus === "configured";
-            const statusNote =
-              device.configStatus === "configured"
-                ? t("dashboard.addDevice.deviceConfigured")
-                : device.configStatus === "open"
-                  ? t("dashboard.addDevice.deviceOpenForConfig")
-                  : null;
-
-            return (
-              <RadioOptionRow
-                key={device.id}
-                label={device.name}
-                selected={selectedDevice?.id === device.id}
-                note={
-                  statusNote
-                    ? `${statusNote} · ${device.rssi} dBm`
-                    : `${device.rssi} dBm`
-                }
-                disabled={configured}
-                onPress={() => handleSelectDevice(device)}
-              />
-            );
-          })
+          devices.map((device) => (
+            <RadioOptionRow
+              key={device.id}
+              label={device.name}
+              selected={selectedDevice?.id === device.id}
+              note={`${device.rssi} dBm`}
+              onPress={() => handleSelectDevice(device)}
+            />
+          ))
         )}
 
         {scanPhase !== "scanning" ? (

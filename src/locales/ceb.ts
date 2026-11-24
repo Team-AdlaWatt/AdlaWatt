@@ -381,35 +381,8 @@ const ceb = {
     addDevice: {
       title: "Pagdugang ug Device",
       subtitle: "Ikonekta ug i-set up ang imong AdlaWatt monitoring device.",
-      boundTitle: "Konektado na ang device",
-      boundBody:
-        "Naka-bind kini nga device sa imong account. I-disconnect kini sa dili pa magdugang ug laing device.",
-      disconnect: "I-disconnect ang Device",
-      disconnecting: "Gina-disconnect...",
-      disconnectCloudNote:
-        "Ang pag-disconnect naggamit sa Wi-Fi sa device. Dili kinahanglan ang Bluetooth.",
-      bindingStatus_binding: "Status: nagkonekta",
-      bindingStatus_active: "Status: konektado",
-      bindingStatus_release_pending: "Status: gina-disconnect",
-      bindingStale: "Mahimong karaan ang status sa device. Sulayi pag-usab.",
-      bindingErrorTitle: "Dili ma-load ang status sa device",
-      bindingErrorBody:
-        "Susiha ang koneksyon ug sulayi pag-usab. Makita ang Disconnect kung ma-load na ang naka-bind nga device.",
-      bindingRetry: "Sulayi pag-usab",
-      deviceOpenForConfig: "Open para sa Configuration",
-      deviceConfigured: "Naka-configure na",
-      releasePendingTimeout:
-        "Wala pang kumpirmasyon ang device. Ipadayon kini nga naka-on ug konektado sa Wi-Fi, dayon pislita ang I-disconnect pag-usab.",
-      releasePending:
-        "Naipadala na ang disconnect request. Paghulat sa kumpirmasyon sa device.",
-      releaseSuccess: "Malampuson nga na-disconnect ang device.",
-      releaseFailed: "Dili ma-disconnect ang device. Sulayi pag-usab.",
-      bindingNote:
-        "Ang matag device mahimong konektado sa usa ka monitoring account.",
-      releaseConfirmTitle: "I-disconnect ang device?",
-      releaseConfirmBody:
-        "Himoa nga duol ug naka-on ang device aron makompleto ang pag-disconnect.",
-      cancel: "Kanselahin",
+      provisioningNote:
+        "Ang bisan kinsa nga naka-sign-in nga user mahimong magtakda sa Wi-Fi config ug monitoring account niini nga device.",
       deviceLabel: "AdlaWatt Device",
       deviceName: "AW-01 ? ESP32-S3",
       bluetoothName: "Bluetooth device: AdlaWatt-AW-01",

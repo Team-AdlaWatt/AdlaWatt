@@ -2,7 +2,7 @@
 
 This is the current AW-01 provisioning contract implemented in the AdlaWatt mobile app. Use this as the source of truth when generating or updating the ESP32 `.ino` firmware.
 
-The ESP32 no longer has a blanket "must not call Supabase" restriction. It may call only the `device-command` Edge Function for signed release polling, using a per-device HMAC key and no user JWT or anon/publishable-key writes. Supabase authentication and `monitor_id` ownership are still handled only by the mobile app.
+The ESP32 must not call Supabase. Supabase authentication and `monitor_id` assignment are handled only by the mobile app. Any signed-in user can provision a nearby device with their own `monitor_id` over BLE.
 
 ## 1. Applied app-side flow
 
@@ -33,17 +33,6 @@ TX UUID:      6E400003-B5A3-F393-E0A9-E50E24DCCA9E
 Device code:  482913
 Device ID:    AW-01
 ```
-
-### Advertisement status identifier
-
-The firmware advertises manufacturer-specific data under company id `0xFFFF` with one payload byte:
-
-```text
-0x00 = Open for Configuration (unbound)
-0x01 = Configured (bound)
-```
-
-The advertised name stays `AdlaWatt-AW-01`, so the app scan filter is unchanged. A configured device keeps advertising so other users can see the "Configured" identifier, but it ignores all provisioning writes until a signed release command clears the binding.
 
 Characteristic roles:
 
@@ -84,24 +73,18 @@ The app sends this exact JSON structure:
   "device_id": "AW-01",
   "wifi_ssid": "YOUR_WIFI_NAME",
   "wifi_password": "YOUR_WIFI_PASSWORD",
-  "monitor_id": 1100,
-  "key_id": "DEVICE_KEY_ID",
-  "secret": "ONE_TIME_DEVICE_SECRET"
+  "monitor_id": 1100
 }
 ```
-
-`key_id` and `secret` are optional fields in the JSON shape but are required for provisioning in this firmware version. The `secret` is returned exactly once by `device-release` at bind time and is stored in NVS on the ESP32; it is never sent again over BLE or logged.
 
 Rules:
 
 - `monitor_id` is a JSON number, never a string.
 - `device_code` and `device_id` are fixed strings.
-- `key_id` must be a non-empty string.
-- `secret` must be a non-empty string of at most 128 characters.
-- No Supabase URL, access token, service key, user ID, or other account data is sent over BLE, except the one-time `key_id` and `secret` issued by `device-release`.
+- No Supabase URL, access token, service key, user ID, or other account data is sent over BLE.
 - The payload may arrive in multiple BLE write chunks. The firmware must accumulate chunks until a complete JSON object is received.
 - The firmware should ignore new provisioning writes while provisioning is already in progress.
-- For verification, ESP32 `Serial` output should show the received `device_id`, `monitor_id`, SSID, and password length, but never the password or secret itself.
+- For verification, ESP32 `Serial` output should show the received `device_id`, `monitor_id`, SSID, and password length, but never the password itself.
 
 ## 4. Firmware validation requirements
 
@@ -113,8 +96,6 @@ The ESP32 must validate:
 - `wifi_password` length is 0 to 64 bytes
 - `monitor_id` is an integer greater than `0`
 - `monitor_id` is less than or equal to `4294967295`
-- `key_id` is present and non-empty
-- `secret` is present, non-empty, and at most 128 characters
 
 If validation fails, notify:
 
@@ -145,14 +126,9 @@ ssid
 password
 monitor_id
 device_id
-bound
-key_id
-secret
 ```
 
-`bound` is a `uint8` flag (`1` after successful provisioning). `key_id` and `secret` hold the one-time binding credentials. A device is locked when `bound == 1` and the saved `monitor_id > 0`. A locked device keeps advertising with the `Configured` status byte, but it must reject all provisioning writes until a signed release command clears these keys.
-
-Only save `monitor_id`, `bound`, `key_id`, and `secret` after Wi-Fi succeeds and the configuration is verified.
+Only save `monitor_id` after Wi-Fi succeeds and the configuration is verified. A later BLE provisioning write may replace the saved Wi-Fi config and `monitor_id`.
 
 If saving or verification fails, roll back to the previous configuration and notify:
 
@@ -323,13 +299,12 @@ The monitor assignment lookup has a 12-second deadline. If retries are exhausted
 
 - Do not include Supabase libraries.
 - Do not include Supabase URL, anon key, service key, or access tokens.
-- Do not call Supabase REST directly; only the signed device-command Edge Function.
+- Do not call Supabase REST directly.
 - Do not generate a random `monitor_id`.
 - Do not use a hardcoded `monitor_id`.
 - Do not send user/account data over BLE.
 - Do not log the Wi-Fi password to Serial.
 - Do not send status tokens outside the accepted list.
-- Do not accept provisioning writes while the device is locked.
 
 ## 13. Applied source files
 
@@ -344,6 +319,8 @@ The applied mobile-app changes are in:
 - `src/services/__tests__/monitoringService.provisioning.test.ts`
 - `src/services/__tests__/provisioningBleService.test.ts`
 
+The device-level ownership layer was removed from the app and backend. This removed `deviceReleaseService`, the `device-release` and `device-command` Edge Functions, their shared helper, and the `devices`/`device_secrets`/`device_commands`/`device_command_nonces` tables. The cleanup migration is `supabase/migrations/20261124033258_remove_device_binding.sql`; the historical ownership migration is retained.
+
 A full implementation report is also stored in this repository history under the commit:
 
 ```text
@@ -354,14 +331,7 @@ A full implementation report is also stored in this repository history under the
 
 - `npm run typecheck`: passed.
 - `npm run lint`: 0 errors; 3 pre-existing warnings only.
-- Focused provisioning tests: 2 suites, 33 tests passed.
-- Full test suite: 39 suites, 898 tests passed.
-- `git diff --check`: passed.
-
-## 15. Signed release flow
-
-A locked device polls `device-command` with `version: 1`, `action: next`, `monitor_id`, `key_id`, `nonce`, and ISO-8601 `issued_at` about every 15 seconds. It sends the publishable key in the `apikey` header and signs `1|next|AW-01|<key_id>|<nonce>|<issued_at>` with the stored HMAC secret in `x-device-signature`. Polling skips until RTC time is available. A `{ "success": true, "command": { ... } }` response with `action: "release"` is executed only after verifying the signature over `1|release|AW-01|<command_id>|<monitor_id>|<nonce>|<issued_at>|<expires_at>`.
-
-On a valid release, the firmware first sends a signed `ack` with `version: 1` and `result: "released"` over `1|ack|AW-01|<command_id>|<monitor_id>|<nonce>|<issued_at>|<expires_at>|released`. It retries up to 3 times. Only after a `2xx` ACK, or a `401` indicating the cloud already released the device, does it clear `ssid`, `password`, `monitor_id`, `device_id`, `bound`, `key_id`, and `secret`, reset the active monitor to `0`, disconnect Wi-Fi, and restart so BLE provisioning opens again. If the ACK never confirms, the device stays bound and keeps polling; a `401` on a later `next` poll is treated as an already-completed release and self-erases.
-
-Existing units that were provisioned before this contract have no stored `bound`, `key_id`, or `secret` and therefore never lock themselves; they must be reflashed over USB to gain the signed release path and to accept the new provisioning payload fields.
+- Full test suite: 54 suites, 974 tests passed.
+- `npm run verify:monitoring`: no monitoring schema drift.
+- `supabase db advisors --linked --type security --fail-on none`: no findings related to this cleanup; existing project-wide warnings remain.
+- `git diff --check`: passed with line-ending warnings only.

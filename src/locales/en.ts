@@ -362,35 +362,8 @@ const en = {
     addDevice: {
       title: "Add Device",
       subtitle: "Connect and set up your AdlaWatt monitoring device.",
-      boundTitle: "Device already connected",
-      boundBody:
-        "This device is bound to your account. Disconnect it before adding another device.",
-      disconnect: "Disconnect Device",
-      disconnecting: "Disconnecting...",
-      disconnectCloudNote:
-        "Disconnect uses the device's Wi-Fi connection. Bluetooth is not required.",
-      bindingStatus_binding: "Status: connecting",
-      bindingStatus_active: "Status: connected",
-      bindingStatus_release_pending: "Status: disconnecting",
-      bindingStale: "Device status may be outdated. Retry to refresh it.",
-      bindingErrorTitle: "Couldn't load device status",
-      bindingErrorBody:
-        "Check your connection and retry. Disconnect appears once your bound device is loaded.",
-      bindingRetry: "Retry",
-      deviceOpenForConfig: "Open for Configuration",
-      deviceConfigured: "Configured",
-      releasePendingTimeout:
-        "Device didn't confirm yet. Keep it powered on and connected to Wi-Fi, then tap Disconnect again.",
-      releasePending:
-        "Disconnect request sent. Waiting for the device to confirm.",
-      releaseSuccess: "Device disconnected successfully.",
-      releaseFailed: "Could not disconnect the device. Please try again.",
-      bindingNote:
-        "Each device can be connected to one monitoring account.",
-      releaseConfirmTitle: "Disconnect device?",
-      releaseConfirmBody:
-        "Keep the device nearby and powered on to finish disconnecting.",
-      cancel: "Cancel",
+      provisioningNote:
+        "Any signed-in user can set this device's Wi-Fi config and monitoring account.",
       deviceLabel: "AdlaWatt Device",
       deviceName: "AW-01 ? ESP32-S3",
       bluetoothName: "Bluetooth device: AdlaWatt-AW-01",
