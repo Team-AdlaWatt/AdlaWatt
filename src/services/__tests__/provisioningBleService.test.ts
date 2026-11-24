@@ -1,5 +1,6 @@
 import { BleManager, type BlePermissions } from "expo-ble-kit";
 import {
+  DEVICE_NAME_PREFIX,
   ProvisioningTimeoutError,
   ProvisioningValidationError,
   buildProvisioningPayload,
@@ -10,6 +11,7 @@ import {
   parseProvisioningStatus,
   parseProvisioningStatusDetail,
   provisionDevice,
+  startDeviceScan,
   validateProvisioningConfig,
   type ProvisioningConfig,
   type UiStatus,
@@ -92,10 +94,11 @@ describe("provisioning payload", () => {
 });
 
 describe("device discovery", () => {
-  test("accepts only the exact AW-01 advertised name", () => {
+  test("accepts only AW-01 advertised names", () => {
     expect(
       filterProvisioningScanResults([
         { id: "aw-01", name: "AdlaWatt-AW-01", rssi: -50 },
+        { id: "aw-02", name: "AdlaWatt-AW-02", rssi: -45 },
         { id: "other", name: "AdlaWatt-Other", rssi: -40 },
         { id: "nameless", name: null, rssi: -30 },
       ]),
@@ -105,7 +108,32 @@ describe("device discovery", () => {
         name: "AdlaWatt-AW-01",
         rssi: -50,
       },
+      {
+        id: "aw-02",
+        name: "AdlaWatt-AW-02",
+        rssi: -45,
+      },
     ]);
+  });
+
+  test("scans with AW-01 prefix and repeated advertisements", () => {
+    (BleManager.startScan as jest.Mock).mockReturnValue({ stop: jest.fn() });
+
+    startDeviceScan(jest.fn());
+
+    expect(BleManager.startScan).toHaveBeenCalledWith(
+      expect.objectContaining({
+        namePrefix: DEVICE_NAME_PREFIX,
+        allowDuplicates: true,
+        reportIntervalMs: 250,
+        android: expect.objectContaining({
+          scanMode: "lowLatency",
+          callbackType: "allMatches",
+        }),
+      }),
+      expect.any(Function),
+      expect.any(Function),
+    );
   });
 });
 

@@ -10,7 +10,7 @@ import {
 export const DEVICE_ID = "AW-01";
 export const DEVICE_NAME = "AdlaWatt-AW-01";
 export const DEVICE_CODE = "482913";
-export const DEVICE_NAME_PREFIX = "AdlaWatt-";
+export const DEVICE_NAME_PREFIX = "AdlaWatt-AW-";
 
 const SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
 const RX_UUID = "6e400002-b5a3-f393-e0a9-e50e24dcca9e";
@@ -495,7 +495,7 @@ export const filterProvisioningScanResults = (
   results: NamedScanResult[],
 ): ScannedDevice[] =>
   results
-    .filter((result) => result.name === DEVICE_NAME)
+    .filter((result) => result.name?.startsWith(DEVICE_NAME_PREFIX) ?? false)
     .map((result) => ({
       id: result.id,
       name: result.name ?? DEVICE_NAME,
@@ -507,8 +507,20 @@ export function startDeviceScan(
   onError?: (message: string) => void,
 ): ScanSession {
   return BleManager.startScan(
-    { namePrefix: DEVICE_NAME },
+    {
+      namePrefix: DEVICE_NAME_PREFIX,
+      allowDuplicates: true,
+      reportIntervalMs: 250,
+      android: {
+        scanMode: "lowLatency",
+        callbackType: "allMatches",
+      },
+    },
     (results) => {
+      debugProvisioning("scan_results", {
+        count: results.length,
+        names: results.map((result) => result.name ?? null),
+      });
       onResults(filterProvisioningScanResults(results));
     },
     (error) => onError?.(error.message),

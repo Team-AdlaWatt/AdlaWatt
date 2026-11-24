@@ -60,10 +60,9 @@
     is too big.
 
   IMPORTANT:
-    - Wi-Fi is configured from the app (BLE provisioning). An unconfigured
-      device advertises "open for configuration"; a bound device keeps
-      advertising but rejects provisioning writes and reports "configured"
-      in BLE manufacturer data. Serial RESETCONFIG is disabled by default.
+    - Wi-Fi is configured from the app (BLE provisioning). The device always
+      accepts new provisioning writes over BLE, including Wi-Fi credential
+      changes. Serial RESETCONFIG remains disabled by default.
     - Solar and inverter voltage/current/power are measured by dedicated
       INA219 sensors; battery INA219 remains the net battery measurement.
     - setInsecure() disables TLS certificate validation and the fixed
@@ -84,18 +83,9 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/semphr.h>
-#include <esp_system.h>
-#include <mbedtls/md.h>
 #include <math.h>
 #include <string.h>
 #include <string>
-
-#if defined(ARDUINO_ARCH_ESP32) && defined(MBEDTLS_CERTIFICATE_BUNDLE) && \
-    defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR == 2) && \
-    __has_include(<esp_crt_bundle.h>)
-  #include <esp_crt_bundle.h>
-  #define AW_USE_CA_BUNDLE 1
-#endif
 
 #if !defined(AW_ALLOW_SERIAL_RESETCONFIG)
 #define AW_ALLOW_SERIAL_RESETCONFIG 0
@@ -127,8 +117,6 @@ const unsigned long HEARTBEAT_RETRY_INTERVAL_MS = 1000;  // after a failed heart
 const unsigned long HEARTBEAT_HTTP_TIMEOUT_MS = 4000;    // TLS handshake can take 1-2 s
 const unsigned long MONITORING_HTTP_TIMEOUT_MS = 5000;
 const unsigned long OFFLINE_TIMEOUT_MS = 15000;
-const unsigned long DEVICE_COMMAND_POLL_INTERVAL_MS = 15000;
-const unsigned long DEVICE_COMMAND_HTTP_TIMEOUT_MS = 8000;
 
 // Rated power used ONLY for the "% of rated" bars on the TFT. Change these
 // to match your real panel and inverter/load limit.
@@ -217,15 +205,6 @@ static const uint32_t AW_WIFI_CONNECT_TIMEOUT_MS = 20000;
 static const uint32_t AW_WIFI_RETRY_INTERVAL_MS  = 10000;
 static const uint32_t AW_WIFI_LOST_NOTIFY_MS     = 30000;
 
-// BLE advertisement: company 0xFFFF (testing/internal), one status byte.
-static const uint16_t AW_BLE_MANUFACTURER_ID     = 0xFFFF;
-static const uint8_t  AW_BLE_STATUS_OPEN         = 0x00;
-static const uint8_t  AW_BLE_STATUS_CONFIGURED   = 0x01;
-
-// Release ACK retry policy: ACK first, erase only after confirmation.
-static const uint8_t  AW_RELEASE_ACK_RETRIES      = 3;
-static const uint32_t AW_RELEASE_ACK_RETRY_MS     = 1500;
-
 // ---------------------------------------------------------------------
 // State (activeMonitorId is read by the heartbeat task and the uploader)
 // ---------------------------------------------------------------------
@@ -248,21 +227,10 @@ static String   rxBuffer;
 static String   completedPayload;
 static String   configuredSSID;
 static String   configuredPassword;
-static String   configuredKeyId;
-static String   configuredSecret;
-static bool     deviceBound = false;
 static uint32_t configuredMonitorId = 0;
 static uint32_t lastWiFiRetry = 0;
 static uint32_t lastWiFiLostNotify = 0;
 static bool     hasSavedConfig = false;
-
-static bool awIsDeviceLocked() {
-  return deviceBound && configuredMonitorId > 0;
-}
-
-static std::string awBuildAdvertisingManufacturerData();
-static void awApplyAdvertisingManufacturerData(BLEAdvertising* advertising);
-static void awRefreshAdvertisingStatus();
 
 // ---------------------------------------------------------------------
 // Notifications
@@ -289,8 +257,6 @@ class AWServerCallbacks : public BLEServerCallbacks {
     rxBuffer = "";   // drop any half-received payload
     Serial.println("[BLE] client disconnected.");
 
-    // Re-advertise with the current configuration status.
-    awRefreshAdvertisingStatus();
     BLEDevice::startAdvertising();
   }
 };
@@ -332,13 +298,6 @@ class AWRXCallbacks : public BLECharacteristicCallbacks {
     String incoming = characteristic->getValue().c_str();
     if (incoming.length() == 0) return;
 
-    // A bound device advertises its status but never accepts a new
-    // provisioning payload. Release over the signed cloud command first.
-    if (awIsDeviceLocked()) {
-      Serial.println("[BLE] RX ignored: device is configured.");
-      return;
-    }
-
     // Ignore new writes while a previous payload is being processed.
     if (configPayloadReady || provisioningInProgress) return;
 
@@ -368,16 +327,12 @@ static void awLoadSavedConfig() {
   configuredPassword  = awPrefs.getString("password", "");
   configuredMonitorId = awPrefs.getUInt("monitor_id", 0);
   String savedDeviceId = awPrefs.getString("device_id", AW_DEVICE_ID);
-  deviceBound          = awPrefs.getUChar("bound", 0) == 1;
-  configuredKeyId      = awPrefs.getString("key_id", "");
-  configuredSecret     = awPrefs.getString("secret", "");
   awPrefs.end();
 
   hasSavedConfig = configuredSSID.length() > 0 && configuredMonitorId > 0;
 
   if (savedDeviceId != AW_DEVICE_ID) {
     hasSavedConfig = false;
-    deviceBound = false;
     Serial.println("[Prov] Saved device identity does not match; config ignored.");
   }
 
@@ -388,8 +343,6 @@ static void awLoadSavedConfig() {
     Serial.print("  Wi-Fi SSID : "); Serial.println(configuredSSID);
     Serial.println("  Wi-Fi pass : [stored - not displayed]");
     Serial.print("  Monitor ID : "); Serial.println(configuredMonitorId);
-    Serial.print("  Bound      : "); Serial.println(deviceBound ? "YES" : "NO");
-    Serial.print("  Key ID     : "); Serial.println(configuredKeyId);
   } else {
     activeMonitorId = 0;
     Serial.println("[Prov] No valid saved configuration. Waiting for app provisioning.");
@@ -397,8 +350,7 @@ static void awLoadSavedConfig() {
 }
 
 static bool awSaveConfigToNVS(const String& ssid, const String& password,
-                              uint32_t monitorId, const String& keyId,
-                              const String& secret) {
+                              uint32_t monitorId) {
   if (!awPrefs.begin("aw-config", false)) {
     Serial.println("[NVS] ERROR: cannot open namespace for writing.");
     return false;
@@ -407,14 +359,10 @@ static bool awSaveConfigToNVS(const String& ssid, const String& password,
   size_t b = awPrefs.putString("password", password);
   size_t c = awPrefs.putUInt("monitor_id", monitorId);
   size_t d = awPrefs.putString("device_id", AW_DEVICE_ID);
-  size_t e = awPrefs.putUChar("bound", 1);
-  size_t f = awPrefs.putString("key_id", keyId);
-  size_t g = awPrefs.putString("secret", secret);
   awPrefs.end();
 
   // An empty Wi-Fi password (open network) legitimately writes 0 bytes.
-  bool writesOK = a > 0 && c > 0 && d > 0 && (password.length() == 0 || b > 0) &&
-                  e > 0 && f > 0 && g > 0;
+  bool writesOK = a > 0 && c > 0 && d > 0 && (password.length() == 0 || b > 0);
 
   if (!awPrefs.begin("aw-config", true)) {
     Serial.println("[NVS] ERROR: cannot reopen namespace for read-back.");
@@ -424,20 +372,15 @@ static bool awSaveConfigToNVS(const String& ssid, const String& password,
   bool passOK = awPrefs.getString("password", "") == password;
   bool midOK  = awPrefs.getUInt("monitor_id", 0) == monitorId;
   bool didOK  = awPrefs.getString("device_id", "") == AW_DEVICE_ID;
-  bool boundOK = awPrefs.getUChar("bound", 0) == 1;
-  bool keyOK  = awPrefs.getString("key_id", "") == keyId;
-  bool secretOK = awPrefs.getString("secret", "") == secret;
   awPrefs.end();
 
-  // Password and secret values are never printed.
+  // Password values are never printed.
   Serial.printf("[NVS] verify: ssid=%s pass=%s monitor_id=%s device_id=%s "
-                "bound=%s key_id=%s secret=%s writes=%s\n",
-                ssidOK ? "PASS" : "FAIL", passOK ? "PASS" : "FAIL",
-                midOK ? "PASS" : "FAIL", didOK ? "PASS" : "FAIL",
-                boundOK ? "PASS" : "FAIL", keyOK ? "PASS" : "FAIL",
-                secretOK ? "PASS" : "FAIL", writesOK ? "PASS" : "FAIL");
-  return writesOK && ssidOK && passOK && midOK && didOK &&
-         boundOK && keyOK && secretOK;
+                 "writes=%s\n",
+                 ssidOK ? "PASS" : "FAIL", passOK ? "PASS" : "FAIL",
+                 midOK ? "PASS" : "FAIL", didOK ? "PASS" : "FAIL",
+                 writesOK ? "PASS" : "FAIL");
+  return writesOK && ssidOK && passOK && midOK && didOK;
 }
 
 // Restore previous values (or clear) if the new save failed verification.
@@ -457,9 +400,6 @@ static bool awRollbackNVS() {
       awPrefs.putString("password", "");
     ok &= awPrefs.putUInt("monitor_id", configuredMonitorId) > 0;
     ok &= awPrefs.putString("device_id", AW_DEVICE_ID) > 0;
-    awPrefs.putUChar("bound", deviceBound ? 1 : 0);
-    awPrefs.putString("key_id", configuredKeyId);
-    awPrefs.putString("secret", configuredSecret);
   } else {
     ok = awPrefs.clear();
   }
@@ -469,31 +409,24 @@ static bool awRollbackNVS() {
   return ok;
 }
 
-static void awEraseBondConfigNVS() {
+static void awEraseConfigNVS() {
   if (awPrefs.begin("aw-config", false)) {
     awPrefs.remove("ssid");
     awPrefs.remove("password");
     awPrefs.remove("monitor_id");
     awPrefs.remove("device_id");
-    awPrefs.remove("bound");
-    awPrefs.remove("key_id");
-    awPrefs.remove("secret");
     awPrefs.end();
   }
 
   configuredSSID = "";
   configuredPassword = "";
-  configuredKeyId = "";
-  configuredSecret = "";
-  deviceBound = false;
   configuredMonitorId = 0;
   hasSavedConfig = false;
   activeMonitorId = 0;
 }
 
 static void awClearSavedConfig() {
-  awEraseBondConfigNVS();
-  awRefreshAdvertisingStatus();
+  awEraseConfigNVS();
   WiFi.disconnect(true, true);
   Serial.println("[Prov] Provisioning settings erased. Device identity remains AW-01 in firmware.");
 }
@@ -553,11 +486,6 @@ static void awMaintainWiFi() {
 // Provisioning payload processing (runs in loop(), never in a BLE callback)
 // ---------------------------------------------------------------------
 static void awProcessProvisioningPayload() {
-  if (awIsDeviceLocked()) {
-    configPayloadReady = false;
-    completedPayload = "";
-    return;
-  }
   if (!configPayloadReady) return;
 
   String payload = completedPayload;
@@ -585,8 +513,6 @@ static void awProcessProvisioningPayload() {
   const char* receivedDeviceId = doc["device_id"]     | "";
   const char* ssidValue        = doc["wifi_ssid"]     | "";
   const char* passwordValue    = doc["wifi_password"] | "";
-  const char* keyIdValue       = doc["key_id"]        | "";
-  const char* secretValue      = doc["secret"]        | "";
 
   if (!doc["monitor_id"].is<uint32_t>()) {
     Serial.println("[Prov] rejected: monitor_id must be a JSON integer.");
@@ -598,13 +524,10 @@ static void awProcessProvisioningPayload() {
 
   size_t ssidLen = strlen(ssidValue);
   size_t passLen = strlen(passwordValue);
-  size_t keyIdLen = strlen(keyIdValue);
-  size_t secretLen = strlen(secretValue);
   bool valid = String(receivedCode) == AW_DEVICE_CODE &&
                String(receivedDeviceId) == AW_DEVICE_ID &&
                ssidLen >= 1 && ssidLen <= 32 &&
-               passLen <= 64 && monitorId > 0 &&
-               keyIdLen > 0 && secretLen > 0 && secretLen <= 128;
+               passLen <= 64 && monitorId > 0;
   if (!valid) {
     Serial.println("[Prov] rejected: validation failed.");
     payload = "";
@@ -615,8 +538,6 @@ static void awProcessProvisioningPayload() {
 
   String newSSID = String(ssidValue);
   String newPassword = String(passwordValue);
-  String newKeyId = String(keyIdValue);
-  String newSecret = String(secretValue);
   payload = "";
   doc.clear();
 
@@ -642,7 +563,7 @@ static void awProcessProvisioningPayload() {
   awSendStatus("wifi_connected");
   delay(150);
 
-  if (!awSaveConfigToNVS(newSSID, newPassword, monitorId, newKeyId, newSecret)) {
+  if (!awSaveConfigToNVS(newSSID, newPassword, monitorId)) {
     Serial.println("[NVS] SAVE/VERIFY FAILED.");
     awRollbackNVS();
     WiFi.disconnect(false, false);
@@ -654,11 +575,7 @@ static void awProcessProvisioningPayload() {
 
   configuredSSID = newSSID;
   configuredPassword = newPassword;
-  configuredKeyId = newKeyId;
-  configuredSecret = newSecret;
-  deviceBound = true;
   configuredMonitorId = monitorId;
-  awRefreshAdvertisingStatus();
   hasSavedConfig = true;
   wifiWasConnected = true;
   hasEverWifiConnected = true;
@@ -674,8 +591,6 @@ static void awProcessProvisioningPayload() {
   Serial.print("Wi-Fi SSID : "); Serial.println(configuredSSID);
   Serial.println("Wi-Fi pass : [stored - not displayed]");
   Serial.print("Monitor ID : "); Serial.println(configuredMonitorId);
-  Serial.print("Key ID     : "); Serial.println(configuredKeyId);
-  Serial.println("Secret     : [stored - not displayed]");
 
   // Terminal success token. Keep BLE connected; do not restart advertising.
   awSendStatus("configured");
@@ -714,10 +629,17 @@ static void awSetupBLE() {
 
   BLEAdvertising* advertising = BLEDevice::getAdvertising();
   advertising->addServiceUUID(BLE_SERVICE_UUID);
+  BLEAdvertisementData advData;
+  advData.setFlags(0x06);
+  advData.setCompleteServices(BLEUUID(BLE_SERVICE_UUID));
+  advertising->setAdvertisementData(advData);
+
+  BLEAdvertisementData scanData;
+  scanData.setName(AW_BLE_NAME);
+  advertising->setScanResponseData(scanData);
   advertising->setScanResponse(true);
   advertising->setMinPreferred(0x06);
   advertising->setMinPreferred(0x12);
-  awApplyAdvertisingManufacturerData(advertising);
 
   BLEDevice::startAdvertising();
 
@@ -736,34 +658,6 @@ static void awStopBLE() {
   rxCharacteristic = nullptr;
   bleClientConnected = false;
   Serial.println("[BLE] Advertising stopped and BLE deinitialized.");
-}
-
-static std::string awBuildAdvertisingManufacturerData() {
-  uint8_t status = awIsDeviceLocked() ? AW_BLE_STATUS_CONFIGURED
-                                      : AW_BLE_STATUS_OPEN;
-  std::string data;
-  data.push_back(static_cast<char>(AW_BLE_MANUFACTURER_ID & 0xFF));
-  data.push_back(static_cast<char>((AW_BLE_MANUFACTURER_ID >> 8) & 0xFF));
-  data.push_back(static_cast<char>(status));
-  return data;
-}
-
-static void awApplyAdvertisingManufacturerData(BLEAdvertising* advertising) {
-  if (advertising == nullptr) return;
-
-  const std::string raw = awBuildAdvertisingManufacturerData();
-  BLEAdvertisementData advData;
-  advData.setFlags(0x06);
-  advData.setCompleteServices(BLEUUID(BLE_SERVICE_UUID));
-  advData.setManufacturerData(String(raw.data(), raw.length()));
-  advertising->setAdvertisementData(advData);
-}
-
-static void awRefreshAdvertisingStatus() {
-  if (!bleInitialized) return;
-  BLEAdvertising* advertising = BLEDevice::getAdvertising();
-  if (advertising == nullptr) return;
-  awApplyAdvertisingManufacturerData(advertising);
 }
 
 // ---------------------------------------------------------------------
@@ -926,6 +820,23 @@ unsigned long lastHistSampleTime = 0;
 const unsigned long SAVE_INTERVAL_MS = 300000;
 const unsigned long HISTORY_SAMPLE_INTERVAL_MS = 60000;
 
+struct BatteryVoltageRefEstimate {
+  bool valid;
+  float voltage;
+  float socPct;
+  float dodPct;
+  float remainingWh;
+  const char* status;
+};
+
+static BatteryVoltageRefEstimate batteryVoltageRef = {
+  false, 0.0f, 0.0f, 0.0f, 0.0f, "Invalid reading"
+};
+
+const float VOLTAGE_REF_MIN_V = 9.000f;
+const float VOLTAGE_REF_MAX_V = 12.600f;
+const float VOLTAGE_REF_WH_PER_PCT = 7.2f;
+
 // Eleven slots provide a full ten-minute comparison at one-minute
 // intervals: current sample versus the sample ten minutes earlier.
 float solarTempHistory[11];
@@ -950,6 +861,171 @@ float estimateSoCFromRestedVoltage(float v) {
   }
 
   return 20.0 + ((v - 10.650) / 0.030);
+}
+
+struct BatteryVoltageRefPoint {
+  uint8_t socPct;
+  float voltage;
+  const char* status;
+};
+
+static const BatteryVoltageRefPoint BATTERY_VOLTAGE_REF[101] = {
+  {100, 12.600f, "Fully charged; charge-complete reference"},
+  {99, 12.570f, "Near full; upper charge region"},
+  {98, 12.540f, "Near full; upper charge region"},
+  {97, 12.510f, "Near full; upper charge region"},
+  {96, 12.480f, "Near full; upper charge region"},
+  {95, 12.450f, "Very high charge; normal use"},
+  {94, 12.420f, "Very high charge; normal use"},
+  {93, 12.390f, "Very high charge; normal use"},
+  {92, 12.360f, "Very high charge; normal use"},
+  {91, 12.330f, "Very high charge; normal use"},
+  {90, 12.300f, "High charge; normal use"},
+  {89, 12.270f, "High charge; normal use"},
+  {88, 12.240f, "High charge; normal use"},
+  {87, 12.210f, "High charge; normal use"},
+  {86, 12.180f, "High charge; normal use"},
+  {85, 12.150f, "High charge; normal use"},
+  {84, 12.120f, "High charge; normal use"},
+  {83, 12.090f, "High charge; normal use"},
+  {82, 12.060f, "High charge; normal use"},
+  {81, 12.030f, "High charge; normal use"},
+  {80, 12.000f, "Normal operating range"},
+  {79, 11.970f, "Normal operating range"},
+  {78, 11.940f, "Normal operating range"},
+  {77, 11.910f, "Normal operating range"},
+  {76, 11.880f, "Normal operating range"},
+  {75, 11.850f, "Normal operating range"},
+  {74, 11.820f, "Normal operating range"},
+  {73, 11.790f, "Normal operating range"},
+  {72, 11.760f, "Normal operating range"},
+  {71, 11.730f, "Normal operating range"},
+  {70, 11.700f, "Normal operating range"},
+  {69, 11.670f, "Normal operating range"},
+  {68, 11.640f, "Normal operating range"},
+  {67, 11.610f, "Normal operating range"},
+  {66, 11.580f, "Normal operating range"},
+  {65, 11.550f, "Normal operating range"},
+  {64, 11.520f, "Normal operating range"},
+  {63, 11.490f, "Normal operating range"},
+  {62, 11.460f, "Normal operating range"},
+  {61, 11.430f, "Normal operating range"},
+  {60, 11.400f, "Normal operating range"},
+  {59, 11.386f, "Normal operating range"},
+  {58, 11.372f, "Normal operating range"},
+  {57, 11.358f, "Normal operating range"},
+  {56, 11.344f, "Normal operating range"},
+  {55, 11.330f, "Normal operating range"},
+  {54, 11.314f, "Normal operating range"},
+  {53, 11.298f, "Normal operating range"},
+  {52, 11.282f, "Normal operating range"},
+  {51, 11.266f, "Normal operating range"},
+  {50, 11.250f, "Half capacity remaining; plan charging"},
+  {49, 11.236f, "Below half; plan charging"},
+  {48, 11.222f, "Below half; plan charging"},
+  {47, 11.208f, "Below half; plan charging"},
+  {46, 11.194f, "Below half; plan charging"},
+  {45, 11.180f, "Below half; plan charging"},
+  {44, 11.164f, "Below half; plan charging"},
+  {43, 11.148f, "Below half; plan charging"},
+  {42, 11.132f, "Below half; plan charging"},
+  {41, 11.116f, "Below half; plan charging"},
+  {40, 11.100f, "Moderate energy remaining; plan charging"},
+  {39, 11.086f, "Moderate energy remaining; plan charging"},
+  {38, 11.072f, "Moderate energy remaining; plan charging"},
+  {37, 11.058f, "Moderate energy remaining; plan charging"},
+  {36, 11.044f, "Moderate energy remaining; plan charging"},
+  {35, 11.030f, "Moderate energy remaining; plan charging"},
+  {34, 11.014f, "Moderate energy remaining; plan charging"},
+  {33, 10.998f, "Moderate energy remaining; plan charging"},
+  {32, 10.982f, "Moderate energy remaining; plan charging"},
+  {31, 10.966f, "Moderate energy remaining; plan charging"},
+  {30, 10.950f, "Low battery; reduce nonessential load"},
+  {29, 10.920f, "Low battery; prepare charging"},
+  {28, 10.890f, "Low battery; prepare charging"},
+  {27, 10.860f, "Low battery; prepare charging"},
+  {26, 10.830f, "Low battery; prepare charging"},
+  {25, 10.800f, "Low battery; charge soon"},
+  {24, 10.770f, "Low battery; charge soon"},
+  {23, 10.740f, "Low battery; charge soon"},
+  {22, 10.710f, "Low battery; charge soon"},
+  {21, 10.680f, "Low battery; approaching safe cutoff"},
+  {20, 10.650f, "80% DoD reached; recommended normal-use cutoff"},
+  {19, 10.606f, "Emergency reserve; recharge immediately"},
+  {18, 10.562f, "Emergency reserve; recharge immediately"},
+  {17, 10.518f, "Emergency reserve; recharge immediately"},
+  {16, 10.474f, "Emergency reserve; recharge immediately"},
+  {15, 10.430f, "Critical reserve; stop nonessential loads"},
+  {14, 10.384f, "Critical reserve; recharge now"},
+  {13, 10.338f, "Critical reserve; recharge now"},
+  {12, 10.292f, "Critical reserve; recharge now"},
+  {11, 10.246f, "Critical reserve; recharge now"},
+  {10, 10.200f, "Very low; avoid continued operation"},
+  {9, 10.080f, "Very low; stop load and recharge"},
+  {8, 9.960f, "Very low; stop load and recharge"},
+  {7, 9.840f, "Deep-discharge region; recharge immediately"},
+  {6, 9.720f, "Deep-discharge region; recharge immediately"},
+  {5, 9.600f, "Near empty; avoid use"},
+  {4, 9.480f, "Near empty; BMS cutoff may occur"},
+  {3, 9.360f, "Near empty; stop all loads"},
+  {2, 9.240f, "Near empty; stop all loads"},
+  {1, 9.120f, "Essentially empty; recharge immediately"},
+  {0, 9.000f, "Empty estimate; BMS may disconnect"}
+};
+
+static void invalidateBatteryVoltageRef(const char* reason) {
+  batteryVoltageRef.valid = false;
+  batteryVoltageRef.voltage = 0.0f;
+  batteryVoltageRef.socPct = 0.0f;
+  batteryVoltageRef.dodPct = 0.0f;
+  batteryVoltageRef.remainingWh = 0.0f;
+  batteryVoltageRef.status = reason;
+}
+
+static const char* batteryVoltageRefStatus(float socPct) {
+  int socFloor = (int)floor(socPct + 0.00001f);
+  socFloor = constrain(socFloor, 0, 100);
+  return BATTERY_VOLTAGE_REF[100 - socFloor].status;
+}
+
+static void updateBatteryVoltageReference(float voltage, bool readOk) {
+  if (!readOk || isnan(voltage) || isinf(voltage) || voltage <= 0.0f) {
+    invalidateBatteryVoltageRef("Invalid reading");
+    return;
+  }
+
+  float v = voltage;
+  if (v > VOLTAGE_REF_MAX_V) v = VOLTAGE_REF_MAX_V;
+  if (v < VOLTAGE_REF_MIN_V) v = VOLTAGE_REF_MIN_V;
+
+  int upperIndex = -1;
+  for (int i = 0; i < 100; ++i) {
+    if (v <= BATTERY_VOLTAGE_REF[i].voltage &&
+        v >= BATTERY_VOLTAGE_REF[i + 1].voltage) {
+      upperIndex = i;
+      break;
+    }
+  }
+
+  if (upperIndex < 0) {
+    invalidateBatteryVoltageRef("Invalid reading");
+    return;
+  }
+
+  const BatteryVoltageRefPoint& high = BATTERY_VOLTAGE_REF[upperIndex];
+  const BatteryVoltageRefPoint& low = BATTERY_VOLTAGE_REF[upperIndex + 1];
+  float socPct = high.socPct +
+    ((v - high.voltage) / (low.voltage - high.voltage)) *
+    ((float)low.socPct - (float)high.socPct);
+
+  socPct = constrain(socPct, 0.0f, 100.0f);
+
+  batteryVoltageRef.valid = true;
+  batteryVoltageRef.voltage = voltage;
+  batteryVoltageRef.socPct = socPct;
+  batteryVoltageRef.dodPct = 100.0f - socPct;
+  batteryVoltageRef.remainingWh = socPct * VOLTAGE_REF_WH_PER_PCT;
+  batteryVoltageRef.status = batteryVoltageRefStatus(socPct);
 }
 
 // =====================================================================
@@ -1337,346 +1413,6 @@ bool supabaseRpcPost(const char* functionName, const String& jsonPayload,
   if (responseCode) *responseCode = httpCode;
   if (httpMutex != nullptr) xSemaphoreGive(httpMutex);
   return success;
-}
-
-#if !defined(AW_USE_CA_BUNDLE)
-static const char AW_SUPABASE_ROOT_CA[] =
-  "-----BEGIN CERTIFICATE-----\n"
-  "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\n"
-  "-----END CERTIFICATE-----\n";
-#endif
-
-static unsigned long lastDeviceCommandPollMs = 0;
-
-static String awBase64UrlEncode(const uint8_t* data, size_t len) {
-  static const char alphabet[] =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-  String out;
-  out.reserve(((len + 2) / 3) * 4);
-
-  for (size_t i = 0; i < len; i += 3) {
-    uint32_t triple = (uint32_t)data[i] << 16;
-    if (i + 1 < len) triple |= (uint32_t)data[i + 1] << 8;
-    if (i + 2 < len) triple |= (uint32_t)data[i + 2];
-
-    out += alphabet[(triple >> 18) & 0x3F];
-    out += alphabet[(triple >> 12) & 0x3F];
-    if (i + 1 < len) out += alphabet[(triple >> 6) & 0x3F];
-    if (i + 2 < len) out += alphabet[triple & 0x3F];
-  }
-  return out;
-}
-
-static String awHmacSha256Base64Url(const String& key, const String& message) {
-  uint8_t digest[32];
-  int rc = -1;
-
-#if defined(MBEDTLS_VERSION_MAJOR) && MBEDTLS_VERSION_MAJOR >= 3
-  const mbedtls_md_info_t* mdInfo =
-    mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
-  if (mdInfo == nullptr) return "";
-  rc = mbedtls_md_hmac(mdInfo,
-                       (const unsigned char*)key.c_str(), key.length(),
-                       (const unsigned char*)message.c_str(), message.length(),
-                       digest);
-#else
-  rc = mbedtls_md_hmac(MBEDTLS_MD_SHA256,
-                       (const unsigned char*)key.c_str(), key.length(),
-                       (const unsigned char*)message.c_str(), message.length(),
-                       digest);
-#endif
-
-  if (rc != 0) return "";
-  return awBase64UrlEncode(digest, sizeof(digest));
-}
-
-static String awCanonicalNext(const String& keyId, const String& nonce,
-                              const String& issuedAt) {
-  String s = "1|next|";
-  s += AW_DEVICE_ID;
-  s += '|';
-  s += keyId;
-  s += '|';
-  s += nonce;
-  s += '|';
-  s += issuedAt;
-  return s;
-}
-
-static String awCanonicalCommand(const char* action, const String& commandId,
-                                 uint32_t monitorId, const String& nonce,
-                                 const String& issuedAt, const String& expiresAt,
-                                 bool includeReleased) {
-  String s = "1|";
-  s += action;
-  s += '|';
-  s += AW_DEVICE_ID;
-  s += '|';
-  s += commandId;
-  s += '|';
-  s += String((unsigned long)monitorId);
-  s += '|';
-  s += nonce;
-  s += '|';
-  s += issuedAt;
-  s += '|';
-  s += expiresAt;
-  if (includeReleased) s += "|released";
-  return s;
-}
-
-static bool awSecureEquals(const String& a, const String& b) {
-  if (a.length() != b.length()) return false;
-  uint8_t diff = 0;
-  for (size_t i = 0; i < a.length(); i++) {
-    diff |= (uint8_t)(a[i] ^ b[i]);
-  }
-  return diff == 0;
-}
-
-static bool awDeviceCommandPost(const String& jsonPayload, const String& signature,
-                                String* responseBody, int* responseCode) {
-  if (responseBody) *responseBody = "";
-  if (responseCode) *responseCode = -1;
-  if (WiFi.status() != WL_CONNECTED) return false;
-
-  if (httpMutex != nullptr) {
-    if (xSemaphoreTake(httpMutex,
-                       pdMS_TO_TICKS(DEVICE_COMMAND_HTTP_TIMEOUT_MS + 500)) != pdTRUE) {
-      if (responseCode) *responseCode = -2;
-      Serial.println("[Command] HTTP lock timeout.");
-      return false;
-    }
-  }
-
-  if (WiFi.status() != WL_CONNECTED) {
-    if (httpMutex != nullptr) xSemaphoreGive(httpMutex);
-    if (responseCode) *responseCode = -1;
-    return false;
-  }
-
-  WiFiClientSecure client;
-#if defined(AW_USE_CA_BUNDLE)
-  client.setCACertBundle(esp_crt_bundle);
-#else
-  client.setCACert(AW_SUPABASE_ROOT_CA);
-#endif
-
-  HTTPClient http;
-  String endpoint = String(SUPABASE_URL) + "/functions/v1/device-command";
-  bool success = false;
-  int httpCode = -1;
-
-  if (http.begin(client, endpoint)) {
-    http.setTimeout(DEVICE_COMMAND_HTTP_TIMEOUT_MS);
-    http.addHeader("Content-Type", "application/json");
-    http.addHeader("apikey", SUPABASE_PUBLISHABLE_KEY);
-    http.addHeader("x-device-signature", signature);
-    httpCode = http.POST((uint8_t*)jsonPayload.c_str(), jsonPayload.length());
-
-    if (httpCode >= 200 && httpCode < 300) {
-      success = true;
-      if (responseBody) *responseBody = http.getString();
-    } else {
-      Serial.printf("[Command] Request failed. HTTP %d\n", httpCode);
-    }
-    http.end();
-  } else {
-    Serial.println("[Command] HTTP begin failed.");
-  }
-
-  if (responseCode) *responseCode = httpCode;
-  if (httpMutex != nullptr) xSemaphoreGive(httpMutex);
-  return success;
-}
-
-static bool awSendReleaseAck(const String& keyId, const String& secret,
-                             const String& commandId, uint32_t monitorId,
-                             const String& nonce, const String& issuedAt,
-                             const String& expiresAt, int* ackHttpCode) {
-  String canonical = awCanonicalCommand("ack", commandId, monitorId, nonce,
-                                        issuedAt, expiresAt, true);
-  String signature = awHmacSha256Base64Url(secret, canonical);
-
-  StaticJsonDocument<512> doc;
-  doc["version"] = 1;
-  doc["action"] = "ack";
-  doc["device_id"] = AW_DEVICE_ID;
-  doc["key_id"] = keyId;
-  doc["command_id"] = commandId;
-  doc["monitor_id"] = (unsigned long)monitorId;
-  doc["nonce"] = nonce;
-  doc["issued_at"] = issuedAt;
-  doc["expires_at"] = expiresAt;
-  doc["result"] = "released";
-
-  String body;
-  serializeJson(doc, body);
-
-  int httpCode = -1;
-  bool ok = awDeviceCommandPost(body, signature, nullptr, &httpCode);
-  Serial.printf("[Command] Release ack HTTP %d.\n", httpCode);
-  if (ackHttpCode) *ackHttpCode = httpCode;
-  return ok;
-}
-
-static void awCompleteRelease(const char* reason) {
-  Serial.printf("[Command] Release confirmed (%s). Erasing configuration.\n",
-                reason);
-  awEraseBondConfigNVS();
-  WiFi.disconnect(true, true);
-  delay(100);
-  esp_restart();
-}
-
-static void awPollDeviceCommand() {
-  if (!awIsDeviceLocked()) return;
-
-  String secret = configuredSecret;
-  String keyId = configuredKeyId;
-  if (keyId.length() == 0 || secret.length() == 0) return;
-
-  String issuedAt = getTimestampISO8601();
-  if (issuedAt.length() == 0) {
-    Serial.println("[Command] Waiting for RTC time before polling.");
-    return;
-  }
-  String nonce = String((unsigned long)esp_random(), HEX) + "-" +
-                 String(millis(), HEX);
-
-  String canonical = awCanonicalNext(keyId, nonce, issuedAt);
-  String signature = awHmacSha256Base64Url(secret, canonical);
-  if (signature.length() == 0) return;
-
-  StaticJsonDocument<768> doc;
-  doc["version"] = 1;
-  doc["action"] = "next";
-  doc["device_id"] = AW_DEVICE_ID;
-  doc["monitor_id"] = (unsigned long)((uint32_t)activeMonitorId);
-  doc["key_id"] = keyId;
-  doc["nonce"] = nonce;
-  doc["issued_at"] = issuedAt;
-
-  String body;
-  serializeJson(doc, body);
-
-  String response;
-  int httpCode = -1;
-  if (!awDeviceCommandPost(body, signature, &response, &httpCode)) {
-    if (httpCode == 401) {
-      Serial.println("[Command] Device key rejected on poll; cloud already released.");
-      awCompleteRelease("poll key rejected");
-    }
-    return;
-  }
-  if (response.length() == 0) return;
-
-  StaticJsonDocument<1024> resp;
-  DeserializationError err = deserializeJson(resp, response);
-  if (err) {
-    Serial.println("[Command] Ignoring invalid response JSON.");
-    return;
-  }
-
-  bool success = resp["success"] | false;
-  if (!success) return;
-
-  JsonObject release = resp["command"].as<JsonObject>();
-  if (release.isNull()) return;
-
-  const char* action = release["action"] | "";
-  if (strcmp(action, "release") != 0) return;
-
-  const char* commandId = release["command_id"] | "";
-  const char* respNonce = release["nonce"] | "";
-  const char* respIssuedAt = release["issued_at"] | "";
-  const char* expiresAt = release["expires_at"] | "";
-  const char* receivedSignature = release["signature"] | "";
-
-  if (!release["monitor_id"].is<uint32_t>()) {
-    Serial.println("[Command] Ignoring release: monitor_id is not an integer.");
-    return;
-  }
-  uint32_t cmdMonitorId = release["monitor_id"].as<uint32_t>();
-  if (cmdMonitorId == 0 || cmdMonitorId != (uint32_t)activeMonitorId) {
-    Serial.println("[Command] Ignoring release: monitor_id mismatch.");
-    return;
-  }
-  if (strlen(commandId) == 0 || strlen(respNonce) == 0 ||
-      strlen(respIssuedAt) == 0 || strlen(expiresAt) == 0 ||
-      strlen(receivedSignature) == 0) {
-    Serial.println("[Command] Ignoring release: missing required fields.");
-    return;
-  }
-
-  String releaseCanonical = awCanonicalCommand(
-    "release", String(commandId), cmdMonitorId, String(respNonce),
-    String(respIssuedAt), String(expiresAt), false);
-  String expectedSignature = awHmacSha256Base64Url(secret, releaseCanonical);
-  String suppliedSignature = String(receivedSignature);
-  while (suppliedSignature.endsWith("=")) {
-    suppliedSignature.remove(suppliedSignature.length() - 1);
-  }
-
-  if (!awSecureEquals(expectedSignature, suppliedSignature)) {
-    Serial.println("[Command] Ignoring release: signature verification failed.");
-    return;
-  }
-
-  Serial.printf("[Command] Verified release command for monitor %lu.\n",
-                (unsigned long)cmdMonitorId);
-
-  bool ackOk = false;
-  int ackHttpCode = -1;
-  for (uint8_t attempt = 0; attempt < AW_RELEASE_ACK_RETRIES; ++attempt) {
-    ackOk = awSendReleaseAck(keyId, secret, String(commandId), cmdMonitorId,
-                             String(respNonce), String(respIssuedAt),
-                             String(expiresAt), &ackHttpCode);
-    if (ackOk || ackHttpCode == 401) break;
-    if (attempt + 1 < AW_RELEASE_ACK_RETRIES) {
-      delay(AW_RELEASE_ACK_RETRY_MS);
-    }
-  }
-
-  if (ackOk) {
-    awCompleteRelease("ack confirmed");
-    return;
-  }
-
-  if (ackHttpCode == 401) {
-    awCompleteRelease("ack says already released");
-    return;
-  }
-
-  Serial.println("[Command] Release ACK unconfirmed; staying bound and retrying later.");
 }
 
 // =====================================================================
@@ -2131,10 +1867,6 @@ void setup() {
   awProvisioningSetup();
 
   awSetupBLE();
-  if (awIsDeviceLocked()) {
-    Serial.println("[Prov] Device is bound; advertising 'configured' and rejecting provisioning writes.");
-  }
-  lastDeviceCommandPollMs = millis();
   Serial.printf("[Heap] free after BLE : %u bytes\n", ESP.getFreeHeap());
 
   // TFT + SD SPI bus + button
@@ -2230,14 +1962,6 @@ void loop() {
   handleSerialCommands();
 
   awProvisioningLoop();      // BLE payloads, Wi-Fi retry, wifi_lost notices
-
-  if (awIsDeviceLocked() && WiFi.status() == WL_CONNECTED &&
-      !provisioningInProgress &&
-      (lastDeviceCommandPollMs == 0 ||
-       millis() - lastDeviceCommandPollMs >= DEVICE_COMMAND_POLL_INTERVAL_MS)) {
-    lastDeviceCommandPollMs = millis();
-    awPollDeviceCommand();
-  }
 
   updateConnectionState();
   checkSDCard();
@@ -2360,6 +2084,8 @@ void loop() {
       total_Ah = RESERVE_AH;
     }
   }
+
+  updateBatteryVoltageReference(batt_V, battReadOk);
 
   // -------------------------------------------------------------------
   // 3. SOLAR AND INVERTER MEASUREMENTS
@@ -2544,6 +2270,17 @@ void loop() {
     Serial.printf("Appliance Estimate : %s\n", detected_appliance.c_str());
   } else {
     Serial.println("INA219 Sensor      : NOT CONNECTED");
+  }
+
+  if (batteryVoltageRef.valid) {
+    Serial.printf("Voltage Ref SoC    : %.2f %% (instantaneous)\n",
+                  batteryVoltageRef.socPct);
+    Serial.printf("Voltage Ref DoD    : %.2f %%\n", batteryVoltageRef.dodPct);
+    Serial.printf("Voltage Ref Energy : %.1f Wh\n",
+                  batteryVoltageRef.remainingWh);
+    Serial.printf("Voltage Ref Cond   : %s\n", batteryVoltageRef.status);
+  } else {
+    Serial.println("Voltage Ref        : INVALID");
   }
 
   if (interiorTempConnected) {
