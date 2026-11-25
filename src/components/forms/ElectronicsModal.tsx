@@ -5,11 +5,13 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Modal,
   Pressable,
   ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   View,
 } from "react-native";
@@ -28,12 +30,15 @@ import {
   uploadElectronicsPhoto,
 } from "@/services/electronicsPhotoService";
 import AppText from "@/components/ui/AppText";
+import RecommendationResultPanel from "@/components/recommendation/RecommendationResultPanel";
 import EmptyState from "@/components/ui/EmptyState";
 import SearchBox from "@/components/ui/SearchBox";
 import ScrollToTopButton from "@/components/layout/ScrollToTopButton";
 
 import {
   BATTERY_CAPACITY_WH,
+  BATTERY_RESERVE_WH,
+  BATTERY_USABLE_WH,
 } from "@/constants/battery";
 import { Colors } from "@/constants/colors";
 import {
@@ -43,6 +48,14 @@ import {
   type CatalogItem,
 } from "@/constants/electronicsCatalog";
 import { logElectronics } from "@/services/activityLogService";
+import type {
+  BatteryStateInput,
+} from "@/services/recommendation";
+import {
+  evaluateSelection,
+  normalizeSelection,
+  type SelectionEvaluation,
+} from "@/services/recommendationSelection";
 import {
   useAppColors,
   type AppColors,
@@ -80,6 +93,13 @@ type ElectronicsModalProps = {
   ) => void;
   onCustomDelete?: (id: string) => void;
   selectedElectronics?: Electronics[];
+  selectionBlocked?: boolean;
+  blockedReason?: string | null;
+  mode?: "standard" | "forced";
+  batteryState?: BatteryStateInput | null;
+  deviceOnline?: boolean;
+  reserveBlocked?: boolean;
+  onDone?: (electronics: Electronics[]) => void;
 };
 
 /*
@@ -157,10 +177,28 @@ export default function ElectronicsModal({
   onCustomUpdate,
   onCustomDelete,
   onSave,
+  selectionBlocked = false,
+  blockedReason,
+  mode = "standard",
+  batteryState = null,
+  deviceOnline = false,
+  reserveBlocked = false,
+  onDone,
 }: ElectronicsModalProps) {
+  const { t } = useTranslation();
+  const forced = mode === "forced";
+  const [assessment, setAssessment] = useState<{
+    result: SelectionEvaluation;
+    key: string;
+  } | null>(null);
   const [selected, setSelected] = useState<
     string[]
   >([]);
+  const currentAssessment =
+    assessment?.key ===
+    normalizeSelection(selected).join("|")
+      ? assessment.result
+      : null;
 
   const [electronics, setElectronics] = useState<
     Electronics[]
@@ -257,7 +295,7 @@ export default function ElectronicsModal({
   // and closing mid-fetch cannot set state for a dead open.
   const loadSeq = useRef(0);
 
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
 
   const scrollToTop =
     useScrollToTopController(scrollRef);
@@ -586,13 +624,28 @@ export default function ElectronicsModal({
   // ============================================================
 
   const toggleElectronics = (id: string) => {
-    setSelected((current) =>
-      current.includes(id)
-        ? current.filter(
+    if (selected.includes(id)) {
+      setSelected((current) =>
+        current.filter(
           (item) => item !== id,
-        )
-        : [...current, id],
+        ),
+      );
+      setCustomError("");
+      return;
+    }
+
+    if (selectionBlocked) {
+      setCustomError(
+        blockedReason ??
+          "New selections are paused while battery protection is active.",
+      );
+      return;
+    }
+
+    setSelected(
+      normalizeSelection([...selected, id]),
     );
+    setCustomError("");
   };
 
   // ============================================================
@@ -641,6 +694,18 @@ export default function ElectronicsModal({
   // SAVE ELECTRONICS SELECTION
   // ============================================================
 
+  const completeSelection = (
+    items: Electronics[],
+  ) => {
+    if (forced) {
+      onDone?.(items);
+    } else {
+      onSave?.(items);
+    }
+
+    onClose();
+  };
+
   const handleSave = async () => {
     if (isLoadingCustoms) {
       setCustomError(
@@ -650,6 +715,31 @@ export default function ElectronicsModal({
     }
 
     if (isSaving) {
+      return;
+    }
+
+    if (forced && selected.length === 0) {
+      setCustomError(
+        t("electronicsModal.selectAtLeastOne"),
+      );
+      return;
+    }
+
+    if (
+      forced &&
+      currentAssessment?.verdict ===
+        "notRecommended"
+    ) {
+      setCustomError(
+        t("electronicsModal.notAdvisableBlocked"),
+      );
+      return;
+    }
+
+    if (forced && reserveBlocked) {
+      setCustomError(
+        t("electronicsModal.reserveBlocked"),
+      );
       return;
     }
 
@@ -664,7 +754,10 @@ export default function ElectronicsModal({
     setIsSaving(true);
     setCustomError("");
 
-    const selectedSet = new Set(selected);
+    const selectedIds = normalizeSelection(selected);
+    setSelected(selectedIds);
+
+    const selectedSet = new Set(selectedIds);
 
     if (selectedSet.size === 0) {
       const { error: resetError } = await supabase.rpc(
@@ -688,8 +781,7 @@ export default function ElectronicsModal({
       setIsReset(true);
       logElectronics.selectionReset();
 
-      onSave?.([]);
-      onClose();
+      completeSelection([]);
       return;
     }
 
@@ -746,13 +838,48 @@ export default function ElectronicsModal({
     }
 
     const selectedItems = displayElectronics.filter(
-      (item) => selected.includes(item.id),
+      (item) => selectedIds.includes(item.id),
     );
 
     logElectronics.selectionSaved(selectedItems.length);
 
-    onSave?.(selectedItems);
-    onClose();
+    completeSelection(selectedItems);
+  };
+
+  const handleCheckRecommendation = () => {
+    const selectedIds = normalizeSelection(selected);
+
+    if (selectedIds.length === 0) {
+      setCustomError(
+        t("electronicsModal.selectAtLeastOne"),
+      );
+      return;
+    }
+
+    const selectedSet = new Set(selectedIds);
+
+    const candidates = displayElectronics
+      .filter((item) => selectedSet.has(item.id))
+      .map((item) => ({
+        id: item.id,
+        name: item.name,
+        watts: item.watts,
+        area: item.area,
+        imageKey: item.id,
+        imageUrl: item.imageUrl ?? null,
+      }));
+
+    const result = evaluateSelection(
+      batteryState,
+      candidates,
+      { deviceOnline },
+    );
+
+    setAssessment({
+      result,
+      key: selectedIds.join("|"),
+    });
+    setCustomError("");
   };
 
   // ============================================================
@@ -775,6 +902,14 @@ export default function ElectronicsModal({
   // ============================================================
 
   const handleAddOpen = () => {
+    if (selectionBlocked) {
+      setCustomError(
+        blockedReason ??
+          "New selections are paused while battery protection is active.",
+      );
+      return;
+    }
+
     setEditingCustom(null);
     setCustomName("");
     setCustomWatts("");
@@ -800,6 +935,14 @@ export default function ElectronicsModal({
   // ============================================================
 
   const handleCustomAdd = async () => {
+    if (selectionBlocked) {
+      setCustomError(
+        blockedReason ??
+          "New selections are paused while battery protection is active.",
+      );
+      return;
+    }
+
     const validation = validateCustomElectronics(
       customName,
       customWatts,
@@ -932,6 +1075,11 @@ export default function ElectronicsModal({
           : imageUrl,
     };
 
+    const selectedIds = normalizeSelection([
+      ...selected,
+      electronics.id,
+    ]);
+
     onCustomAdd?.(electronics);
 
     logElectronics.added(name, electronics.watts);
@@ -941,9 +1089,7 @@ export default function ElectronicsModal({
       electronics,
     ]);
 
-    setSelected((current) => [
-      ...new Set([...current, electronics.id]),
-    ]);
+    setSelected(selectedIds);
 
     setCustomName("");
     setCustomWatts("");
@@ -1717,6 +1863,14 @@ export default function ElectronicsModal({
   // ============================================================
 
   const handleSelectAll = () => {
+    if (selectionBlocked) {
+      setCustomError(
+        blockedReason ??
+          "New selections are paused while battery protection is active.",
+      );
+      return;
+    }
+
     const target = normalizedSearch
       ? filteredElectronics
       : displayElectronics;
@@ -1725,12 +1879,13 @@ export default function ElectronicsModal({
       return;
     }
 
-    setSelected((current) => [
-      ...new Set([
-        ...current,
+    setSelected(
+      normalizeSelection([
+        ...selected,
         ...target.map(({ id }) => id),
       ]),
-    ]);
+    );
+    setCustomError("");
   };
 
   return (
@@ -1738,7 +1893,7 @@ export default function ElectronicsModal({
       visible={visible}
       animationType="slide"
       transparent
-      onRequestClose={onClose}
+      onRequestClose={forced ? () => {} : onClose}
     >
       <View style={styles.overlay}>
         <View style={styles.modal}>
@@ -1746,31 +1901,46 @@ export default function ElectronicsModal({
               Layer 2 has no back arrow; the title sits left and
               return uses the row/footer Back buttons. */}
           <View style={styles.header}>
-            <AppText
-              variant="heading"
-              style={styles.title}
-            >
-              {layer === 2
-                ? "Archived Electronics"
-                : "Select Electronics"}
-            </AppText>
+            <View style={styles.titleGroup}>
+              <AppText
+                variant="heading"
+                style={styles.title}
+              >
+                {layer === 2
+                  ? "Archived Electronics"
+                  : "Select Electronics"}
+              </AppText>
 
-            <Pressable
-              onPress={onClose}
-              style={styles.closeButton}
-              accessibilityRole="button"
-              accessibilityLabel={
-                layer === 2
-                  ? "Close Archived Electronics"
-                  : "Close Select Electronics"
-              }
-            >
-              <Ionicons
-                name="close"
-                size={24}
-                color={colors.headerContent}
-              />
-            </Pressable>
+              {forced ? (
+                <AppText
+                  variant="caption"
+                  style={styles.forcedHeaderMessage}
+                >
+                  {t(
+                    "electronicsModal.detectedHeader",
+                  )}
+                </AppText>
+              ) : null}
+            </View>
+
+            {forced ? null : (
+              <Pressable
+                onPress={onClose}
+                style={styles.closeButton}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  layer === 2
+                    ? "Close Archived Electronics"
+                    : "Close Select Electronics"
+                }
+              >
+                <Ionicons
+                  name="close"
+                  size={24}
+                  color={colors.headerContent}
+                />
+              </Pressable>
+            )}
           </View>
 
           {/* Thin success banner: full-spread white strip pinned
@@ -1792,6 +1962,26 @@ export default function ElectronicsModal({
                 style={styles.successBannerText}
               >
                 {successMessage}
+              </AppText>
+            </View>
+          ) : null}
+
+          {forced && reserveBlocked ? (
+            <View
+              style={styles.errorBanner}
+              accessibilityRole="alert"
+            >
+              <Ionicons
+                name="warning-outline"
+                size={16}
+                color={colors.error}
+              />
+
+              <AppText
+                variant="caption"
+                style={styles.errorBannerText}
+              >
+                {t("electronicsModal.reserveBlocked")}
               </AppText>
             </View>
           ) : null}
@@ -1823,8 +2013,8 @@ export default function ElectronicsModal({
                       variant="body"
                       style={styles.advisoryTitle}
                     >
-                      Battery Capacity:{" "}
-                      {BATTERY_CAPACITY_WH} Wh
+                      Battery budget:{" "}
+                      {BATTERY_USABLE_WH} Wh usable
                     </AppText>
 
                     <AppText
@@ -1833,9 +2023,11 @@ export default function ElectronicsModal({
                         styles.advisoryDescription
                       }
                     >
-                      Select the electronics you want to use
-                      and keep them within the available
-                      energy capacity.
+                      {BATTERY_CAPACITY_WH} Wh total ·{" "}
+                      {BATTERY_RESERVE_WH} Wh protected
+                      reserve. Select the electronics you
+                      want to use and stay within the usable
+                      energy budget.
                     </AppText>
                   </View>
                 </View>
@@ -2342,71 +2534,141 @@ export default function ElectronicsModal({
               </View>
             </View>
 
-            <View style={styles.footerButtons}>
-              <Pressable
-                onPress={handleSelectAll}
-                style={({ pressed }) => [
-                  styles.resetButton,
-                  pressed && styles.buttonPressed,
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel="Select all electronics"
-              >
-                <AppText
-                  variant="caption"
-                  style={styles.resetText}
-                >
-                  Select All
-                </AppText>
-              </Pressable>
+            {forced ? (
+              <>
+                {currentAssessment ? (
+                  <View style={styles.assessmentPanel}>
+                    <RecommendationResultPanel
+                      result={currentAssessment}
+                    />
+                  </View>
+                ) : null}
 
-              <Pressable
-                onPress={handleReset}
-                style={({ pressed }) => [
-                  styles.resetButton,
-                  pressed && styles.buttonPressed,
-                ]}
-              >
-                <AppText
-                  variant="caption"
-                  style={styles.resetText}
-                >
-                  Reset
-                </AppText>
-              </Pressable>
+                <View style={styles.footerButtons}>
+                  <Pressable
+                    onPress={handleCheckRecommendation}
+                    disabled={isLoadingCustoms}
+                    style={({ pressed }) => [
+                      styles.actionButton,
+                      pressed && styles.buttonPressed,
+                      isLoadingCustoms &&
+                        styles.pressed,
+                    ]}
+                    accessibilityRole="button"
+                    accessibilityLabel={t(
+                      "electronicsModal.checkRecommendation",
+                    )}
+                  >
+                    <AppText
+                      variant="caption"
+                      style={styles.actionText}
+                    >
+                      {t(
+                        "electronicsModal.checkRecommendation",
+                      )}
+                    </AppText>
+                  </Pressable>
 
-              <Pressable
-                onPress={handleSave}
-                disabled={isLoadingCustoms || isSaving}
-                style={({ pressed }) => [
-                  styles.actionButton,
-                  pressed && styles.buttonPressed,
-                  (isLoadingCustoms || isSaving) &&
-                    styles.pressed,
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel={
-                  isSaving
-                    ? "Saving electronics selection"
-                    : isLoadingCustoms
-                      ? "Loading custom electronics"
-                      : "Save electronics selection"
-                }
-              >
-                <AppText
-                  variant="caption"
-                  style={styles.actionText}
+                  {currentAssessment?.verdict &&
+                  currentAssessment.verdict !==
+                    "notRecommended" &&
+                  !reserveBlocked ? (
+                    <Pressable
+                      onPress={() =>
+                        void handleSave()
+                      }
+                      disabled={isSaving}
+                      style={({ pressed }) => [
+                        styles.actionButton,
+                        pressed && styles.buttonPressed,
+                        isSaving && styles.pressed,
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel={t(
+                        "electronicsModal.done",
+                      )}
+                    >
+                      <AppText
+                        variant="caption"
+                        style={styles.actionText}
+                      >
+                        {isSaving
+                          ? t(
+                              "electronicsModal.saving",
+                            )
+                          : t("electronicsModal.done")}
+                      </AppText>
+                    </Pressable>
+                  ) : null}
+                </View>
+              </>
+            ) : (
+              <View style={styles.footerButtons}>
+                <Pressable
+                  onPress={handleSelectAll}
+                  style={({ pressed }) => [
+                    styles.resetButton,
+                    pressed && styles.buttonPressed,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel="Select all electronics"
                 >
-                  {isSaving
-                    ? "Saving..."
-                    : isLoadingCustoms
-                      ? "Loading..."
-                      : isReset
-                        ? "Save"
-                        : "Add"}
-                </AppText>
-              </Pressable>
-            </View>
+                  <AppText
+                    variant="caption"
+                    style={styles.resetText}
+                  >
+                    Select All
+                  </AppText>
+                </Pressable>
+
+                <Pressable
+                  onPress={handleReset}
+                  style={({ pressed }) => [
+                    styles.resetButton,
+                    pressed && styles.buttonPressed,
+                  ]}
+                >
+                  <AppText
+                    variant="caption"
+                    style={styles.resetText}
+                  >
+                    Reset
+                  </AppText>
+                </Pressable>
+
+                <Pressable
+                  onPress={() => void handleSave()}
+                  disabled={isLoadingCustoms || isSaving}
+                  style={({ pressed }) => [
+                    styles.actionButton,
+                    pressed && styles.buttonPressed,
+                    (isLoadingCustoms || isSaving) &&
+                      styles.pressed,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    isSaving
+                      ? "Saving electronics selection"
+                      : isLoadingCustoms
+                        ? "Loading custom electronics"
+                        : "Save electronics selection"
+                  }
+                >
+                  <AppText
+                    variant="caption"
+                    style={styles.actionText}
+                  >
+                    {isSaving
+                      ? "Saving..."
+                      : isLoadingCustoms
+                        ? "Loading..."
+                        : isReset
+                          ? "Save"
+                          : "Add"}
+                  </AppText>
+                </Pressable>
+              </View>
+            )}
             </View>
           )}
         </View>
@@ -2510,6 +2772,17 @@ const getStyles = (colors: AppColors) =>
     fontSize: Typography.heading,
     fontWeight: "700",
     color: colors.headerContent,
+  },
+
+  titleGroup: {
+    flex: 1,
+    gap: 2,
+  },
+
+  forcedHeaderMessage: {
+    color: colors.headerContent,
+    fontSize: Typography.caption,
+    fontWeight: "600",
   },
 
   closeButton: {
@@ -2695,6 +2968,11 @@ const getStyles = (colors: AppColors) =>
   selectedText: {
     color: colors.headerContent,
     fontSize: 14,
+  },
+
+  assessmentPanel: {
+    gap: 10,
+    marginBottom: 12,
   },
 
   footerButtons: {

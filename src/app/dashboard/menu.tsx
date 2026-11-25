@@ -123,6 +123,8 @@ export default function SettingsScreen() {
     fontWeight: inputFontWeight,
   };
 
+  const passwordBusy = confirmingAccountUpdate;
+
   // ============================================
   // LOAD ACCOUNT PROFILE
   // ============================================
@@ -205,7 +207,7 @@ export default function SettingsScreen() {
   // ============================================
 
   const handleCloseAccountModal = () => {
-    if (confirmingAccountUpdate) {
+    if (passwordBusy) {
       return;
     }
 
@@ -218,7 +220,7 @@ export default function SettingsScreen() {
   // ============================================
 
   const handleSubmitAccountUpdate = () => {
-    if (confirmingAccountUpdate) {
+    if (passwordBusy) {
       return;
     }
 
@@ -360,7 +362,7 @@ export default function SettingsScreen() {
   // ============================================
 
   const handleConfirmChanges = async () => {
-    if (confirmingAccountUpdate) {
+    if (passwordBusy) {
       return;
     }
 
@@ -1109,9 +1111,7 @@ export default function SettingsScreen() {
         transparent
         animationType="fade"
         onRequestClose={() => {
-          if (
-            !confirmingAccountUpdate
-          ) {
+          if (!passwordBusy) {
             setConfirmationVisible(false);
             setConfirmationWarning("");
             setCurrentPassword("");
@@ -1171,9 +1171,7 @@ export default function SettingsScreen() {
             <View style={styles.actionRow}>
               <Pressable
                 onPress={() => {
-                  if (
-                    confirmingAccountUpdate
-                  ) {
+                  if (passwordBusy) {
                     return;
                   }
 
@@ -1181,9 +1179,7 @@ export default function SettingsScreen() {
                   setConfirmationWarning("");
                   setConfirmationVisible(false);
                 }}
-                disabled={
-                  confirmingAccountUpdate
-                }
+                disabled={passwordBusy}
                 style={({ pressed }) => [
                   styles.secondaryButton,
                   pressed &&
@@ -1200,25 +1196,18 @@ export default function SettingsScreen() {
               </Pressable>
 
               <Pressable
-                onPress={
-                  handleConfirmChanges
-                }
-                disabled={
-                  confirmingAccountUpdate
-                }
+                onPress={handleConfirmChanges}
+                disabled={passwordBusy}
                 style={({ pressed }) => [
                   styles.primaryButton,
                   styles.actionButton,
-                  pressed &&
-                    styles.pressed,
+                  pressed && styles.pressed,
                 ]}
               >
                 <AppText
-                  style={
-                    styles.primaryButtonText
-                  }
+                  style={styles.primaryButtonText}
                 >
-                  {confirmingAccountUpdate
+                  {passwordBusy
                     ? tMenu("menu.saving")
                     : tMenu("menu.confirm")}
                 </AppText>
@@ -1437,6 +1426,10 @@ const getStyles = (colors: AppColors) =>
   modalSubmitButton: {
     backgroundColor: colors.primary,
     borderColor: colors.primary,
+  },
+
+  disabled: {
+    opacity: 0.6,
   },
 
   modalSubmitButtonText: {

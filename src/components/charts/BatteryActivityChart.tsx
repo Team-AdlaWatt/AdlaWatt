@@ -66,10 +66,10 @@ function Stat({
 
 /* ============================================================
    BATTERY ACTIVITY DONUT
-   Charging = green, Discharging = yellow, Idle = red (error).
-   No blue anywhere: every slice sets an explicit color.
-   Stats carry % and the center carries counts, so color is
-   never the only indicator (green/red is deuteranopia-risky).
+   Charging = green, Discharging = yellow, Cycle = orange,
+   Idle = red (error). No blue anywhere: every slice sets an
+   explicit color. Stats carry labels and %, and the center
+   carries counts, so color is never the only indicator.
    Tapping a slice reveals its samples in the center for 5s.
    Yellow slice never hosts white text (dark ink only).
    ============================================================ */
@@ -78,6 +78,7 @@ const SLICE_ORDER: BatteryActivityKey[] =
   [
     "charging",
     "discharging",
+    "cycle",
     "idle",
   ];
 
@@ -114,7 +115,9 @@ export default function BatteryActivityChart({
                 ? "Charging"
                 : key === "discharging"
                   ? "Discharging"
-                  : "Idle",
+                  : key === "cycle"
+                    ? "Cycle"
+                    : "Idle",
             value: 0,
             percent: 0,
           },
@@ -208,11 +211,13 @@ export default function BatteryActivityChart({
   const selectedVisible =
     selectedSlice != null && selectedSlice.value > 0 && !isEmpty;
 
-  // Explicit frozen mapping: green / yellow / red. No blue.
+  // Explicit frozen mapping: green / yellow / orange / red.
+  // No blue.
   const sliceColors = useMemo(
     () => ({
       charging: chartColors.green,
       discharging: chartColors.yellow,
+      cycle: chartColors.orange,
       idle: chartColors.red,
     }),
     [chartColors],
@@ -247,7 +252,8 @@ export default function BatteryActivityChart({
 
   const charging = ordered[0];
   const discharging = ordered[1];
-  const idle = ordered[2];
+  const cycle = ordered[2];
+  const idle = ordered[3];
 
   return (
     <View style={styles.container}>
@@ -270,6 +276,16 @@ export default function BatteryActivityChart({
             isEmpty
               ? "-"
               : `${discharging.percent}%`
+          }
+          color={colors.text}
+        />
+
+        <Stat
+          label="Cycle"
+          value={
+            isEmpty
+              ? "-"
+              : `${cycle.percent}%`
           }
           color={colors.text}
         />

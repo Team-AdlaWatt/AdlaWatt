@@ -304,15 +304,13 @@ by hand.
 | `menu.exitYes` | Yes | Oo | Oo | alert button |
 | `menu.englishName` | English | English | English | fallback label |
 
-## Dashboard — Home (6 keys, Phase 1)
+## Dashboard — Home (5 keys, Phase 1)
 
 | Key | English | Filipino | Cebuano | Notes |
 |---|---|---|---|---|
 | `dashboard.home.title` | Dashboard | Dashboard | Dashboard |  |
 | `dashboard.home.subtitle` | Monitor your AdlaWatt system in real time. | I-monitor ang iyong AdlaWatt system nang real time. | I-monitor ang imong AdlaWatt system nga real time. |  |
-| `dashboard.home.electronicsRecommendation` | Electronics Recommendation | Electronics Recommendation | Electronics Recommendation |  |
 | `dashboard.home.realtimeMonitoring` | Real-Time Monitoring | Real-Time Monitoring | Real-Time Monitoring |  |
-| `dashboard.home.goToElectronicsRecommendation` | Go to Electronics Recommendation | Pumunta sa Electronics Recommendation | Adto sa Electronics Recommendation | a11y |
 | `dashboard.home.forecastFailed` | Could not load the forecast. | Hindi ma-load ang forecast. | Dili ma-load ang forecast. | error fallback |
 | `dashboard.home.offlineBanner` | You're offline — showing last readings. | Wala kang koneksyon — huling readings ang ipinapakita. | Wala kay koneksyon — katapusang readings ang gipakita. | offline banner |
 | `dashboard.home.lastUpdated` | Last updated {{time}}. | Huling na-update {{time}}. | Katapusang na-update {{time}}. | offline banner |
@@ -481,12 +479,59 @@ Codes stay backend-bound; labels map for display. Dates localize in format only 
 | `dashboard.components.title` | Components | Mga Komponente | Mga Komponente |  |
 | `dashboard.components.subtitle` | Monitor AdlaWatt system components. | I-monitor ang mga component ng AdlaWatt system. | I-monitor ang mga component sa AdlaWatt system. |  |
 | `dashboard.analytics.title` | Analytics & Trends | Analytics at Trends | Analytics ug Trends |  |
-| `dashboard.analytics.subtitle` | Analyze system performance, energy usage, temperature, and electronics data over time. | Suriin ang performance ng system, paggamit ng enerhiya, temperatura, at datos ng electronics sa paglipas ng panahon. | Susiha ang performance sa system, paggamit sa enerhiya, temperatura, ug datos sa electronics sa paglabay sa panahon. |  |
+| `dashboard.analytics.subtitle` | Review solar collection, load use, and battery activity for the selected range. | Suriin ang solar, paggamit ng load, at aktibidad ng baterya para sa napiling saklaw. | Susiha ang solar, paggamit sa load, ug kalihokan sa baterya alang sa napiling sakup. |  |
 | `dashboard.analytics.sectionBattery` | Battery | Baterya | Baterya | section header |
 | `dashboard.analytics.sectionSolar` | Solar | Solar | Solar | section header |
 | `dashboard.analytics.sectionEnergy` | Energy | Enerhiya | Enerhiya | section header |
 | `dashboard.analytics.sectionHealth` | Health | Kalusugan | Panglawas | section header |
 | `dashboard.analytics.sectionUsage` | Usage | Paggamit | Paggamit | section header |
+| `dashboard.analytics.generateReport` | Generate Report | Generate Report | Generate Report | quick-nav button |
+| `dashboard.analytics.goToGenerateReport` | Go to Generate Report | Pumunta sa Generate Report | Adto sa Generate Report | a11y |
+
+## Recommendation Result (27 keys)
+
+| Key | English | Filipino | Cebuano | Notes |
+|---|---|---|---|---|
+| `recommendationResult.title` | Recommendation | Rekomendasyon | Rekomendasyon |  |
+| `recommendationResult.status.empty` | No electronics selected | Walang napiling electronics | Walay napiling electronics |  |
+| `recommendationResult.status.waiting` | Waiting for battery data | Naghihintay ng data ng baterya | Naghulat sa data sa baterya |  |
+| `recommendationResult.status.blocked` | Battery check needed | Kailangang i-check ang baterya | Kinahanglan i-check ang baterya |  |
+| `recommendationResult.status.ready` | Combined recommendation | Pinagsamang rekomendasyon | Hiniusang rekomendasyon |  |
+| `recommendationResult.verdict.recommended` | OK to use | OK gamitin | OK gamiton |  |
+| `recommendationResult.verdict.care` | Use with care | Gamitin nang may pag-iingat | Gamita uban ang pag-amping |  |
+| `recommendationResult.verdict.notRecommended` | Not advisable | Hindi inirerekomenda | Dili maayo gamiton |  |
+| `recommendationResult.verdict.unknown` | Waiting | Naghihintay | Naghulat |  |
+| `recommendationResult.badgeA11y` | Recommendation: {{label}} | Rekomendasyon: {{label}} | Rekomendasyon: {{label}} | accessibility label |
+| `recommendationResult.reason.empty` | Select electronics to see a recommendation. | Pumili ng electronics para makita ang rekomendasyon. | Pilia ang electronics aron makita ang rekomendasyon. |  |
+| `recommendationResult.reason.waiting` | Waiting for a fresh battery reading. | Naghihintay ng bagong pagbasa ng baterya. | Naghulat ug bag-ong pagbasa sa baterya. |  |
+| `recommendationResult.reason.offline` | Waiting for the device to come online. | Naghihintay na mag-online ang device. | Naghulat nga ma-online ang device. |  |
+| `recommendationResult.reason.stale` | Battery reading is too old. Waiting for fresh data. | Too old ang pagbasa ng baterya. Naghihintay ng bagong data. | Daang kaayo ang pagbasa sa baterya. Naghulat ug bag-ong data. |  |
+| `recommendationResult.reason.blocked` | Battery readings are outside safe limits. | Nasa labas ng ligtas na limitasyon ang pagbasa ng baterya. | Ang pagbasa sa baterya naa sa gawas sa luwas nga limitasyon. |  |
+| `recommendationResult.reason.invalidWattage` | One or more wattage values are invalid. | May invalid na wattage value. | Usa o daghang wattage ang dili balido. |  |
+| `recommendationResult.reason.overCap` | Combined peak load exceeds the safe cap. | Lumampas sa ligtas na limitasyon ang pinagsamang peak load. | Ang hiniusang peak load milapas sa luwas nga limitasyon. |  |
+| `recommendationResult.reason.unsafeVoltage` | Combined peak load would drop voltage below safe levels. | Ibaba ng pinagsamang peak load ang voltage sa ibaba ng ligtas na antas. | Ang hiniusang peak load magpaubos sa voltage ubos sa luwas nga lebel. |  |
+| `recommendationResult.reason.highDrain` | This combination uses too much usable energy per hour. | Gumagamit ng sobrang usable energy kada oras ang kombinasyong ito. | Kini nga kombinasyon nagagamit ug daghang magamit nga enerhiya kada oras. |  |
+| `recommendationResult.reason.care` | Usable with care — keep the load light. | Pwede gamitin nang may pag-iingat — i-lighten ang load. | Magamit uban ang pag-amping — ipagaan ang load. |  |
+| `recommendationResult.reason.recommended` | Safe to use with this battery level. | Ligtas gamitin sa antas ng bateryang ito. | Luwas gamiton niining lebel sa baterya. |  |
+| `recommendationResult.remainingBattery` | Estimated remaining battery | Tinantyang natitirang baterya | Gitantya nga nahabilin nga baterya |  |
+| `recommendationResult.estimatedRuntime` | Estimated runtime | Tinantyang oras ng paggamit | Gitantya nga oras sa paggamit |  |
+| `recommendationResult.combinedPeak` | Combined peak load | Pinagsamang peak load | Hiniusang peak load |  |
+| `recommendationResult.currentLoad` | Current load | Kasalukuyang load | Karon nga load |  |
+| `recommendationResult.alternativesTitle` | Better options | Mas mahusay na mga opsyon | Mas maayong mga kapilian |  |
+| `recommendationResult.noAlternatives` | No alternatives available right now. | Walang available na alternatibo sa ngayon. | Walay alternatibo karon. |  |
+| `recommendationResult.estimateNote` | Estimates use catalog wattage, not live appliance detection. | Gumagamit ng catalog wattage ang mga tantya, hindi live na pag-detect ng appliance. | Ang mga tantya naggamit sa catalog wattage, dili aktuwal nga pag-detect sa appliance. |  |
+
+## Automatic Load Detection (7 keys)
+
+| Key | English | Filipino | Cebuano | Notes |
+|---|---|---|---|---|
+| `batteryProtection.criticalInstructions` | Unplug all nonessential appliances, then review the connected electronics. | I-unplug ang lahat ng hindi mahalagang appliances, pagkatapos ay suriin ang mga naka-connect na electronics. | I-unplug tanan nga dili kinahanglan nga appliances, unya susiha ang mga naka-connect nga electronics. | critical modal |
+| `batteryProtection.recovering` | Verifying stable load and usable energy... | Sinusuri ang stable na load at magagamit na enerhiya... | Gisusi ang stable nga load ug magamit nga enerhiya... | critical modal |
+| `electronicsModal.checkRecommendation` | Check Recommendation | Suriin ang Rekomendasyon | Susiha ang Rekomendasyon | forced workflow |
+| `electronicsModal.done` | Done | Tapos | Tapos | forced workflow |
+| `electronicsModal.saving` | Saving... | Sinisave... | Gi-save... | forced workflow |
+| `electronicsModal.selectAtLeastOne` | Select at least one appliance before continuing. | Pumili ng kahit isang appliance bago magpatuloy. | Pili labing menos usa ka appliance sa dili pa magpadayon. | validation |
+| `electronicsModal.notAdvisableBlocked` | This selection is not advisable. Change the selection and check again. | Hindi ito kanais-nais. Baguhin ang napili at suriin muli. | Dili kini maayo. Usba ang napili ug susiha pag-usab. | validation |
 
 ## Backend-bound (stays English by policy, Phase 1)
 

@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
-  TextInput,
+  type TextInputInstance,
   View,
 } from "react-native";
 
@@ -234,8 +234,8 @@ export default function ForgotPasswordScreen() {
     params.error_description,
   ]);
 
-  const newPasswordRef = useRef<TextInput>(null);
-  const confirmPasswordRef = useRef<TextInput>(null);
+  const newPasswordRef = useRef<TextInputInstance>(null);
+  const confirmPasswordRef = useRef<TextInputInstance>(null);
 
   const colors = useAppColors();
   const mailStyles = useMemo(

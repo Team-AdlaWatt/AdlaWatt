@@ -7,14 +7,24 @@ import {
   getMonitoringData,
 } from "@/services/monitoringService";
 import {
+  isBatteryCharging,
+  isBatteryDischarging,
+  isBatteryReadingError,
   isMonitoringRow,
   normalizeMonitoringRow,
   type MonitoringData,
 } from "@/services/monitoringSchema";
 import {
-  classifyBatteryState,
-  computeWattCap,
+  isDbReadingFresh,
+  isDeviceOnline,
+} from "@/utils/monitoringDisplay";
+import {
+  type BatteryStateInput,
 } from "@/services/recommendation";
+import {
+  evaluateSelection,
+  type SelectionAppliance,
+} from "@/services/recommendationSelection";
 import {
   subscribeResilientChannel,
   type ResilientSubscription,
@@ -71,7 +81,7 @@ const CURRENT_LOAD_MILESTONE_WATTS =
 
 // Freshness tripwire for last_seen. This only controls the
 // "Monitoring Data Stale" alert cadence; the dashboard's
-// online/offline gate uses the 10s DEVICE_ONLINE_WINDOW_MS.
+// online/offline gate follows device_status.
 // The ESP32 heartbeats every 5s, so 60s avoids alert spam
 // while still catching a genuinely silent unit within a minute.
 // (Server-side, the heartbeat cron owns the Offline
@@ -143,9 +153,6 @@ const DEFAULT_RULE_DATA: MonitoringRuleData = {
   solar_current: 0,
   total_energy: 0,
 
-  battery_temperature: 25,
-  battery_temperature_status: "Nominal",
-
   dod_status: "Safe",
 
   solar_temperature: 25,
@@ -155,6 +162,7 @@ const DEFAULT_RULE_DATA: MonitoringRuleData = {
   interior_temp_status: "Nominal",
 
   last_seen: "",
+  heartbeat_expires_at: "",
 };
 
 const toMonitoringRuleData = (
@@ -215,15 +223,6 @@ const toMonitoringRuleData = (
     fallback?.total_energy ??
     DEFAULT_RULE_DATA.total_energy,
 
-  battery_temperature:
-    data.battery_temperature ??
-    fallback?.battery_temperature ??
-    DEFAULT_RULE_DATA.battery_temperature,
-  battery_temperature_status:
-    data.battery_temperature_status ??
-    fallback?.battery_temperature_status ??
-    DEFAULT_RULE_DATA.battery_temperature_status,
-
   dod_status:
     data.dod_status ??
     fallback?.dod_status ??
@@ -251,6 +250,11 @@ const toMonitoringRuleData = (
     data.last_seen ??
     fallback?.last_seen ??
     DEFAULT_RULE_DATA.last_seen,
+
+  heartbeat_expires_at:
+    data.heartbeat_expires_at ??
+    fallback?.heartbeat_expires_at ??
+    DEFAULT_RULE_DATA.heartbeat_expires_at,
 });
 
 
@@ -910,10 +914,12 @@ const checkBatteryCharging = async (
 ) => {
 
   if (
-    current.battery_status ===
-      "Charging" &&
-    previous?.battery_status !==
-      "Charging"
+    isBatteryCharging(
+      current.battery_status,
+    ) &&
+    !isBatteryCharging(
+      previous?.battery_status,
+    )
   ) {
 
     await createNotification(
@@ -1058,109 +1064,6 @@ const checkBatteryLevelUpdated =
           type: "normal",
         },
         UPDATE_NOTIFICATION_COOLDOWN_MS,
-      );
-    }
-  };
-
-
-// ------------------------------------------------------------
-// BATTERY TEMPERATURE STATUS
-// ------------------------------------------------------------
-
-const checkBatteryTemperatureStatus =
-  async (
-    userId: string,
-    current: MonitoringRuleData,
-    previous: MonitoringRuleData | null,
-  ) => {
-
-    if (previous === null) {
-      return;
-    }
-
-    // Any Critical variant (plain, rapid rise, sensor fault)
-    // counts as a critical temperature alert.
-    const batteryTemperatureCritical =
-      current.battery_temperature_status.startsWith(
-        "Critical",
-      );
-
-    const previousBatteryTemperatureCritical =
-      previous.battery_temperature_status.startsWith(
-        "Critical",
-      );
-
-    if (
-      current.battery_temperature_status ===
-        "Nominal" &&
-      previous.battery_temperature_status !==
-        "Nominal"
-    ) {
-
-      await createNotification(
-        userId,
-        {
-          title:
-            "Battery Temperature Nominal",
-          description:
-            "The battery temperature status is Nominal.",
-          type: "normal",
-        },
-      );
-    }
-
-    if (
-      current.battery_temperature_status ===
-        "Elevated" &&
-      previous.battery_temperature_status !==
-        "Elevated"
-    ) {
-
-      await createNotification(
-        userId,
-        {
-          title:
-            "Battery Temperature Elevated",
-          description:
-            "Battery temperature is above its normal range but is not critical.",
-          type: "normal",
-        },
-      );
-    }
-
-    if (
-      current.battery_temperature_status ===
-        "High" &&
-      previous.battery_temperature_status !==
-        "High"
-    ) {
-
-      await createNotification(
-        userId,
-        {
-          title:
-            "Battery Temperature High",
-          description:
-            "Battery temperature is high but has not reached the critical level.",
-          type: "normal",
-        },
-      );
-    }
-
-    if (
-      batteryTemperatureCritical &&
-      !previousBatteryTemperatureCritical
-    ) {
-
-      await createNotification(
-        userId,
-        {
-          title:
-            "Critical Battery Temperature",
-          description:
-            "Battery temperature has reached a critical level. Check the system immediately.",
-          type: "alert",
-        },
       );
     }
   };
@@ -1811,14 +1714,110 @@ const checkDepthOfDischarge =
   };
 
 
+const toSelectionBattery = (
+  row: MonitoringRuleData,
+): BatteryStateInput => ({
+  soc: row.battery_level,
+  voltage: row.voltage,
+  remainingWh: row.watt_hours,
+  dod:
+    row.dod_status === "Safe" ||
+    row.dod_status === "Unsafe"
+      ? row.dod_status
+      : undefined,
+  currentLoadW: row.current_load,
+});
+
+
+const loadSelectionForRules = async (
+  userId: string,
+): Promise<SelectionAppliance[]> => {
+
+  try {
+
+    const { fetchSelectedElectronics } = await import(
+      "@/services/electronicsService"
+    );
+    const resolved = await fetchSelectedElectronics();
+
+    return resolved.map((item) => ({
+      id: item.id,
+      name: item.name,
+      watts: item.display,
+      area: item.area,
+      imageKey:
+        item.source === "catalog"
+          ? item.id
+          : null,
+      imageUrl: item.imageUrl ?? null,
+    }));
+
+  } catch {
+
+    const { data, error } = await supabase
+      .from("electronics")
+      .select(
+        "app_id, electronics_name, wattage_min, wattage_max, catalog_key",
+      )
+      .eq("user_id", userId)
+      .eq("selection", true);
+
+    if (error) {
+
+      console.error(
+        "Electronics selection rule check error:",
+        error.message,
+      );
+
+      return [];
+    }
+
+    const rows = (data ?? []) as {
+      app_id: string | null;
+      electronics_name: string | null;
+      wattage_min: number | string | null;
+      wattage_max: number | string | null;
+      catalog_key: string | null;
+    }[];
+
+    return rows
+      .map((row): SelectionAppliance | null => {
+        const min = Number(row.wattage_min);
+        const max = Number(row.wattage_max);
+
+        if (
+          !Number.isFinite(min) ||
+          !Number.isFinite(max) ||
+          min <= 0 ||
+          max < min
+        ) {
+          return null;
+        }
+
+        return {
+          id: String(row.app_id),
+          name: String(
+            row.electronics_name ?? "Electronics",
+          ),
+          watts: `${min}-${max}W`,
+          imageKey: row.catalog_key ?? null,
+        };
+      })
+      .filter(
+        (item): item is SelectionAppliance =>
+          item !== null,
+      );
+  }
+};
+
+
 // ------------------------------------------------------------
 // ELECTRONICS BECAME ADVISABLE
 // ------------------------------------------------------------
 //
-// Fires when the battery tier recovers to Safe while the
-// user still has selected electronics waiting. Tier comes
-// from the shared recommendation engine so the rule and
-// the UI verdicts can never disagree.
+// Fires when the shared evaluator changes from a non-recommended
+// verdict to "recommended" for the current selection. The rule
+// and the UI verdicts use the same evaluator by construction.
 // ------------------------------------------------------------
 
 const checkElectronicsBecameAdvisable = async (
@@ -1827,53 +1826,46 @@ const checkElectronicsBecameAdvisable = async (
   previous: MonitoringRuleData | null,
 ): Promise<void> => {
 
-  if (previous === null) {
-    return;
-  }
-
-  const toTier = (row: MonitoringRuleData): string =>
-    classifyBatteryState({
-      soc: row.battery_level,
-      voltage: row.voltage,
-      remainingWh: row.watt_hours,
-      dod: row.dod_status,
-    }).tier;
-
   if (
-    toTier(previous) === "Safe" ||
-    toTier(current) !== "Safe"
+    previous === null ||
+    !isDbReadingFresh(previous) ||
+    !isDbReadingFresh(current)
   ) {
     return;
   }
 
-  try {
-    const { fetchSelectedElectronics } = await import(
-      "@/services/electronicsService"
-    );
-    const resolved = await fetchSelectedElectronics();
+  const selection = await loadSelectionForRules(userId);
 
-    if (resolved.length <= 0) {
-      return;
-    }
-  } catch {
-    const { count, error } = await supabase
-      .from("electronics")
-      .select("app_id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("selection", true);
+  if (selection.length <= 0) {
+    return;
+  }
 
-    if (error) {
-      console.error(
-        "Electronics-became-advisable check error:",
-        error.message,
-      );
+  const previousEvaluation = evaluateSelection(
+    toSelectionBattery(previous),
+    selection,
+    {
+      deviceOnline: isDeviceOnline(
+        previous.device_status,
+      ),
+      readingFresh: true,
+    },
+  );
+  const currentEvaluation = evaluateSelection(
+    toSelectionBattery(current),
+    selection,
+    {
+      deviceOnline: isDeviceOnline(
+        current.device_status,
+      ),
+      readingFresh: true,
+    },
+  );
 
-      return;
-    }
-
-    if ((count ?? 0) <= 0) {
-      return;
-    }
+  if (
+    previousEvaluation.verdict === "recommended" ||
+    currentEvaluation.verdict !== "recommended"
+  ) {
+    return;
   }
 
   await createNotification(
@@ -1892,10 +1884,10 @@ const checkElectronicsBecameAdvisable = async (
 // HIGH LOAD WHILE BATTERY LOW
 // ------------------------------------------------------------
 //
-// Compares the combined mid-wattage of selected electronics
-// against the charge-scaled safe cap while SoC is at or
-// below the 20% cutoff. The 10-minute notification cooldown
-// protects against refires while the condition persists.
+// Fires when the shared evaluator rejects the current selection
+// while SoC is at or below the 20% cutoff. The 10-minute
+// notification cooldown protects against refires while the
+// condition persists.
 // ------------------------------------------------------------
 
 const checkHighLoadWhileBatteryLow = async (
@@ -1905,68 +1897,35 @@ const checkHighLoadWhileBatteryLow = async (
 
   const level = current.battery_level ?? 0;
 
-  if (level > 20) {
+  if (
+    level > 20 ||
+    !isDbReadingFresh(current)
+  ) {
     return;
   }
 
-  let combinedMidWatts = 0;
+  const selection = await loadSelectionForRules(userId);
 
-  try {
-    const { fetchSelectedElectronics } = await import(
-      "@/services/electronicsService"
-    );
-    const resolved = await fetchSelectedElectronics();
-
-    combinedMidWatts = resolved.reduce(
-      (total, item) => total + (item.wattMin + item.wattMax) / 2,
-      0,
-    );
-  } catch {
-    const { data, error } = await supabase
-      .from("electronics")
-      .select("wattage_min, wattage_max")
-      .eq("user_id", userId)
-      .eq("selection", true);
-
-    if (error) {
-      console.error(
-        "High-load-while-low check error:",
-        error.message,
-      );
-
-      return;
-    }
-
-    combinedMidWatts = (data ?? []).reduce((total, row) => {
-      const min = Number(
-        (row as { wattage_min?: unknown }).wattage_min,
-      );
-      const max = Number(
-        (row as { wattage_max?: unknown }).wattage_max,
-      );
-
-      if (
-        !Number.isFinite(min) ||
-        !Number.isFinite(max) ||
-        min <= 0 ||
-        max < min
-      ) {
-        return total;
-      }
-
-      return total + (min + max) / 2;
-    }, 0);
-  }
-
-  if (combinedMidWatts <= 0) {
+  if (selection.length <= 0) {
     return;
   }
 
-  const safeCap = Math.round(
-    computeWattCap(level),
+  const evaluation = evaluateSelection(
+    toSelectionBattery(current),
+    selection,
+    {
+      deviceOnline: isDeviceOnline(
+        current.device_status,
+      ),
+      readingFresh: true,
+      alternativesLimit: 0,
+    },
   );
 
-  if (combinedMidWatts <= safeCap) {
+  if (
+    evaluation.status !== "ready" ||
+    evaluation.verdict !== "notRecommended"
+  ) {
     return;
   }
 
@@ -1975,7 +1934,7 @@ const checkHighLoadWhileBatteryLow = async (
     {
       title: "High Load While Battery Low",
       description:
-        `Selected electronics draw about ${combinedMidWatts}W against a ${safeCap}W safe cap at ${level}% battery.`,
+        `Selected electronics draw about ${Math.round(evaluation.totalMidWatts)}W with a ${Math.round(evaluation.combinedPeakWatts)}W peak at ${level}% battery.`,
       type: "alert",
     },
   );
@@ -2238,14 +2197,16 @@ const checkBatteryDischargingAtLowLevel =
     if (
       current.battery_level <=
         20 &&
-      current.battery_status ===
-        "Discharging" &&
+      isBatteryDischarging(
+        current.battery_status,
+      ) &&
       (
         previous === null ||
         previous.battery_level >
           20 ||
-        previous.battery_status !==
-          "Discharging"
+        !isBatteryDischarging(
+          previous.battery_status,
+        )
       )
     ) {
 
@@ -2275,14 +2236,16 @@ const checkBatteryDischargingWithUnsafeDoD =
   ) => {
 
     if (
-      current.battery_status ===
-        "Discharging" &&
+      isBatteryDischarging(
+        current.battery_status,
+      ) &&
       current.dod_status ===
         "Unsafe" &&
       (
         previous === null ||
-        previous.battery_status !==
-          "Discharging" ||
+        !isBatteryDischarging(
+          previous.battery_status,
+        ) ||
         previous.dod_status !==
           "Unsafe"
       )
@@ -2372,41 +2335,6 @@ const checkBatteryVoltageZero =
 
 
 // ------------------------------------------------------------
-// BATTERY TEMPERATURE ZERO
-// ------------------------------------------------------------
-
-const checkBatteryTemperatureZero =
-  async (
-    userId: string,
-    current: MonitoringRuleData,
-    previous: MonitoringRuleData | null,
-  ) => {
-
-    if (
-      current.battery_temperature ===
-        0 &&
-      (
-        previous === null ||
-        previous.battery_temperature !==
-          0
-      )
-    ) {
-
-      await createNotification(
-        userId,
-        {
-          title:
-            "Battery Temperature Reading Zero",
-          description:
-            "The battery_temperature value is 0. This may indicate a missing or invalid temperature reading, depending on your sensor setup.",
-          type: "alert",
-        },
-      );
-    }
-  };
-
-
-// ------------------------------------------------------------
 // SOLAR TEMPERATURE ZERO
 // ------------------------------------------------------------
 
@@ -2458,15 +2386,25 @@ const checkBatteryChargingNotDetected =
   ) => {
 
     if (
+      isBatteryReadingError(
+        current.battery_status,
+      )
+    ) {
+      return;
+    }
+
+    if (
       current.battery_level <
         100 &&
-      current.battery_status !==
-        "Charging" &&
+      !isBatteryCharging(
+        current.battery_status,
+      ) &&
       current.solar_input > 0 &&
       (
         previous === null ||
-        previous.battery_status ===
-          "Charging" ||
+        isBatteryCharging(
+          previous.battery_status,
+        ) ||
         previous.solar_input <=
           0
       )
@@ -2505,13 +2443,15 @@ const checkSolarInputUnavailable =
     if (
       current.solar_input ===
         0 &&
-      current.battery_status ===
-        "Charging" &&
+      isBatteryCharging(
+        current.battery_status,
+      ) &&
       (
         previous === null ||
         previous.solar_input > 0 ||
-        previous.battery_status !==
-          "Charging"
+        !isBatteryCharging(
+          previous.battery_status,
+        )
       )
     ) {
 
@@ -2541,14 +2481,16 @@ const checkLowSolarInputDuringCharging =
   ) => {
 
     if (
-      current.battery_status ===
-        "Charging" &&
+      isBatteryCharging(
+        current.battery_status,
+      ) &&
       current.solar_status ===
         "Low" &&
       (
         previous === null ||
-        previous.battery_status !==
-          "Charging" ||
+        !isBatteryCharging(
+          previous.battery_status,
+        ) ||
         previous.solar_status !==
           "Low"
       )
@@ -2842,12 +2784,6 @@ const processMonitoringNotifications =
         previous,
       );
 
-      await checkBatteryTemperatureStatus(
-        userId,
-        current,
-        previous,
-      );
-
       await checkSolarTemperatureStatus(
         userId,
         current,
@@ -2966,12 +2902,6 @@ const processMonitoringNotifications =
       );
 
       await checkBatteryVoltageZero(
-        userId,
-        current,
-        previous,
-      );
-
-      await checkBatteryTemperatureZero(
         userId,
         current,
         previous,

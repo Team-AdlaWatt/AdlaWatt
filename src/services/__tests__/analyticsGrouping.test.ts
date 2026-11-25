@@ -6,9 +6,16 @@
 // carry clamped avg/min/max.
 
 import {
+  buildAnalyticsCardData,
+  createFrequencyRange,
+  filterMonitoringHistoryByRange,
+  formatAnalyticsBucketLabel,
+  getAnalyticsDayAnchor,
+  getBatteryActivityData,
   getBatteryChartRangeData,
   getUnsafeDischargeChartData,
   groupMonitoringHistory,
+  groupMonitoringHistoryForAnalytics,
   type MonitoringHistoryRow,
 } from "@/services/analyticsService";
 
@@ -43,8 +50,6 @@ const row = (
     current_load: null,
     device_status: "Online",
     last_seen: null,
-    battery_temperature: null,
-    battery_temperature_status: null,
     dod_status: null,
     solar_temperature: null,
     solar_temperature_status: null,
@@ -57,6 +62,14 @@ const row = (
     energy_input_wh: null,
     energy_output_wh: null,
   }) as MonitoringHistoryRow;
+
+const analyticsRow = (
+  recorded_at: string,
+  overrides: Partial<MonitoringHistoryRow> = {},
+): MonitoringHistoryRow => ({
+  ...row(recorded_at, 80, "Charging"),
+  ...overrides,
+});
 
 describe("groupMonitoringHistory", () => {
   test("daily buckets split rows by calendar day", () => {
@@ -225,5 +238,182 @@ describe("getUnsafeDischargeChartData", () => {
     );
 
     expect(points[0].value).toBe(0);
+  });
+});
+
+describe("createFrequencyRange", () => {
+  test("uses the documented rolling windows", () => {
+    const now = new Date("2026-11-22T12:00:00");
+    const dayMs = 24 * 60 * 60 * 1000;
+
+    expect(
+      Math.round(
+        (createFrequencyRange("Daily", now).end.getTime() -
+          createFrequencyRange("Daily", now).start.getTime()) /
+          dayMs,
+      ),
+    ).toBe(30);
+
+    expect(
+      Math.round(
+        (createFrequencyRange("Weekly", now).end.getTime() -
+          createFrequencyRange("Weekly", now).start.getTime()) /
+          dayMs,
+      ),
+    ).toBe(90);
+
+    expect(
+      Math.round(
+        (createFrequencyRange("Monthly", now).end.getTime() -
+          createFrequencyRange("Monthly", now).start.getTime()) /
+          dayMs,
+      ),
+    ).toBe(365);
+
+    expect(
+      Math.round(
+        (createFrequencyRange("Yearly", now).end.getTime() -
+          createFrequencyRange("Yearly", now).start.getTime()) /
+          dayMs,
+      ),
+    ).toBe(1825);
+  });
+});
+
+describe("formatAnalyticsBucketLabel", () => {
+  test("uses day, month, and year labels", () => {
+    const date = new Date("2026-10-05T12:00:00");
+
+    expect(
+      formatAnalyticsBucketLabel(date, "Daily"),
+    ).toBe("Oct 5");
+    expect(
+      formatAnalyticsBucketLabel(date, "Weekly"),
+    ).toBe("Oct 5");
+    expect(
+      formatAnalyticsBucketLabel(date, "Monthly"),
+    ).toBe("Oct");
+    expect(
+      formatAnalyticsBucketLabel(date, "Yearly"),
+    ).toBe("2026");
+  });
+});
+
+describe("filterMonitoringHistoryByRange", () => {
+  test("keeps only rows inside the inclusive range", () => {
+    const rows = [
+      analyticsRow("2026-10-01T08:00:00"),
+      analyticsRow("2026-10-02T08:00:00"),
+      analyticsRow("not-a-date"),
+    ];
+
+    const filtered =
+      filterMonitoringHistoryByRange(rows, {
+        start: new Date("2026-10-01T00:00:00"),
+        end: new Date("2026-10-01T23:59:59"),
+      });
+
+    expect(filtered.map((row) => row.recorded_at)).toEqual([
+      "2026-10-01T08:00:00",
+    ]);
+  });
+});
+
+describe("buildAnalyticsCardData", () => {
+  test("Daily groups by calendar day and exposes solar and load watts", () => {
+    const rows = [
+      analyticsRow("2026-10-01T08:00:00", {
+        energy_input_wh: 100,
+        solar_input: 250,
+        solar_timer: "02:00:00",
+        energy_output_wh: 40,
+        current_load: 20,
+        voltage: 12.5,
+      }),
+      analyticsRow("2026-10-01T08:30:00", {
+        energy_input_wh: 50,
+        solar_input: 300,
+        solar_timer: "01:00:00",
+        energy_output_wh: 60,
+        current_load: 40,
+        voltage: 12.1,
+      }),
+      analyticsRow("2026-10-01T09:00:00", {
+        energy_input_wh: 25,
+        energy_output_wh: 10,
+        current_load: 10,
+        voltage: 12.3,
+      }),
+    ];
+
+    const data = buildAnalyticsCardData(rows, "Daily", {
+      start: new Date("2026-10-01T00:00:00"),
+      end: new Date("2026-10-01T23:59:59"),
+    });
+
+    expect(data.solar).toHaveLength(1);
+    expect(data.solar[0].value).toBeCloseTo(275, 5);
+    expect(data.solar[0].solarInputW).toBeCloseTo(275, 5);
+    expect(data.solar[0].energyWh).toBe(175);
+    expect(data.solar[0].peakW).toBe(300);
+    expect(data.solar[0].peakHours).toBe(2);
+    expect(data.solar[0].chargeStart).toBeTruthy();
+
+    expect(data.load).toHaveLength(1);
+    expect(data.load[0].value).toBeCloseTo(70 / 3, 5);
+    expect(data.load[0].avgW).toBeCloseTo(70 / 3, 5);
+    expect(data.load[0].energyWh).toBe(110);
+    expect(data.load[0].peakW).toBe(40);
+    expect(data.load[0].avgVoltage).toBeCloseTo(12.3, 5);
+
+    expect(data.activity.map((slice) => slice.value)).toEqual([
+      3,
+      0,
+      0,
+      0,
+    ]);
+  });
+});
+
+describe("analytics day anchor", () => {
+  test("normalizes different times on the same day to one anchor", () => {
+    const morning = new Date(2026, 10, 23, 9, 15, 30, 123);
+    const night = new Date(2026, 10, 23, 23, 59, 59, 999);
+
+    const first = getAnalyticsDayAnchor(morning);
+    const second = getAnalyticsDayAnchor(night);
+
+    expect(second.getTime()).toBe(first.getTime());
+    expect(first.getHours()).toBe(0);
+    expect(first.getMinutes()).toBe(0);
+  });
+});
+
+describe("getBatteryActivityData", () => {
+  test("counts charging, discharging, cycle, and idle samples for the shared range", () => {
+    const slices = getBatteryActivityData(
+      groupMonitoringHistoryForAnalytics(
+        [
+          row("2026-10-01T08:00:00", 80, "Charging"),
+          row("2026-10-02T08:00:00", 70, "Discharging"),
+          row("2026-10-03T08:00:00", 65, "Cycle"),
+          row("2026-10-04T08:00:00", 60, "Idle"),
+        ],
+        "Weekly",
+      ),
+    );
+
+    expect(slices.map((slice) => slice.key)).toEqual([
+      "charging",
+      "discharging",
+      "cycle",
+      "idle",
+    ]);
+    expect(slices.map((slice) => slice.value)).toEqual([
+      1,
+      1,
+      1,
+      1,
+    ]);
   });
 });

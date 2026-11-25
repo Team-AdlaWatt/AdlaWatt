@@ -3,7 +3,7 @@
 -- Context: src/services/auth.ts calls
 --   supabase.rpc("get_email_by_username", { lookup_username: identifier })
 -- but no migration defined this function, so every username login
--- (including the dev test admin `adlawatt_admin`) failed with
+-- (including the dev test admin `admin`) failed with
 -- invalidCredentials. Email login kept working, which is why this
 -- went unnoticed.
 --

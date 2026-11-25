@@ -10,7 +10,7 @@
 
 [Visit the AdlaWatt project site](https://team-adlawatt.github.io/AdlaWatt/) · [View the source code](https://github.com/Team-AdlaWatt/AdlaWatt) · [Read the user manual](docs/USER-MANUAL.md)
 
-> **Project Status:** In Development. The mobile app is integrated with Supabase. The ESP32 hardware feed is still being wired up end to end. A web-based admin dashboard for researchers is planned.
+> **Project Status:** In Development. The mobile app is integrated with Supabase. The ESP32 hardware feed is still being wired up end to end. A role-gated in-app admin dashboard provides fleet-wide monitoring.
 >
 > AdlaWatt is a backup power source, not a replacement for the electrical grid.
 
@@ -44,12 +44,12 @@
 Using AdlaWatt requires an AdlaWatt account. Download the Android app, then sign in or create an account.
 
 <p align="center">
-  <a href="https://drive.google.com/file/d/12auCzAkhCYNv_5iDn2_eoy-XgYcXLrAW/view?usp=sharing">
+  <a href="https://drive.google.com/file/d/1OU-o7K0NxLU5B2fuiVyrTMxbY3-TYjZO/view?usp=sharing">
     <img src="assets/images/adlawatt-app-qr.png" alt="QR code to download the AdlaWatt Android app" width="220">
   </a>
 </p>
 
-<p align="center"><a href="https://drive.google.com/file/d/12auCzAkhCYNv_5iDn2_eoy-XgYcXLrAW/view?usp=sharing"><strong>Open the download page</strong></a></p>
+<p align="center"><a href="https://drive.google.com/file/d/1OU-o7K0NxLU5B2fuiVyrTMxbY3-TYjZO/view?usp=sharing"><strong>Open the download page</strong></a></p>
 
 1. Scan the QR code or open the download page.
 2. Tap **Install**.
@@ -97,13 +97,13 @@ The power path and the data path are separate. Solar energy charges the battery 
 - **Historical Data & Reports** — Charts and reports over selected date ranges and frequencies. *(The 17-chart layout and CSV/PDF export are implementation additions.)*
 - **Device Status** — Live status for the ESP32, sensors, relay, fan, and display.
 - **Activity Logs** — A history of system events, separate from notifications.
-- **Admin Dashboard (implementation addition)** — Role-gated in-app admin view with fleet-wide aggregates across Overview, Users, and Reports tabs, plus pull-to-refresh. A web-based dashboard for researchers is planned.
+- **Admin Dashboard (implementation addition)** — Role-gated in-app view for fleet-wide battery, solar, load, and historical monitoring with 24h/7d/30d trends and 20s polling.
 - **Personalization (implementation addition)** — Dark mode, font size and family, language (English, Filipino, Cebuano), vibration, and email notifications.
 - **Offline Support (implementation addition)** — The dashboard shows the last cached readings with an offline banner when there is no connection.
 
 ### Weather Location (implementation addition)
 
-The weather card uses the device's live GPS fix. Within 10 km of one of the 24 configured Bukidnon points (22 Manolo Fortich barangays plus Lingi-on and Balubal), the app requests OpenWeather at that sample's exact coordinates for both current weather and forecast, then displays the resolved location label. Outside coverage, it keeps the raw GPS fix and shows a non-blocking notice. The forecast rows show condition, high temperature with Celsius units, daily max feels-like temperature, and solar outlook without rain-chance percentages.
+The weather card uses the device's live GPS fix. Within 10 km of one of the 467 configured Bukidnon places, the app requests OpenWeather at that place's exact coordinates for both current weather and forecast, and displays the configured place label instead of OpenWeather's nearby station name. Outside coverage, it keeps the raw GPS fix and OpenWeather's city name, and shows a non-blocking notice. The forecast rows show condition, high temperature with Celsius units, daily max feels-like temperature, and solar outlook without rain-chance percentages.
 
 ---
 
@@ -116,7 +116,7 @@ The weather card uses the device's live GPS fix. Within 10 km of one of the 24 c
 | Mobile App | Expo 57 (React Native 0.86) with Expo Router |
 | Language | TypeScript |
 | Backend | Supabase (PostgreSQL, Auth, Realtime, Edge Functions, Storage) |
-| Weather | OpenWeatherMap API (current + 5-day forecast) |
+| Weather | OpenWeatherMap API (current + 5-day feed, 4 upcoming days shown) |
 | Charts | react-native-gifted-charts |
 | Reports | jsPDF (web) and expo-print (native), plus CSV |
 | Alerts | In-app + AgentMail email via a Supabase Edge Function |
@@ -199,7 +199,7 @@ AdlaWatt/
 |---|---|
 | ESP32-S3 | Main controller and Wi-Fi communication |
 | INA228 (Solar / Load) | Monitors solar and load voltage/current |
-| DS18B20 (Battery / Solar) | Monitors temperatures |
+| DS18B20 | Monitors solar panel temperature |
 | DHT22 | Monitors interior temperature and humidity |
 | INA219 | Monitors battery voltage and current |
 | Relay Module | Controls load and cooling fans |
@@ -291,7 +291,7 @@ supabase functions deploy send-alert-email
 | Role | Access |
 |---|---|
 | Household User | Mobile app: dashboard, appliance recommendations, historical data, device status, notifications, activity logs, and settings |
-| Admin | In-app dashboard (role-gated): fleet-wide aggregates across Overview, Users, and Reports tabs; the Users tab also lists households under sequential pseudonyms (Household 01…) — no usernames, emails, or raw rows. A web-based dashboard for researchers is planned. |
+| Admin | In-app dashboard (role-gated): fleet-wide battery, solar, and load monitoring plus historical trends. No household drill-down, usernames, emails, or raw rows are exposed. |
 
 Users sign up with a username, email, and password, or sign in with Google. Passwords can be reset by email. *(Authentication is an implementation addition beyond the manuscript.)*
 
@@ -304,23 +304,22 @@ The in-app admin dashboard lives in `src/admin/` behind the role gate in `src/ap
 ```text
 src/admin/
 ├── components/
-│   ├── AdminDashboardScreen.tsx   # One shared admin fetch, tab state, pull-to-refresh
+│   ├── AdminDashboardScreen.tsx   # Shared fetches, tab state, pull-to-refresh, 20s polling
 │   ├── AdminScreenContainer.tsx   # Layout shell + bottom tab bar
 │   ├── AdminNavBarTop.tsx         # Top bar + account menu (log out, exit)
-│   ├── AdminNavBarBottom.tsx      # Overview / Users / Reports tabs
-│   ├── AdminOverviewTab.tsx       # KPI cards + fleet status
-│   ├── AdminUsersTab.tsx          # Fleet aggregates + pseudonymized household cards
-│   ├── AdminReportsTab.tsx        # Fleet aggregate stat cards
-│   └── AdminTabShared.tsx         # Shared loading/error/header pieces
+│   ├── AdminNavBarBottom.tsx      # Overview / History tabs
+│   ├── AdminOverviewTab.tsx       # Battery, solar, and load KPI cards
+│   ├── AdminHistoryTab.tsx        # Metric selector, range toggle, and time-series chart
+│   └── AdminTabShared.tsx         # Shared loading/error/header/freshness pieces
 ├── hooks/
 │   └── useAdminGuard.ts           # Client role gate + redirects
 ├── __tests__/
 │   └── format.test.ts             # Shared formatter tests
-├── constants.ts                   # Tab definitions
+├── constants.ts                   # Tab, metric, and range definitions
 └── format.ts                      # Shared value formatters
 ```
 
-All data comes only from the `get_admin_fleet_health` and `get_admin_fleet_users` SECURITY DEFINER RPCs (see `src/services/adminService.ts`): fleet-wide aggregates plus per-household rows labeled with sequential pseudonyms — no user IDs, emails, usernames, or raw monitoring rows. Pseudonyms are assigned by first-seen order within the 24-hour window, so labels may renumber between days. The admin area is pinned to light mode and English-only, so household theme and language settings never restyle it.
+All data comes only from the `get_admin_fleet_overview` and `get_admin_fleet_history` SECURITY DEFINER RPCs (see `src/services/adminService.ts`): fleet-wide aggregates and time buckets built from `monitoring_history`. No user IDs, emails, usernames, or raw monitoring rows are returned. The History tab defaults to 24 hours and offers 7d/30d ranges; the screen refreshes every 20 seconds while visible and keeps last-known values with a stale banner when a refresh fails. The admin area is pinned to light mode and English-only, so household theme and language settings never restyle it.
 
 ---
 
@@ -373,7 +372,7 @@ AdlaWatt was developed by the AdlaWatt Research and Development Team at Northern
 - **4-day forecast** — daily rows now show high temperature in Celsius plus feels-like temperature, with rain-chance percentages removed.
 - **5-day solar forecast** — daily solar outlook with a "best day to charge" summary and hot/cold flags.
 - **Appliance catalog refresh** — updated to the current appliance list with corrected wattage ranges and new images.
-- **Battery model** — the app uses 720 Wh nominal / 144 Wh reserve / 576 Wh usable for its calculations, matching the manuscript's 12 V, 60 Ah battery bank.
+- **Battery model** — the app uses 756 Wh nominal / 151.2 Wh reserve / 604.8 Wh usable (12.6 V × 60 Ah at 80% DoD) and models a 6 W inverter idle draw at 90% efficiency.
 - **Self-hosted auth links** — confirmation and recovery emails now route back into the app, with clearer create-account copy.
 - **Language support** — English, Filipino, and Cebuano.
 - **Analytics** — 17 charts across five sections with CSV and PDF export.

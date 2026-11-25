@@ -35,7 +35,7 @@ The mobile app is your window into the system. It shows:
 - Live battery level, voltage, stored energy, and estimated time remaining
 - Incoming solar power and 5-day solar outlook
 - Current electronics load and depth-of-discharge safety status
-- Battery, solar panel, and interior temperatures
+- Solar panel and interior temperatures
 - Smart electronics recommendations based on your remaining battery
 - Notifications, activity history, and exportable energy reports
 
@@ -53,7 +53,7 @@ Follow these steps the first time you open the app:
 2. **Confirm your email.** Check your inbox for the confirmation link and tap it. You cannot sign in until your email is confirmed.
 3. **Sign in.** Enter your username or email and password, then tap **Sign In**. See [Section 4](#4-signing-in).
 4. **Read your battery.** On the Dashboard, look at the battery gauge at the top. It shows your current battery percentage and whether the battery is Charging, Discharging, or Idle.
-5. **Check one electronics item.** Scroll to Electronics Recommendation on the Dashboard or open the **Electronics** tab. A badge of **OK to use** means safe; **Not advisable** means wait for more charge. See [Section 7](#7-electronics-what-can-i-safely-use).
+5. **Check one electronics item.** Open the **Electronics** tab. A badge of **OK to use** means safe; **Not advisable** means wait for more charge. See [Section 7](#7-electronics-what-can-i-safely-use).
 
 That is enough to start monitoring. The rest of this manual explains each screen in detail.
 
@@ -117,7 +117,7 @@ The Dashboard is the home screen. It updates in real time whenever the AdlaWatt 
 - **Watt-hours + time remaining** — stored energy and the estimated runtime at the current load, e.g. `7h 45m`.
 - **Depth of discharge (DoD)** — *Safe* means normal use; *Unsafe* means the battery is drained past its healthy limit and needs recharging immediately.
 
-**The 20% rule.** Treat **20% battery as your empty line** for daily use. The battery keeps a 144 Wh safety reserve (20% of its 720 Wh capacity) that the app never counts as usable. Electronics advice, alerts, and the DoD status all follow this rule: at or below 20%, the system considers the battery unsafe for further loads.
+**The 20% rule.** Treat **20% battery as your empty line** for daily use. The battery keeps a 151.2 Wh safety reserve (20% of its 756 Wh capacity) that the app never counts as usable. Electronics advice, alerts, and the DoD status all follow this rule: at or below 20%, the system considers the battery unsafe for further loads.
 
 ### Solar section
 
@@ -130,12 +130,12 @@ The Dashboard is the home screen. It updates in real time whenever the AdlaWatt 
 ### Load, temperature, and device
 
 - **Current load** — what connected electronics are drawing right now, in watts.
-- **Temperatures** — battery, solar panel, and interior, each rated *Nominal*, *Elevated*, *High*, or *Critical*, including *Critical (rapid rise)* and *Critical (sensor fault)*. *Critical* triggers an alert — check the unit when safe. A failed sensor shows **Sensor fault**; other unavailable readings show `--`.
+- **Temperatures** — solar panel and interior, each rated *Nominal*, *Elevated*, *High*, or *Critical*, including *Critical (rapid rise)* and *Critical (sensor fault)*. *Critical* triggers an alert — check the unit when safe. A failed sensor shows **Sensor fault**; other unavailable readings show `--`.
 - **Device status** — *Online* (fresh heartbeat within the last 10 seconds) or *Offline* (no heartbeat for over 10 seconds — see troubleshooting).
 
-### Quick navigation
+### Dashboard navigation
 
-Buttons near the top scroll the Dashboard to each section, including the **Electronics Recommendation** card. If you are new and have no electronics yet, that card shows a welcome greeting with an **Add Electronics** button that takes you straight to setup (see [Section 7.1](#71-picking-electronics-from-the-catalog)). The top bar shows a notification bell with an unread-count badge — tap it to open Notifications.
+Use the **Electronics** tab for electronics recommendations and setup. The top bar shows a notification bell with an unread-count badge — tap it to open Notifications.
 
 <!-- SCREENSHOT: Dashboard with numbered callouts per card -->
 
@@ -152,13 +152,13 @@ Each row shows the power range (e.g. `35-75W`) and estimated runtime from your u
 
 ### 7.1. Picking electronics from the catalog
 
-1. On the Dashboard, tap the **Electronics Recommendation** button (it scrolls you to the recommendation card), then tap **Add Electronics**. Or open the **Electronics** tab directly and tap **Select Electronics**.
+1. Open the **Electronics** tab and tap **Select Electronics**.
 2. A selection modal appears with the electronics catalog — scroll through it.
 3. Use the **search box** to find electronics by name instead of scrolling.
 4. Tap the boxes to select what you plan to use; tap again to deselect.
 5. Tap **Add**. The modal closes and your picks are now rated advisable or not advisable.
 
-**Why selection matters:** the boxes' selection circles mark what you plan to run. Selection feeds the dashboard recommendation summary — and a safety alert if your combined selected load exceeds the safe limit while the battery is at 20% or below.
+**Why selection matters:** the boxes' selection circles mark what you plan to run. Selection feeds the Electronics recommendations — and a safety alert if your combined selected load exceeds the safe limit while the battery is at 20% or below.
 
 ### 7.2. Adding a custom electronics item
 
@@ -203,24 +203,24 @@ On the Electronics screen, use the two dropdowns to sort by **power level** and 
 
 ## 8. Analytics & Reports
 
-Open the **Analytics** tab to review history. Pick a **From/To date range** (dates cannot be in the future) and a report **frequency** (Daily, Weekly, Monthly, Yearly). Charts group your 5-minute system snapshots accordingly.
+Open the **Analytics** tab to review history. The screen has four cards:
 
-Sections:
+- **Solar Energy** — average solar input in watts, energy collected, peak output, peak sun, and charge start.
+- **Load Energy** — average load in watts, energy used, peak load, and average voltage.
+- **Battery Activity** — how often the battery charges, discharges, and idles.
+- **Generate Report** — view selection, date range, and export controls.
 
-- **Battery** — level over time (with the 20% safety floor marked), unsafe-discharge events, charge-vs-drain activity.
-- **Solar** — solar vs load, best sun days, sun hours, and the daily solar curve (when the sun is strongest).
-- **Energy** — energy in and out, net surplus/deficit, running balance, and how much of your use the sun covered.
-- **Health** — temperature trends, temperature alerts, device uptime, online-vs-offline share.
-- **Usage** — average vs peak load, and power use by hour of day (tells you when to avoid high-draw electronics).
+Each of the three chart cards has its own full-width **Daily / Weekly / Monthly / Yearly** toggle. Changing one card does not change the others. The report card keeps its own chips: **Daily** shows 30 days, **Weekly** 90 days, **Monthly** 1 year, and **Yearly** 5 years. You can then set a custom **From/To date range** in the Generate Report card; dates cannot be in the future.
 
 ### Exporting reports
 
-1. Open the **Analytics** tab and go to the **Generate Report** panel at the bottom of the screen.
-2. Choose your preferred **frequency** from the dropdown (Daily, Weekly, Monthly, Yearly).
-3. Tap the **From date**: a calendar modal appears — pick the start date. Do the same for the **To date**. Dates cannot be in the future.
-4. Tap **Export CSV** for raw spreadsheet data, or **Export PDF** for a formatted report with summary tables.
-5. The file is now ready: on phones the system **share sheet** opens — save it or send it, then open it with your file viewer or spreadsheet app. On web it downloads directly.
-6. While an export is running, the buttons show **Exporting...** and lock to prevent duplicate files.
+1. Open the **Analytics** tab and go to the **Generate Report** card.
+2. Choose **Daily, Weekly, Monthly, or Yearly**. There are no 7D/30D/90D/1Y presets.
+3. Tap the **From date**: a calendar modal appears — pick the start date. Do the same for the **To date**.
+4. Tap **Export CSV** for spreadsheet data, or **Export PDF** for a formatted report.
+5. Both exports mirror the four screen cards: Solar Energy, Load Energy, Battery Activity, and Generate Report.
+6. On phones the saved file opens directly in the system app; on web it downloads directly. No share sheet is used.
+7. While an export is running, the buttons show **Preparing...** and lock to prevent duplicate files.
 
 **Note:** very long periods produce large PDFs; the PDF table shows the head of the range and points you to the CSV for the complete dataset.
 
@@ -261,7 +261,7 @@ Filter by **type** (Info, Warning, Error, Critical) and **time range**, and page
 
 ## 11. Components: Checking System Health
 
-The **Components** screen lists the IoT and power parts (ESP32 controller, solar/load sensors, battery and solar temperature sensors, interior sensor, voltage sensor, relay, display, cooling fan, buck converter) with live **Active / Inactive** status and photos.
+The **Components** screen lists the seven parts currently installed in the unit (ESP32-S3 controller, INA219 solar/load monitor, DS18B20 solar temperature sensor, DHT22 interior sensor, relay, SPI TFT display, and 5 V DC fan) with live **Active / Inactive** status and photos.
 
 Use it to answer "is the unit itself healthy?" If the Dashboard shows Offline but your phone has internet, check here: an Inactive controller or sensor points to a hardware-side problem (power, wiring, or Wi-Fi at the unit) rather than an app problem.
 
@@ -323,8 +323,8 @@ This manual covers app operation. For hardware faults (damaged panel, enclosure,
 
 - **State of charge (SoC)** — battery level as a percentage (0–100%).
 - **Depth of discharge (DoD)** — how much of the battery has been used; *Unsafe* means past the healthy limit.
-- **Watt-hour (Wh)** — energy unit. Your battery holds 720 Wh total; 144 Wh is locked as reserve, leaving 576 Wh usable.
-- **Reserve floor** — the protected 20% (144 Wh) the app never counts as spendable.
+- **Watt-hour (Wh)** — energy unit. Your battery holds 756 Wh total; 151.2 Wh is locked as reserve, leaving 604.8 Wh usable.
+- **Reserve floor** — the protected 20% (151.2 Wh) the app never counts as spendable.
 - **Load** — the combined wattage your connected electronics draw right now.
 - **Solar input / solar status** — incoming panel watts, rated Low / Moderate / High.
 - **Time remaining** — estimated runtime at the current load (e.g. `7h 45m`).

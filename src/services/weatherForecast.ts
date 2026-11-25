@@ -30,8 +30,11 @@ import {
 //      Denials and unavailable GPS throw; there is no
 //      silent fallback point.
 //   3. Read the current GPS coordinates (high accuracy) and
-//      snap to the nearest configured Bukidnon sample within
-//      the coverage radius; otherwise keep the raw fix.
+//      resolve the nearest configured Bukidnon place within
+//      the coverage radius. Its exact coordinates and label
+//      are used for the request and the displayed city;
+//      outside coverage, the raw fix and OpenWeather city
+//      are used.
 //   4. Call OpenWeatherMap Current Weather:
 //      /data/2.5/weather?lat={lat}&lon={lon}&appid={key}&units=metric
 //   5. Validate the response and map it to WeatherData.
@@ -152,19 +155,20 @@ function validateApiKey(): void {
 }
 
 // ============================================================
-// LOCATION (LIVE GPS, BUKIDNON SAMPLE SNAP)
+// LOCATION (LIVE GPS, BUKIDNON PLACE SNAP)
 //
 // Each fetch uses the device's current GPS fix. Inside the
 // configured Bukidnon coverage radius, OpenWeather is asked
-// for the nearest sample's exact coordinates so current
-// weather and forecast stay on the same area. Outside
-// coverage, the raw fix is used and the UI shows a soft
-// notice. Permission is re-requested on every call (the OS
-// shows the dialog only while undetermined; once denied, the
-// UI routes the user to app settings). Denied permission,
-// disabled services, or a failed fix throw a descriptive
-// WeatherError so the card can show a location error state
-// instead of another city's weather.
+// for the nearest place's exact coordinates and the card
+// shows that place's label, so current weather and forecast
+// stay on the same area. Outside coverage, the raw fix is
+// used and the UI shows a soft notice. Permission is
+// re-requested on every call (the OS shows the dialog only
+// while undetermined; once denied, the UI routes the user to
+// app settings). Denied permission, disabled services, or a
+// failed fix throw a descriptive WeatherError so the card can
+// show a location error state instead of another city's
+// weather.
 //
 // Coordinates round to coordDecimals (4 ≈ 11 m).
 // ============================================================
@@ -238,8 +242,8 @@ export function detectLocationChange(
 // WEATHER LOCATION RESOLUTION
 //
 // Compare the live GPS fix with the configured Bukidnon
-// samples. Inside the coverage radius, OpenWeather is queried
-// at the sample's exact coordinates so current weather and
+// places. Inside the coverage radius, OpenWeather is queried
+// at the place's exact coordinates so current weather and
 // forecast stay pinned to the same area. Outside coverage,
 // the raw GPS fix is used and the UI shows the soft notice.
 // ============================================================
@@ -276,7 +280,10 @@ export function resolveWeatherLocation(
   if (nearest && nearestKm <= radiusKm) {
     return {
       fix,
-      coordinates: fix,
+      coordinates: {
+        lat: nearest.lat,
+        lon: nearest.lon,
+      },
       place: nearest,
       label: formatLocalPlaceLabel(nearest),
       outsideScope: false,
@@ -711,11 +718,11 @@ function parseWeatherResponse(
   }
 
   const city =
-    typeof payload.name === "string" &&
-    payload.name.trim().length > 0
+    location.label ??
+    (typeof payload.name === "string" &&
+      payload.name.trim().length > 0
       ? payload.name.trim()
-      : (location.label ??
-        formatCoordFallback(
+      : formatCoordFallback(
           location.coordinates.lat,
           location.coordinates.lon
         ));
@@ -960,6 +967,8 @@ async function runWeatherFetch(options?: {
   const fix =
     options?.coordinates ??
     (await getCoordinates(options));
+
+  lastKnownLocation = fix;
 
   const location =
     resolveWeatherLocation(fix);

@@ -9,7 +9,7 @@ import React, {
 
 import {
   Pressable,
-  ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   View,
 } from "react-native";
@@ -22,6 +22,11 @@ import {
 import Copyright from "@/components/ui/Copyright";
 import NavBar from "@/components/layout/Navbar";
 import PullRefreshScroll from "@/components/PullRefreshScroll";
+import BatteryProtectionPanels from "@/components/recommendation/BatteryProtectionPanels";
+import ElectronicsReviewModal, {
+  type ReviewItem,
+} from "@/components/recommendation/ElectronicsReviewModal";
+import RecommendationResultPanel from "@/components/recommendation/RecommendationResultPanel";
 import ScreenContainer2 from "@/components/layout/ScreenContainer2";
 import AppText from "@/components/ui/AppText";
 import { useTranslation } from "react-i18next";
@@ -39,6 +44,7 @@ import {
   type AppColors,
 } from "@/hooks/useAppColors";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
+import { useTableRealtimeRefresh } from "@/hooks/useTableRealtimeRefresh";
 import {
   Radius,
 } from "@/constants/theme";
@@ -52,8 +58,16 @@ import {
 } from "@/services/electronicsPhotoService";
 import {
   type BatteryStateInput,
-  recommendElectronics,
 } from "@/services/recommendation";
+import {
+  computeBatteryEnergy,
+} from "@/services/batteryEnergy";
+import {
+  deriveProtectionState,
+} from "@/services/batteryProtection";
+import {
+  evaluateSelection,
+} from "@/services/recommendationSelection";
 import { useMonitoringContext } from "@/context/MonitoringContext";
 
 type PowerLevel =
@@ -157,7 +171,7 @@ const statusMeta = (
   ) {
 
     return {
-      label: "Not advised",
+      label: "Not advisable",
       tone: "not" as const,
     };
   }
@@ -201,7 +215,7 @@ export default function ElectronicsScreen() {
   );
 
   const scrollRef =
-    useRef<ScrollView>(null);
+    useRef<ScrollViewInstance>(null);
 
   const scrollToTop =
     useScrollToTopController(scrollRef);
@@ -210,6 +224,7 @@ export default function ElectronicsScreen() {
     monitoring,
     refresh: refreshMonitoring,
     deviceOnline,
+    dbReadingFresh,
   } = useMonitoringContext();
 
   const [
@@ -220,6 +235,11 @@ export default function ElectronicsScreen() {
   const [
     electronicsModalVisible,
     setElectronicsModalVisible,
+  ] = useState(false);
+
+  const [
+    reviewModalVisible,
+    setReviewModalVisible,
   ] = useState(false);
 
   const [powerFilter, setPowerFilter] =
@@ -349,6 +369,12 @@ export default function ElectronicsScreen() {
     );
   }, []);
 
+  useTableRealtimeRefresh({
+    table: "electronics",
+    topic: "dashboard-electronics",
+    onRefresh: loadSelectedElectronics,
+  });
+
   const handleElectronicsSave = async () => {
     await loadSelectedElectronics();
   };
@@ -373,6 +399,95 @@ export default function ElectronicsScreen() {
     loadSelectedElectronics();
   }, [loadSelectedElectronics]);
 
+  const recommendationBattery =
+    useMemo<BatteryStateInput | null>(() => {
+      if (!monitoring) {
+        return null;
+      }
+
+      return {
+        soc: monitoring.battery_level ?? 0,
+        voltage: monitoring.voltage ?? 0,
+        remainingWh:
+          monitoring.watt_hours ?? 0,
+        dod:
+          monitoring.dod_status ?? undefined,
+        currentLoadW:
+          monitoring.current_load ?? undefined,
+      };
+    }, [monitoring]);
+
+  const combinedRecommendation = useMemo(
+    () =>
+      evaluateSelection(
+        recommendationBattery,
+        selectedElectronics.map((item) => ({
+          id: item.id,
+          name: item.name,
+          watts: item.watts,
+          area: item.area,
+          imageKey: CATALOG_IMAGES[item.id]
+            ? item.id
+            : null,
+          imageUrl: item.imageUrl ?? null,
+        })),
+        {
+          deviceOnline: deviceOnline ?? false,
+          readingFresh: dbReadingFresh,
+        },
+      ),
+    [
+      recommendationBattery,
+      selectedElectronics,
+      deviceOnline,
+      dbReadingFresh,
+    ],
+  );
+
+  const batteryEnergy = useMemo(
+    () =>
+      computeBatteryEnergy({
+        wattHours:
+          monitoring?.watt_hours ?? null,
+        batteryLevel:
+          monitoring?.battery_level ?? null,
+        deviceOnline: deviceOnline ?? false,
+        readingFresh: dbReadingFresh,
+      }),
+    [monitoring, deviceOnline, dbReadingFresh],
+  );
+
+  const batteryProtection = useMemo(
+    () =>
+      deriveProtectionState({
+        energy: batteryEnergy,
+        voltage:
+          monitoring?.voltage ?? null,
+        dodStatus:
+          monitoring?.dod_status ?? null,
+        currentLoadW:
+          monitoring?.current_load ?? null,
+        selectedBatterySideW:
+          combinedRecommendation.status ===
+          "ready"
+            ? combinedRecommendation.selectedBatterySideW
+            : 0,
+      }),
+    [
+      batteryEnergy,
+      combinedRecommendation,
+      monitoring,
+    ],
+  );
+
+  const selectionBlocked =
+    batteryProtection.level === "warning" ||
+    batteryProtection.level === "critical";
+
+  const selectionBlockedReason = t(
+    "batteryProtection.blocked",
+  );
+
   const handlePowerFilter = (
     filter: PowerLevel,
   ) => {
@@ -385,87 +500,70 @@ export default function ElectronicsScreen() {
     setAreaModalVisible(false);
   };
 
-  // ==========================================================
-  // RECOMMENDATION STATUS
-  //
-  // Live battery readings drive the engine verdict. When no
-  // monitoring row exists yet, the legacy wattage heuristic
-  // keeps the prior behavior until data arrives.
-  // ==========================================================
-
   const getElectronicsStatus = useCallback(
     (
       electronics: SelectedElectronics,
     ): ElectronicsStatus => {
-
-    if (
-      !monitoring
-    ) {
-
-      const watts =
-        electronics.watts
-          .match(/\d+/g)
-          ?.map(Number) ?? [];
-
-      const maxWatts = Math.max(
-        ...watts,
-        0,
-      );
-
-      return maxWatts < 300
-        ? "advisable"
-        : "notAdvisable";
-    }
-
-    const lastSeenMs =
-      monitoring.last_seen
-        ? Date.parse(monitoring.last_seen)
-        : NaN;
-
-    const battery: BatteryStateInput = {
-      soc: monitoring.battery_level ?? 0,
-      voltage: monitoring.voltage ?? 0,
-      remainingWh:
-        monitoring.watt_hours ?? 0,
-      dod: monitoring.dod_status ?? undefined,
-      currentLoadW:
-        monitoring.current_load ?? undefined,
-      lastUpdated:
-        deviceOnline &&
-        Number.isFinite(lastSeenMs)
-          ? lastSeenMs
-          : null,
-    };
-
-    const recommendation =
-      recommendElectronics(
-        battery,
+      const evaluation = evaluateSelection(
+        recommendationBattery,
+        [
+          {
+            id: electronics.id,
+            name: electronics.name,
+            watts: electronics.watts,
+            area: electronics.area,
+            imageKey: CATALOG_IMAGES[
+              electronics.id
+            ]
+              ? electronics.id
+              : null,
+            imageUrl:
+              electronics.imageUrl ?? null,
+          },
+        ],
         {
-          id: electronics.id,
-          name: electronics.name,
-          wattage: electronics.watts,
+          deviceOnline: deviceOnline ?? false,
+          readingFresh: dbReadingFresh,
+          alternativesLimit: 0,
         },
       );
 
-    if (
-      recommendation.verdict ===
-      "notRecommended"
-    ) {
+      if (
+        evaluation.verdict ===
+        "notRecommended"
+      ) {
 
-      return "notAdvisable";
-    }
+        return "notAdvisable";
+      }
 
-    if (
-      recommendation.verdict ===
-      "care"
-    ) {
+      if (
+        evaluation.verdict ===
+        "care"
+      ) {
 
-      return "care";
-    }
+        return "care";
+      }
 
-    return "advisable";
+      return "advisable";
     },
-    [monitoring, deviceOnline],
+    [
+      recommendationBattery,
+      deviceOnline,
+      dbReadingFresh,
+    ],
+  );
+
+  const reviewItems = useMemo<ReviewItem[]>(
+    () =>
+      selectedElectronics.map((electronics) => ({
+        id: electronics.id,
+        name: electronics.name,
+        watts: electronics.watts,
+        status: statusMeta(
+          getElectronicsStatus(electronics),
+        ).label,
+      })),
+    [selectedElectronics, getElectronicsStatus],
   );
 
   // ==========================================================
@@ -614,11 +712,47 @@ export default function ElectronicsScreen() {
             variant="caption"
             style={styles.subtitle}
           >
-            {t("dashboard.electronics.subtitle")}
-          </AppText>
-        </View>
+          {t("dashboard.electronics.subtitle")}
+        </AppText>
+      </View>
 
-        {/* Controls */}
+      <BatteryProtectionPanels
+        protection={batteryProtection}
+        usableWh={batteryEnergy.usableWh}
+        usablePercent={batteryEnergy.usablePercent}
+        onCriticalReview={() =>
+          setReviewModalVisible(true)
+        }
+      />
+
+      <Pressable
+        onPress={() =>
+          setReviewModalVisible(true)
+        }
+        style={({ pressed }) => [
+          styles.addButton,
+          pressed && styles.pressed,
+        ]}
+        accessibilityRole="button"
+        accessibilityLabel={t(
+          "batteryProtection.review",
+        )}
+      >
+        <Ionicons
+          name="list-outline"
+          size={18}
+          color={colors.onPrimary}
+        />
+
+        <AppText
+          variant="caption"
+          style={styles.addButtonText}
+        >
+          {t("batteryProtection.review")}
+        </AppText>
+      </Pressable>
+
+      {/* Controls */}
         {/* Select Electronics (full spread, above the filters) */}
         <Pressable
           onPress={() =>
@@ -740,6 +874,11 @@ export default function ElectronicsScreen() {
           )}
         />
 
+        <RecommendationResultPanel
+          result={combinedRecommendation}
+          style={styles.recommendationPanel}
+        />
+
         {/* Electronics */}
         <View style={[electronicsCardGrid, { marginTop: 20 }]}>
           {filteredElectronics.length === 0 ? (
@@ -814,6 +953,18 @@ export default function ElectronicsScreen() {
         }
         onSave={handleElectronicsSave}
         selectedElectronics={selectedElectronics}
+        selectionBlocked={selectionBlocked}
+        blockedReason={selectionBlockedReason}
+      />
+
+      <ElectronicsReviewModal
+        visible={reviewModalVisible}
+        onClose={() =>
+          setReviewModalVisible(false)
+        }
+        items={reviewItems}
+        blocked={selectionBlocked}
+        blockedReason={selectionBlockedReason}
       />
 
       {/* ========================================================
@@ -999,5 +1150,10 @@ const getStyles = (colors: AppColors) =>
     borderColor: colors.border,
     borderRadius: Radius.md,
     marginTop: 10,
+  },
+
+  recommendationPanel: {
+    marginTop: 20,
+    width: "100%",
   },
 });

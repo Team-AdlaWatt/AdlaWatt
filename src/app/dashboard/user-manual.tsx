@@ -7,6 +7,7 @@ import React, {
 import {
   Pressable,
   ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   View,
 } from "react-native";
@@ -75,7 +76,7 @@ export default function UserManualScreen() {
   );
 
   const scrollRef =
-    useRef<ScrollView | null>(null);
+    useRef<ScrollViewInstance | null>(null);
 
   const scrollToTop =
     useScrollToTopController(scrollRef);
@@ -254,7 +255,7 @@ export default function UserManualScreen() {
               depth-of-discharge safety
             </Bullet>
             <Bullet>
-              Battery, solar, and interior
+              Solar panel and interior
               temperatures
             </Bullet>
             <Bullet>
@@ -419,8 +420,8 @@ export default function UserManualScreen() {
 
             <ManualCallout kind="warning">
               The 20% rule: treat 20%
-              battery as empty. A 144 Wh
-              reserve (20% of 720 Wh) is
+              battery as empty. A 151.2 Wh
+              reserve (20% of 756 Wh) is
               never counted as usable —
               advice, alerts, and DoD all
               follow it.
@@ -448,7 +449,7 @@ export default function UserManualScreen() {
               Current load in watts.
             </Bullet>
             <Bullet>
-              Battery, solar, and interior
+              Solar panel and interior
               temps: Nominal, Elevated,
               High, or Critical.
             </Bullet>
@@ -463,13 +464,10 @@ export default function UserManualScreen() {
             </ManualCallout>
 
             <Para>
-              Quick-navigation buttons
-              scroll to each section; new
-              users get a welcome greeting
-              with an Add Electronics
-              button in the recommendation
-              card. The bell icon carries
-              the unread badge.
+              Use the Electronics tab for
+              recommendations and setup.
+              The bell icon carries the
+              unread badge.
             </Para>
           </ManualSectionCard>
         </View>
@@ -502,15 +500,16 @@ export default function UserManualScreen() {
                 toggleRow("s7.1")
               }
             >
-              <Step n="1" text="Dashboard: tap Electronics Recommendation, then Add Electronics — or open Electronics and tap Select Electronics." />
+              <Step n="1" text="Open Electronics and tap Select Electronics." />
               <Step n="2" text="Scroll the catalog, or use the search box." />
               <Step n="3" text="Tap boxes to select (tap again to deselect)." />
               <Step n="4" text="Tap Add — picks come back rated advisable or not." />
               <Para>
                 Selection circles mark what
                 you plan to run and feed
-                the dashboard summary —
-                plus a safety alert if the
+                the Electronics
+                recommendations — plus a
+                safety alert if the
                 combined load exceeds the
                 safe limit at 20% or below.
               </Para>
@@ -917,7 +916,7 @@ export default function UserManualScreen() {
             />
             <Term
               term="Watt-hour (Wh)"
-              def="Energy unit. 720 Wh total, 144 Wh locked reserve, 576 Wh usable."
+              def="Energy unit. 756 Wh total, 151.2 Wh locked reserve, 604.8 Wh usable."
             />
             <Term
               term="Reserve floor"

@@ -58,7 +58,7 @@ export default function NavBar({
     setHasUnreadNotifications,
   ] = useState(false);
   const { t } = useTranslation();
-  const { deviceOnline } = useMonitoringContext();
+  const { connectionStatus } = useMonitoringContext();
 
   // Signed-in username, served synchronously from the
   // AuthContext session cache — no per-mount fetch, so the
@@ -261,9 +261,14 @@ export default function NavBar({
   // DEVICE STATUS
   // ==========================================================
 
-  const deviceStatusLabel = deviceOnline
-    ? "Online"
-    : "Offline";
+  const deviceStatusLabel =
+    connectionStatus === "online"
+      ? "Online"
+      : connectionStatus === "offline"
+        ? "Offline"
+        : connectionStatus === "error"
+          ? "Unavailable"
+          : "Connecting…";
 
   const colors = useAppColors();
 
@@ -316,9 +321,11 @@ export default function NavBar({
           <View
             style={[
               navBarStyles.statusDot,
-              deviceOnline
+              connectionStatus === "online"
                 ? navBarStyles.onlineDot
-                : navBarStyles.offlineDot,
+                : connectionStatus === "offline"
+                  ? navBarStyles.offlineDot
+                  : null,
             ]}
           />
 

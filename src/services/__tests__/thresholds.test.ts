@@ -42,14 +42,14 @@ const mon = (
     total_energy: 1200,
     current_load: 50,
     device_status: "Online",
-    battery_temperature: 30,
-    battery_temperature_status: "Nominal",
     dod_status: "Safe",
     solar_temperature: 35,
     solar_temperature_status: "Nominal",
     interior_temp: 28,
     interior_temp_status: "Nominal",
     last_seen: "2026-11-12T10:00:00.000Z",
+    heartbeat_expires_at:
+      "2099-01-01T00:00:00.000Z",
     ...overrides,
   });
 

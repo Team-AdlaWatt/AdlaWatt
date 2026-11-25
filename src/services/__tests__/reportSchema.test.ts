@@ -40,8 +40,6 @@ interface RowOverrides {
   solar_timer?: string | null;
   current_load?: number | null;
   device_status?: string | null;
-  battery_temperature?: number | null;
-  battery_temperature_status?: string | null;
   dod_status?: string | null;
   solar_temperature?: number | null;
   solar_temperature_status?: string | null;
@@ -65,10 +63,6 @@ const row = (overrides: RowOverrides): MonitoringHistoryRow =>
     current_load: overrides.current_load ?? 0,
     device_status: overrides.device_status ?? "Online",
     last_seen: null,
-    battery_temperature:
-      overrides.battery_temperature ?? 0,
-    battery_temperature_status:
-      overrides.battery_temperature_status ?? null,
     dod_status: overrides.dod_status ?? null,
     solar_temperature: overrides.solar_temperature ?? 0,
     solar_temperature_status:
@@ -94,8 +88,6 @@ const twoDayRows: MonitoringHistoryRow[] = [
     solar_timer: "02:00:00",
     current_load: 50,
     device_status: "Online",
-    battery_temperature: 25,
-    battery_temperature_status: "Nominal",
     solar_temperature: 40,
     solar_temperature_status: "Nominal",
     energy_input_wh: 100,
@@ -108,8 +100,6 @@ const twoDayRows: MonitoringHistoryRow[] = [
     solar_timer: "01:00:00",
     current_load: 120,
     device_status: "Offline",
-    battery_temperature: 30,
-    battery_temperature_status: "High",
     solar_temperature: 45,
     solar_temperature_status: "Nominal",
     energy_input_wh: 120,
@@ -123,8 +113,6 @@ const twoDayRows: MonitoringHistoryRow[] = [
     solar_timer: "03:00:00",
     current_load: 40,
     device_status: "Online",
-    battery_temperature: 20,
-    battery_temperature_status: "Nominal",
     solar_temperature: 30,
     solar_temperature_status: "Nominal",
     energy_input_wh: 0,
@@ -137,8 +125,6 @@ const twoDayRows: MonitoringHistoryRow[] = [
     solar_timer: "04:00:00",
     current_load: 60,
     device_status: "Online",
-    battery_temperature: 22,
-    battery_temperature_status: "Nominal",
     solar_temperature: 35,
     solar_temperature_status: "Critical",
     energy_input_wh: 0,
@@ -309,8 +295,6 @@ describe("buildReportKpis", () => {
         maximumSolarInput: 500,
         averageCurrentLoad: 67.5,
         maximumCurrentLoad: 60,
-        averageBatteryTemperature: 24.25,
-        maximumBatteryTemperature: 30,
         averageSolarTemperature: 37.5,
         maximumSolarTemperature: 45,
         totalEnergyInputWh: 220,
@@ -320,8 +304,6 @@ describe("buildReportKpis", () => {
         latestSolarInput: 400,
         latestSolarStatus: "Producing",
         latestCurrentLoad: 60,
-        latestBatteryTemperature: 22,
-        latestBatteryTemperatureStatus: "Nominal",
         latestSolarTemperature: 35,
         latestSolarTemperatureStatus: "Critical",
         latestSolarTimer: "04:00:00",
@@ -370,10 +352,10 @@ describe("buildReportKpis", () => {
     ).toBe("50.0% of samples");
   });
 
-  test("temperature alerts count High|Critical on any sensor, Online only", () => {
+  test("temperature alerts count High|Critical on solar or interior, Online only", () => {
     const list = buildList();
 
-    // The Day 1 High reading is Offline, so only the Day 2
+    // The Day 1 Offline sample is excluded, so only the Day 2
     // Critical Online sample counts.
     expect(
       kpi(list, "temperatureAlerts")?.value,
@@ -412,8 +394,6 @@ describe("buildReportKpis", () => {
       maximumSolarInput: 0,
       averageCurrentLoad: 0,
       maximumCurrentLoad: 0,
-      averageBatteryTemperature: 0,
-      maximumBatteryTemperature: 0,
       averageSolarTemperature: 0,
       maximumSolarTemperature: 0,
       totalEnergyInputWh: 0,
@@ -423,8 +403,6 @@ describe("buildReportKpis", () => {
       latestSolarInput: 0,
       latestSolarStatus: "No data",
       latestCurrentLoad: 0,
-      latestBatteryTemperature: 0,
-      latestBatteryTemperatureStatus: "No data",
       latestSolarTemperature: 0,
       latestSolarTemperatureStatus: "No data",
       latestSolarTimer: "No data",
@@ -461,6 +439,38 @@ describe("prepareReportData schema", () => {
     expect(data.periods).toHaveLength(2);
     expect(data.kpis.length).toBeGreaterThan(0);
     expect(data.frequency).toBe("Daily");
+
+    expect(data.sections.map((section) => section.key)).toEqual([
+      "solar",
+      "load",
+      "activity",
+      "report",
+    ]);
+    expect(data.sections.map((section) => section.title)).toEqual([
+      "SOLAR ENERGY",
+      "LOAD ENERGY",
+      "BATTERY ACTIVITY",
+      "GENERATE REPORT",
+    ]);
+    expect(data.sections[0].headers).toEqual([
+      "Period",
+      "Energy Collected (Wh)",
+      "Peak Output (W)",
+      "Peak Sun (h)",
+      "Charge Start",
+    ]);
+    expect(data.sections[1].headers).toEqual([
+      "Period",
+      "Energy Used (Wh)",
+      "Average Load (W)",
+      "Peak Load (W)",
+    ]);
+    expect(data.sections[2].headers).toEqual([
+      "Activity",
+      "Samples",
+      "Share (%)",
+    ]);
+    expect(data.sections[3].headers).toEqual(["Field", "Value"]);
 
     // Raw history retained for CSV depth.
     expect(data.monitoringHistory).toBe(
@@ -557,115 +567,49 @@ describe("generateAdlaWattCsv", () => {
       line.startsWith(title),
     );
 
-  test("writes summary, KPI, period and history blocks", () => {
-    expect(
-      lines.some((line) =>
-        line.startsWith("Metric,Value"),
-      ),
-    ).toBe(true);
+  test("writes the report title and four card-aligned sections", () => {
+    expect(lines[0]).toContain(data.reportTitle);
 
-    expect(
-      titleIndex("DERIVED ANALYTICS KPIs"),
-    ).toBeGreaterThan(-1);
-
-    expect(
-      titleIndex("AGGREGATED PERIODS"),
-    ).toBeGreaterThan(-1);
-
-    expect(
-      titleIndex("MONITORING HISTORY"),
-    ).toBeGreaterThan(-1);
-  });
-
-  test("monitoring block carries full monitoring_history parity", () => {
-    const start = titleIndex(
-      "MONITORING HISTORY",
-    );
-
-    const header = parseCsvLine(
-      lines[start + 1],
-    );
-
-    expect(header).toHaveLength(26);
-    expect(header).toContain("Time Remaining");
-    expect(header).toContain("Solar Status");
-    expect(header).toContain("Last Seen");
-    expect(header).toContain("Interior C");
-    expect(header).toContain("Watt Hours");
-    expect(header).toContain("Cumulative In Wh");
-    expect(header).toContain(
-      "Cumulative Out Wh",
-    );
-
-    // Every data row matches the header width (no ragged grid).
-    for (
-      let i = start + 2;
-      i < start + 2 + 4;
-      i += 1
-    ) {
+    for (const section of data.sections) {
       expect(
-        parseCsvLine(lines[i]),
-      ).toHaveLength(26);
+        titleIndex(section.title),
+      ).toBeGreaterThan(-1);
     }
   });
 
-  test("KPI block lists the derived analytics", () => {
-    const start = titleIndex(
+  test("section headers and rows match the analytics cards", () => {
+    for (const section of data.sections) {
+      const start = titleIndex(section.title);
+      const header = parseCsvLine(
+        lines[start + 1],
+      );
+
+      expect(
+        header.slice(0, section.headers.length),
+      ).toEqual(section.headers);
+
+      section.rows.forEach((expected, index) => {
+        expect(
+          parseCsvLine(lines[start + 2 + index]).slice(
+            0,
+            expected.length,
+          ),
+        ).toEqual(expected.map(String));
+      });
+    }
+  });
+
+  test("omits the legacy summary, KPI, period, and history blocks", () => {
+    for (const legacyTitle of [
+      "Metric,Value",
       "DERIVED ANALYTICS KPIs",
-    );
-
-    const block = lines
-      .slice(
-        start,
-        start + 2 + data.kpis.length,
-      )
-      .join("\n");
-
-    expect(block).toContain("Solar coverage");
-    expect(block).toContain("Device uptime");
-    expect(block).toContain(
-      "Unsafe discharge samples",
-    );
-    expect(block).toContain("Best sun day");
-  });
-
-  test("period block is one aggregated row per bucket", () => {
-    const start = titleIndex(
       "AGGREGATED PERIODS",
-    );
-
-    const header = parseCsvLine(
-      lines[start + 1],
-    );
-
-    expect(header).toHaveLength(20);
-    expect(header[0]).toBe("Period");
-
-    const day1 = parseCsvLine(lines[start + 2]);
-    const day2 = parseCsvLine(lines[start + 3]);
-
-    expect(day1).toHaveLength(20);
-    expect(day2).toHaveLength(20);
-
-    // Net energy column (index 9): +50 Wh then -100 Wh.
-    expect(day1[9]).toBe("50.0");
-    expect(day2[9]).toBe("-100.0");
-  });
-
-  test("caps monitoring rows with a truncation notice", () => {
-    const manyRows = Array.from(
-      { length: 20005 },
-      () => data.monitoringRows[0],
-    );
-
-    const oversized = {
-      ...data,
-      monitoringRows: manyRows,
-    };
-
-    const out = generateAdlaWattCsv(oversized);
-
-    expect(out).toContain("Showing first 20000 of 20005 records");
+      "MONITORING HISTORY",
+      "BATTERY — VOLTAGE",
+      "Showing first 20000 of 20005 records",
+    ]) {
+      expect(csv).not.toContain(legacyTitle);
+    }
   });
 });
 
@@ -743,8 +687,8 @@ describe("stored status precedence", () => {
         recorded_at: "2026-10-01T08:00:00",
         battery_level: 80,
         device_status: "Offline",
-        battery_temperature_status: "High",
         solar_temperature_status: "Critical",
+        interior_temp_status: "High",
       }),
     ];
 

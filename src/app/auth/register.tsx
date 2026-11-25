@@ -5,7 +5,7 @@ import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
-  TextInput,
+  type TextInputInstance,
   View,
 } from "react-native";
 
@@ -74,10 +74,10 @@ export default function RegisterScreen() {
 
   const [resendCooldown, setResendCooldown] = useState(0);
 
-  const emailRef = useRef<TextInput>(null);
-  const passwordRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInputInstance>(null);
+  const passwordRef = useRef<TextInputInstance>(null);
   const confirmPasswordRef =
-    useRef<TextInput>(null);
+    useRef<TextInputInstance>(null);
 
   const colors = useAppColors();
 

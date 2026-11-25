@@ -3,22 +3,24 @@
 // The recommendation engine, the battery gauge, and the
 // electronics wattage caps all read these values, so they are
 // pinned here to catch accidental drift. The capacity follows
-// the manuscript bank: 12 V x 60 Ah = 720 Wh.
+// the 12.6 V x 60 Ah bank: 756 Wh.
 
 import {
   BATTERY_CAPACITY_WH,
   BATTERY_MAX_ELECTRONICS_W,
   BATTERY_RESERVE_WH,
   BATTERY_USABLE_WH,
+  INVERTER_EFFICIENCY,
+  INVERTER_IDLE_W,
 } from "@/constants/battery";
 
 describe("battery reference constants", () => {
-  test("capacity is the 720 Wh bank basis", () => {
-    expect(BATTERY_CAPACITY_WH).toBe(720);
+  test("capacity is the 756 Wh bank basis", () => {
+    expect(BATTERY_CAPACITY_WH).toBe(756);
   });
 
   test("reserve is the 20% floor", () => {
-    expect(BATTERY_RESERVE_WH).toBe(144);
+    expect(BATTERY_RESERVE_WH).toBe(151.2);
     expect(BATTERY_RESERVE_WH).toBeCloseTo(
       BATTERY_CAPACITY_WH * 0.2,
       6,
@@ -26,7 +28,7 @@ describe("battery reference constants", () => {
   });
 
   test("usable is the 80% window", () => {
-    expect(BATTERY_USABLE_WH).toBe(576);
+    expect(BATTERY_USABLE_WH).toBe(604.8);
   });
 
   test("reserve + usable equals the full capacity", () => {
@@ -37,5 +39,10 @@ describe("battery reference constants", () => {
 
   test("electronics cap is the 600 W appliance limit", () => {
     expect(BATTERY_MAX_ELECTRONICS_W).toBe(600);
+  });
+
+  test("inverter assumptions are pinned", () => {
+    expect(INVERTER_IDLE_W).toBe(6);
+    expect(INVERTER_EFFICIENCY).toBe(0.9);
   });
 });

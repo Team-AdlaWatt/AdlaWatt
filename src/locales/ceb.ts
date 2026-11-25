@@ -380,17 +380,29 @@ const ceb = {
     },
     addDevice: {
       title: "Pagdugang ug Device",
-      subtitle: "Ikonekta ug i-configure ang imong AdlaWatt monitoring device.",
+      subtitle: "Ikonekta ug i-set up ang imong AdlaWatt monitoring device.",
+      provisioningNote:
+        "Ang bisan kinsa nga naka-sign-in nga user mahimong magtakda sa Wi-Fi config ug monitoring account niini nga device.",
       deviceLabel: "AdlaWatt Device",
-      deviceName: "AW-01 · ESP32-S3",
+      deviceName: "AW-01 ? ESP32-S3",
       bluetoothName: "Bluetooth device: AdlaWatt-AW-01",
-      readyToScan: "Andam na mag-scan",
+      bluetoothHint: "Nangita ug duol nga AdlaWatt device ({{prefix}}). Dili kinahanglan i-pair sa settings sa phone.",
+      bluetoothReadyShort: "Andam ang Bluetooth",
+      bluetoothNotReadyShort: "Dili andam ang Bluetooth",
+      scanSection: "Pangitaa ang Imong Device",
+      scanSectionHint: "I-on ang Bluetooth ug tugoti ang permiso, dayon mag-scan sa imong AdlaWatt device.",
+      readyToScan: "Andam na ang Bluetooth. Pislita ang Pag-scan ug mga Device aron magpadayon.",
+      scanBlocked: "I-on ang Bluetooth ug tugoti ang permiso aron makapag-scan.",
       scan: "Pag-scan ug mga Device",
+      scanAgain: "Pag-scan Pag-usab",
+      showDevices: "Ipakita ang mga Device",
       scanning: "Nag-scan...",
+      scanningHint: "Nangita ug duol nga AdlaWatt device...",
       scanTitle: "Pilia ang Device",
       noDevices: "Walay nakitang device",
       noDevicesDescription:
-        "Ipadayon ang device nga naka-on ug duol, unya mag-scan pag-usab.",
+        "Ipadayon ang imong AdlaWatt device nga naka-on ug duol, dayon sulayi pag-scan pag-usab.",
+      noDevicesHint: "Walay nakitang AdlaWatt device. Siguroha nga naka-on ug duol ang device, dayon pislita ang Pag-scan Pag-usab.",
       selectDevice: "Pilia ang Bluetooth device",
       selectedDevice: "Napiling device",
       wifiSection: "Configuration sa Wi-Fi",
@@ -402,33 +414,120 @@ const ceb = {
       wifiPasswordRequired: "Isulod ang password sa imong Wi-Fi.",
       accountSection: "Account",
       loggedInAs: "Naka-log in isip",
-      assignmentChecking: "Gisusi ang imong monitoring assignment...",
+      assignmentCheckingUser: "Gisusi ang imong account...",
+      assignmentChecking: "Gikuha ang imong monitoring assignment...",
       assignmentVerified: "Na-verify ang monitoring assignment",
       assignmentMissing:
         "Walay monitoring assignment para sa account niini.",
       assignmentError:
         "Dili ma-verify ang imong monitoring assignment.",
+      assignmentSessionExpired:
+        "Dili magamit o nahuman na ang imong session. Pag-sign in pag-usab ug sulayi pag-usab.",
+      assignmentQueryFailed:
+        "Dili makuha ang imong monitoring assignment. Awtomatiko kami mosulay pag-usab.",
+      assignmentAmbiguous:
+        "Dili matino ang imong monitoring assignment. Palihug kontaka ang suporta.",
+      assignmentInvalid:
+        "Dili balido ang imong monitoring assignment. Palihug kontaka ang suporta.",
       loginRequired: "Mag-sign in aron mag-configure ug device.",
       send: "Ipadala ang Configuration",
       sending: "Gipapadala...",
       retry: "Sulayi Pag-usab",
+      assignmentRetry: "Sulayi pag-usab ang assignment",
+      routeErrorTitle:
+        "Dili maipakita kini nga screen.",
+      routeErrorBody:
+        "Sulayi pag-usab. Kung magpadayon ang problema, ablihi pag-usab ang app.",
+      routeErrorRetry: "Sulayi Pag-usab",
       previewTitle: "Preview status",
       previewOpen: "Ablihi ang status preview",
       previewNote: "Preview mode - dili tinuod nga status sa device",
+      bluetoothNotReady: "Dili andam ang Bluetooth. I-on kini ug tugoti ang permiso, dayon sulayi pag-usab.",
+      turnOnBluetooth: "I-on ang Bluetooth",
+      turningOnBluetooth: "Gina-on...",
+      openBluetoothSettings: "Ablihi ang Bluetooth Settings",
+      openSettings: "Ablihi ang Settings",
+      grantPermission: "Tugoti ang Permiso",
+      checkingPermissions: "Gisusi...",
+      bluetoothEnableDeclined:
+        "Wala ma-on ang Bluetooth. I-on kini aron makita ang imong AdlaWatt device.",
+      bluetoothIosInstructions:
+        "Aron ma-on ang Bluetooth, ablihi ang Control Center o Settings, dayon balik diri.",
+      readiness_checking: "Gisusi ang Bluetooth",
+      readiness_checking_body:
+        "Gisusi ang Bluetooth ug status sa permiso...",
+      readiness_unknown: "Gisusi ang Bluetooth",
+      readiness_unknown_body:
+        "Naghulat sa status sa Bluetooth...",
+      readiness_resetting: "Nag-reset ang Bluetooth",
+      readiness_resetting_body:
+        "Nag-restart ang Bluetooth. Paghulat kadiyot.",
+      readiness_unsupported: "Dili suportado ang Bluetooth",
+      readiness_unsupported_body:
+        "Kini nga device wala nagsuporta sa Bluetooth nga gikinahanglan aron makakonekta sa AdlaWatt.",
+      readiness_unauthorized: "Dili magamit ang Bluetooth",
+      readiness_unauthorized_body:
+        "Dili magamit sa AdlaWatt ang Bluetooth niining device. Susiha ang system settings ug sulayi pag-usab.",
+      readiness_poweredOff: "Naka-off ang Bluetooth",
+      readiness_poweredOff_body:
+        "Gikinahanglan ang Bluetooth aron makit-an ug makonekta ang imong AdlaWatt monitoring device. I-on ang Bluetooth aron magpadayon.",
+      readiness_permission_required: "Gikinahanglan ang permiso sa Bluetooth",
+      readiness_permission_required_body:
+        "Tugoti ang permiso sa Bluetooth aron makit-an ug makakonekta sa AdlaWatt ang imong device.",
+      readiness_permission_denied: "Gibalibaran ang permiso sa Bluetooth",
+      readiness_permission_denied_body:
+        "Gikinahanglan ang permiso sa Bluetooth aron mag-scan sa imong AdlaWatt device. Mahimo nimo kini tugotan ug sulayan pag-usab.",
+      readiness_permission_blocked: "Na-block ang permiso sa Bluetooth",
+      readiness_permission_blocked_body:
+        "Na-block ang permiso sa Bluetooth sa system settings. Ablihi ang Settings aron tugotan kini, dayon balik diri.",
+      readiness_ready: "Andam na ang Bluetooth",
+      readiness_ready_body:
+        "Mahimo na ka mag-scan ug duol nga AdlaWatt device.",
+      provisioning: "Gina-set up ang device",
+      success: "Malampuson nga natipig ang configuration",
+      connectionFailed: "Napakyas ang koneksyon",
       status_idle: "Andam i-configure",
       status_scanning: "Nangita ug device",
       status_connecting: "Nagkonekta sa device",
-      status_received: "Natanggap ang configuration",
-      status_busy: "Abala ang device sa laing request",
-      status_wifi_connected: "Nakakonekta sa Wi-Fi",
-      status_wifi_failed: "Napakyas ang koneksyon",
+      status_connected: "Konektado sa AW-01 pinaagi sa Bluetooth",
+      status_subscribed: "Andam na ang status notifications sa device",
+      status_writing: "Gipapadala ang configuration sa Wi-Fi ug monitor ID sa AW-01",
+      status_received: "Nadawat sa device ang configuration",
+      status_busy: "Giproseso sa device ang request",
+      status_wifi_connected: "Nakakonekta ang device sa Wi-Fi",
+      status_wifi_failed: "Napakyas ang koneksyon sa Wi-Fi",
       status_wifi_lost: "Nawala ang koneksyon sa Wi-Fi",
       status_configured: "Malampuson nga natipig ang configuration",
       status_error: "Error sa provisioning",
       status_disconnected: "Nawala ang koneksyon sa Bluetooth",
+      status_timeout: "Nag-time out ang setup",
+      timeout: "Nag-time out ang setup",
+      timeoutBody:
+        "Wala mahuman sa device ang setup sulod sa {{seconds}} ka segundo. Ipadayon kini nga naka-on ug duol, unya sulayi pag-usab.",
+      validationSsidRequired: "Isulod ang pangalan sa Wi-Fi network.",
+      validationSsidTooLong: "Taas kaayo ang pangalan sa Wi-Fi network.",
+      validationPasswordTooLong: "Taas kaayo ang password sa Wi-Fi.",
+      validationMonitorIdInvalid: "Dili balido ang monitor ID.",
+      validationInvalidText: "Adunay dili balido nga karakter sa detalye sa Wi-Fi.",
       errorTitle: "Napakyas ang provisioning",
       errorBody:
         "Dili mahuman sa device ang request. Susiha ang detalye ug sulayi pag-usab.",
+      bleWriteNotPermitted:
+        "Dili gidawat sa AW-01 kini nga Bluetooth write mode. I-update ang firmware sa device ug sulayi pag-usab.",
+      bleTxDescriptorMissing:
+        "Nawala ang status notification descriptor sa AW-01. I-update ang firmware sa device ug sulayi pag-usab.",
+      bleCharacteristicNotFound:
+        "Wala makit-an ang gikinahanglan nga Bluetooth characteristic. Himoa nga duol ang device ug sulayi pag-usab.",
+      bleServiceNotFound:
+        "Wala makit-an ang Bluetooth service sa AW-01. I-restart ang device ug sulayi pag-usab.",
+      bleOperationTimeout:
+        "Nag-time out ang Bluetooth operation. Ipadayon nga naka-on ug duol ang device, unya sulayi pag-usab.",
+      bleOperationCancelled:
+        "Gikansela ang Bluetooth operation. Sulayi pag-usab.",
+      bleDisconnected:
+        "Nawala ang Bluetooth connection sa pag-setup. Ipadayon nga naka-on ug duol ang device, unya sulayi pag-usab.",
+      bleGattError:
+        "Gibalibaran sa device ang Bluetooth write. I-update ang firmware sa device ug sulayi pag-usab.",
       permissionDenied:
         "Kinahanglan ang permiso sa Bluetooth aron makita ang device.",
       bluetoothOff: "I-on ang Bluetooth aron magpadayon.",
@@ -489,7 +588,7 @@ const ceb = {
     analytics: {
       title: "Analytics ug Trends",
       subtitle:
-        "Susiha ang performance sa system, paggamit sa enerhiya, temperatura, ug datos sa electronics sa paglabay sa panahon.",
+        "Susiha ang solar, paggamit sa load, ug kalihokan sa baterya alang sa napiling sakup.",
       sectionBattery: "Baterya",
       sectionSolar: "Solar",
       sectionEnergy: "Enerhiya",
@@ -507,8 +606,6 @@ const ceb = {
       title: "Activity Logs",
       subtitle: "Dinhi makita ang aktibidad sa system ug mga event sa electronics.",
       total: "Tibuok Activity Logs:",
-      loadFailed:
-        "Dili ma-load ang imong activity logs. Susiha ang imong koneksyon ug sulayi pag-usab.",
       timeRange: "Sakop sa Oras",
       activityType: "Matang sa Aktibidad",
       timeAll: "Tanan",
@@ -526,8 +623,6 @@ const ceb = {
       title: "Mga Notification",
       subtitle: "Dinhi makita ang mga notification sa system ug importanteng mga alerto.",
       total: "Tibuok Notification:",
-      loadFailed:
-        "Dili ma-load ang imong mga notification. Susiha ang imong koneksyon ug sulayi pag-usab.",
       markFailed: "Dili ma-mark as read ang mga notification. Palihug sulayi pag-usab.",
       markError: "Dili ma-mark as read. Susiha ang imong koneksyon ug sulayi pag-usab.",
       marking: "Gina-mark...",
@@ -556,8 +651,6 @@ const ceb = {
     notifications: "Mga Notification",
     emptyTitle: "Walay Activity Logs",
     emptyDescription: "Walay aktibidad nga motugma sa mga filter.",
-    errorTitle: "Dili ma-load ang data",
-    retry: "Sulayi Pag-usab",
     paginationPrev: "Miagi",
     paginationNext: "Sunod",
     paginationPage: "Pahina {{current}} sa {{total}}",
@@ -655,6 +748,117 @@ const ceb = {
       title: "Andam Na Tanan",
       subtitle: "Ang imong kuryente, sa imong mga kamot.",
     },
+  },
+
+  batteryEnergy: {
+    title: "Magamit nga enerhiya",
+    value: "{{wh}} Wh",
+    ofUsable: "sa {{capacity}} Wh nga magamit",
+    reserve: "{{wh}} Wh nga protektadong reserve",
+    status: {
+      normal: "Maayo",
+      warning: "Ubos ang enerhiya",
+      critical: "Kritikal",
+      waiting: "Naghulat sa data",
+    },
+    selectedLoad:
+      "Napili: {{ac}} W AC · {{battery}} W gikan sa baterya",
+    liveDraw: "Live draw: {{watts}} W",
+    timeRemaining: "Gibanabana nga nahabilin: {{time}}",
+  },
+
+  batteryProtection: {
+    warningTitle: "Ubos na ang magamit nga enerhiya",
+    warningBody:
+      "{{wh}} Wh na lang ang nahabilin nga magamit nga enerhiya. Likayi ang pag-on ug bag-ong appliances.",
+    criticalTitle:
+      "I-unplug ang dili kinahanglan nga electronics",
+    criticalBody:
+      "Ang magamit nga enerhiya nakaabot na sa {{percent}}%. I-unplug dayon ang tanan nga dili kinahanglan nga load.",
+    newLoadTitle:
+      "Adunay bag-ong load nga wala nalista",
+    newLoadBody:
+      "Ang live draw mga {{watts}} W nga mas taas kaysa sa napiling load. Susiha ang mga naka-plug.",
+    review: "Susiha ang electronics",
+    criticalInstructions:
+      "I-unplug tanan nga dili kinahanglan nga appliances, unya susiha ang mga naka-connect nga electronics.",
+    recovering:
+      "Gisusi ang stable nga load ug magamit nga enerhiya...",
+    dismiss: "Sabot na",
+    blocked:
+      "Gihunong ang bag-ong selection samtang aktibo ang battery protection. Mahimo ka gihapon mokuha ug appliances.",
+    closeA11y:
+      "Isara ang pahibalo sa battery protection",
+    reviewTitle: "Pagsusi sa electronics",
+    reviewBody:
+      "Kini ang mga appliances nga giihap sa karon nga rekomendasyon.",
+    done: "Tapos",
+  },
+
+  electronicsModal: {
+    checkRecommendation: "Susiha ang Rekomendasyon",
+    done: "Tapos",
+    saving: "Gi-save...",
+    selectAtLeastOne:
+      "Pili labing menos usa ka appliance sa dili pa magpadayon.",
+    notAdvisableBlocked:
+      "Dili kini maayo. Usba ang napili ug susiha pag-usab.",
+    detectedHeader:
+      "Adunay electronics nga naka-plug, susiha ang rekomendasyon alang sa tukma nga giya.",
+    reserveBlocked:
+      "Kini nga load mogamit sa tanan nga nahabilin nga magamit nga enerhiya. I-unplug ang usa ka load o usba ang napili sa dili pa magpadayon.",
+  },
+
+  recommendationResult: {
+    title: "Rekomendasyon",
+    status: {
+      empty: "Walay napiling electronics",
+      waiting: "Naghulat sa data sa baterya",
+      blocked: "Kinahanglan i-check ang baterya",
+      ready: "Hiniusang rekomendasyon",
+    },
+    verdict: {
+      recommended: "OK gamiton",
+      care: "Gamita uban ang pag-amping",
+      notRecommended: "Dili maayo gamiton",
+      unknown: "Naghulat",
+    },
+    badgeA11y: "Rekomendasyon: {{label}}",
+    reason: {
+      empty:
+        "Pilia ang electronics aron makita ang rekomendasyon.",
+      waiting:
+        "Naghulat ug bag-ong pagbasa sa baterya.",
+      offline:
+        "Naghulat nga ma-online ang device.",
+      stale:
+        "Daang kaayo ang pagbasa sa baterya. Naghulat ug bag-ong data.",
+      blocked:
+        "Ang pagbasa sa baterya naa sa gawas sa luwas nga limitasyon.",
+      invalidWattage:
+        "Usa o daghang wattage ang dili balido.",
+      overCap:
+        "Ang hiniusang peak load milapas sa luwas nga limitasyon.",
+      unsafeVoltage:
+        "Ang hiniusang peak load magpaubos sa voltage ubos sa luwas nga lebel.",
+      highDrain:
+        "Kini nga kombinasyon nagagamit ug daghang magamit nga enerhiya kada oras.",
+      care:
+        "Magamit uban ang pag-amping — ipagaan ang load.",
+      recommended:
+        "Luwas gamiton niining lebel sa baterya.",
+    },
+    remainingBattery:
+      "Gitantya nga nahabilin nga magamit nga enerhiya",
+    estimatedRuntime:
+      "Gitantya nga oras sa paggamit",
+    combinedPeak:
+      "Hiniusang peak load (kilid sa baterya)",
+    currentLoad: "Karon nga load",
+    alternativesTitle: "Mas maayong mga kapilian",
+    noAlternatives: "Walay alternatibo karon.",
+    estimateNote:
+      "Ang mga tantya naggamit sa catalog wattage, dili aktuwal nga pag-detect sa appliance.",
   },
 } as const;
 

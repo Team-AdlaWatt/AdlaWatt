@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useAdminGuard } from "@/admin/hooks/useAdminGuard";
 import { useAppFonts } from "@/hooks/useAppFonts";
+import NeutralShell from "@/components/ui/NeutralShell";
 import RouteErrorBoundary from "@/components/ui/RouteErrorBoundary";
 
 // ============================================================
@@ -21,7 +22,7 @@ import RouteErrorBoundary from "@/components/ui/RouteErrorBoundary";
 // on first frame even via cold deep link.
 // Admin uses its own AdminScreenContainer + AdminNavBarBottom
 // from src/admin/. Auth + role guard here (see
-// useAdminGuard); the screen keeps its own gate as well.
+// useAdminGuard); child screens inherit that gate.
 // ============================================================
 
 function ThemedAdmin() {
@@ -41,7 +42,7 @@ function ThemedAdmin() {
     !isSignedIn ||
     !canRenderAdmin
   ) {
-    return null;
+    return <NeutralShell />;
   }
 
   return (

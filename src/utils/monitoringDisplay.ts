@@ -20,6 +20,11 @@ export const hasTemperatureReading = (
   value: number | null | undefined,
 ): value is number => hasValue(value);
 
+export const formatTemperatureStatusLabel = (
+  status: string,
+): string =>
+  status === "Critical (sensor fault)" ? "Critical" : status;
+
 export const formatMetric = (
   value: number | null | undefined,
   unit = "",
@@ -36,6 +41,32 @@ export const formatMetric = (
   return unit ? `${rendered}${unit}` : rendered;
 };
 
+export const fitTextFontSize = (
+  measuredWidth: number,
+  targetWidth: number,
+  currentFontSize: number,
+  minFontSize: number,
+): number => {
+  if (
+    !Number.isFinite(measuredWidth) ||
+    !Number.isFinite(targetWidth) ||
+    !Number.isFinite(currentFontSize) ||
+    measuredWidth <= 0 ||
+    targetWidth <= 0 ||
+    currentFontSize <= 0 ||
+    measuredWidth <= targetWidth
+  ) {
+    return currentFontSize;
+  }
+
+  return Math.max(
+    Math.min(minFontSize, currentFontSize),
+    Math.floor(
+      (currentFontSize * targetWidth) / measuredWidth,
+    ),
+  );
+};
+
 export const formatTemperature = (
   value: number | null | undefined,
 ): string => {
@@ -46,33 +77,89 @@ export const formatTemperature = (
   return `${value}°C`;
 };
 
-// Hardware heartbeats every 2s with a 1.5s HTTP timeout. The
-// monitoring row's last_seen is the single source of truth:
-// fresh for less than 5s, Offline from the 5s mark until the
-// next successful heartbeat lands.
-export const DEVICE_ONLINE_WINDOW_MS = 5 * 1000;
+// The monitoring row's device_status is the single source of
+// truth for online/offline. last_seen is for display and
+// realtime anti-rollback only.
+type LastSeenSource =
+  | { last_seen?: string | null | undefined }
+  | null
+  | undefined;
+
+export const monitoringLastSeenMs = (
+  source: LastSeenSource,
+): number => {
+  const value = source?.last_seen;
+
+  if (value == null || value === "") {
+    return Number.NEGATIVE_INFINITY;
+  }
+
+  const timestamp = Date.parse(value);
+
+  return Number.isFinite(timestamp)
+    ? timestamp
+    : Number.NEGATIVE_INFINITY;
+};
 
 export const isDeviceOnline = (
-  lastSeen: string | null | undefined,
-  _deviceStatus: DeviceStatus | string | null | undefined,
+  deviceStatus: DeviceStatus | string | null | undefined,
+): boolean => deviceStatus === "Online";
+
+export type MonitoringFreshnessReason =
+  | "ok"
+  | "missing"
+  | "offline"
+  | "expired";
+
+export interface MonitoringFreshness {
+  usable: boolean;
+  reason: MonitoringFreshnessReason;
+}
+
+type MonitoringFreshnessSource =
+  | {
+      device_status?: string | null;
+      heartbeat_expires_at?: string | null;
+    }
+  | null
+  | undefined;
+
+export const getMonitoringFreshness = (
+  source: MonitoringFreshnessSource,
   nowMs: number = Date.now(),
-): boolean => {
-  void _deviceStatus;
-
-  if (lastSeen == null || lastSeen === "") {
-    return false;
+): MonitoringFreshness => {
+  if (!source) {
+    return { usable: false, reason: "missing" };
   }
 
-  const timestamp = Date.parse(lastSeen);
-
-  if (!Number.isFinite(timestamp)) {
-    return false;
+  if (!isDeviceOnline(source.device_status)) {
+    return { usable: false, reason: "offline" };
   }
 
-  const ageMs = Math.max(0, nowMs - timestamp);
+  if (!source.heartbeat_expires_at) {
+    return { usable: false, reason: "missing" };
+  }
 
-  return ageMs < DEVICE_ONLINE_WINDOW_MS;
+  const expiresAt = Date.parse(
+    source.heartbeat_expires_at,
+  );
+
+  if (!Number.isFinite(expiresAt)) {
+    return { usable: false, reason: "missing" };
+  }
+
+  if (expiresAt <= nowMs) {
+    return { usable: false, reason: "expired" };
+  }
+
+  return { usable: true, reason: "ok" };
 };
+
+export const isDbReadingFresh = (
+  source: MonitoringFreshnessSource,
+  nowMs?: number,
+): boolean =>
+  getMonitoringFreshness(source, nowMs).usable;
 
 const SECOND_MS = 1000;
 const MINUTE_MS = 60 * 1000;

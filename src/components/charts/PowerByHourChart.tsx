@@ -6,7 +6,7 @@ import {
 } from "react";
 import {
   LayoutChangeEvent,
-  ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   View,
 } from "react-native";
@@ -107,7 +107,7 @@ export default function PowerByHourChart({
   const onLayout = (e: LayoutChangeEvent) =>
     setBoxW(e.nativeEvent.layout.width);
 
-  const scrollRef = useRef<ScrollView | null>(null);
+  const scrollRef = useRef<ScrollViewInstance | null>(null);
 
   // Always 24 buckets; pad short input so the day is complete.
   // Only every 6th hour carries an x-label to avoid crowding.

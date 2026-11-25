@@ -6,7 +6,7 @@ import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
-  TextInput,
+  type TextInputInstance,
   View,
 } from "react-native";
 
@@ -103,7 +103,7 @@ export default function LoginScreen() {
     }
   };
 
-  const passwordRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInputInstance>(null);
 
   const handleLogin = async () => {
   if (loading) {
@@ -513,7 +513,7 @@ export default function LoginScreen() {
 
               <AppText style={noticeStyles.status}>
                 {t("auth.login.testAdminUsernameLabel")}:{" "}
-                adlawatt_admin
+                admin
               </AppText>
 
               <AppText style={noticeStyles.bodyText}>

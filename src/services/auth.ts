@@ -786,10 +786,6 @@ export async function loginUser(
             };
         }
 
-        // Credential-safe: row is already scoped by user_id;
-        // never write emails/usernames into the description.
-        logAuth.loggedIn();
-
         return {
             success: true,
             user: data.user,
@@ -983,9 +979,6 @@ export async function signInWithGoogle() {
                 error: i18n.t("auth.login.sessionFailed"),
             };
         }
-
-        // Same credential-safe contract as loginUser.
-        logAuth.loggedIn();
 
         return {
             success: true,

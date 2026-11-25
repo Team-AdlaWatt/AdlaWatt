@@ -29,10 +29,7 @@ export interface AnalyticsChartCardProps {
   onFrequencyChange?: (
     frequency: ChartFrequency,
   ) => void;
-  children?: React.ReactNode;
-  loading?: boolean;
-  hasData?: boolean;
-  emptyMessage?: string;
+  children: React.ReactNode;
 }
 
 /* ============================================================
@@ -46,9 +43,6 @@ export default function AnalyticsChartCard({
   frequency,
   onFrequencyChange,
   children,
-  loading = false,
-  hasData = true,
-  emptyMessage = "No data for this range",
 }: AnalyticsChartCardProps) {
   const colors = useAppColors();
 
@@ -58,12 +52,7 @@ export default function AnalyticsChartCard({
   );
 
   return (
-    <View
-      style={[
-        styles.card,
-        styles.cardMinHeight,
-      ]}
-    >
+    <View style={styles.card}>
       {/* Header / Accent Panel */}
       <View
         style={
@@ -72,7 +61,7 @@ export default function AnalyticsChartCard({
       >
         <Ionicons
           name={icon}
-          size={26}
+          size={30}
           color={colors.headerContent}
         />
 
@@ -101,8 +90,6 @@ export default function AnalyticsChartCard({
           {subtitle}
         </AppText>
 
-        {/* Frequency (optional — omitted for range-total charts
-            like Battery Activity where grouping is invariant) */}
         {frequency && onFrequencyChange ? (
           <SlidingToggle<ChartFrequency>
             value={frequency}
@@ -126,30 +113,7 @@ export default function AnalyticsChartCard({
             styles.chartArea
           }
         >
-          {loading ? (
-            <View style={styles.placeholderContainer}>
-              <AppText
-                variant="caption"
-                style={styles.placeholderText}
-                numberOfLines={2}
-              >
-                Waiting for graph and chart data...
-              </AppText>
-            </View>
-          ) : !hasData ? (
-            <View style={styles.placeholderContainer}>
-              <AppText
-                variant="caption"
-                style={styles.placeholderText}
-                numberOfLines={2}
-
-              >
-                {emptyMessage}
-              </AppText>
-            </View>
-          ) : (
-            children
-          )}
+          {children}
         </View>
       </View>
     </View>
@@ -174,10 +138,6 @@ const getStyles = (colors: AppColors) =>
       alignItems: "stretch",
       overflow: "hidden",
       marginBottom: 18,
-    },
-
-    cardMinHeight: {
-      minHeight: 280,
     },
 
     headerPanel: {
@@ -221,26 +181,10 @@ const getStyles = (colors: AppColors) =>
       marginBottom: 14,
     },
 
-
-
     chartArea: {
       width: "100%",
+      minHeight: 200,
       alignItems: "stretch",
-      minHeight: 200,
-      justifyContent: "center",
-    },
-
-    placeholderContainer: {
-      width: "100%",
-      minHeight: 200,
-      alignItems: "center",
-      justifyContent: "center",
-      paddingHorizontal: 16,
-    },
-
-    placeholderText: {
-      color: colors.textSecondary,
-      
     },
 
     pressed: {

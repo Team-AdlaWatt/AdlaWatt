@@ -3,14 +3,18 @@
 // degrade gracefully to the unavailable copy.
 
 import {
-  DEVICE_ONLINE_WINDOW_MS,
   MISSING_VALUE,
   SENSOR_FAULT_VALUE,
   formatLastSeen,
   formatMetric,
+  fitTextFontSize,
   formatTemperature,
+  formatTemperatureStatusLabel,
+  getMonitoringFreshness,
   hasTemperatureReading,
+  isDbReadingFresh,
   isDeviceOnline,
+  monitoringLastSeenMs,
 } from "@/utils/monitoringDisplay";
 
 const NOW = Date.parse(
@@ -47,6 +51,27 @@ describe("temperature display", () => {
   });
 });
 
+describe("temperature status label", () => {
+  test("shortens only the sensor fault status for display", () => {
+    expect(
+      formatTemperatureStatusLabel(
+        "Critical (sensor fault)",
+      ),
+    ).toBe("Critical");
+    expect(
+      formatTemperatureStatusLabel(
+        "Critical (rapid rise)",
+      ),
+    ).toBe("Critical (rapid rise)");
+    expect(formatTemperatureStatusLabel("Critical")).toBe(
+      "Critical",
+    );
+    expect(formatTemperatureStatusLabel("Nominal")).toBe(
+      "Nominal",
+    );
+  });
+});
+
 describe("metric display", () => {
   test("renders values with units and null as --", () => {
     expect(formatMetric(12.6, "V")).toBe("12.6V");
@@ -64,53 +89,129 @@ describe("metric display", () => {
   });
 });
 
-describe("device online", () => {
-  test("uses last_seen as the only online signal", () => {
-    const fresh = new Date(NOW - 4_999).toISOString();
-    const boundary = new Date(
-      NOW - DEVICE_ONLINE_WINDOW_MS,
-    ).toISOString();
-    const stale = new Date(
-      NOW - DEVICE_ONLINE_WINDOW_MS - 1,
-    ).toISOString();
-
-    expect(DEVICE_ONLINE_WINDOW_MS).toBe(5_000);
-    expect(isDeviceOnline(fresh, "Online", NOW)).toBe(
-      true,
-    );
-    expect(isDeviceOnline(fresh, "Offline", NOW)).toBe(
-      true,
-    );
-    expect(isDeviceOnline(fresh, null, NOW)).toBe(true);
-    expect(isDeviceOnline(boundary, "Online", NOW)).toBe(
-      false,
-    );
-    expect(isDeviceOnline(stale, "Online", NOW)).toBe(
-      false,
-    );
-    expect(isDeviceOnline(boundary, null, NOW)).toBe(
-      false,
-    );
-    expect(isDeviceOnline(null, "Online", NOW)).toBe(
-      false,
-    );
-    expect(isDeviceOnline("", "Online", NOW)).toBe(
-      false,
-    );
-    expect(
-      isDeviceOnline("not-a-date", "Online", NOW),
-    ).toBe(false);
-    expect(isDeviceOnline(null, "Offline", NOW)).toBe(
-      false,
-    );
+describe("fit text font size", () => {
+  test("keeps the current size when the text already fits", () => {
+    expect(fitTextFontSize(80, 88, 30, 10)).toBe(30);
+    expect(fitTextFontSize(88, 88, 30, 10)).toBe(30);
+    expect(fitTextFontSize(0, 88, 30, 10)).toBe(30);
   });
 
-  test("treats future clock skew as fresh", () => {
-    const future = new Date(NOW + 2_000).toISOString();
+  test("shrinks long values proportionally", () => {
+    expect(fitTextFontSize(140, 88, 30, 10)).toBe(18);
+    expect(fitTextFontSize(98, 88, 21, 10)).toBe(18);
+  });
 
-    expect(isDeviceOnline(future, "Offline", NOW)).toBe(
-      true,
+  test("never shrinks below the minimum", () => {
+    expect(fitTextFontSize(400, 88, 18, 10)).toBe(10);
+    expect(fitTextFontSize(400, 88, 8, 10)).toBe(8);
+  });
+});
+
+describe("device online", () => {
+  test("uses device_status as the only online signal", () => {
+    expect(isDeviceOnline("Online")).toBe(true);
+    expect(isDeviceOnline("Offline")).toBe(false);
+    expect(isDeviceOnline(null)).toBe(false);
+    expect(isDeviceOnline(undefined)).toBe(false);
+    expect(isDeviceOnline("")).toBe(false);
+    expect(isDeviceOnline("ONLINE")).toBe(false);
+    expect(isDeviceOnline("Connecting")).toBe(false);
+  });
+});
+
+describe("monitoring snapshot freshness", () => {
+  test("parses last_seen and ranks missing/invalid as oldest", () => {
+    const older = new Date(NOW - 4_000).toISOString();
+    const newer = new Date(NOW - 2_000).toISOString();
+
+    expect(monitoringLastSeenMs({ last_seen: older })).toBe(
+      NOW - 4_000,
     );
+    expect(
+      monitoringLastSeenMs({ last_seen: newer }) >
+        monitoringLastSeenMs({ last_seen: older }),
+    ).toBe(true);
+    expect(monitoringLastSeenMs({ last_seen: null })).toBe(
+      Number.NEGATIVE_INFINITY,
+    );
+    expect(monitoringLastSeenMs({ last_seen: "" })).toBe(
+      Number.NEGATIVE_INFINITY,
+    );
+    expect(
+      monitoringLastSeenMs({ last_seen: "not-a-date" }),
+    ).toBe(Number.NEGATIVE_INFINITY);
+    expect(monitoringLastSeenMs(null)).toBe(
+      Number.NEGATIVE_INFINITY,
+    );
+    expect(monitoringLastSeenMs(undefined)).toBe(
+      Number.NEGATIVE_INFINITY,
+    );
+  });
+});
+
+describe("database reading freshness", () => {
+  const freshRow = {
+    device_status: "Online",
+    heartbeat_expires_at: new Date(
+      NOW + 5_000,
+    ).toISOString(),
+  };
+
+  test("accepts only Online rows with unexpired heartbeats", () => {
+    expect(
+      getMonitoringFreshness(freshRow, NOW),
+    ).toEqual({ usable: true, reason: "ok" });
+    expect(
+      isDbReadingFresh(freshRow, NOW),
+    ).toBe(true);
+  });
+
+  test("rejects offline, expired, missing, and invalid rows", () => {
+    expect(
+      getMonitoringFreshness(
+        {
+          ...freshRow,
+          device_status: "Offline",
+        },
+        NOW,
+      ),
+    ).toEqual({ usable: false, reason: "offline" });
+
+    expect(
+      getMonitoringFreshness(
+        {
+          ...freshRow,
+          heartbeat_expires_at: new Date(
+            NOW - 1,
+          ).toISOString(),
+        },
+        NOW,
+      ),
+    ).toEqual({ usable: false, reason: "expired" });
+
+    expect(
+      getMonitoringFreshness(
+        {
+          device_status: "Online",
+          heartbeat_expires_at: null,
+        },
+        NOW,
+      ),
+    ).toEqual({ usable: false, reason: "missing" });
+
+    expect(
+      getMonitoringFreshness(
+        {
+          device_status: "Online",
+          heartbeat_expires_at: "not-a-date",
+        },
+        NOW,
+      ),
+    ).toEqual({ usable: false, reason: "missing" });
+
+    expect(
+      getMonitoringFreshness(null, NOW),
+    ).toEqual({ usable: false, reason: "missing" });
   });
 });
 

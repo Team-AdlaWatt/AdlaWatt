@@ -7,7 +7,7 @@ What you do well already:
 * Live path works: `src/services/monitoringService.ts` + `notificationService.ts` (transition-gated + 10/5-min cooldowns) + `send-alert-email` Edge Function.
 * Recommendation engine `src/services/recommendation.ts` is pure/testable — good design.
 * Analytics screen wires 17 charts (post appliance-usage removal); `README.md` now documents all of them (see 10).
-* Admin scaffold exists (`src/admin/components/AdminDashboardScreen.tsx`), `supabase/migrations/20261007*user_roles.sql`, `appliance-images` bucket + `MediaPickerModal.tsx`, vibration, Google auth, forgot-password — done in code, still listed as missing in `README.md`.
+* Active admin monitoring exists (`src/admin/components/AdminDashboardScreen.tsx`), `supabase/migrations/20261007*user_roles.sql`, `appliance-images` bucket + `MediaPickerModal.tsx`, vibration, Google auth, forgot-password — done in code and documented in `README.md`.
 * ✅ NEW since last review: Porch catalog photos (`cctv-camera.png`, `porch-lantern.png` wired in `CATALOG_IMAGES`) — Porch no longer falls back to the default icon.
 
 +-----+----------+------------------------------+------------+----------------------------------------------------------+
@@ -113,10 +113,10 @@ What you do well already:
 |     |          |                              |            | (low-battery auto-cutoff, remote fan toggle via a        |
 |     |          |                              |            | `device_commands` table) moves to future improvements.   |
 +-----+----------+------------------------------+------------+----------------------------------------------------------+
-| 13  | P2       | No device pairing flow       | ✅ Done    | Closed as out of scope: no QR/Wi-Fi provisioning. Units  |
-|     |          |                              |            | are researcher-provisioned and the in-app manual         |
-|     |          |                              |            | documents that honestly; a pairing flow moves to future  |
-|     |          |                              |            | improvements.                                            |
+| 13  | P2       | No device pairing flow       | ✅ Done    | BLE provisioning shipped: the Add Device screen scans    |
+|     |          |                              |            | for AdlaWatt-AW-01, verifies the account monitor ID, and |
+|     |          |                              |            | sends Wi-Fi credentials over the Nordic UART GATT        |
+|     |          |                              |            | contract implemented by the ESP32-S3 firmware.          |
 +-----+----------+------------------------------+------------+----------------------------------------------------------+
 | 14  | P2       | Missing insights             | ✅ Done    | Closed as deferred scope: the 17 charts plus report KPIs |
 |     |          |                              |            | (net energy, in/out, lowest battery, uptime, solar hours,|

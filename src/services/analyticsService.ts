@@ -1,5 +1,4 @@
 import {
-  Image,
   Platform,
 } from "react-native";
 
@@ -33,10 +32,6 @@ function getAutoTable(): typeof autoTableType {
   const mod = require("jspdf-autotable");
 
   return mod.default ?? mod;
-}
-
-function getReportLogo(): number {
-  return require("@/assets/images/adlawatt-logo.png");
 }
 
 /* ==========================================================
@@ -73,8 +68,6 @@ export interface MonitoringHistoryRow {
   current_load: number | null;
   device_status: string | null;
   last_seen: string | null;
-  battery_temperature: number | null;
-  battery_temperature_status: string | null;
   dod_status: string | null;
   solar_temperature: number | null;
   solar_temperature_status: string | null;
@@ -104,15 +97,53 @@ export interface MonitoringBucket {
   rows: MonitoringHistoryRow[];
 }
 
+export interface AnalyticsMetricPoint {
+  label: string;
+  value: number;
+}
+
+export interface SolarAnalyticsPoint
+  extends AnalyticsMetricPoint {
+  energyWh: number;
+  solarInputW: number;
+  peakW: number;
+  peakHours: number;
+  chargeStart: string | null;
+}
+
+export interface LoadAnalyticsPoint
+  extends AnalyticsMetricPoint {
+  energyWh: number;
+  avgW: number;
+  peakW: number;
+  avgVoltage: number;
+}
+
+export interface BatteryAnalyticsPoint
+  extends AnalyticsMetricPoint {
+  avgVoltage: number;
+  minVoltage: number;
+  maxVoltage: number;
+}
+
+export interface AnalyticsCardData {
+  frequency: ChartFrequency;
+  range: AnalyticsRange;
+  solar: SolarAnalyticsPoint[];
+  load: LoadAnalyticsPoint[];
+  activity: BatteryActivitySlice[];
+}
+
+export interface AnalyticsReportSection {
+  key: "solar" | "load" | "activity" | "report";
+  title: string;
+  headers: string[];
+  rows: (string | number)[][];
+}
+
 export type BatteryHealthStatus =
   | "Safe"
   | "Unsafe";
-
-export interface HealthCell {
-  date: Date;
-  temperature: number;
-  status: string;
-}
 
 /* ============================================================
    REPORT TYPES
@@ -131,9 +162,6 @@ export interface ReportSummary {
   averageCurrentLoad: number;
   maximumCurrentLoad: number;
 
-  averageBatteryTemperature: number;
-  maximumBatteryTemperature: number;
-
   averageSolarTemperature: number;
   maximumSolarTemperature: number;
 
@@ -145,9 +173,6 @@ export interface ReportSummary {
   latestSolarInput: number;
   latestSolarStatus: string;
   latestCurrentLoad: number;
-
-  latestBatteryTemperature: number;
-  latestBatteryTemperatureStatus: string;
 
   latestSolarTemperature: number;
   latestSolarTemperatureStatus: string;
@@ -175,8 +200,6 @@ export interface ReportMonitoringRow {
   currentLoad: string;
   deviceStatus: string;
   lastSeen: string;
-  batteryTemperature: string;
-  batteryTemperatureStatus: string;
   dodStatus: string;
   solarTemperature: string;
   solarTemperatureStatus: string;
@@ -213,6 +236,13 @@ export interface AnalyticsReportData {
    * the files carry insight, not just raw columns.
    */
   kpis: ReportKpi[];
+
+  /*
+   * Four-section export model shared by CSV, web PDF and native
+   * PDF: Solar Energy, Load Energy, Battery Activity and the
+   * Generate Report metadata block.
+   */
+  sections: AnalyticsReportSection[];
 
   reportTitle: string;
   reportSubtitle: string;
@@ -268,7 +298,6 @@ export interface ReportPeriodRow {
   temperatureAlertCount: number;
   sunHours: number;
 
-  avgBatteryTemperature: number;
   avgSolarTemperature: number;
 }
 
@@ -283,24 +312,9 @@ export interface ReportPeriodRow {
  * chart card and the CSV/PDF export derive from the same
  * in-memory row array, and a full year of 5-minute samples
  * (~100k rows) is what greyscreens low-memory Android devices
- * and OOMs the export string. The longer windows stay available
- * through the preset chips instead of being the default.
+ * and OOMs the export string.
  */
 export const DEFAULT_DAYS = 30;
-
-/*
- * Quick range presets shown above the report date pickers. The
- * last entry restores the old full-year view on demand.
- */
-export const ANALYTICS_PRESETS: {
-  label: string;
-  days: number;
-}[] = [
-  { label: "7D", days: 7 },
-  { label: "30D", days: 30 },
-  { label: "90D", days: 90 },
-  { label: "1Y", days: 365 },
-];
 
 // PostgREST caps a single response (default 1000 rows), so
 // long history ranges must be walked page by page.
@@ -338,6 +352,30 @@ export const REPORT_FREQUENCIES: ReportFrequency[] = [
   "Monthly",
   "Yearly",
 ];
+
+/*
+ * Each frequency controls both its rolling window and how its
+ * X axis is bucketed: days, weeks, months, or years.
+ */
+export const ANALYTICS_RANGE_DAYS: Record<
+  ChartFrequency,
+  number
+> = {
+  Daily: 30,
+  Weekly: 90,
+  Monthly: 365,
+  Yearly: 1825,
+};
+
+export const ANALYTICS_BUCKET_FREQUENCIES: Record<
+  ChartFrequency,
+  ChartFrequency
+> = {
+  Daily: "Daily",
+  Weekly: "Weekly",
+  Monthly: "Monthly",
+  Yearly: "Yearly",
+};
 
 /* ============================================================
    BASIC DATA HELPERS
@@ -428,6 +466,18 @@ function getOnlineRows(
   rows: MonitoringHistoryRow[],
 ): MonitoringHistoryRow[] {
   return rows.filter(isOnlineRow);
+}
+
+function finiteNonNegativeValues(
+  values: (number | null)[],
+): number[] {
+  return values
+    .filter(
+      (value): value is number =>
+        typeof value === "number" &&
+        Number.isFinite(value),
+    )
+    .map((value) => Math.max(0, value));
 }
 
 /*
@@ -698,24 +748,330 @@ export function getDefaultRange():
   };
 }
 
-export function createPresetRange(
-  days: number,
+export function getAnalyticsDayAnchor(
+  date: Date,
+): Date {
+  const anchor = new Date(date);
+  anchor.setHours(0, 0, 0, 0);
+  return anchor;
+}
+
+export function createFrequencyRange(
+  frequency: ChartFrequency,
+  now: Date = new Date(),
 ): AnalyticsRange {
   const end =
-    new Date();
+    new Date(now);
 
   const start =
     new Date(end);
 
   start.setDate(
     start.getDate() -
-      days,
+      ANALYTICS_RANGE_DAYS[
+        frequency
+      ],
   );
 
   return {
     start,
     end,
   };
+}
+
+export function filterMonitoringHistoryByRange(
+  monitoringHistory: MonitoringHistoryRow[],
+  range: AnalyticsRange,
+): MonitoringHistoryRow[] {
+  const start = range.start.getTime();
+  const end = getInclusiveRangeEnd(range).getTime();
+
+  return monitoringHistory.filter((row) => {
+    const recorded = new Date(
+      row.recorded_at,
+    ).getTime();
+
+    return (
+      Number.isFinite(recorded) &&
+      recorded >= start &&
+      recorded <= end
+    );
+  });
+}
+
+export function formatAnalyticsBucketLabel(
+  date: Date,
+  frequency: ChartFrequency,
+): string {
+  return formatDateLabel(
+    date,
+    frequency,
+  );
+}
+
+export function groupMonitoringHistoryForAnalytics(
+  monitoringHistory: MonitoringHistoryRow[],
+  frequency: ChartFrequency,
+): MonitoringBucket[] {
+  return groupMonitoringHistory(
+    monitoringHistory,
+    ANALYTICS_BUCKET_FREQUENCIES[
+      frequency
+    ],
+  );
+}
+
+function formatChargeStartTime(
+  value: string,
+): string {
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime(),
+    )
+  ) {
+    return "—";
+  }
+
+  return date.toLocaleTimeString(
+    "en-US",
+    {
+      hour: "numeric",
+      minute: "2-digit",
+    },
+  );
+}
+
+function findChargeStart(
+  rows: MonitoringHistoryRow[],
+): string | null {
+  let wasCharging = false;
+
+  const ordered = [...rows].sort(
+    (a, b) =>
+      new Date(
+        a.recorded_at,
+      ).getTime() -
+      new Date(
+        b.recorded_at,
+      ).getTime(),
+  );
+
+  for (const row of ordered) {
+    const charging =
+      String(
+        row.battery_status ?? "",
+      )
+        .toLowerCase()
+        .includes("charg");
+
+    if (charging && !wasCharging) {
+      return row.recorded_at;
+    }
+
+    wasCharging = charging;
+  }
+
+  return null;
+}
+
+export function buildAnalyticsCardData(
+  monitoringHistory: MonitoringHistoryRow[],
+  frequency: ChartFrequency,
+  range: AnalyticsRange,
+): AnalyticsCardData {
+  const buckets =
+    groupMonitoringHistoryForAnalytics(
+      monitoringHistory,
+      frequency,
+    );
+
+  const solar: SolarAnalyticsPoint[] =
+    buckets.map((bucket) => {
+      const onlineRows =
+        getOnlineRows(bucket.rows);
+
+      const solarInputs =
+        finiteNonNegativeValues(
+          onlineRows.map((row) =>
+            row.solar_input,
+          ),
+        );
+
+      const solarInputW =
+        average(solarInputs);
+
+      const peakHours =
+        onlineRows.reduce(
+          (peak, row) =>
+            Math.max(
+              peak,
+              parseSolarTimerHours(
+                row.solar_timer,
+              ),
+            ),
+          0,
+        );
+
+      const chargeStart =
+        findChargeStart(bucket.rows);
+
+      const energyWh = bucket.rows.reduce(
+        (sum, row) =>
+          sum +
+          Math.max(
+            0,
+            toNumber(
+              row.energy_input_wh,
+            ),
+          ),
+        0,
+      );
+
+      const peakW = maximum(solarInputs);
+
+      const label =
+        formatAnalyticsBucketLabel(
+          bucket.date,
+          frequency,
+        );
+
+      return {
+        label,
+        value: solarInputW,
+        energyWh,
+        solarInputW,
+        peakW,
+        peakHours,
+        chargeStart:
+          chargeStart
+            ? formatChargeStartTime(
+                chargeStart,
+              )
+            : null,
+      };
+    });
+
+  const load: LoadAnalyticsPoint[] =
+    buckets.map((bucket) => {
+      const onlineRows =
+        getOnlineRows(bucket.rows);
+
+      const energyWh = bucket.rows.reduce(
+        (sum, row) =>
+          sum +
+          Math.max(
+            0,
+            toNumber(
+              row.energy_output_wh,
+            ),
+          ),
+        0,
+      );
+
+      const loads =
+        finiteNonNegativeValues(
+          onlineRows.map((row) =>
+            row.current_load,
+          ),
+        );
+
+      const avgW = average(loads);
+
+      const avgVoltage = average(
+        finiteNonNegativeValues(
+          onlineRows.map((row) =>
+            row.voltage,
+          ),
+        ),
+      );
+
+      const label =
+        formatAnalyticsBucketLabel(
+          bucket.date,
+          frequency,
+        );
+
+      return {
+        label,
+        value: avgW,
+        energyWh,
+        avgW,
+        peakW: maximum(loads),
+        avgVoltage,
+      };
+    });
+
+  return {
+    frequency,
+    range,
+    solar,
+    load,
+    activity: getBatteryActivityData(buckets),
+  };
+}
+
+export function buildReportSections(
+  data: AnalyticsCardData,
+): AnalyticsReportSection[] {
+  return [
+    {
+      key: "solar",
+      title: "SOLAR ENERGY",
+      headers: [
+        "Period",
+        "Energy Collected (Wh)",
+        "Peak Output (W)",
+        "Peak Sun (h)",
+        "Charge Start",
+      ],
+      rows: data.solar.map((point) => [
+        point.label,
+        formatNumber(point.energyWh),
+        formatNumber(point.peakW),
+        formatNumber(point.peakHours),
+        point.chargeStart ?? "—",
+      ]),
+    },
+    {
+      key: "load",
+      title: "LOAD ENERGY",
+      headers: [
+        "Period",
+        "Energy Used (Wh)",
+        "Average Load (W)",
+        "Peak Load (W)",
+      ],
+      rows: data.load.map((point) => [
+        point.label,
+        formatNumber(point.energyWh),
+        formatNumber(point.avgW),
+        formatNumber(point.peakW),
+      ]),
+    },
+    {
+      key: "activity",
+      title: "BATTERY ACTIVITY",
+      headers: ["Activity", "Samples", "Share (%)"],
+      rows: data.activity.map((slice) => [
+        slice.label,
+        slice.value,
+        `${slice.percent}%`,
+      ]),
+    },
+    {
+      key: "report",
+      title: "GENERATE REPORT",
+      headers: ["Field", "Value"],
+      rows: [
+        ["Frequency", data.frequency],
+        ["From Date", formatReportDate(data.range.start)],
+        ["To Date", formatReportDate(data.range.end)],
+      ],
+    },
+  ];
 }
 
 /*
@@ -882,17 +1238,6 @@ export function formatMonitoringReportRows(
           )
         : "N/A",
 
-      batteryTemperature:
-        formatNumber(
-          toNumber(
-            row.battery_temperature,
-          ),
-        ),
-
-      batteryTemperatureStatus:
-        row.battery_temperature_status ??
-        "Unknown",
-
       solarTemperature:
         formatNumber(
           toNumber(
@@ -1054,14 +1399,6 @@ export function createReportSummary(
         ),
     );
 
-  const batteryTemperatures =
-    onlineHistory.map(
-      (row) =>
-        toNumber(
-          row.battery_temperature,
-        ),
-    );
-
   const solarTemperatures =
     onlineHistory.map(
       (row) =>
@@ -1140,16 +1477,6 @@ export function createReportSummary(
         currentLoads,
       ),
 
-    averageBatteryTemperature:
-      average(
-        batteryTemperatures,
-      ),
-
-    maximumBatteryTemperature:
-      maximum(
-        batteryTemperatures,
-      ),
-
     averageSolarTemperature:
       average(
         solarTemperatures,
@@ -1202,17 +1529,6 @@ export function createReportSummary(
             ),
           )
         : 0,
-
-    latestBatteryTemperature:
-      latest
-        ? toNumber(
-            latest.battery_temperature,
-          )
-        : 0,
-
-    latestBatteryTemperatureStatus:
-      latest?.battery_temperature_status ??
-      "No data",
 
     latestSolarTemperature:
       latest
@@ -1361,12 +1677,6 @@ export function buildReportPeriods(
     reportFrequency,
   );
 
-  const batteryTemperature =
-    getBatteryTemperatureData(
-      buckets,
-      reportFrequency,
-    );
-
   const solarTemperature =
     getSolarTemperatureData(
       buckets,
@@ -1406,8 +1716,6 @@ export function buildReportPeriods(
       alerts[index]?.value ?? 0,
     sunHours: sunHours[index]?.value ?? 0,
 
-    avgBatteryTemperature:
-      batteryTemperature[index]?.value ?? 0,
     avgSolarTemperature:
       solarTemperature[index]?.value ?? 0,
   }));
@@ -1458,12 +1766,6 @@ export function buildReportKpis(
     }
 
     if (
-      ALERT_TEMPERATURE_STATUSES.has(
-        String(
-          row.battery_temperature_status ??
-            "",
-        ),
-      ) ||
       ALERT_TEMPERATURE_STATUSES.has(
         String(
           row.solar_temperature_status ??
@@ -1674,6 +1976,16 @@ export function prepareReportData(
     summary,
   );
 
+  const cardData =
+    buildAnalyticsCardData(
+      monitoringHistory,
+      reportFrequency,
+      range,
+    );
+
+  const sections =
+    buildReportSections(cardData);
+
   return {
     frequency:
       reportFrequency,
@@ -1689,6 +2001,8 @@ export function prepareReportData(
     summary,
 
     kpis,
+
+    sections,
 
     reportTitle:
       "AdlaWatt Analytics Report",
@@ -1841,8 +2155,6 @@ export async function loadAnalyticsData(
                 "current_load",
                 "device_status",
                 "last_seen",
-                "battery_temperature",
-                "battery_temperature_status",
                 "dod_status",
                 "solar_temperature",
                 "solar_temperature_status",
@@ -2048,6 +2360,7 @@ export interface UnsafeBarPoint {
 export type BatteryActivityKey =
   | "charging"
   | "discharging"
+  | "cycle"
   | "idle";
 
 export interface BatteryActivitySlice {
@@ -2062,6 +2375,7 @@ export function getBatteryActivityData(
 ): BatteryActivitySlice[] {
   let charging = 0;
   let discharging = 0;
+  let cycle = 0;
   let idle = 0;
 
   groupedMonitoring.forEach(
@@ -2086,6 +2400,10 @@ export function getBatteryActivityData(
           ) {
             discharging += 1;
           } else if (
+            status === "cycle"
+          ) {
+            cycle += 1;
+          } else if (
             status === "idle"
           ) {
             idle += 1;
@@ -2098,6 +2416,7 @@ export function getBatteryActivityData(
   const total =
     charging +
     discharging +
+    cycle +
     idle;
 
   const toPercent = (
@@ -2125,6 +2444,12 @@ export function getBatteryActivityData(
       percent: toPercent(
         discharging,
       ),
+    },
+    {
+      key: "cycle",
+      label: "Cycle",
+      value: cycle,
+      percent: toPercent(cycle),
     },
     {
       key: "idle",
@@ -2399,33 +2724,6 @@ export function getSolarCoverageData(
           ),
       };
     },
-  );
-}
-
-export function getBatteryTemperatureData(
-  groupedMonitoring: MonitoringBucket[],
-  chartFrequency: ChartFrequency,
-): ChartPoint[] {
-  return groupedMonitoring.map(
-    (bucket) => ({
-      value:
-        average(
-          getOnlineRows(
-            bucket.rows,
-          ).map(
-            (row) =>
-              toNumber(
-                row.battery_temperature,
-              ),
-          ),
-        ),
-
-      label:
-        formatDateLabel(
-          bucket.date,
-          chartFrequency,
-        ),
-    }),
   );
 }
 
@@ -2798,66 +3096,6 @@ export function getSolarCurveByHourData(
   }));
 }
 
-const TEMPERATURE_STATUS_RANK: Record<
-  string,
-  number
-> = {
-  Nominal: 0,
-  Elevated: 1,
-  High: 2,
-  Critical: 3,
-};
-
-export function getTemperatureHealthData(
-  groupedMonitoring: MonitoringBucket[],
-  chartFrequency: ChartFrequency,
-): HealthCell[] {
-  return groupedMonitoring.map(
-    (bucket) => {
-      const onlineRows = getOnlineRows(
-        bucket.rows,
-      );
-
-      let status =
-        "Nominal";
-
-      onlineRows.forEach(
-        (row) => {
-          const rowStatus =
-            row.battery_temperature_status ??
-            "Nominal";
-
-          if (
-            TEMPERATURE_STATUS_RANK[
-              rowStatus
-            ] >
-            TEMPERATURE_STATUS_RANK[
-              status
-            ]
-          ) {
-            status = rowStatus;
-          }
-        },
-      );
-
-      return {
-        date: bucket.date,
-        temperature:
-          average(
-            onlineRows.map(
-              (row) =>
-                toNumber(
-                  row.battery_temperature,
-                ),
-            ),
-          ),
-
-        status,
-      };
-    },
-  );
-}
-
 export function getDoDStatus(
   batteryLevel: number,
 ): BatteryHealthStatus {
@@ -2884,7 +3122,7 @@ const ALERT_TEMPERATURE_STATUSES = new Set([
 
 /*
  * Temperature alerts: per-bucket count of rows where the
- * battery OR solar temperature status is High/Critical.
+ * solar OR interior temperature status is High/Critical.
  */
 export function getTemperatureAlertsData(
   groupedMonitoring: MonitoringBucket[],
@@ -2896,9 +3134,6 @@ export function getTemperatureAlertsData(
         bucket.rows,
       ).filter(
         (row) =>
-          ALERT_TEMPERATURE_STATUSES.has(
-            String(row.battery_temperature_status ?? ""),
-          ) ||
           ALERT_TEMPERATURE_STATUSES.has(
             String(row.solar_temperature_status ?? ""),
           ) ||
@@ -3056,59 +3291,6 @@ export function getPowerByHourData(
    ANALYTICS RANGE PROCESSING
    ============================================================ */
 
-export function getChartLimits(
-  solarChartData: ChartPoint[],
-  energyInputChartData: ChartPoint[],
-  energyOutputChartData: ChartPoint[],
-  batteryTemperatureData: ChartPoint[],
-  solarTemperatureData: ChartPoint[],
-): {
-  solarMax: number;
-  energyInputMax: number;
-  temperatureMax: number;
-} {
-  const solarMax =
-    Math.max(
-      100,
-      ...solarChartData.map(
-        (item) =>
-          item.value,
-      ),
-    );
-
-  const energyInputMax =
-    Math.max(
-      10,
-      ...energyInputChartData.map(
-        (item) =>
-          item.value,
-      ),
-      ...energyOutputChartData.map(
-        (item) =>
-          item.value,
-      ),
-    );
-
-  const temperatureMax =
-    Math.max(
-      40,
-      ...batteryTemperatureData.map(
-        (item) =>
-          item.value,
-      ),
-      ...solarTemperatureData.map(
-        (item) =>
-          item.value,
-      ),
-    );
-
-  return {
-    solarMax,
-    energyInputMax,
-    temperatureMax,
-  };
-}
-
 /* ============================================================
    NEXT BUCKET HELPER
    ============================================================ */
@@ -3133,301 +3315,11 @@ export function getBucketRange(
    REPORT CSV GENERATION
    ============================================================ */
 
-/**
- * Creates the complete AdlaWatt CSV report.
- *
- * CSV is used instead of pretending to create a native .xlsx file.
- * Excel, Google Sheets, and other spreadsheet applications can
- * open the resulting CSV file directly.
- */
+
+
 export function generateAdlaWattCsv(
   reportData: AnalyticsReportData,
 ): string {
-  const summaryHeaders = [
-    "Metric",
-    "Value",
-  ];
-
-  const summaryRows = [
-    [
-      "Report Frequency",
-      reportData.frequency,
-    ],
-
-    [
-      "Start Date",
-      formatReportDate(
-        reportData.range.start,
-      ),
-    ],
-
-    [
-      "End Date",
-      formatReportDate(
-        reportData.range.end,
-      ),
-    ],
-
-    [
-      "Monitoring Records",
-      reportData.summary.sampleCount,
-    ],
-
-    [
-      "Average Battery Level (%)",
-      formatNumber(
-        reportData.summary
-          .averageBatteryLevel,
-      ),
-    ],
-
-    [
-      "Minimum Battery Level (%)",
-      formatNumber(
-        reportData.summary
-          .minimumBatteryLevel,
-      ),
-    ],
-
-    [
-      "Maximum Battery Level (%)",
-      formatNumber(
-        reportData.summary
-          .maximumBatteryLevel,
-      ),
-    ],
-
-    [
-      "Average Solar Input (W)",
-      formatNumber(
-        reportData.summary
-          .averageSolarInput,
-      ),
-    ],
-
-    [
-      "Maximum Solar Input (W)",
-      formatNumber(
-        reportData.summary
-          .maximumSolarInput,
-      ),
-    ],
-
-    [
-      "Average Current Load (W)",
-      formatNumber(
-        reportData.summary
-          .averageCurrentLoad,
-      ),
-    ],
-
-    [
-      "Maximum Current Load (W)",
-      formatNumber(
-        reportData.summary
-          .maximumCurrentLoad,
-      ),
-    ],
-
-    [
-      "Average Battery Temperature (C)",
-      formatNumber(
-        reportData.summary
-          .averageBatteryTemperature,
-      ),
-    ],
-
-    [
-      "Maximum Battery Temperature (C)",
-      formatNumber(
-        reportData.summary
-          .maximumBatteryTemperature,
-      ),
-    ],
-
-    [
-      "Average Solar Temperature (C)",
-      formatNumber(
-        reportData.summary
-          .averageSolarTemperature,
-      ),
-    ],
-
-    [
-      "Maximum Solar Temperature (C)",
-      formatNumber(
-        reportData.summary
-          .maximumSolarTemperature,
-      ),
-    ],
-
-    [
-      "Total Energy Input (Wh)",
-      formatNumber(
-        reportData.summary
-          .totalEnergyInputWh,
-      ),
-    ],
-
-    [
-      "Total Energy Output (Wh)",
-      formatNumber(
-        reportData.summary
-          .totalEnergyOutputWh,
-      ),
-    ],
-  ];
-
-  const kpiHeaders = [
-    "KPI",
-    "Value",
-    "Unit",
-    "Note",
-  ];
-
-  const kpiRows = reportData.kpis.map(
-    (entry) => [
-      entry.label,
-      entry.value,
-      entry.unit ?? "",
-      entry.hint ?? "",
-    ],
-  );
-
-  const periodHeaders = [
-    "Period",
-    "Samples",
-    "Avg Battery %",
-    "Min Battery %",
-    "Max Battery %",
-    "Avg Solar W",
-    "Max Solar W",
-    "Energy In Wh",
-    "Energy Out Wh",
-    "Net Energy Wh",
-    "Running Balance Wh",
-    "Solar Coverage %",
-    "Avg Load W",
-    "Peak Load W",
-    "Uptime %",
-    "Unsafe Samples",
-    "Temp Alerts",
-    "Sun Hours",
-    "Avg Battery C",
-    "Avg Solar C",
-  ];
-
-  const periodRows = reportData.periods.map(
-    (period) => [
-      period.periodLabel,
-      period.sampleCount,
-      formatNumber(period.avgBatteryLevel),
-      formatNumber(period.minBatteryLevel),
-      formatNumber(period.maxBatteryLevel),
-      formatNumber(period.avgSolarInput),
-      formatNumber(period.maxSolarInput),
-      formatNumber(period.energyInputWh),
-      formatNumber(period.energyOutputWh),
-      formatNumber(period.netEnergyWh),
-      formatNumber(
-        period.runningBalanceWh,
-      ),
-      formatNumber(
-        period.solarCoveragePct,
-      ),
-      formatNumber(period.avgLoadW),
-      formatNumber(period.peakLoadW),
-      formatNumber(period.uptimePct),
-      period.unsafeSampleCount,
-      period.temperatureAlertCount,
-      formatNumber(period.sunHours),
-      formatNumber(
-        period.avgBatteryTemperature,
-      ),
-      formatNumber(
-        period.avgSolarTemperature,
-      ),
-    ],
-  );
-
-  /*
-   * Full-parity monitoring columns: every meaningful
-   * monitoring_history field, not just the subset the PDF table
-   * shows. This is the dataset users analyse in a spreadsheet.
-   */
-  const monitoringHeaders = [
-    "Recorded At",
-    "Battery %",
-    "Battery",
-    "DoD Status",
-    "Time Remaining",
-    "Solar W",
-    "Solar Status",
-    "Sol Timer",
-    "Sol V",
-    "Sol A",
-    "Total Wh",
-    "Load W",
-    "Device",
-    "Last Seen",
-    "Battery C",
-    "Battery Temp Status",
-    "Solar C",
-    "Solar Temp Status",
-    "Interior C",
-    "Interior Temp Status",
-    "Voltage",
-    "Watt Hours",
-    "Energy In Wh",
-    "Energy Out Wh",
-    "Cumulative In Wh",
-    "Cumulative Out Wh",
-  ];
-
-  const monitoringCsvRows =
-    reportData.monitoringRows
-      .slice(0, CSV_MAX_ROWS)
-      .map((row) => [
-        row.recordedAt,
-        row.batteryLevel,
-        row.batteryStatus,
-        row.dodStatus,
-        row.timeRemaining,
-        row.solarInput,
-        row.solarStatus,
-        row.solarTimer,
-        row.solarVoltage,
-        row.solarCurrent,
-        row.totalEnergy,
-        row.currentLoad,
-        row.deviceStatus,
-        row.lastSeen,
-        row.batteryTemperature,
-        row.batteryTemperatureStatus,
-        row.solarTemperature,
-        row.solarTemperatureStatus,
-        row.interiorTemp,
-        row.interiorTempStatus,
-        row.voltage,
-        row.wattHours,
-        row.energyInputWh,
-        row.energyOutputWh,
-        row.cumulativeEnergyInputWh,
-        row.cumulativeEnergyOutputWh,
-      ]);
-
-  const totalMonitoringRows =
-    reportData.monitoringRows.length;
-
-  const monitoringTruncated =
-    totalMonitoringRows >
-    CSV_MAX_ROWS;
-
-  /*
-   * Each block is padded to its OWN column count (not one global
-   * width) so a 2-column summary and a 24-column history can
-   * coexist as clean aligned grids without trailing-comma bloat.
-   */
   const renderBlock = (
     rows: (string | number)[][],
     width: number,
@@ -3448,49 +3340,30 @@ export function generateAdlaWattCsv(
       })
       .join("\n");
 
-  return [
-    renderBlock(
-      [
-        [reportData.reportTitle],
-        [reportData.reportSubtitle],
-        [],
-        summaryHeaders,
-        ...summaryRows,
+  const blocks = [
+    [
+      reportData.reportTitle,
+      reportData.reportSubtitle,
+    ],
+    ...reportData.sections.flatMap(
+      (section) => [
+        [section.title],
+        section.headers,
+        ...section.rows,
       ],
-      summaryHeaders.length,
     ),
-    renderBlock(
-      [
-        ["DERIVED ANALYTICS KPIs"],
-        kpiHeaders,
-        ...kpiRows,
-      ],
-      kpiHeaders.length,
+  ];
+
+  const width = Math.max(
+    ...blocks.map(
+      (block) => block.length,
     ),
-    renderBlock(
-      [
-        ["AGGREGATED PERIODS"],
-        periodHeaders,
-        ...periodRows,
-      ],
-      periodHeaders.length,
-    ),
-    renderBlock(
-      [
-        ["MONITORING HISTORY"],
-        monitoringHeaders,
-        ...monitoringCsvRows,
-        ...(monitoringTruncated
-          ? [
-              [
-                `Showing first ${CSV_MAX_ROWS} of ${totalMonitoringRows} records — narrow the date range for the complete dataset.`,
-              ],
-            ]
-          : []),
-      ],
-      monitoringHeaders.length,
-    ),
-  ].join("\n\n");
+  );
+
+  return renderBlock(
+    blocks,
+    width,
+  );
 }
 
 /* ============================================================
@@ -3555,174 +3428,6 @@ const PDF_TEXT: [
   55,
 ];
 
-const PDF_MUTED: [
-  number,
-  number,
-  number,
-] = [
-  117,
-  117,
-  117,
-];
-
-const PDF_BORDER: [
-  number,
-  number,
-  number,
-] = [
-  216,
-  210,
-  194,
-];
-
-function getPdfStatusColor(
-  status: string,
-): [number, number, number] {
-  const normalized =
-    status
-      .trim()
-      .toLowerCase();
-
-  if (
-    normalized.includes(
-      "alarming",
-    ) ||
-    normalized.includes(
-      "offline",
-    )
-  ) {
-    return [198, 40, 40];
-  }
-
-  if (
-    normalized.includes(
-      "moderate",
-    )
-  ) {
-    return [245, 158, 11];
-  }
-
-  if (
-    normalized.includes(
-      "charging",
-    ) ||
-    normalized.includes(
-      "online",
-    ) ||
-    normalized.includes(
-      "normal",
-    ) ||
-    normalized.includes(
-      "high",
-    )
-  ) {
-    return [22, 163, 74];
-  }
-
-  return [100, 116, 139];
-}
-
-function addPdfStatusBox(
-  doc: jsPDF,
-  label: string,
-  value: string,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-): void {
-  /*
-   * Summary cards follow the reference layout: a clean white
-   * card with a subtle border, a small uppercase label and a
-   * large bold value.
-   */
-  doc.setFillColor(
-    PDF_BODY_FILL[0],
-    PDF_BODY_FILL[1],
-    PDF_BODY_FILL[2],
-  );
-
-  doc.setDrawColor(
-    PDF_BORDER[0],
-    PDF_BORDER[1],
-    PDF_BORDER[2],
-  );
-
-  doc.setLineWidth(
-    0.3,
-  );
-
-  doc.roundedRect(
-    x,
-    y,
-    width,
-    height,
-    3,
-    3,
-    "FD",
-  );
-
-  doc.setFont(
-    "helvetica",
-    "bold",
-  );
-
-  doc.setFontSize(
-    7.5,
-  );
-
-  doc.setTextColor(
-    PDF_MUTED[0],
-    PDF_MUTED[1],
-    PDF_MUTED[2],
-  );
-
-  doc.text(
-    label.toUpperCase(),
-    x + 5,
-    y + 8,
-  );
-
-  doc.setFont(
-    "helvetica",
-    "bold",
-  );
-
-  /*
-   * Shrink the value until it fits the card so long status
-   * strings never overflow the white card.
-   */
-  let valueFontSize =
-    15;
-
-  doc.setFontSize(
-    valueFontSize,
-  );
-
-  doc.setTextColor(
-    PDF_TEXT[0],
-    PDF_TEXT[1],
-    PDF_TEXT[2],
-  );
-
-  while (
-    valueFontSize > 8 &&
-    doc.getTextWidth(value) >
-      width - 10
-  ) {
-    valueFontSize -= 0.5;
-
-    doc.setFontSize(
-      valueFontSize,
-    );
-  }
-
-  doc.text(
-    value,
-    x + 5,
-    y + 19,
-  );
-}
 
 function addPdfSectionTitle(
   doc: jsPDF,
@@ -3946,28 +3651,12 @@ function addPdfFooter(
    PDF REPORT GENERATION
    ============================================================ */
 
-/**
- * Generates the actual AdlaWatt analytics PDF document.
- *
- * PDF branding:
- *
- * Primary:
- *   #00A86B
- *
- * Secondary:
- *   #FFBF00
- *
- * Background:
- *   #F0EAD6
- *
- * White card/table body:
- *   rgba(255, 255, 255, 0.50)
- */
+
 export async function generateAdlaWattPdf(
   reportData: AnalyticsReportData,
 ): Promise<jsPDF> {
-  const JsPDF = getJsPDFClass();
-  const adlawattLogo = getReportLogo();
+  const JsPDF =
+    getJsPDFClass();
 
   const doc =
     new JsPDF({
@@ -3987,19 +3676,6 @@ export async function generateAdlaWattPdf(
   const pageHeight =
     doc.internal.pageSize.getHeight();
 
-  /* ==========================================================
-     PDF DESIGN AREA
-     ========================================================== */
-
-  /*
-   * A4 page:
-   *
-   * Width  = 210 mm
-   * Height = 297 mm
-   *
-   * 18 mm left + 18 mm right margins
-   * leave 174 mm of usable content width.
-   */
   const horizontalMargin =
     18;
 
@@ -4007,25 +3683,11 @@ export async function generateAdlaWattPdf(
     pageWidth -
     horizontalMargin * 2;
 
-  /* ----------------------------------------------------------
-     PAGE BACKGROUND
-     ---------------------------------------------------------- */
-
   paintPdfPageBase(
     doc,
     pageWidth,
     pageHeight,
   );
-
-  /* ----------------------------------------------------------
-     HEADER
-     ---------------------------------------------------------- */
-
-  /*
-   * Main header uses AdlaWatt primary green.
-   */
-  const headerHeight =
-    38;
 
   doc.setFillColor(
     PDF_PRIMARY[0],
@@ -4037,13 +3699,10 @@ export async function generateAdlaWattPdf(
     0,
     0,
     pageWidth,
-    headerHeight,
+    30,
     "F",
   );
 
-  /*
-   * Secondary yellow accent line.
-   */
   doc.setFillColor(
     PDF_SECONDARY[0],
     PDF_SECONDARY[1],
@@ -4052,244 +3711,19 @@ export async function generateAdlaWattPdf(
 
   doc.rect(
     0,
-    headerHeight - 2,
+    28,
     pageWidth,
     2,
     "F",
   );
 
-  /* ----------------------------------------------------------
-     ADLAWATT LOGO
-     ---------------------------------------------------------- */
-
-  /*
-   * Resolve the bundled Expo image into a URI first.
-   *
-   * The PDF generator is currently used by the web export path,
-   * so the resolved asset is fetched and converted into a data
-   * URL before being passed to jsPDF.
-   */
-  let logoDataUrl:
-    string | null = null;
-
-  /* 
-   * Resolve the bundled logo URI with fallbacks.
-   *
-   * Metro on web can return either an asset number needed by
-   * Image.resolveAssetSource, or an object that already carries
-   * a uri directly, so both paths are attempted.
-   */
-  const resolveLogoUri =
-    (): string | null => {
-      try {
-        const source =
-          Image.resolveAssetSource(
-            adlawattLogo,
-          );
-
-        if (source?.uri) {
-          return source.uri;
-        }
-      } catch (error) {
-        console.warn(
-          "Image.resolveAssetSource failed:",
-          error,
-        );
-      }
-
-      const directUri =
-        (
-          adlawattLogo as unknown as {
-            uri?: string;
-          } | null
-        )?.uri;
-
-      if (directUri) {
-        return directUri;
-      }
-
-      return null;
-    };
-
-  try {
-    const resolvedUri =
-      resolveLogoUri();
-
-    if (resolvedUri) {
-      let response =
-        await fetch(
-          resolvedUri,
-        );
-
-      if (!response.ok) {
-        /*
-         * Retry once with a cache-buster query.
-         */
-        response =
-          await fetch(
-            resolvedUri +
-              (resolvedUri.includes("?")
-                ? "&"
-                : "?") +
-              "t=" +
-              Date.now(),
-          );
-      }
-
-      if (response.ok) {
-        const blob =
-          await response.blob();
-
-        logoDataUrl =
-          await new Promise<
-            string | null
-          >(
-            (
-              resolve,
-              reject,
-            ) => {
-              const reader =
-                new FileReader();
-
-              reader.onloadend =
-                () => {
-                  const result =
-                    reader.result;
-
-                  if (
-                    typeof result ===
-                    "string"
-                  ) {
-                    resolve(
-                      result,
-                    );
-                  } else {
-                    resolve(
-                      null,
-                    );
-                  }
-                };
-
-              reader.onerror =
-                () => {
-                  reject(
-                    new Error(
-                      "Failed to read AdlaWatt logo.",
-                    ),
-                  );
-                };
-
-              reader.readAsDataURL(
-                blob,
-              );
-            },
-          );
-      }
-    }
-  } catch (error) {
-    console.warn(
-      "AdlaWatt logo could not be loaded:",
-      error,
-    );
-  }
-
-  /*
-   * Logo dimensions.
-   *
-   * The logo sits on the left side of the header.
-   */
-  const logoWidth =
-    40;
-
-  const logoHeight =
-    25;
-
-  const logoX =
-    horizontalMargin;
-
-  const logoY =
-    6;
-
-  let logoRendered =
-    false;
-
-  if (
-    logoDataUrl
-  ) {
-    try {
-      doc.addImage(
-        logoDataUrl,
-        "PNG",
-        logoX,
-        logoY,
-        logoWidth,
-        logoHeight,
-        undefined,
-        "FAST",
-      );
-
-      logoRendered =
-        true;
-    } catch (error) {
-      console.warn(
-        "AdlaWatt logo could not be added to PDF:",
-        error,
-      );
-    }
-  }
-
-  /*
-   * Branding fallback.
-   *
-   * If the image logo could not be loaded, draw the AdlaWatt
-   * wordmark in white so the header branding always appears.
-   */
-  if (!logoRendered) {
-    doc.setFont(
-      "helvetica",
-      "bold",
-    );
-
-    doc.setFontSize(
-      13,
-    );
-
-    doc.setTextColor(
-      255,
-      255,
-      255,
-    );
-
-    doc.text(
-      "AdlaWatt",
-      logoX,
-      logoY + 14,
-    );
-  }
-
-  /* ----------------------------------------------------------
-     HEADER TITLE
-     ---------------------------------------------------------- */
-
-  /*
-   * The logo already provides the AdlaWatt branding.
-   *
-   * Therefore the title is only:
-   *
-   *   Analytics Report
-   */
-  const headerTextX =
-    logoX +
-    logoWidth +
-    7;
-
   doc.setFont(
     "helvetica",
     "bold",
   );
 
   doc.setFontSize(
-    18,
+    16,
   );
 
   doc.setTextColor(
@@ -4299,1419 +3733,59 @@ export async function generateAdlaWattPdf(
   );
 
   doc.text(
-    "Analytics Report",
-    headerTextX,
+    reportData.reportTitle,
+    horizontalMargin,
     13,
   );
 
-  /*
-   * Report frequency.
-   */
   doc.setFont(
     "helvetica",
     "normal",
   );
 
   doc.setFontSize(
-    8.5,
+    9,
   );
 
   doc.text(
-    `${reportData.frequency} Report`,
-    headerTextX,
-    20,
+    reportData.reportSubtitle,
+    horizontalMargin,
+    21,
   );
-
-  /*
-   * Report period.
-   */
-  doc.text(
-    `${formatReportDate(
-      reportData.range.start,
-    )} - ${formatReportDate(
-      reportData.range.end,
-    )}`,
-    headerTextX,
-    26,
-  );
-
-  /* ----------------------------------------------------------
-     COVER
-     ---------------------------------------------------------- */
 
   let currentY =
-    56;
-
-  /*
-   * Light pill containing the report type.
-   */
-  const pillWidth =
-    66;
-
-  const pillHeight =
-    9;
-
-  const pillX =
-    (pageWidth - pillWidth) / 2;
-
-  doc.setFillColor(
-    224,
-    245,
-    236,
-  );
-
-  doc.roundedRect(
-    pillX,
-    currentY,
-    pillWidth,
-    pillHeight,
-    4.5,
-    4.5,
-    "F",
-  );
-
-  doc.setFont(
-    "helvetica",
-    "bold",
-  );
-
-  doc.setFontSize(
-    8,
-  );
-
-  doc.setTextColor(
-    PDF_PRIMARY[0],
-    PDF_PRIMARY[1],
-    PDF_PRIMARY[2],
-  );
-
-  doc.text(
-    `${reportData.frequency.toUpperCase()} ANALYTICS REPORT`,
-    pageWidth / 2,
-    currentY + 6,
-    {
-      align: "center",
-    },
-  );
-
-  currentY +=
-    pillHeight + 9;
-
-  doc.setFont(
-    "helvetica",
-    "normal",
-  );
-
-  doc.setFontSize(
-    14,
-  );
-
-  doc.setTextColor(
-    PDF_MUTED[0],
-    PDF_MUTED[1],
-    PDF_MUTED[2],
-  );
-
-  doc.text(
-    "Energy Monitoring",
-    pageWidth / 2,
-    currentY,
-    {
-      align: "center",
-    },
-  );
-
-  currentY +=
-    11;
-
-  doc.setFont(
-    "helvetica",
-    "bold",
-  );
-
-  doc.setFontSize(
-    24,
-  );
-
-  doc.setTextColor(
-    PDF_PRIMARY[0],
-    PDF_PRIMARY[1],
-    PDF_PRIMARY[2],
-  );
-
-  doc.text(
-    "& System Analytics",
-    pageWidth / 2,
-    currentY,
-    {
-      align: "center",
-    },
-  );
-
-  currentY +=
-    12;
-
-  /*
-   * Four-column information card.
-   */
-  const infoCardY =
-    currentY;
-
-  const infoCardHeight =
-    30;
-
-  doc.setFillColor(
-    PDF_BODY_FILL[0],
-    PDF_BODY_FILL[1],
-    PDF_BODY_FILL[2],
-  );
-
-  doc.setDrawColor(
-    PDF_BORDER[0],
-    PDF_BORDER[1],
-    PDF_BORDER[2],
-  );
-
-  doc.setLineWidth(
-    0.3,
-  );
-
-  doc.roundedRect(
-    horizontalMargin,
-    infoCardY,
-    contentWidth,
-    infoCardHeight,
-    3,
-    3,
-    "FD",
-  );
-
-  const infoColumns = [
-    {
-      label: "REPORT TYPE",
-      value: `${reportData.frequency} Report`,
-    },
-
-    {
-      label: "PERIOD",
-      value: `${formatReportDate(
-        reportData.range.start,
-      )} - ${formatReportDate(
-        reportData.range.end,
-      )}`,
-    },
-
-    {
-      label: "GENERATED",
-      value: formatReportDateTime(
-        new Date(),
-      ),
-    },
-
-    {
-      label: "SYSTEM",
-      value: "AdlaWatt IoT v1.0",
-    },
-  ];
-
-  const infoColumnWidth =
-    contentWidth /
-    infoColumns.length;
-
-  infoColumns.forEach(
-    (
-      column,
-      index,
-    ) => {
-      const columnX =
-        horizontalMargin +
-        infoColumnWidth * index +
-        6;
-
-      doc.setFont(
-        "helvetica",
-        "bold",
-      );
-
-      doc.setFontSize(
-        8,
-      );
-
-      doc.setTextColor(
-        PDF_MUTED[0],
-        PDF_MUTED[1],
-        PDF_MUTED[2],
-      );
-
-      doc.text(
-        column.label,
-        columnX,
-        infoCardY + 11,
-      );
-
-      doc.setFontSize(
-        9,
-      );
-
-      doc.setTextColor(
-        PDF_TEXT[0],
-        PDF_TEXT[1],
-        PDF_TEXT[2],
-      );
-
-      const valueLines =
-        doc.splitTextToSize(
-          column.value,
-          infoColumnWidth - 12,
-        );
-
-      doc.text(
-        valueLines.slice(
-          0,
-          2,
-        ),
-        columnX,
-        infoCardY + 19,
-      );
-
-      if (index > 0) {
-        doc.setDrawColor(
-          PDF_BORDER[0],
-          PDF_BORDER[1],
-          PDF_BORDER[2],
-        );
-
-        doc.setLineWidth(
-          0.3,
-        );
-
-        doc.line(
-          horizontalMargin +
-            infoColumnWidth * index,
-          infoCardY + 6,
-          horizontalMargin +
-            infoColumnWidth * index,
-          infoCardY +
-            infoCardHeight -
-            6,
-        );
-      }
-    },
-  );
-
-  currentY =
-    infoCardY +
-    infoCardHeight +
-    12;
-
-  doc.setFont(
-    "helvetica",
-    "italic",
-  );
-
-  doc.setFontSize(
-    8,
-  );
-
-  doc.setTextColor(
-    PDF_MUTED[0],
-    PDF_MUTED[1],
-    PDF_MUTED[2],
-  );
-
-  doc.text(
-    doc.splitTextToSize(
-      "This report provides a comprehensive overview of the AdlaWatt off-grid solar backup power monitoring system. All metrics are recorded at 5-minute intervals. Data source: AdlaWatt Mobile App and IoT hardware sensors.",
-      contentWidth,
-    ),
-    horizontalMargin,
-    currentY,
-  );
-
-  /*
-   * Summary sections begin on a fresh page, matching the
-   * reference report structure.
-   */
-  doc.addPage();
-
-  paintPdfPageBase(
-    doc,
-    pageWidth,
-    pageHeight,
-  );
-
-  currentY =
-    20;
-
-  /* ----------------------------------------------------------
-     SYSTEM SUMMARY
-     ---------------------------------------------------------- */
-
-  currentY =
-    addPdfSectionTitle(
-      doc,
-      "SYSTEM SUMMARY",
-      currentY,
-    );
-
-  /*
-   * Three equal cards across the full content width.
-   */
-  const boxGap =
-    5;
-
-  const boxWidth =
-    (
-      contentWidth -
-      boxGap * 2
-    ) / 3;
-
-  const boxHeight =
-    23;
-
-  const firstRowY =
-    currentY;
-
-  const secondRowY =
-    firstRowY +
-    boxHeight +
-    6;
-
-  const thirdRowY =
-    secondRowY +
-    boxHeight +
-    6;
-
-  const fourthRowY =
-    thirdRowY +
-    boxHeight +
-    6;
-
-  /* ----------------------------------------------------------
-     SYSTEM SUMMARY - ROW 1
-     ---------------------------------------------------------- */
-
-  addPdfStatusBox(
-    doc,
-    "Battery Level",
-    `${formatNumber(
-      reportData.summary
-        .latestBatteryLevel,
-    )}%`,
-    horizontalMargin,
-    firstRowY,
-    boxWidth,
-    boxHeight,
-  );
-
-  addPdfStatusBox(
-    doc,
-    "Solar Input",
-    `${formatNumber(
-      reportData.summary
-        .latestSolarInput,
-    )} W`,
-    horizontalMargin +
-      boxWidth +
-      boxGap,
-    firstRowY,
-    boxWidth,
-    boxHeight,
-  );
-
-  addPdfStatusBox(
-    doc,
-    "Current Load",
-    `${formatNumber(
-      reportData.summary
-        .latestCurrentLoad,
-    )} W`,
-    horizontalMargin +
-      (
-        boxWidth +
-        boxGap
-      ) *
-        2,
-    firstRowY,
-    boxWidth,
-    boxHeight,
-  );
-
-  /* ----------------------------------------------------------
-     SYSTEM SUMMARY - ROW 2
-     ---------------------------------------------------------- */
-
-  addPdfStatusBox(
-    doc,
-    "Battery Status",
-    reportData.summary
-      .latestBatteryStatus,
-    horizontalMargin,
-    secondRowY,
-    boxWidth,
-    boxHeight,
-  );
-
-  addPdfStatusBox(
-    doc,
-    "Solar Status",
-    reportData.summary
-      .latestSolarStatus,
-    horizontalMargin +
-      boxWidth +
-      boxGap,
-    secondRowY,
-    boxWidth,
-    boxHeight,
-  );
-
-  addPdfStatusBox(
-    doc,
-    "Device Status",
-    reportData.summary
-      .latestDeviceStatus,
-    horizontalMargin +
-      (
-        boxWidth +
-        boxGap
-      ) *
-        2,
-    secondRowY,
-    boxWidth,
-    boxHeight,
-  );
-
-  /* ----------------------------------------------------------
-     SYSTEM SUMMARY - ROW 3
-     ---------------------------------------------------------- */
-
-  addPdfStatusBox(
-    doc,
-    "Solar Timer",
-    reportData.summary
-      .latestSolarTimer,
-    horizontalMargin,
-    thirdRowY,
-    boxWidth,
-    boxHeight,
-  );
-
-  addPdfStatusBox(
-    doc,
-    "Solar Voltage",
-    `${formatNumber(
-      reportData.summary
-        .latestSolarVoltage,
-    )} V`,
-    horizontalMargin +
-      boxWidth +
-      boxGap,
-    thirdRowY,
-    boxWidth,
-    boxHeight,
-  );
-
-  addPdfStatusBox(
-    doc,
-    "Solar Current",
-    `${formatNumber(
-      reportData.summary
-        .latestSolarCurrent,
-    )} A`,
-    horizontalMargin +
-      (
-        boxWidth +
-        boxGap
-      ) *
-        2,
-    thirdRowY,
-    boxWidth,
-    boxHeight,
-  );
-
-  /* ----------------------------------------------------------
-     SYSTEM SUMMARY - ROW 4
-     ---------------------------------------------------------- */
-
-  addPdfStatusBox(
-    doc,
-    "Total Energy",
-    `${formatNumber(
-      reportData.summary
-        .latestTotalEnergy,
-    )} Wh`,
-    horizontalMargin,
-    fourthRowY,
-    boxWidth,
-    boxHeight,
-  );
-
-  addPdfStatusBox(
-    doc,
-    "Time Remaining",
-    reportData.summary
-      .latestTimeRemaining,
-    horizontalMargin +
-      boxWidth +
-      boxGap,
-    fourthRowY,
-    boxWidth,
-    boxHeight,
-  );
-
-  currentY =
-    fourthRowY +
-    boxHeight +
-    10;
-
-  /*
-   * The SYSTEM SUMMARY now renders four rows of cards, so
-   * guard the ENERGY SUMMARY against running off the page.
-   */
-  if (
-    currentY >
-    pageHeight - 95
+    42;
+
+  for (
+    const section
+      of reportData.sections
   ) {
-    doc.addPage();
+    if (
+      currentY >
+      pageHeight - 90
+    ) {
+      doc.addPage();
 
-    paintPdfPageBase(
-      doc,
-      pageWidth,
-      pageHeight,
-    );
+      paintPdfPageBase(
+        doc,
+        pageWidth,
+        pageHeight,
+      );
+
+      currentY =
+        20;
+    }
 
     currentY =
-      20;
-  }
-
-  /* ----------------------------------------------------------
-     ENERGY SUMMARY
-     ---------------------------------------------------------- */
-
-  currentY =
-    addPdfSectionTitle(
-      doc,
-      "ENERGY SUMMARY",
-      currentY,
-    );
-
-  const energyTableStartPage =
-    doc.getCurrentPageInfo().pageNumber;
-
-  getAutoTable()(
-    doc,
-    {
-      startY:
+      addPdfSectionTitle(
+        doc,
+        section.title,
         currentY,
-
-      /*
-       * Same width used by every other report table.
-       */
-      tableWidth:
-        contentWidth,
-
-      margin: {
-        left:
-          horizontalMargin,
-
-        right:
-          horizontalMargin,
-      },
-
-      head: [
-        [
-          "Metric",
-          "Value",
-        ],
-      ],
-
-      body: [
-        [
-          "Total Energy Input",
-          `${formatNumber(
-            reportData.summary
-              .totalEnergyInputWh,
-          )} Wh`,
-        ],
-
-        [
-          "Total Energy Output",
-          `${formatNumber(
-            reportData.summary
-              .totalEnergyOutputWh,
-          )} Wh`,
-        ],
-
-        [
-          "Average Solar Input",
-          `${formatNumber(
-            reportData.summary
-              .averageSolarInput,
-          )} W`,
-        ],
-
-        [
-          "Average Current Load",
-          `${formatNumber(
-            reportData.summary
-              .averageCurrentLoad,
-          )} W`,
-        ],
-      ],
-
-      theme:
-        "plain",
-
-      styles: {
-        font:
-          "helvetica",
-
-        fontSize:
-          8,
-
-        cellPadding:
-          3,
-
-        textColor: [
-          31,
-          41,
-          55,
-        ],
-
-        fillColor: [
-          248,
-          245,
-          234,
-        ],
-      },
-
-      /*
-       * Primary green table header.
-       */
-      headStyles: {
-        fillColor: [
-          0,
-          168,
-          107,
-        ],
-
-        textColor: [
-          255,
-          255,
-          255,
-        ],
-
-        fontStyle:
-          "bold",
-      },
-
-      /*
-       * Every body cell uses the white-card appearance.
-       */
-      bodyStyles: {
-        fillColor: [
-          255,
-          255,
-          255,
-        ],
-      },
-
-      alternateRowStyles: {
-        fillColor: [
-          248,
-          245,
-          234,
-        ],
-      },
-
-      willDrawPage:
-        (
-          hookData,
-        ) => {
-          paintPdfContinuationPage(
-            doc,
-            hookData.pageNumber,
-            energyTableStartPage,
-            pageWidth,
-            pageHeight,
-          );
-        },
-
-      columnStyles: {
-        0: {
-          cellWidth:
-            contentWidth *
-            0.70,
-        },
-
-        1: {
-          cellWidth:
-            contentWidth *
-            0.30,
-        },
-      },
-    },
-  );
-
-  currentY =
-    (
-      doc as unknown as {
-        lastAutoTable?: {
-          finalY?: number;
-        };
-      }
-    ).lastAutoTable
-      ?.finalY ??
-    currentY + 30;
-
-  currentY +=
-    10;
-
-  /* ----------------------------------------------------------
-     TEMPERATURE SUMMARY
-     ---------------------------------------------------------- */
-
-  currentY =
-    addPdfSectionTitle(
-      doc,
-      "TEMPERATURE SUMMARY",
-      currentY,
-    );
-
-  const temperatureTableStartPage =
-    doc.getCurrentPageInfo().pageNumber;
-
-  getAutoTable()(
-    doc,
-    {
-      startY:
-        currentY,
-
-      /*
-       * Same overall width as Energy Summary.
-       */
-      tableWidth:
-        contentWidth,
-
-      margin: {
-        left:
-          horizontalMargin,
-
-        right:
-          horizontalMargin,
-      },
-
-      head: [
-        [
-          "Temperature Metric",
-          "Average",
-          "Maximum",
-          "Latest",
-          "Status",
-        ],
-      ],
-
-      body: [
-        [
-          "Battery Temperature",
-
-          `${formatNumber(
-            reportData.summary
-              .averageBatteryTemperature,
-          )} C`,
-
-          `${formatNumber(
-            reportData.summary
-              .maximumBatteryTemperature,
-          )} C`,
-
-          `${formatNumber(
-            reportData.summary
-              .latestBatteryTemperature,
-          )} C`,
-
-          reportData.summary
-            .latestBatteryTemperatureStatus,
-        ],
-
-        [
-          "Solar Temperature",
-
-          `${formatNumber(
-            reportData.summary
-              .averageSolarTemperature,
-          )} C`,
-
-          `${formatNumber(
-            reportData.summary
-              .maximumSolarTemperature,
-          )} C`,
-
-          `${formatNumber(
-            reportData.summary
-              .latestSolarTemperature,
-          )} C`,
-
-          reportData.summary
-            .latestSolarTemperatureStatus,
-        ],
-      ],
-
-      theme:
-        "plain",
-
-      styles: {
-        font:
-          "helvetica",
-
-        fontSize:
-          7.5,
-
-        cellPadding:
-          2.8,
-
-        textColor: [
-          31,
-          41,
-          55,
-        ],
-
-        fillColor: [
-          248,
-          245,
-          234,
-        ],
-      },
-
-      headStyles: {
-        fillColor: [
-          0,
-          168,
-          107,
-        ],
-
-        textColor: [
-          255,
-          255,
-          255,
-        ],
-
-        fontStyle:
-          "bold",
-      },
-
-      bodyStyles: {
-        fillColor: [
-          255,
-          255,
-          255,
-        ],
-      },
-
-      alternateRowStyles: {
-        fillColor: [
-          248,
-          245,
-          234,
-        ],
-      },
-
-      willDrawPage:
-        (
-          hookData,
-        ) => {
-          paintPdfContinuationPage(
-            doc,
-            hookData.pageNumber,
-            temperatureTableStartPage,
-            pageWidth,
-            pageHeight,
-          );
-        },
-
-      /*
-       * The proportions total exactly 100%.
-       */
-      columnStyles: {
-        0: {
-          cellWidth:
-            contentWidth *
-            0.28,
-        },
-
-        1: {
-          cellWidth:
-            contentWidth *
-            0.18,
-        },
-
-        2: {
-          cellWidth:
-            contentWidth *
-            0.18,
-        },
-
-        3: {
-          cellWidth:
-            contentWidth *
-            0.18,
-        },
-
-        4: {
-          cellWidth:
-            contentWidth *
-            0.18,
-        },
-      },
-
-      /*
-       * Keep temperature status colors meaningful while
-       * preserving the white body cell background.
-       */
-      didParseCell:
-        (
-          hookData,
-        ) => {
-          if (
-            hookData.section ===
-              "body" &&
-            hookData.column.index ===
-              4
-          ) {
-            const status =
-              String(
-                hookData.cell.raw ??
-                  "",
-              );
-
-            hookData.cell.styles.textColor =
-              getPdfStatusColor(
-                status,
-              );
-          }
-        },
-    },
-  );
-
-  currentY =
-    (
-      doc as unknown as {
-        lastAutoTable?: {
-          finalY?: number;
-        };
-      }
-    ).lastAutoTable
-      ?.finalY ??
-    currentY + 30;
-
-  currentY +=
-    10;
-
-  /* ----------------------------------------------------------
-     KEY METRICS (derived analytics)
-     ---------------------------------------------------------- */
-
-  currentY =
-    addPdfSectionTitle(
-      doc,
-      "KEY METRICS",
-      currentY,
-    );
-
-  const kpiTableStartPage =
-    doc.getCurrentPageInfo().pageNumber;
-
-  getAutoTable()(
-    doc,
-    {
-      startY:
-        currentY,
-
-      tableWidth:
-        contentWidth,
-
-      margin: {
-        left:
-          horizontalMargin,
-
-        right:
-          horizontalMargin,
-
-        bottom:
-          20,
-      },
-
-      head: [
-        [
-          "Metric",
-          "Value",
-          "Note",
-        ],
-      ],
-
-      body:
-        reportData.kpis.map(
-          (entry) => [
-            entry.label,
-            entry.unit
-              ? `${entry.value} ${entry.unit}`
-              : entry.value,
-            entry.hint ?? "",
-          ],
-        ),
-
-      theme:
-        "plain",
-
-      styles: {
-        font:
-          "helvetica",
-
-        fontSize:
-          7.5,
-
-        cellPadding:
-          2.8,
-
-        textColor: [
-          31,
-          41,
-          55,
-        ],
-
-        fillColor: [
-          248,
-          245,
-          234,
-        ],
-      },
-
-      headStyles: {
-        fillColor: [
-          0,
-          168,
-          107,
-        ],
-
-        textColor: [
-          255,
-          255,
-          255,
-        ],
-
-        fontStyle:
-          "bold",
-      },
-
-      bodyStyles: {
-        fillColor: [
-          255,
-          255,
-          255,
-        ],
-      },
-
-      alternateRowStyles: {
-        fillColor: [
-          248,
-          245,
-          234,
-        ],
-      },
-
-      willDrawPage:
-        (
-          hookData,
-        ) => {
-          paintPdfContinuationPage(
-            doc,
-            hookData.pageNumber,
-            kpiTableStartPage,
-            pageWidth,
-            pageHeight,
-          );
-        },
-
-      columnStyles: {
-        0: {
-          cellWidth:
-            contentWidth * 0.46,
-        },
-
-        1: {
-          cellWidth:
-            contentWidth * 0.24,
-        },
-
-        2: {
-          cellWidth:
-            contentWidth * 0.3,
-        },
-      },
-    },
-  );
-
-  currentY =
-    (
-      doc as unknown as {
-        lastAutoTable?: {
-          finalY?: number;
-        };
-      }
-    ).lastAutoTable
-      ?.finalY ??
-    currentY + 30;
-
-  currentY +=
-    10;
-
-  /* ----------------------------------------------------------
-     AGGREGATED PERIODS (chart-aligned buckets)
-     ---------------------------------------------------------- */
-
-  currentY =
-    addPdfSectionTitle(
-      doc,
-      "AGGREGATED PERIODS",
-      currentY,
-    );
-
-  const periodsTableStartPage =
-    doc.getCurrentPageInfo().pageNumber;
-
-  getAutoTable()(
-    doc,
-    {
-      startY:
-        currentY,
-
-      tableWidth:
-        contentWidth,
-
-      margin: {
-        left:
-          horizontalMargin,
-
-        right:
-          horizontalMargin,
-
-        bottom:
-          20,
-      },
-
-      head: [
-        [
-          "Period",
-          "Samples",
-          "Avg Batt %",
-          "Min %",
-          "Max %",
-          "Energy In Wh",
-          "Energy Out Wh",
-          "Net Wh",
-          "Coverage %",
-          "Uptime %",
-          "Unsafe",
-          "Sun h",
-        ],
-      ],
-
-      body:
-        reportData.periods.map(
-          (period) => [
-            period.periodLabel,
-            String(period.sampleCount),
-            formatNumber(
-              period.avgBatteryLevel,
-            ),
-            formatNumber(
-              period.minBatteryLevel,
-            ),
-            formatNumber(
-              period.maxBatteryLevel,
-            ),
-            formatNumber(
-              period.energyInputWh,
-            ),
-            formatNumber(
-              period.energyOutputWh,
-            ),
-            formatNumber(
-              period.netEnergyWh,
-            ),
-            formatNumber(
-              period.solarCoveragePct,
-            ),
-            formatNumber(
-              period.uptimePct,
-            ),
-            String(
-              period.unsafeSampleCount,
-            ),
-            formatNumber(period.sunHours),
-          ],
-        ),
-
-      theme:
-        "plain",
-
-      styles: {
-        font:
-          "helvetica",
-
-        fontSize:
-          6.5,
-
-        cellPadding:
-          2,
-
-        overflow:
-          "linebreak",
-
-        textColor: [
-          31,
-          41,
-          55,
-        ],
-
-        fillColor: [
-          248,
-          245,
-          234,
-        ],
-      },
-
-      headStyles: {
-        fillColor: [
-          0,
-          168,
-          107,
-        ],
-
-        textColor: [
-          255,
-          255,
-          255,
-        ],
-
-        fontStyle:
-          "bold",
-
-        fontSize:
-          6.5,
-      },
-
-      bodyStyles: {
-        fillColor: [
-          255,
-          255,
-          255,
-        ],
-      },
-
-      alternateRowStyles: {
-        fillColor: [
-          248,
-          245,
-          234,
-        ],
-      },
-
-      willDrawPage:
-        (
-          hookData,
-        ) => {
-          paintPdfContinuationPage(
-            doc,
-            hookData.pageNumber,
-            periodsTableStartPage,
-            pageWidth,
-            pageHeight,
-          );
-        },
-    },
-  );
-
-  currentY =
-    (
-      doc as unknown as {
-        lastAutoTable?: {
-          finalY?: number;
-        };
-      }
-    ).lastAutoTable
-      ?.finalY ??
-    currentY + 30;
-
-  currentY +=
-    10;
-
-  /* ----------------------------------------------------------
-     MONITORING HISTORY
-     ---------------------------------------------------------- */
-
-  /*
-   * Monitoring History always begins on a fresh page so the
-   * dense data grid stays consistent, matching the reference.
-   */
-  doc.addPage();
-
-  paintPdfPageBase(
-    doc,
-    pageWidth,
-    pageHeight,
-  );
-
-  currentY =
-    20;
-
-  currentY =
-    addPdfSectionTitle(
-      doc,
-      "MONITORING HISTORY",
-      currentY,
-    );
-
-  doc.setFont(
-    "helvetica",
-    "normal",
-  );
-
-  doc.setFontSize(
-    8,
-  );
-
-  doc.setTextColor(
-    PDF_MUTED[0],
-    PDF_MUTED[1],
-    PDF_MUTED[2],
-  );
-
-  doc.text(
-    "5-minute interval readings",
-    horizontalMargin,
-    currentY,
-  );
-
-  currentY +=
-    4;
-
-  if (
-    reportData.monitoringRows
-      .length >
-    0
-  ) {
-    /*
-     * Monitoring History uses exactly the same overall table
-     * width as Energy Summary and Temperature Summary.
-     *
-     * 210 mm A4 width
-     * - 18 mm left margin
-     * - 18 mm right margin
-     * = 174 mm table width
-     */
-    const monitoringTableStartPage =
-      doc.getCurrentPageInfo().pageNumber;
+      );
+
+    const tableStartPage =
+      doc.getCurrentPageInfo()
+        .pageNumber;
 
     getAutoTable()(
       doc,
@@ -5734,39 +3808,11 @@ export async function generateAdlaWattPdf(
         },
 
         head: [
-          [
-            "Recorded At",
-            "Battery %",
-            "Battery",
-            "Solar W",
-            "Load W",
-            "Device",
-            "Battery C",
-            "Solar C",
-            "Sol Timer",
-            "Sol V",
-            "Sol A",
-            "Total Wh",
-          ],
+          section.headers,
         ],
 
         body:
-          reportData.monitoringRows.map(
-            (row) => [
-              row.recordedAt,
-              row.batteryLevel,
-              row.batteryStatus,
-              row.solarInput,
-              row.currentLoad,
-              row.deviceStatus,
-              row.batteryTemperature,
-              row.solarTemperature,
-              row.solarTimer,
-              row.solarVoltage,
-              row.solarCurrent,
-              row.totalEnergy,
-            ],
-          ),
+          section.rows,
 
         theme:
           "plain",
@@ -5776,7 +3822,7 @@ export async function generateAdlaWattPdf(
             "helvetica",
 
           fontSize:
-            6.5,
+            8,
 
           cellPadding:
             2,
@@ -5785,23 +3831,23 @@ export async function generateAdlaWattPdf(
             "linebreak",
 
           textColor: [
-            31,
-            41,
-            55,
+            PDF_TEXT[0],
+            PDF_TEXT[1],
+            PDF_TEXT[2],
           ],
 
           fillColor: [
-            248,
-            245,
-            234,
+            PDF_BODY_FILL[0],
+            PDF_BODY_FILL[1],
+            PDF_BODY_FILL[2],
           ],
         },
 
         headStyles: {
           fillColor: [
-            0,
-            168,
-            107,
+            PDF_PRIMARY[0],
+            PDF_PRIMARY[1],
+            PDF_PRIMARY[2],
           ],
 
           textColor: [
@@ -5812,195 +3858,45 @@ export async function generateAdlaWattPdf(
 
           fontStyle:
             "bold",
-
-          fontSize:
-            6.5,
-        },
-
-        bodyStyles: {
-          fillColor: [
-            255,
-            255,
-            255,
-          ],
         },
 
         alternateRowStyles: {
           fillColor: [
-            248,
-            245,
-            234,
+            PDF_BACKGROUND[0],
+            PDF_BACKGROUND[1],
+            PDF_BACKGROUND[2],
           ],
         },
 
-        willDrawPage:
-          (
-            hookData,
-          ) => {
-            paintPdfContinuationPage(
-              doc,
-              hookData.pageNumber,
-              monitoringTableStartPage,
-              pageWidth,
-              pageHeight,
-            );
+        willDrawPage: (
+          hookData: {
+            pageNumber: number;
           },
-
-        /*
-         * The column proportions total 100%.
-         *
-         * This keeps the monitoring table inside the exact
-         * same 174 mm content width as the other tables.
-         */
-        columnStyles: {
-          0: {
-            cellWidth:
-              contentWidth *
-              0.17,
-          },
-
-          1: {
-            cellWidth:
-              contentWidth *
-              0.075,
-          },
-
-          2: {
-            cellWidth:
-              contentWidth *
-              0.11,
-          },
-
-          3: {
-            cellWidth:
-              contentWidth *
-              0.075,
-          },
-
-          4: {
-            cellWidth:
-              contentWidth *
-              0.075,
-          },
-
-          5: {
-            cellWidth:
-              contentWidth *
-              0.095,
-          },
-
-          6: {
-            cellWidth:
-              contentWidth *
-              0.07,
-          },
-
-          7: {
-            cellWidth:
-              contentWidth *
-              0.07,
-          },
-
-          8: {
-            cellWidth:
-              contentWidth *
-              0.07,
-          },
-
-          9: {
-            cellWidth:
-              contentWidth *
-              0.06,
-          },
-
-          10: {
-            cellWidth:
-              contentWidth *
-              0.06,
-          },
-
-          11: {
-            cellWidth:
-              contentWidth *
-              0.07,
-          },
-        },
-
-        didParseCell:
-          (
-            hookData,
-          ) => {
-            /*
-             * Battery status remains semantically colored.
-             */
-            if (
-              hookData.section ===
-                "body" &&
-              hookData.column.index ===
-                2
-            ) {
-              const status =
-                String(
-                  hookData.cell.raw ??
-                    "",
-                );
-
-              hookData.cell.styles.textColor =
-                getPdfStatusColor(
-                  status,
-                );
-            }
-          },
+        ) =>
+          paintPdfContinuationPage(
+            doc,
+            hookData.pageNumber,
+            tableStartPage,
+            pageWidth,
+            pageHeight,
+          ),
       },
     );
-  } else {
-    doc.setFillColor(
-      248,
-      245,
-      234,
-    );
 
-    doc.setDrawColor(
-      203,
-      213,
-      225,
-    );
+    currentY =
+      (
+        doc as jsPDF & {
+          lastAutoTable?: {
+            finalY: number;
+          };
+        }
+      ).lastAutoTable?.finalY ??
+      currentY +
+        40;
 
-    doc.roundedRect(
-      horizontalMargin,
-      currentY,
-      contentWidth,
-      15,
-      3,
-      3,
-      "FD",
-    );
-
-    doc.setFont(
-      "helvetica",
-      "normal",
-    );
-
-    doc.setFontSize(
-      8,
-    );
-
-    doc.setTextColor(
-      71,
-      85,
-      105,
-    );
-
-    doc.text(
-      "No monitoring history available for this report period.",
-      horizontalMargin + 6,
-      currentY + 9,
-    );
+    currentY +=
+      12;
   }
-
-  /* ----------------------------------------------------------
-     FOOTER
-     ---------------------------------------------------------- */
 
   addPdfFooter(
     doc,
@@ -6013,6 +3909,7 @@ export async function generateAdlaWattPdf(
 
   return doc;
 }
+
 /* ============================================================
    REPORT FILE CONTENT HELPERS
    ============================================================ */

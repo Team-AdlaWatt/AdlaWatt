@@ -8,6 +8,7 @@ import React, {
 
 import {
   ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   View,
 } from "react-native";
@@ -47,49 +48,24 @@ import {
 // ============================================
 
 const componentImages: Record<string, any> = {
-  "Buck Converter": require(
-    "@/assets/images/components/Buck Converter.png",
-  ),
-
-  "DS18B20 (Battery)": require(
-    "@/assets/images/components/DS18B20.png",
-  ),
-
-  "DS18B20 (Solar)": require(
-    "@/assets/images/components/DS18B20.png",
-  ),
-
-  // The unit board is an ESP32-S3. Older rows may still be
-  // named "ESP32" until the rename migration is applied, so
-  // both names point at the same picture.
-  ESP32: require(
-    "@/assets/images/components/ESP32-S3.png",
-  ),
-
   "ESP32-S3": require(
     "@/assets/images/components/ESP32-S3.png",
   ),
 
-  "INA228 (Input)": require(
-    "@/assets/images/components/INA228.png",
-  ),
-
-  "INA228 (Output)": require(
-    "@/assets/images/components/INA228.png",
-  ),
-
-  // The old Voltage Sensor is gone: the INA219 replaced it
-  // and the rename migration rewrites the rows.
   INA219: require(
     "@/assets/images/components/INA219.png",
   ),
 
-  "Relay Module 5V 1 Channel": require(
-    "@/assets/images/components/Relay.png",
+  DS18B20: require(
+    "@/assets/images/components/DS18B20.png",
   ),
 
   DHT22: require(
     "@/assets/images/components/DHT22.png",
+  ),
+
+  "Relay Module 5V 1 Channel": require(
+    "@/assets/images/components/Relay.png",
   ),
 
   "5V DC Fan": require(
@@ -101,15 +77,7 @@ const componentImages: Record<string, any> = {
   ),
 };
 
-// ============================================
-// ESP32 NAME MATCHING
-//
-// The board is an ESP32-S3, but rows created by older
-// firmware are still named "ESP32". Both are the unit
-// microcontroller, so both follow monitoring.device_status.
-// ============================================
-
-const ESP32_NAMES = ["ESP32", "ESP32-S3"];
+const ESP32_NAMES = ["ESP32-S3"];
 
 const isESP32Name = (name: string): boolean =>
   ESP32_NAMES.includes(name);
@@ -124,7 +92,79 @@ type ComponentData = {
   status: boolean;
 };
 
-// (device status/last seen come from unified monitoring)
+const CANONICAL_COMPONENT_NAMES = new Set([
+  "ESP32-S3",
+  "INA219",
+  "DS18B20",
+  "DHT22",
+  "Relay Module 5V 1 Channel",
+  "5V DC Fan",
+  "SPI TFT Display",
+]);
+
+const normalizeComponentName = (
+  componentName: string,
+): string => {
+  const name =
+    typeof componentName === "string"
+      ? componentName.trim()
+      : "";
+
+  switch (name.toLowerCase()) {
+    case "esp32":
+    case "esp32-s3":
+      return "ESP32-S3";
+    case "voltage sensor":
+    case "ina219":
+      return "INA219";
+    case "ds18b20":
+    case "ds18b20 (battery)":
+    case "ds18b20(battery)":
+    case "ds18b20 (solar)":
+    case "ds18b20(solar)":
+    case "ds18b20 solar":
+    case "ds18b20 2 solar":
+    case "ds18b20 2 solar temp":
+      return "DS18B20";
+    default:
+      return name;
+  }
+};
+
+const normalizeComponents = (
+  rows: ComponentData[],
+): ComponentData[] => {
+  const byName = new Map<string, ComponentData>();
+
+  for (const row of rows) {
+    const componentName = normalizeComponentName(
+      row.component_name,
+    );
+
+    if (
+      !CANONICAL_COMPONENT_NAMES.has(componentName)
+    ) {
+      continue;
+    }
+
+    const normalizedRow: ComponentData = {
+      ...row,
+      component_name: componentName,
+      status: Boolean(row.status),
+    };
+
+    const existing = byName.get(componentName);
+
+    if (
+      !existing ||
+      (!existing.status && normalizedRow.status)
+    ) {
+      byName.set(componentName, normalizedRow);
+    }
+  }
+
+  return [...byName.values()];
+};
 
 // ============================================
 // COMPONENT
@@ -143,7 +183,7 @@ export default function ComponentsScreen() {
   );
 
   const scrollRef =
-    useRef<ScrollView>(null);
+    useRef<ScrollViewInstance>(null);
 
   const scrollToTop =
     useScrollToTopController(scrollRef);
@@ -158,33 +198,41 @@ export default function ComponentsScreen() {
 
   // Unified live monitoring (single dashboard provider): updates
   // immediately when hardware becomes active / table changes.
-  const { deviceOnline } = useMonitoringContext();
+  const { connectionStatus } = useMonitoringContext();
 
   // ============================================
   // CONTENT-AWARE STATUS SEGMENTS
   //
   // Only segments holding components render; Active is
   // the default and Inactive the fallback. ESP32 follows
-  // monitoring.device_status, other rows use their flag —
-  // one shared rule feeds both the counts and the list.
+  // monitoring.device_status, other rows use their flag.
+  // One shared rule feeds both the counts and the list.
   // ============================================
+
+  const displayComponents = useMemo(
+    () =>
+      [...components].sort((a, b) =>
+        a.component_name.localeCompare(b.component_name),
+      ),
+    [components],
+  );
 
   const isComponentActive = useCallback(
     (component: ComponentData): boolean => {
       if (isESP32Name(component.component_name)) {
-        return deviceOnline;
+        return connectionStatus === "online";
       }
 
       return component.status;
     },
-    [deviceOnline],
+    [connectionStatus],
   );
 
   const componentCounts = useMemo(() => {
     let active = 0;
     let inactive = 0;
 
-    for (const component of components) {
+    for (const component of displayComponents) {
       if (isComponentActive(component)) {
         active += 1;
       } else {
@@ -193,12 +241,12 @@ export default function ComponentsScreen() {
     }
 
     return { active, inactive };
-  }, [components, isComponentActive]);
+  }, [displayComponents, isComponentActive]);
 
   const visibleComponentFilters = useMemo<
     ("Active" | "Inactive")[]
   >(() => {
-    if (components.length === 0) {
+    if (displayComponents.length === 0) {
       return ["Active", "Inactive"];
     }
 
@@ -220,7 +268,7 @@ export default function ComponentsScreen() {
           | "Active"
           | "Inactive"
         )[]);
-  }, [components.length, componentCounts]);
+  }, [displayComponents.length, componentCounts]);
 
   const effectiveStatusFilter =
     visibleComponentFilters.includes(statusFilter)
@@ -277,7 +325,11 @@ export default function ComponentsScreen() {
         return;
       }
 
-      setComponents(data ?? []);
+      setComponents(
+        normalizeComponents(
+          (data ?? []) as ComponentData[],
+        ),
+      );
     };
 
     const setup = async () => {
@@ -416,21 +468,14 @@ export default function ComponentsScreen() {
         >
           {(() => {
             const filteredComponents =
-              [...components]
-                .sort((a, b) =>
-                  a.component_name.localeCompare(
-                    b.component_name,
-                  ),
-                )
-                .filter((component) => {
-                  const isActive =
-                    isComponentActive(component);
+              displayComponents.filter((component) => {
+                const isActive =
+                  isComponentActive(component);
 
-                  return effectiveStatusFilter ===
-                    "Active"
-                    ? isActive
-                    : !isActive;
-                });
+                return effectiveStatusFilter === "Active"
+                  ? isActive
+                  : !isActive;
+              });
 
             // ========================================
             // EMPTY STATE
@@ -468,12 +513,14 @@ export default function ComponentsScreen() {
 
                 // ESP32 connection status
                 // comes from monitoring table.
-                const isConnected = deviceOnline;
-
                 const status = isESP32
-                  ? isConnected
+                  ? connectionStatus === "online"
                     ? "Connected"
-                    : "Not Connected"
+                    : connectionStatus === "offline"
+                      ? "Not Connected"
+                      : connectionStatus === "error"
+                        ? "Unavailable"
+                        : "Connecting"
                   : component.status
                     ? "Active"
                     : "Inactive";

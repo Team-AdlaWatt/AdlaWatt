@@ -2,7 +2,7 @@
 
 Current state of the AdlaWatt prototype and the parts added after the Capstone 1 paper.
 
-Status date: 13 November 2026
+Status date: 23 November 2026
 
 Status values: `Working`, `In progress`, `Limited`, `Available`, `Pending`.
 
@@ -13,10 +13,10 @@ Status values: `Working`, `In progress`, `Limited`, `Available`, `Pending`.
 | Mobile app | Working | Expo 57 / React Native 0.86. Auth, database, and real-time are connected. |
 | Backend | Working | Supabase Postgres, Auth, Realtime, Storage, and one Edge Function. |
 | Hardware feed | In progress | Heartbeat sketch added in `firmware/esp32_heartbeat/`; not yet flashed or verified end to end. |
-| Admin | Limited | Login, log out, and exit shell only. |
+| Admin | Working | Role-gated fleet monitoring: battery, solar, load, and 24h/7d/30d history. |
 | Android build | Available | Preview APK through Expo. OTA updates are configured. |
 | Public site and docs | Working | GitHub Pages site is live. The latest app-download section is not merged yet. |
-| Tests | Working | 27 Jest test files. Lint and typecheck scripts exist. |
+| Tests | Working | 54 Jest test files. Lint and typecheck scripts exist. |
 
 ## Features Not in the Paper
 
@@ -47,7 +47,7 @@ Status values: `Working`, `In progress`, `Limited`, `Available`, `Pending`.
 |---|---|---|
 | Data and security | Seven core tables, row-level security on electronics and photos, server-side role lock, storage for email assets and electronics photos, server-side email key. | `supabase/migrations/`, `supabase/functions/` |
 | Live data | Supabase Realtime with memory and AsyncStorage cache, request coalescing, retry, nullable sensor readings, and a 10 s heartbeat-based online gate. | `src/services/monitoringService.ts`, `src/services/monitoringSchema.ts`, `src/utils/monitoringDisplay.ts` |
-| Recommendation engine | Uses 720 Wh nominal, 144 Wh reserve, 576 Wh usable, 480 W warning, 600 W cap, and 11.6 V / 14.6 V limits. | `src/services/recommendation.ts` |
+| Recommendation engine | Uses 756 Wh nominal, 151.2 Wh reserve, 604.8 Wh usable, 480 W warning, 600 W cap, 6 W inverter idle draw at 90% efficiency, and 11.6 V / 14.6 V limits. | `src/services/recommendation.ts` |
 | Load stack | Checks a group of electronics together and blocks stacks over the inverter limit. | `src/services/recommendation.ts` |
 | Analytics | Five sections, 17 charts, 7/30/90-day ranges, lazy loading, CSV and PDF export. | `src/services/analyticsService.ts` |
 | Alerts | Threshold rules, cooldowns, in-app records, email, vibration, and daily reminders. | `src/services/notificationService.ts` |
@@ -55,7 +55,7 @@ Status values: `Working`, `In progress`, `Limited`, `Available`, `Pending`.
 | Auth lifecycle | Supabase Auth, Google PKCE flow, username RPC, recovery links, and session checks. | `src/services/auth.ts` |
 | Localization | i18next with EN, FIL, and CEB locales and a saved preference. | `src/services/i18n.ts`, `src/locales/` |
 | Delivery | EAS build, Expo Updates OTA, runtime version, and an installable APK. | `app.json`, `eas.json` |
-| Observability and tests | Sentry, 27 Jest files, ESLint, and TypeScript checks. | `src/services/sentry.ts`, `src/services/__tests__/` |
+| Observability and tests | Sentry, 54 Jest files, ESLint, and TypeScript checks. | `src/services/sentry.ts`, `src/services/__tests__/` |
 | Public site | Static GitHub Pages, JSON-LD, sitemap, robots file, Open Graph image, and QR asset. | `site/` |
 
 ## Paper vs Current System
@@ -64,17 +64,17 @@ Status values: `Working`, `In progress`, `Limited`, `Available`, `Pending`.
 |---|---|---|
 | Appliance | Electronics | Renamed across app, database, and docs. |
 | Inverter and scope values: 220 W, 1000 W, 1500 W, 600 W | 480 W warning, 600 W cap | Aligned: the app caps appliance loads at the manuscript's 600 W. |
-| 640.8 Wh usable (never in the manuscript) | 576 Wh usable | Aligned: 20% reserve on a 12 V, 60 Ah bank (720 Wh). |
+| 640.8 Wh usable (never in the manuscript) | 604.8 Wh usable | 20% reserve on a 12.6 V, 60 Ah bank (756 Wh). |
 | Basic dashboard | 17 charts and reports | Analytics scope grew. |
 | Manual catalog | Catalog plus custom items, photos, and archive | More user control. |
 | Basic alerts | In-app, email, vibration, and reminders | More delivery paths. |
-| Admin dashboard | Limited shell | Not fully built. |
+| Admin dashboard | Fleet monitoring | Live aggregates, historical chart, 20s polling, and stale/error states. |
 | No weather | Weather and 5-day solar forecast | Added. |
 | No offline mode | Cache and offline banner | Added. |
 | No language options | English, Filipino, and Cebuano | Added. |
 | No OTA or crash reporting | Both | Added. |
 | No public site or QR | Both | Added. |
-| No test suite | 27 Jest files | Added. |
+| No test suite | 54 Jest files | Added. |
 
 ## Current Gaps
 

@@ -7,7 +7,7 @@ import {
 import {
   LayoutChangeEvent,
   Platform,
-  ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   View,
 } from "react-native";
@@ -120,7 +120,7 @@ export default function BatteryLevelChart({
   // on content-size change, but on web that can fire before
   // layout/fonts settle and stop short. These delayed passes
   // re-assert the end position without remounting (no flash).
-  const scrollRef = useRef<ScrollView | null>(null);
+  const scrollRef = useRef<ScrollViewInstance | null>(null);
 
   // Skip non-finite values (periods with no data).
   const real = useMemo(

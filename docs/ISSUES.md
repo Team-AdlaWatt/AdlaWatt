@@ -354,6 +354,10 @@ all.
 
 ### 11. [Chore] Hardware values now follow the manuscript (720 Wh / 600 W)
 
+> **Superseded:** The current app basis is 756 Wh total / 151.2 Wh reserve /
+> 604.8 Wh usable, with a 6 W inverter idle draw at 90% efficiency. This entry
+> is retained as a historical issue record.
+
 **Summary**
 The app's battery and electronics limits had drifted from the manuscript, and
 some screens and docs disagreed with each other. The bank is 12 V × 60 Ah =
@@ -1682,6 +1686,91 @@ The alert had no guidance panel and no shared persistence layer.
 **Fixed:** Added `VibrationGuidancePanel`, `useVibrationGuidance`, a reusable
 `MessagePanel`, and a `settings.ts` persistence layer; wired the preference into
 alert vibration and added English, Filipino, and Cebuano copy plus tests.
+
+---
+
+### 53. fix(analytics): show chart frames while analytics data loads
+
+**Summary**
+Analytics chart cards showed text placeholders instead of the chart UI before
+data arrived, even though the chart components already support empty data.
+
+**Steps to Reproduce**
+1. Open Dashboard > Analytics on a fresh install or slow connection.
+2. Look at the Solar Energy, Load Energy, and Battery Activity cards before the
+   history fetch completes.
+
+**Expected Behavior**
+Each card renders its chart frame immediately — grid/axis and flat zero line, or
+muted donut with legend — and replaces it with real data when the fetch resolves.
+
+**Actual Behavior**
+The cards displayed "Waiting for graph and chart data..." or "no data" text
+until history existed.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Removed the loading/empty text gate from `AnalyticsChartCard` and the
+unused loading flags from the Analytics screen. Chart components continue to own
+their own empty visuals. This supersedes the placeholder behavior in issue #27.
+
+---
+
+### 54. refactor(analytics): restore per-card controls and watt-based charts
+
+**Summary**
+The four-card Analytics screen used one shared time control, and the Solar and Load charts plotted energy totals instead of the live watt readings shown on the dashboard monitoring cards.
+
+**Steps to Reproduce**
+1. Open Dashboard > Analytics.
+2. Change the view in the Solar Energy card.
+3. Notice that Load Energy, Battery Activity, and Generate Report all changed too.
+4. Look at the Solar and Load vertical axes.
+
+**Expected Behavior**
+Each chart card has its own Daily / Weekly / Monthly / Yearly toggle. Solar plots average solar input in watts, Load plots average current load in watts, and the X axis shows days, weeks, months, or years based on that card's toggle. Generate Report keeps its own chips and date pickers.
+
+**Actual Behavior**
+One shared control drove every card, Solar and Load showed watt-hours, and the chart styling did not match the earlier card layout.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Restored the earlier full-width toggle and chart-card styling inside the current four-card screen. Each card now owns its frequency and rolling window; Solar and Load plot finite Online watt readings from `solar_input` and `current_load`; the report card keeps its independent chips and date range.
+
+---
+
+### 55. feat(admin): make the admin dashboard a live monitoring tool
+
+**Summary**
+The admin area had three tabs with no live chart, no load metric, no freshness
+signal, and a Users tab that could not work against the linked Supabase project.
+
+**Steps to Reproduce**
+1. Sign in as an admin.
+2. Open the admin dashboard and switch tabs.
+
+**Expected Behavior**
+Admins can monitor fleet battery level, solar energy, load consumption, and
+historical data in one role-gated area.
+
+**Actual Behavior**
+Overview showed an empty Fleet Status chart, Reports was a static summary, and
+Users depended on a missing RPC. No admin account existed in the linked project.
+
+**Environment**
+- **Device:** Android, iPhone, and web browser
+- **App Version:** v1.0.0
+
+**Fixed:** Replaced Overview/Users/Reports with Overview and History tabs.
+Overview shows battery, solar, and load KPIs; History adds metric and 24h/7d/30d
+range selectors with a real time-series chart. Added 20s polling with a stale
+banner, targeted Supabase RPCs (`get_admin_fleet_overview`,
+`get_admin_fleet_history`), and a seeded test admin account. The admin is now
+monitoring-only: no household drill-down, exports, or audit surface.
 
 ---
 

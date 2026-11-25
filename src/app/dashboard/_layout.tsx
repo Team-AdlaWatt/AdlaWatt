@@ -3,6 +3,7 @@ import { StatusBar } from "expo-status-bar";
 import { Platform } from "react-native";
 import { useEffect, useRef } from "react";
 
+import { CriticalWarningProvider } from "@/context/CriticalWarningContext";
 import { MonitoringProvider } from "@/context/MonitoringContext";
 import { SettingsProvider } from "@/context/SettingsContext";
 import {
@@ -12,6 +13,7 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { useHouseholdGuard } from "@/hooks/useHouseholdGuard";
 import { useAlertVibration } from "@/hooks/useAlertVibration";
+import NeutralShell from "@/components/ui/NeutralShell";
 import RouteErrorBoundary from "@/components/ui/RouteErrorBoundary";
 import VibrationGuidancePanel from "@/components/guidance/VibrationGuidancePanel";
 import { useLocalReminders } from "@/hooks/useLocalReminders";
@@ -102,7 +104,7 @@ function ThemedDashboard() {
   );
 
   if (!isLoaded || !isSignedIn || !canRenderHousehold) {
-    return null;
+    return <NeutralShell />;
   }
 
   return (
@@ -115,7 +117,9 @@ function ThemedDashboard() {
       )}
       <RouteErrorBoundary>
         <MonitoringProvider>
-          <Slot />
+          <CriticalWarningProvider>
+            <Slot />
+          </CriticalWarningProvider>
         </MonitoringProvider>
       </RouteErrorBoundary>
       <VibrationGuidancePanel />

@@ -8,6 +8,7 @@ import React, {
 import {
   Pressable,
   ScrollView,
+  type ScrollViewInstance,
   StyleSheet,
   Switch,
   View,
@@ -94,7 +95,7 @@ export default function PreferencesScreen() {
     [colors],
   );
 
-  const scrollRef = useRef<ScrollView | null>(
+  const scrollRef = useRef<ScrollViewInstance | null>(
     null,
   );
   const scrollToTop =

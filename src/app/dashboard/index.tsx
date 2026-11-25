@@ -1,4 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
+import {
+  useNavigation,
+  useRouter,
+} from "expo-router";
 
 import React, {
   useCallback,
@@ -9,20 +13,20 @@ import React, {
 } from "react";
 
 import {
-  Animated,
   AppState,
-  Easing,
-  Pressable,
-  ScrollView,
+  BackHandler,
+  type ScrollViewInstance,
   StyleSheet,
   View,
 } from "react-native";
 
 import ActivityCard from "@/components/ActivityCard";
-import AppRecCard from "@/components/AppRecCard";
 import ChartCard from "@/components/ChartCard";
 import PullRefreshScroll from "@/components/PullRefreshScroll";
+import BatteryEnergyCard from "@/components/recommendation/BatteryEnergyCard";
+import BatteryProtectionPanels from "@/components/recommendation/BatteryProtectionPanels";
 import Copyright from "@/components/ui/Copyright";
+import ElectronicsModal from "@/components/forms/ElectronicsModal";
 import NavBar from "@/components/layout/Navbar";
 import ScreenContainer2 from "@/components/layout/ScreenContainer2";
 import AppText from "@/components/ui/AppText";
@@ -30,10 +34,14 @@ import {
   useAppColors,
   type AppColors,
 } from "@/hooks/useAppColors";
+import { useLoadDetection } from "@/hooks/useLoadDetection";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useScrollToTopController } from "@/hooks/useScrollToTopController";
-import { Radius } from "@/constants/theme";
-import { Control, useScreenPadding } from "@/constants/sizing";
+import { Routes } from "@/constants/routes";
+import { useScreenPadding } from "@/constants/sizing";
+import {
+  type ResolvedElectronics,
+} from "@/constants/electronicsCatalog";
 
 import weatherJson from "@/data/weather.json";
 
@@ -49,11 +57,32 @@ import {
   type WeatherData,
   WeatherError,
   getCurrentCoordinates,
+  getLastKnownLocation,
   getWeather,
 } from "@/services/weatherForecast";
 
 import { useMonitoringContext } from "@/context/MonitoringContext";
+import {
+  fetchSelectedElectronics,
+} from "@/services/electronicsService";
+import {
+  type BatteryStateInput,
+} from "@/services/recommendation";
+import {
+  computeBatteryEnergy,
+  computeBatteryEnergyProjection,
+} from "@/services/batteryEnergy";
+import {
+  deriveProtectionState,
+} from "@/services/batteryProtection";
+import {
+  evaluateSelection,
+} from "@/services/recommendationSelection";
 import { formatLastSeen } from "@/utils/monitoringDisplay";
+import {
+  getEstimatedTimeRemaining,
+  MISSING_ETR,
+} from "@/utils/estimatedTimeRemaining";
 import { useConnectivity } from "@/hooks/useConnectivity";
 import { maybeScheduleLowSunAdvisory } from "@/services/reminderService";
 import { useTranslation } from "react-i18next";
@@ -74,19 +103,24 @@ const FORECAST_REFRESH_INTERVAL_MS =
   weatherJson.timing.forecastRefreshMs;
 
 // ============================================================
-// QUICK-NAV SCROLL
-// ============================================================
-
-const QUICK_NAV_SCROLL_MS = 1500;
-const QUICK_NAV_SCROLL_INSET = 12;
-
-// ============================================================
 // DASHBOARD SCREEN
 // ============================================================
+
+type BeforeRemoveNavigation = {
+  addListener: (
+    event: "beforeRemove",
+    handler: (event: {
+      preventDefault: () => void;
+    }) => void,
+  ) => () => void;
+};
 
 export default function DashboardScreen() {
   const { t } = useTranslation();
   const colors = useAppColors();
+  const router = useRouter();
+  const navigation =
+    useNavigation() as unknown as BeforeRemoveNavigation;
 
   // Responsive gutter: 16/20/24 by phone width (UI-STANDARDS.md).
   const screenPadding = useScreenPadding();
@@ -95,31 +129,11 @@ export default function DashboardScreen() {
     () => getStyles(colors),
     [colors],
   );
-  // ==========================================================
-  // QUICK-NAV SCROLL TARGETS
-  // ==========================================================
-
   const scrollRef =
-    useRef<ScrollView>(null);
+    useRef<ScrollViewInstance>(null);
 
   const scrollToTop =
     useScrollToTopController(scrollRef);
-
-  const monitoringRef =
-    useRef<View>(null);
-
-  const electronicsRef =
-    useRef<View>(null);
-
-  const scrollYRef =
-    useRef(0);
-
-  // Stable Animated driver for the 1.5s scroll transition.
-  // useState initializer (not useRef().current) per
-  // react-hooks/refs: ref values must not be read on render.
-  const [scrollOffset] = useState(
-    () => new Animated.Value(0),
-  );
 
   // ==========================================================
   // ADLAWATT MONITORING
@@ -137,7 +151,221 @@ export default function DashboardScreen() {
     cachedAt,
     refresh: refreshMonitoring,
     deviceOnline,
+    dbReadingFresh,
   } = useMonitoringContext();
+
+  const [
+    dashboardElectronics,
+    setDashboardElectronics,
+  ] = useState<ResolvedElectronics[]>([]);
+
+  const [
+    forcedElectronicsModalVisible,
+    setForcedElectronicsModalVisible,
+  ] = useState(false);
+
+  useEffect(() => {
+    if (!forcedElectronicsModalVisible) {
+      return;
+    }
+
+    const removeBeforeRemove = navigation.addListener(
+      "beforeRemove",
+      (event) => {
+        event.preventDefault();
+      },
+    );
+    const backSubscription =
+      BackHandler.addEventListener(
+        "hardwareBackPress",
+        () => true,
+      );
+
+    return () => {
+      removeBeforeRemove();
+      backSubscription.remove();
+    };
+  }, [forcedElectronicsModalVisible, navigation]);
+
+  const reloadDashboardElectronics =
+    useCallback(async () => {
+      try {
+        const items =
+          await fetchSelectedElectronics();
+        setDashboardElectronics(items);
+      } catch {
+        setDashboardElectronics([]);
+      }
+    }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchSelectedElectronics()
+      .then((items) => {
+        if (!cancelled) {
+          setDashboardElectronics(items);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDashboardElectronics([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleLoadConfirmed = useCallback(() => {
+    setForcedElectronicsModalVisible(true);
+  }, []);
+
+  useLoadDetection({
+    loadW: monitoring?.current_load ?? null,
+    lastSeenAt: monitoring?.last_seen ?? null,
+    enabled:
+      Boolean(deviceOnline) &&
+      !stale &&
+      !forcedElectronicsModalVisible,
+    onConfirmed: handleLoadConfirmed,
+  });
+
+  const handleForcedElectronicsDone = useCallback(() => {
+    void reloadDashboardElectronics();
+  }, [reloadDashboardElectronics]);
+
+  const handleForcedCustomChange = useCallback(() => {
+    void reloadDashboardElectronics();
+  }, [reloadDashboardElectronics]);
+
+  const recommendationBattery =
+    useMemo<BatteryStateInput | null>(
+      () =>
+        monitoring
+          ? {
+              soc:
+                monitoring.battery_level ?? 0,
+              voltage:
+                monitoring.voltage ?? 0,
+              remainingWh:
+                monitoring.watt_hours ?? 0,
+              dod:
+                monitoring.dod_status ??
+                undefined,
+              currentLoadW:
+                monitoring.current_load ??
+                undefined,
+            }
+          : null,
+      [monitoring],
+    );
+
+  const combinedRecommendation = useMemo(
+    () =>
+      evaluateSelection(
+        recommendationBattery,
+        dashboardElectronics.map((item) => ({
+          id: item.id,
+          name: item.name,
+          watts: item.display,
+          area: item.area,
+          imageKey:
+            item.source === "catalog"
+              ? item.id
+              : null,
+          imageUrl: item.imageUrl ?? null,
+        })),
+        {
+          deviceOnline: deviceOnline ?? false,
+          readingFresh: dbReadingFresh,
+        },
+      ),
+    [
+      recommendationBattery,
+      dashboardElectronics,
+      deviceOnline,
+      dbReadingFresh,
+    ],
+  );
+
+  const batteryEnergy = useMemo(
+    () =>
+      computeBatteryEnergy({
+        wattHours:
+          monitoring?.watt_hours ?? null,
+        batteryLevel:
+          monitoring?.battery_level ?? null,
+        deviceOnline: deviceOnline ?? false,
+        readingFresh: dbReadingFresh,
+      }),
+    [monitoring, deviceOnline, dbReadingFresh],
+  );
+
+  const energyProjection = useMemo(
+    () =>
+      computeBatteryEnergyProjection({
+        snapshot: batteryEnergy,
+        currentLoadW:
+          monitoring?.current_load ?? null,
+        solarInputW:
+          monitoring?.solar_input ?? null,
+      }),
+    [
+      batteryEnergy,
+      monitoring?.current_load,
+      monitoring?.solar_input,
+    ],
+  );
+
+  const energyTimeRemaining = useMemo(() => {
+    if (
+      !monitoring ||
+      !deviceOnline ||
+      stale ||
+      batteryEnergy.status === "waiting"
+    ) {
+      return MISSING_ETR;
+    }
+
+    return getEstimatedTimeRemaining({
+      batteryStatus:
+        monitoring.battery_status,
+      wattHours: monitoring.watt_hours,
+      batteryLevel: monitoring.battery_level,
+      currentLoad: monitoring.current_load,
+      solarInput: monitoring.solar_input,
+    });
+  }, [
+    batteryEnergy.status,
+    deviceOnline,
+    monitoring,
+    stale,
+  ]);
+
+  const batteryProtection = useMemo(
+    () =>
+      deriveProtectionState({
+        energy: batteryEnergy,
+        voltage:
+          monitoring?.voltage ?? null,
+        dodStatus:
+          monitoring?.dod_status ?? null,
+        currentLoadW:
+          monitoring?.current_load ?? null,
+        selectedBatterySideW:
+          combinedRecommendation.status ===
+          "ready"
+            ? combinedRecommendation.selectedBatterySideW
+            : 0,
+      }),
+    [
+      batteryEnergy,
+      combinedRecommendation,
+      monitoring,
+    ],
+  );
 
   // Phone-side connectivity (distinct from device status):
   // offline shows the cached readings plus a banner instead
@@ -338,7 +566,9 @@ export default function DashboardScreen() {
         }
 
         const fix =
-          coordinates ?? (await getCurrentCoordinates());
+          coordinates ??
+          getLastKnownLocation() ??
+          (await getCurrentCoordinates());
 
         const result = await getForecast(
           fix.lat,
@@ -501,12 +731,11 @@ export default function DashboardScreen() {
   useEffect(() => {
     screenMounted.current = true;
 
-    // Initial fetch: setState lands in the async
-    // loadWeather/loadForecast continuations.
+    // Initial fetch: one GPS fix is shared by the current
+    // weather and forecast legs so both describe the same
+    // resolved place.
     // eslint-disable-next-line react-hooks/set-state-in-effect -- mount + interval weather fetch is the effect's purpose
-    loadWeather();
-
-    loadForecast();
+    void fetchFreshWeatherSession();
 
     // Keep the temperature from staying frozen by
     // re-fetching on fixed intervals: live weather every
@@ -537,17 +766,21 @@ export default function DashboardScreen() {
             return;
           }
 
-          loadWeather();
-
           const last = lastFetchRef.current;
 
-          if (
+          const shouldRefreshForecast =
             last === null ||
             Date.now() - last >
-              FORECAST_REFRESH_INTERVAL_MS
-          ) {
-            loadForecast();
-          }
+              FORECAST_REFRESH_INTERVAL_MS;
+
+          void loadWeather().finally(() => {
+            if (
+              shouldRefreshForecast &&
+              screenMounted.current
+            ) {
+              void loadForecast();
+            }
+          });
         },
       );
 
@@ -560,83 +793,7 @@ export default function DashboardScreen() {
 
       foregroundSub.remove();
     };
-  }, [loadForecast, loadWeather]);
-
-  // ==========================================================
-  // SMOOTH SCROLL-TO-SECTION
-  // ==========================================================
-
-  // Drive the ScrollView with an Animated.Value so the
-  // scroll transition can run for a fixed 1.5s duration.
-  useEffect(() => {
-    const scrollListenerId =
-      scrollOffset.addListener(
-        ({ value }) => {
-          scrollRef.current?.scrollTo({
-            y: value,
-            animated: false,
-          });
-        },
-      );
-
-    return () => {
-      scrollOffset.removeListener(
-        scrollListenerId,
-      );
-    };
-  }, [scrollOffset]);
-
-  const scrollToSection = (
-    sectionRef: React.RefObject<View | null>,
-  ) => {
-    const section = sectionRef.current;
-    const scroll = scrollRef.current;
-
-    if (!section || !scroll) {
-      return;
-    }
-
-    const nativeScroll =
-      scroll.getNativeScrollRef();
-
-    if (!nativeScroll) {
-      return;
-    }
-
-    // Measure both views in window coordinates so the
-    // target scroll offset stays correct no matter the
-    // current scroll position, on native and web.
-    section.measureInWindow(
-      (_sx, sectionWindowY) => {
-        nativeScroll.measureInWindow(
-          (_fx, scrollWindowY) => {
-            const target = Math.max(
-              sectionWindowY -
-                scrollWindowY +
-                scrollYRef.current -
-                QUICK_NAV_SCROLL_INSET,
-              0,
-            );
-
-            scrollOffset.setValue(
-              scrollYRef.current,
-            );
-
-            Animated.timing(scrollOffset, {
-              toValue: target,
-              duration:
-                QUICK_NAV_SCROLL_MS,
-              easing:
-                Easing.inOut(
-                  Easing.cubic,
-                ),
-              useNativeDriver: false,
-            }).start();
-          },
-        );
-      },
-    );
-  };
+  }, [fetchFreshWeatherSession, loadForecast, loadWeather]);
 
   // ==========================================================
   // RENDER
@@ -662,12 +819,7 @@ export default function DashboardScreen() {
           { paddingHorizontal: screenPadding },
         ]}
         showsVerticalScrollIndicator={false}
-        onScroll={(event) => {
-          scrollYRef.current =
-            event.nativeEvent.contentOffset.y;
-
-          scrollToTop.reportScroll(event);
-        }}
+        onScroll={scrollToTop.reportScroll}
         scrollEventThrottle={16}
         refreshing={sessionRefreshing}
         onRefresh={onPullRefresh}
@@ -697,44 +849,6 @@ export default function DashboardScreen() {
           >
             {t("dashboard.home.subtitle")}
           </AppText>
-        </View>
-
-        {/* ==================================================
-            QUICK NAV BUTTONS
-            ================================================== */}
-
-        <View
-          style={styles.quickNavRow}
-        >
-          <Pressable
-            onPress={() =>
-              scrollToSection(
-                electronicsRef,
-              )
-            }
-            accessibilityRole="button"
-            accessibilityLabel={t(
-              "dashboard.home.goToElectronicsRecommendation",
-            )}
-            style={({ pressed }) => [
-              styles.quickNavButton,
-              pressed &&
-              styles.quickNavButtonPressed,
-            ]}
-          >
-            <AppText
-              variant="caption"
-              style={styles.quickNavButtonText}
-            >
-              {t("dashboard.home.electronicsRecommendation")}
-            </AppText>
-
-            <Ionicons
-              name="arrow-forward"
-              size={16}
-              color={colors.onPrimary}
-            />
-          </Pressable>
         </View>
 
         {/* ==================================================
@@ -777,12 +891,20 @@ export default function DashboardScreen() {
           </View>
         ) : null}
 
+        <BatteryProtectionPanels
+          protection={batteryProtection}
+          usableWh={batteryEnergy.usableWh}
+          usablePercent={batteryEnergy.usablePercent}
+          onCriticalReview={() =>
+            router.push(Routes.ELECTRONICS)
+          }
+        />
+
         {/* ==================================================
             REAL-TIME MONITORING
             ================================================== */}
 
         <View
-          ref={monitoringRef}
           style={styles.section}
         >
           <AppText
@@ -820,6 +942,27 @@ export default function DashboardScreen() {
               />
             </View>
 
+            <View
+              style={styles.fullWidthCard}
+            >
+              <BatteryEnergyCard
+                snapshot={batteryEnergy}
+                evaluation={combinedRecommendation}
+                liveNetLoadW={
+                  energyProjection.liveNetLoadW
+                }
+                projectedDrainWh={
+                  energyProjection.projectedDrainWh
+                }
+                remainingAfterLoadWh={
+                  energyProjection.remainingAfterLoadWh
+                }
+                timeRemainingLabel={
+                  energyTimeRemaining
+                }
+              />
+            </View>
+
             {/* ==============================================
                 BATTERY MONITORING
 
@@ -827,6 +970,7 @@ export default function DashboardScreen() {
                 - Voltage
                 - Watt-hour
                 - Load Now
+                - Interior
 
                 Only "voltage" is passed here because
                 ChartCard.tsx uses it as the grouped
@@ -852,6 +996,7 @@ export default function DashboardScreen() {
                 - Solar Voltage
                 - Solar Current
                 - Total Energy
+                - Solar Panel Temperature
                 ============================================== */}
 
             <View
@@ -896,50 +1041,6 @@ export default function DashboardScreen() {
         </View>
 
         {/* ==================================================
-            APPLIANCE RECOMMENDATION
-            ================================================== */}
-
-        <View
-          ref={electronicsRef}
-          style={styles.section}
-        >
-          <AppText
-            variant="body"
-            style={styles.sectionTitle}
-          >
-            {t("dashboard.home.electronicsRecommendation")}
-          </AppText>
-
-          <AppRecCard
-            battery={
-              monitoring
-                ? {
-                    soc:
-                      monitoring.battery_level ?? 0,
-                    voltage:
-                      monitoring.voltage ?? 0,
-                    remainingWh:
-                      monitoring.watt_hours ?? 0,
-                    dod:
-                      monitoring.dod_status ??
-                      undefined,
-                    currentLoadW:
-                      monitoring.current_load ??
-                      undefined,
-                    lastUpdated:
-                      deviceOnline &&
-                      monitoring.last_seen
-                        ? Date.parse(
-                            monitoring.last_seen,
-                          )
-                        : null,
-                  }
-                : undefined
-            }
-          />
-        </View>
-
-        {/* ==================================================
             RECENT ACTIVITY
             ================================================== */}
 
@@ -955,6 +1056,32 @@ export default function DashboardScreen() {
 
         <Copyright />
       </PullRefreshScroll>
+
+      <ElectronicsModal
+        visible={forcedElectronicsModalVisible}
+        mode="forced"
+        onClose={() =>
+          setForcedElectronicsModalVisible(false)
+        }
+        onDone={handleForcedElectronicsDone}
+        onCustomAdd={handleForcedCustomChange}
+        onCustomUpdate={handleForcedCustomChange}
+        onCustomDelete={handleForcedCustomChange}
+        selectedElectronics={dashboardElectronics.map(
+          (item) => ({
+            id: item.id,
+            name: item.name,
+            watts: item.display,
+            area: item.area,
+            imageUrl: item.imageUrl ?? null,
+          }),
+        )}
+        batteryState={recommendationBattery}
+        deviceOnline={deviceOnline ?? false}
+        reserveBlocked={
+          energyProjection.exceedsUsableEnergy
+        }
+      />
 
       </ScreenContainer2>
   );
@@ -1036,35 +1163,6 @@ const getStyles = (colors: AppColors) =>
     color:
       colors.severity.elevated.text,
     marginTop: 2,
-  },
-
-  quickNavRow: {
-    width: "100%",
-    alignItems: "center",
-    gap: 10,
-    marginBottom: 18,
-  },
-
-  quickNavButton: {
-    width: "100%",
-    maxWidth: 360,
-    minHeight: Control.button,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    backgroundColor: colors.primary,
-    borderRadius: Radius.md,
-  },
-
-  quickNavButtonText: {
-    color: colors.onPrimary,
-    fontSize: 16,
-    fontWeight: "700",
-  },
-
-  quickNavButtonPressed: {
-    backgroundColor: colors.primaryPressed,
   },
 
   section: {

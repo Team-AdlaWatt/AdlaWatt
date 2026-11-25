@@ -15,7 +15,7 @@
 -- Test account (create via app Register or Dashboard Auth, then
 -- confirm email; this UPDATE is a harmless no-op until it exists):
 --   email:    admin_test@adlawatt.test
---   username: adlawatt_admin
+--   username: admin
 --   password: (set at creation, never stored here)
 
 alter table public.users

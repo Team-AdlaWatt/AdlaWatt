@@ -12,7 +12,10 @@ import {
   getAuthenticatedUserSafe,
   supabase,
 } from "@/lib/supabase";
-import { withTimeout } from "@/lib/withTimeout";
+import {
+  DEFAULT_REQUEST_TIMEOUT_MS,
+  withTimeout,
+} from "@/lib/withTimeout";
 import { requestManager, RequestManager } from "@/services/requestManager";
 import { memoryCache, CACHE_TTL } from "@/services/memoryCache";
 import {
@@ -20,6 +23,8 @@ import {
   type ResilientSubscription,
 } from "@/services/realtimeResubscribe";
 import {
+  MONITORING_COLUMNS,
+  MONITORING_RAW_TO_UI,
   MONITORING_SCHEMA_VERSION,
   MONITORING_SELECT,
   getMissingMonitoringColumns,
@@ -34,7 +39,10 @@ import {
   type SolarStatus,
   type TemperatureStatus,
 } from "@/services/monitoringSchema";
-import { isDeviceOnline } from "@/utils/monitoringDisplay";
+import {
+  isDeviceOnline,
+  monitoringLastSeenMs,
+} from "@/utils/monitoringDisplay";
 
 export type {
   BatteryStatus,
@@ -105,6 +113,25 @@ const monitoringMemoryKey = (
   userId: string,
 ): string =>
   `monitoring:v${MONITORING_SCHEMA_VERSION}:${userId}`;
+
+const writeMonitoringCache = (
+  userId: string,
+  data: MonitoringData,
+): void => {
+  const key = monitoringMemoryKey(userId);
+  const cached = memoryCache.get<MonitoringData>(key);
+
+  if (
+    cached &&
+    monitoringLastSeenMs(data) <
+      monitoringLastSeenMs(cached)
+  ) {
+    return;
+  }
+
+  memoryCache.set(key, data, CACHE_TTL.MONITORING);
+  void saveCachedMonitoring(data, userId);
+};
 
 interface CachedMonitoring {
   schemaVersion: typeof MONITORING_SCHEMA_VERSION;
@@ -214,6 +241,70 @@ export const clearMonitoringSessionCache = (
     return;
   }
   monitorIdByUser.clear();
+};
+
+export type ProvisioningMonitorAssignment =
+  | { status: "found"; monitorId: number }
+  | { status: "not_found" }
+  | { status: "ambiguous" }
+  | { status: "invalid" }
+  | { status: "query_failed" }
+  | { status: "session_expired" };
+
+export const resolveProvisioningMonitorIdForUser = async (
+  userId?: string,
+): Promise<ProvisioningMonitorAssignment> => {
+  const trimmedUserId = userId?.trim();
+
+  const resolvedUserId =
+    trimmedUserId ||
+    (await getAuthenticatedUserSafe())?.id ||
+    null;
+
+  if (!resolvedUserId) {
+    return { status: "session_expired" };
+  }
+
+  const response = await withTimeout(
+    supabase
+      .from("monitoring")
+      .select("monitor_id")
+      .eq("user_id", resolvedUserId)
+      .limit(2),
+    DEFAULT_REQUEST_TIMEOUT_MS,
+    "Monitoring assignment lookup timed out.",
+  ).catch(() => ({
+    data: null,
+    error: { message: "timeout" },
+  }));
+
+  const { data, error } = response;
+
+  if (error) {
+    return { status: "query_failed" };
+  }
+
+  if (!Array.isArray(data) || data.length === 0) {
+    return { status: "not_found" };
+  }
+
+  if (data.length > 1) {
+    return { status: "ambiguous" };
+  }
+
+  const record = data[0] as { monitor_id?: unknown } | null;
+  const raw = record?.monitor_id;
+  const monitorId = typeof raw === "number" ? raw : NaN;
+
+  if (
+    !Number.isInteger(monitorId) ||
+    monitorId <= 0 ||
+    monitorId > 0xffffffff
+  ) {
+    return { status: "invalid" };
+  }
+
+  return { status: "found", monitorId };
 };
 
 // Back-compat export: resolve monitor_id for callers that need it.
@@ -369,6 +460,7 @@ export const fetchMonitoringRow = async (
 export const getMonitoringData = async (
   options: {
     forceRefresh?: boolean;
+    bypassCache?: boolean;
   } = {},
 ): Promise<MonitoringData | null> => {
   const totalStart = perfNow();
@@ -388,8 +480,10 @@ export const getMonitoringData = async (
   const cacheKey = monitoringMemoryKey(user.id);
 
   // Fast path: serve in-memory cache before any extra network
-  // work. Pull-to-refresh/explicit callers can force a refetch.
-  if (!options.forceRefresh) {
+  // work. Callers converging on the latest DB row skip it, but
+  // keep the cached value in place so a slower, stale response
+  // cannot overwrite fresher data (writeMonitoringCache below).
+  if (!options.forceRefresh && !options.bypassCache) {
     const cached = memoryCache.get<MonitoringData>(cacheKey);
     if (cached) {
       perfLog("fetch", {
@@ -399,8 +493,6 @@ export const getMonitoringData = async (
       });
       return cached;
     }
-  } else {
-    memoryCache.delete(cacheKey);
   }
 
   // Coalesce the full aligned fetch (single RTT by user_id).
@@ -427,13 +519,7 @@ export const getMonitoringData = async (
       const normalized = normalizeMonitoringRow(row);
       const normalizeMs = roundMs(perfNow() - normalizeStart);
 
-      memoryCache.set(
-        cacheKey,
-        normalized,
-        CACHE_TTL.MONITORING,
-      );
-
-      void saveCachedMonitoring(normalized, user.id);
+      writeMonitoringCache(user.id, normalized);
 
       perfLog("fetch", {
         result: "network",
@@ -455,7 +541,7 @@ export const getMonitoringData = async (
 
 export const getDeviceStatus = async (): Promise<DeviceStatus> => {
   const data = await getMonitoringData();
-  return isDeviceOnline(data?.last_seen, data?.device_status)
+  return isDeviceOnline(data?.device_status)
     ? "Online"
     : "Offline";
 };
@@ -468,8 +554,58 @@ type MonitoringSubscriptionHandle =
   | ResilientSubscription
   | null;
 
+type MonitoringRealtimeUpdate =
+  | { kind: "full"; data: MonitoringData | null }
+  | { kind: "partial"; raw: Record<string, unknown> };
+
+const mergePartialMonitoringUpdate = (
+  current: MonitoringData | null,
+  raw: Record<string, unknown>,
+): MonitoringData | null => {
+  if (!current) {
+    return null;
+  }
+
+  const partialRaw: Record<string, unknown> = {};
+
+  for (const column of MONITORING_COLUMNS) {
+    if (
+      Object.prototype.hasOwnProperty.call(raw, column) &&
+      raw[column] !== undefined
+    ) {
+      partialRaw[column] = raw[column];
+    }
+  }
+
+  if (Object.keys(partialRaw).length === 0) {
+    return current;
+  }
+
+  const normalized =
+    normalizeMonitoringRow(partialRaw);
+
+  const merged = {
+    ...current,
+  } as Record<string, unknown>;
+
+  const rawToUi = MONITORING_RAW_TO_UI as Record<
+    string,
+    keyof MonitoringData
+  >;
+
+  for (const column of Object.keys(partialRaw)) {
+    const field = rawToUi[column];
+
+    if (field) {
+      merged[field] = normalized[field];
+    }
+  }
+
+  return merged as unknown as MonitoringData;
+};
+
 export const subscribeToMonitoring = async (
-  onChange: (data: MonitoringData | null) => void,
+  onChange: (update: MonitoringRealtimeUpdate) => void,
   options?: {
     onSubscribed?: () => void;
   },
@@ -506,35 +642,50 @@ export const subscribeToMonitoring = async (
           }
 
           if (payload.eventType === "DELETE") {
-            onChange(null);
+            onChange({ kind: "full", data: null });
             return;
           }
 
-          if (!payload.new || !isMonitoringRow(payload.new)) {
-            console.error(
-              "[monitoring] Realtime payload is missing columns; refetching:",
-              getMissingMonitoringColumns(payload.new),
-            );
-            void getMonitoringData({ forceRefresh: true }).then(
-              (fresh) => {
-                if (fresh) {
-                  onChange(fresh);
-                }
-              },
+          const incoming =
+            payload.new as Record<string, unknown> | null;
+
+          if (incoming && isMonitoringRow(incoming)) {
+            const normalized =
+              normalizeMonitoringRow(incoming);
+            writeMonitoringCache(userId, normalized);
+            onChange({ kind: "full", data: normalized });
+            return;
+          }
+
+          const partialRaw: Record<string, unknown> = {};
+
+          if (incoming) {
+            for (const column of MONITORING_COLUMNS) {
+              if (
+                Object.prototype.hasOwnProperty.call(
+                  incoming,
+                  column,
+                ) &&
+                incoming[column] !== undefined
+              ) {
+                partialRaw[column] = incoming[column];
+              }
+            }
+          }
+
+          if (Object.keys(partialRaw).length === 0) {
+            // UPDATE events only carry changed columns unless the
+            // table uses REPLICA IDENTITY FULL. An update to a
+            // column outside the 25-column contract is expected,
+            // not a reason to refetch the whole row.
+            console.debug(
+              "[monitoring] Ignoring realtime payload with no known columns:",
+              payload.eventType,
             );
             return;
           }
 
-          const normalized = normalizeMonitoringRow(payload.new);
-          memoryCache.set(
-            monitoringMemoryKey(userId),
-            normalized,
-            CACHE_TTL.MONITORING,
-          );
-          void saveCachedMonitoring(normalized, userId);
-          // Emit latest table values immediately (including when
-          // hardware becomes active / ESP32S3 Status is Online).
-          onChange(normalized);
+          onChange({ kind: "partial", raw: partialRaw });
         },
       ),
     isAlive: () => true,
@@ -580,9 +731,9 @@ export const subscribeToDeviceStatus = async (
           }
 
           const next = payload.new as Record<string, unknown> | null;
+
           onChange(
             isDeviceOnline(
-              next?.["ESP32S3 Last seen"] as string | null | undefined,
               next?.["ESP32S3 Status"] as string | null | undefined,
             )
               ? "Online"
@@ -666,12 +817,76 @@ export const useMonitoring =
       setCachedAt,
     ] = useState<number | null>(null);
 
+    const [error, setError] = useState(false);
+
     // Mount + in-flight guards for the manual refresh()
     // below. The mount effect's `mounted` flag is closure-
     // local to that effect, so refresh() needs its own.
     const mountedRef = useRef(true);
 
     const refreshInflightRef = useRef(false);
+
+    const sequenceRef = useRef(0);
+
+    const appliedSequenceRef = useRef(0);
+
+    const monitoringRef = useRef<
+      MonitoringData | null
+    >(null);
+
+    const backgroundRefreshInflightRef = useRef(false);
+
+    const nextSequence = useCallback(
+      () => {
+        sequenceRef.current += 1;
+
+        return sequenceRef.current;
+      },
+      [],
+    );
+
+    const applyMonitoringSnapshot = useCallback(
+      (
+        data: MonitoringData | null,
+        sequence: number,
+        meta: {
+          stale: boolean;
+          savedAt?: number | null;
+        },
+      ) => {
+        if (
+          !mountedRef.current ||
+          sequence < appliedSequenceRef.current
+        ) {
+          return false;
+        }
+
+        const current = monitoringRef.current;
+
+        // Sequence measures call order, not data freshness. A
+        // slow refetch can resolve after a newer realtime row;
+        // never let its older heartbeat roll the UI backwards.
+        if (
+          data &&
+          current &&
+          monitoringLastSeenMs(data) <
+            monitoringLastSeenMs(current)
+        ) {
+          return false;
+        }
+
+        appliedSequenceRef.current = sequence;
+        monitoringRef.current = data;
+
+        setMonitoring(data);
+        setStale(meta.stale);
+        setCachedAt(meta.savedAt ?? Date.now());
+        setError(false);
+
+        return true;
+      },
+      [],
+    );
 
     useEffect(
       () => {
@@ -696,6 +911,8 @@ export const useMonitoring =
 
         refreshInflightRef.current = true;
 
+        const sequence = nextSequence();
+
         try {
           const data =
             await getMonitoringData({
@@ -709,13 +926,15 @@ export const useMonitoring =
           }
 
           if (data) {
-            setMonitoring(data);
-
-            setStale(false);
-
-            setCachedAt(Date.now());
+            applyMonitoringSnapshot(data, sequence, {
+              stale: false,
+            });
           }
         } catch (error) {
+          if (mountedRef.current) {
+            setError(true);
+          }
+
           console.warn(
             "Monitoring refresh failed:",
             error instanceof Error
@@ -726,7 +945,7 @@ export const useMonitoring =
           refreshInflightRef.current = false;
         }
       },
-      [],
+      [applyMonitoringSnapshot, nextSequence],
     );
 
     useEffect(
@@ -739,22 +958,38 @@ export const useMonitoring =
         let activeUserId: string | null = null;
 
         const refetchLatest = async () => {
+          if (backgroundRefreshInflightRef.current) {
+            return;
+          }
+
+          backgroundRefreshInflightRef.current = true;
+          const sequence = nextSequence();
+
           try {
+            // Skip the cached read, but keep request coalescing
+            // and the existing cache value until the fresher
+            // row has actually arrived.
             const data = await getMonitoringData({
-              forceRefresh: true,
+              bypassCache: true,
             });
             if (!mounted) return;
             if (data) {
-              setMonitoring(data);
-              setStale(false);
-              setCachedAt(Date.now());
+              applyMonitoringSnapshot(data, sequence, {
+                stale: false,
+              });
               painted = true;
             }
           } catch (error) {
+            if (mounted) {
+              setError(true);
+            }
+
             console.warn(
               "Monitoring refetch failed:",
               error instanceof Error ? error.message : error,
             );
+          } finally {
+            backgroundRefreshInflightRef.current = false;
           }
         };
 
@@ -767,12 +1002,24 @@ export const useMonitoring =
               activeUserId,
             );
 
-            if (mounted && cached) {
-              setMonitoring(cached.data);
-              setStale(true);
-              setCachedAt(cached.savedAt);
+            const cachedSequence = nextSequence();
+
+            if (
+              mounted &&
+              cached &&
+              applyMonitoringSnapshot(
+                cached.data,
+                cachedSequence,
+                {
+                  stale: true,
+                  savedAt: cached.savedAt,
+                },
+              )
+            ) {
               painted = true;
             }
+
+            const liveSequence = nextSequence();
 
             const data = await getMonitoringData();
 
@@ -781,30 +1028,77 @@ export const useMonitoring =
             }
 
             if (data) {
-              setMonitoring(data);
-              setStale(false);
-              setCachedAt(Date.now());
-              painted = true;
-            } else if (!cached) {
+              if (
+                applyMonitoringSnapshot(data, liveSequence, {
+                  stale: false,
+                })
+              ) {
+                painted = true;
+              }
+            } else if (liveSequence >= appliedSequenceRef.current) {
+              monitoringRef.current = null;
               setMonitoring(null);
+
+              if (!cached) {
+                setError(true);
+              }
             }
 
             channel = await subscribeToMonitoring(
-              (updatedData) => {
+              (update) => {
                 if (!mounted) {
                   return;
                 }
 
-                setMonitoring(updatedData);
+                const sequence = nextSequence();
 
-                if (updatedData) {
-                  setStale(false);
-                  setCachedAt(Date.now());
+                if (update.kind === "full") {
+                  if (
+                    applyMonitoringSnapshot(
+                      update.data,
+                      sequence,
+                      { stale: false },
+                    )
+                  ) {
+                    painted = true;
+
+                    if (update.data && activeUserId) {
+                      writeMonitoringCache(
+                        activeUserId,
+                        update.data,
+                      );
+                    }
+                  }
+
+                  return;
+                }
+
+                const merged =
+                  mergePartialMonitoringUpdate(
+                    monitoringRef.current,
+                    update.raw,
+                  );
+
+                if (!merged) {
+                  // A partial cannot be merged without a current
+                  // row (e.g. realtime arrived before the first
+                  // fetch). One coalesced refetch fills the gap;
+                  // subsequent partials just merge normally.
+                  void refetchLatest();
+                  return;
+                }
+
+                if (
+                  applyMonitoringSnapshot(
+                    merged,
+                    sequence,
+                    { stale: false },
+                  )
+                ) {
+                  painted = true;
+
                   if (activeUserId) {
-                    void saveCachedMonitoring(
-                      updatedData,
-                      activeUserId,
-                    );
+                    writeMonitoringCache(activeUserId, merged);
                   }
                 }
               },
@@ -817,9 +1111,6 @@ export const useMonitoring =
                 },
               },
             );
-
-            // Extra convergence fetch right after subscribe setup.
-            void refetchLatest();
           } catch (error) {
             console.error(
               "Unexpected monitoring error:",
@@ -827,7 +1118,15 @@ export const useMonitoring =
             );
 
             if (mounted && !painted) {
-              setMonitoring(null);
+              const sequence = nextSequence();
+
+              applyMonitoringSnapshot(null, sequence, {
+                stale: false,
+              });
+            }
+
+            if (mounted) {
+              setError(true);
             }
           } finally {
             if (mounted) {
@@ -853,7 +1152,7 @@ export const useMonitoring =
           unsubscribeFromMonitoring(channel);
         };
       },
-      [],
+      [applyMonitoringSnapshot, nextSequence],
     );
 
     return {
@@ -861,6 +1160,7 @@ export const useMonitoring =
       loading,
       stale,
       cachedAt,
+      error,
       refresh,
     };
   };
